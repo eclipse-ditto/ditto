@@ -292,7 +292,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                         reportThingUnavailable(retrieveThing.getThingId(), retrieveThing.getDittoHeaders(), sender);
                     } else {
                         reportUnexpectedErrorOrResponse("retrieving thing for ACL migration",
-                                sender, response, error);
+                                sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return null;
                 });
@@ -355,7 +355,8 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         PatternsCS.ask(thingsShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error);
+                        reportUnexpectedError("before building JsonView", sender, error,
+                                commandWithReadSubjects.getDittoHeaders());
                     } else if (response instanceof ThingQueryCommandResponse) {
                         reportJsonViewForThingQuery(sender, (ThingQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
@@ -363,7 +364,8 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                     } else if (response instanceof AskTimeoutException) {
                         reportTimeoutForThingQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
                     } else {
-                        reportUnknownResponse("before building JsonView", sender, response);
+                        reportUnknownResponse("before building JsonView", sender, response,
+                                commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
                 });
@@ -432,7 +434,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                         reportThingUnavailable(retrieveThing.getThingId(), retrieveThing.getDittoHeaders(), sender);
                     } else {
                         reportUnexpectedErrorOrResponse("retrieving thing before inlined policy",
-                                sender, response, error);
+                                sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return Optional.empty();
                 });
@@ -1112,7 +1114,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final String hint =
                     String.format("creating initial policy during creation of Thing <%s>",
                             createThing.getThingId());
-            reportUnexpectedErrorOrResponse(hint, sender, policyResponse, policyError);
+            reportUnexpectedErrorOrResponse(hint, sender, policyResponse, policyError, createThing.getDittoHeaders());
         }
 
         return Optional.empty();
@@ -1139,7 +1141,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             final String hint =
                     String.format("after creating initial policy during creation of Thing <%s>",
                             createThing.getThingId());
-            reportUnexpectedErrorOrResponse(hint, sender, thingResponse, thingError);
+            reportUnexpectedErrorOrResponse(hint, sender, thingResponse, thingError, createThing.getDittoHeaders());
         }
 
         return null;

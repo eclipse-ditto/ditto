@@ -80,33 +80,34 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     protected void reportUnexpectedErrorOrResponse(final String hint,
             final ActorRef sender,
             final Object response,
-            final Throwable error) {
+            final Throwable error,
+            final DittoHeaders dittoHeaders) {
 
         if (error != null) {
-            reportUnexpectedError(hint, sender, error);
+            reportUnexpectedError(hint, sender, error, dittoHeaders);
         } else {
-            reportUnknownResponse(hint, sender, response);
+            reportUnknownResponse(hint, sender, response, dittoHeaders);
         }
     }
 
     /**
      * Report unknown error.
      */
-    protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error) {
+    protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error,
+            final DittoHeaders dittoHeaders) {
         log().error(error, "Unexpected error {}", hint);
 
-        // TODO CR-5400: set headers.
-        sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
+        sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
     }
 
     /**
      * Report unknown response.
      */
-    protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response) {
+    protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response,
+            final DittoHeaders dittoHeaders) {
         log().error("Unexpected response {}: <{}>", hint, response);
 
-        // TODO CR-5400: set headers.
-        sender.tell(GatewayInternalErrorException.newBuilder().build(), self());
+        sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
     }
 
     /**
