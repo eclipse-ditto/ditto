@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.services.utils.akka.controlflow.components.ActivityChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -37,7 +38,8 @@ public final class EnforcerActor {
     private static final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
 
     /**
-     * Creates Akka configuration object Props for this EnforcerActor.
+     * Creates Akka configuration object Props for this EnforcerActor. Caution: The actor does not terminate itself
+     * after a period of inactivity.
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
@@ -46,7 +48,7 @@ public final class EnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders) {
 
-        return props(pubSubMediator, enforcementProviders, null);
+        return props(pubSubMediator, enforcementProviders, null, null);
     }
 
     /**
@@ -55,11 +57,13 @@ public final class EnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
+     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
+            @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable Duration activityCheckInterval) {
 
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
@@ -69,6 +73,7 @@ public final class EnforcerActor {
                     new Enforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
 
             return Flow.<WithSender>create()
+                    .via(ActivityChecker.ofNullable(activityCheckInterval, actorContext.self()))
                     .via(PreEnforcer.fromFunction(actorContext.self(), preEnforcerFunction))
                     .via(Pipe.joinFlows(enforcementProviders.stream()
                             .map(provider -> provider.toGraph(enforcementContext))

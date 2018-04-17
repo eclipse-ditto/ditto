@@ -98,7 +98,10 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
-        final Props enforcerProps = EnforcerActor.props(pubSubMediator, enforcementProviders);
+        // set activity check interval identical to cache retention
+        final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
+        final Props enforcerProps =
+                EnforcerActor.props(pubSubMediator, enforcementProviders, null, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
