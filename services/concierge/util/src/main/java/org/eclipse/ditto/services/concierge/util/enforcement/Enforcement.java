@@ -111,16 +111,16 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     }
 
     /**
-     * Extend a signal by read-subjects header given by an enforcer.
+     * Extend a signal by read-subjects header given by an enforcer for the resource type {@code things}.
      *
      * @param signal the signal to extend.
      * @param enforcer the enforcer.
      * @return the extended signal.
      */
-    protected static <T extends Signal> T addReadSubjectsToSignal(final Signal<T> signal,
+    protected static <T extends Signal> T addReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        return addReadSubjectsToSignal(signal, getReadSubjects(signal, enforcer));
+        return addReadSubjectsToSignal(signal, getThingsReadSubjects(signal, enforcer));
     }
 
     /**
@@ -143,13 +143,13 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
     }
 
     /**
-     * Get read subjects from an enforcer.
+     * Get read subjects from an enforcer for the resource type {@code things}.
      *
      * @param signal the signal to get read subjects for.
      * @param enforcer the enforcer.
      * @return read subjects of the signal.
      */
-    protected static Set<String> getReadSubjects(final Signal<?> signal, final Enforcer enforcer) {
+    protected static Set<String> getThingsReadSubjects(final Signal<?> signal, final Enforcer enforcer) {
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(ThingCommand.RESOURCE_TYPE, signal.getResourcePath());
         return enforcer.getSubjectIdsWithPermission(resourceKey, Permission.READ).getGranted();

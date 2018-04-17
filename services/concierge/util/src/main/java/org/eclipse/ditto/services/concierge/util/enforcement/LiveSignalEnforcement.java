@@ -90,7 +90,7 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
             if (enforcerEntry.exists()) {
                 final Signal<?> generifiedSignal = (Signal) signal;
                 final Signal<?> signalWithReadSubjects =
-                        addReadSubjectsToSignal(generifiedSignal, enforcerEntry.getValue());
+                        addReadSubjectsToThingSignal(generifiedSignal, enforcerEntry.getValue());
                 replyToSender(signalWithReadSubjects, sender);
             } else {
                 // drop live command to nonexistent things and respond with error.

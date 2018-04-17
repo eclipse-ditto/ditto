@@ -113,7 +113,7 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
         if (isAuthorized(command, enforcer)) {
             final DittoHeaders headersWithReadSubjects = command.getDittoHeaders()
                     .toBuilder()
-                    .readSubjects(getReadSubjects(command, enforcer))
+                    .readSubjects(getThingsReadSubjects(command, enforcer))
                     .build();
 
             final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
