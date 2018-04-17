@@ -21,6 +21,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
@@ -98,7 +100,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingsAggregatorActor create() throws Exception {
+            public ThingsAggregatorActor create() {
                 return new ThingsAggregatorActor(targetActor);
             }
         }).withDispatcher("aggregator-internal-dispatcher");
@@ -146,7 +148,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 resultReceiver);
     }
 
-    private void retrieveThingsAndSendResult(final List<String> thingIds, final JsonFieldSelector selectedFields,
+    private void retrieveThingsAndSendResult(final List<String> thingIds,
+            @Nullable final JsonFieldSelector selectedFields,
             final Command command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Option<String> token =

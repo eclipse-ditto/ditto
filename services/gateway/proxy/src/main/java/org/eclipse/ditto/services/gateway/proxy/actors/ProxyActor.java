@@ -43,7 +43,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ProxyActor create() throws Exception {
+            public ProxyActor create() {
                 return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeShardRegion);
             }
         });
