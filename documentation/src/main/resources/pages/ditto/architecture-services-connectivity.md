@@ -17,6 +17,9 @@ The "connectivity" service enables Ditto to establish and manage client-side con
  You can communicate with your connected things/twins over those connections via [Ditto Protocol] messages. The 
  connectivity service supports varying transport protocols, which are bound to the [Ditto Protocol] via specific 
  [Protocol Bindings].
+ 
+If you don't have the option to transform your payload to a [Ditto Protocol Message] on the client-side, the 
+connectivity service offers a flexible and customizable [payload mapping] on top.
 
 ## Model
 
@@ -47,6 +50,7 @@ and restore persisted entities.
 * restore existing connections upon restart/failover
 * translate incoming [Ditto Protocol] messages to [commands](basic-signals-command.html)
   and translate [command responses](basic-signals-commandresponse.html) back to [Ditto Protocol] response messages
+* map custom message protocols to the [Ditto Protocol]
 
 
 
@@ -54,4 +58,6 @@ and restore persisted entities.
   
 [AMQP 1.0]: protocol-bindings-amqp10.html
 [Ditto Protocol]: protocol-overview.html
+[Ditto Protocol Message]: protocol-specification-things-messages.html
+[payload mapping]: protocol-specification-things-messages.html
 [Protocol Bindings]: protocol-bindings.html

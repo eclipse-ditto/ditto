@@ -103,6 +103,9 @@ entries:
     - title: APIs
       url: /basic-apis.html
       output: web
+    - title: Connections
+      url: /basic-connections.html
+      output: web
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
@@ -159,6 +162,16 @@ entries:
       output: web
     - title: Run in Postman
       url: /httpapi-postman.html
+      output: web
+
+  - title: Connectivity API
+    output: web
+    folderitems:
+    - title: Overview
+      url: /connectivity-overview.html
+      output: web
+    - title: Payload Mapping
+      url: /connectivity-mapping.html
       output: web
 
   - title: Ditto Protocol
