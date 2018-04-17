@@ -254,7 +254,8 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         PatternsCS.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
                     if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error);
+                        reportUnexpectedError("before building JsonView", sender, error,
+                                commandWithReadSubjects.getDittoHeaders());
                     } else if (response instanceof PolicyQueryCommandResponse) {
                         reportJsonViewForPolicyQuery(sender, (PolicyQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
@@ -262,7 +263,8 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
                     } else if (response instanceof AskTimeoutException) {
                         reportTimeoutForPolicyQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
                     } else {
-                        reportUnknownResponse("before building JsonView", sender, response);
+                        reportUnknownResponse("before building JsonView", sender, response,
+                                commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
                 });
