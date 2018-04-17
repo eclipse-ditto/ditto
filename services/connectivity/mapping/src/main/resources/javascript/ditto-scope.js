@@ -18,8 +18,6 @@
 
 /**
  * Defines the Ditto scope containing helper methods.
- *
- * @type {{buildDittoProtocolMsg, buildExternalMsg}}
  */
 let Ditto = (function () {
     /**
@@ -33,8 +31,7 @@ let Ditto = (function () {
      * @param {string} path - The path which is affected by the message, e.g.: "/attributes"
      * @param {Object.<string, string>} dittoHeaders - The headers Object containing all Ditto Protocol header values
      * @param {*} [value] - The value to apply / which was applied (e.g. in a "modify" action)
-     * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the
-     * message could/should not be mapped
+     * @returns {DittoProtocolMessage} dittoProtocolMessage - the mapped Ditto Protocol message or <code>null</code> if the message could/should not be mapped
      */
     let buildDittoProtocolMsg = function(namespace, id, group, channel, criterion, action, path, dittoHeaders, value) {
 
@@ -51,9 +48,8 @@ let Ditto = (function () {
      * @param {Object.<string, string>} headers - The external headers Object containing header values
      * @param {string} [textPayload] - The external mapped String
      * @param {ArrayBuffer} [bytePayload] - The external mapped bytes as ArrayBuffer
-     * @param {string} contentType - The returned Content-Type
-     * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the
-     * message could/should not be mapped
+     * @param {string} [contentType] - The returned Content-Type
+     * @returns {ExternalMessage} externalMessage - the mapped external message or <code>null</code> if the message could/should not be mapped
      */
     let buildExternalMsg = function(headers, textPayload, bytePayload, contentType) {
 
@@ -100,6 +96,7 @@ let Ditto = (function () {
      * @returns {ByteBuffer} the transformed ByteBuffer
      */
     let asByteBuffer = function(arrayBuffer) {
+
         let byteBuffer = new ArrayBuffer(arrayBuffer.byteLength);
         new Uint8Array(byteBuffer).set(new Uint8Array(arrayBuffer));
         return dcodeIO.ByteBuffer.wrap(byteBuffer);

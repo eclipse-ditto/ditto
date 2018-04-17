@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,10 +53,15 @@ import akka.japi.pf.ReceiveBuilder;
 public final class RabbitMQConsumerActor extends AbstractActor {
 
     private static final String MESSAGE_ID_HEADER = "messageId";
-    private static final String EXCHANGE_HEADER = "exchange";
 
-    private static final String TEXT_PLAIN = "text/plain";
-    private static final String APPLICATION_JSON = "application/json";
+    private static final Set<String> CONTENT_TYPES_INTERPRETED_AS_TEXT = Collections.unmodifiableSet(new HashSet<>(
+            Arrays.asList(
+                    "text/plain",
+                    "text/html",
+                    "text/yaml",
+                    "application/json",
+                    "application/xml"
+            )));
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -118,7 +126,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
         if (log.isDebugEnabled()) {
             log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
-                    new String(delivery.getBody(), StandardCharsets.UTF_8));
+                    new String(body, StandardCharsets.UTF_8));
         }
 
         try {
@@ -141,7 +149,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     }
 
     private static boolean shouldBeInterpretedAsText(@Nullable final String contentType) {
-        return contentType != null && (contentType.startsWith(TEXT_PLAIN) || contentType.startsWith(APPLICATION_JSON));
+        return contentType != null && CONTENT_TYPES_INTERPRETED_AS_TEXT.stream().anyMatch(contentType::startsWith);
     }
 
     private Map<String, String> extractHeadersFromMessage(final BasicProperties properties, final Envelope envelope) {

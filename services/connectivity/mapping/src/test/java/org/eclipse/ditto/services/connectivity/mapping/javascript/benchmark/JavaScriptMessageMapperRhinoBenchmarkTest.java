@@ -80,6 +80,15 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
                 .contains(JsonValue.of("xxx/456/yyy"));
     }
 
+    @Test
+    public void test5DecodeBinaryToDitto() {
+        final Adaptable adaptable = runScenario(new Test5DecodeBinaryToDitto());
+        System.out.println(adaptable);
+
+        assertDefaults(adaptable);
+        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"temperature\":{\"properties\":{\"value\":25.43}},\"pressure\":{\"properties\":{\"value\":1015}},\"humidity\":{\"properties\":{\"value\":42}}}"));
+    }
+
     private Adaptable runScenario(final MapToDittoProtocolScenario scenario) {
         final MessageMapper messageMapper = scenario.getMessageMapper();
         final ExternalMessage externalMessage = scenario.getExternalMessage();

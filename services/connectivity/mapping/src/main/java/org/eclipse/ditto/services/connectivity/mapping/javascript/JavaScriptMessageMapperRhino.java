@@ -108,8 +108,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         try {
             // create scope once and load the required libraries in order to get best performance:
             scope = (Scriptable) contextFactory.call(cx -> {
-//                final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
-                final Scriptable scope = cx.initStandardObjects(); // that one allows those functions
+                final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
                 initLibraries(cx, scope);
                 return scope;
             });
@@ -242,6 +241,11 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     messageBuilder.withBytes(byteBuffer.get());
                 } else if (!(textPayload instanceof Undefined)) {
                     messageBuilder.withText(((CharSequence) textPayload).toString());
+                } else {
+                    throw MessageMappingFailedException.newBuilder("")
+                            .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
+                            .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
+                            .build();
                 }
 
                 return messageBuilder.build();
