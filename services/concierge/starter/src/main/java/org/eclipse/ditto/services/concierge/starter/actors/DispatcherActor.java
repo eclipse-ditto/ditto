@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
 import static akka.cluster.pubsub.DistributedPubSubMediator.Send;
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
+import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants.SEARCH_ACTOR_PATH;
 
 import java.util.Objects;
 
@@ -49,11 +50,6 @@ public final class DispatcherActor {
      * The name of this actor.
      */
     public static final String ACTOR_NAME = "dispatcherActor";
-
-    /**
-     * Path of {@code SearchActor}.
-     */
-    private static final String THINGS_SEARCH_ACTOR_PATH = "/user/thingsSearchRoot/thingsSearch";
 
     /**
      * Create Akka actor configuration Props object without pre-enforcer.
@@ -198,7 +194,7 @@ public final class DispatcherActor {
 
     private static Consume<Object> forwardToThingSearchActor(final ActorRef pubSubMediator) {
         return Consume.of((message, sender) -> {
-            final Send wrappedCommand = new Send(THINGS_SEARCH_ACTOR_PATH, message);
+            final Send wrappedCommand = new Send(SEARCH_ACTOR_PATH, message);
             pubSubMediator.tell(wrappedCommand, sender);
         });
     }
