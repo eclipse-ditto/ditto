@@ -19,6 +19,8 @@ import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 
@@ -29,6 +31,8 @@ public final class ConciergeForwarder {
 
     private final ActorRef pubSubMediator;
     private final ActorRef enforcerShardRegion;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConciergeForwarder.class);
 
     /**
      * Create an object to forward messages to concierge service.
@@ -43,9 +47,16 @@ public final class ConciergeForwarder {
 
     public void forward(final Signal<?> signal, final ActorRef sender) {
         if (signal.getId().isEmpty()) {
-            pubSubMediator.tell(wrapForPubSub(signal), sender);
+            LOGGER.debug("Signal does not contain ID, forwarding to concierge-dispatcherActor: <{}>.", signal);
+            final Send msg = wrapForPubSub(signal);
+            LOGGER.debug("Sending message to concierge-dispatcherActor: <{}>.", msg);
+            pubSubMediator.tell(msg, sender);
         } else {
-            enforcerShardRegion.tell(wrapForEnforcer(signal), sender);
+            LOGGER.debug("Signal has ID <{}>, forwarding to concierge-shard-region: <{}>.",
+                    signal.getId(), signal);
+            final ShardedMessageEnvelope msg = wrapForEnforcer(signal);
+            LOGGER.debug("Sending message to concierge-shard-region: <{}>.", msg);
+            enforcerShardRegion.tell(msg, sender);
         }
     }
 

@@ -334,7 +334,7 @@ public final class HttpRequestActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public HttpRequestActor create() throws Exception {
+            public HttpRequestActor create() {
                 return new HttpRequestActor(proxyActor, request, httpResponseFuture);
             }
         });

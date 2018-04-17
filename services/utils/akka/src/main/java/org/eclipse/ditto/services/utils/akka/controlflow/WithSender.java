@@ -84,9 +84,7 @@ public final class WithSender<T> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() +
-                "[" + super.toString() +
-                ", message=" + message +
+        return getClass().getSimpleName() + " [message=" + message +
                 ", sender=" + sender +
                 "]";
     }

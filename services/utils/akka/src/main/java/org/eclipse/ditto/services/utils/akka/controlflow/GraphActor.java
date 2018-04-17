@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
@@ -34,6 +35,8 @@ import akka.stream.stage.GraphStage;
  * Actor whose behavior is defined entirely by an Akka stream graph.
  */
 public final class GraphActor extends AbstractActor {
+
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorMaterializer materializer;
     private final Sink<WithSender, NotUsed> messageHandler;
@@ -103,6 +106,7 @@ public final class GraphActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchAny(message -> {
+                    log.debug("Received message: <{}>.", message);
                     final WithSender wrapped = WithSender.of(message, getSender());
                     Source.single(wrapped).runWith(messageHandler, materializer);
                 })
