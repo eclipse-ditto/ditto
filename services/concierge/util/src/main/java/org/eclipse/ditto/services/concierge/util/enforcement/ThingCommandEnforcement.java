@@ -850,7 +850,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, permission);
         }
         return authorized
-                ? Optional.of(Enforcement.addReadSubjectsToSignal(command, policyEnforcer))
+                ? Optional.of(Enforcement.addReadSubjectsToThingSignal(command, policyEnforcer))
                 : Optional.empty();
     }
 
@@ -870,7 +870,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 ? computeAclPermissions((ThingModifyCommand) command)
                 : Permissions.newInstance(Permission.READ);
         return aclEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, permissions)
-                ? Optional.of(Enforcement.addReadSubjectsToSignal(command, aclEnforcer))
+                ? Optional.of(Enforcement.addReadSubjectsToThingSignal(command, aclEnforcer))
                 : Optional.empty();
     }
 
