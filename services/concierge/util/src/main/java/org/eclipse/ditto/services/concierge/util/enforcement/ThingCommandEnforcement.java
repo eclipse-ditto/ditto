@@ -580,9 +580,8 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
      * @param createThing the command.
      * @param policyId the policy ID.
      * @param sender sender of the command.
-     * @return always true.
      */
-    private boolean enforceCreateThingForNonexistentThingWithPolicyId(final CreateThing createThing,
+    private void enforceCreateThingForNonexistentThingWithPolicyId(final CreateThing createThing,
             final String policyId,
             final ActorRef sender) {
         final EntityId policyEntityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
@@ -595,7 +594,6 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 replyToSender(error, sender);
             }
         });
-        return true;
     }
 
     /**
@@ -957,33 +955,30 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         }
     }
 
-    private boolean handleInitialCreateThing(final CreateThing createThing, final Enforcer enforcer,
+    private void handleInitialCreateThing(final CreateThing createThing, final Enforcer enforcer,
             final ActorRef sender) {
         if (shouldCreatePolicyForCreateThing(createThing)) {
-
-            checkForErrorsInCreateThingWithPolicy(createThing)
-                    .map(error ->
-                            replyToSender(error, sender))
-                    .orElseGet(() ->
-                            createThingWithInitialPolicy(createThing, enforcer, sender));
-
+            Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
+            if (errorOpt.isPresent()) {
+                replyToSender(errorOpt.get(), sender);
+            } else {
+                createThingWithInitialPolicy(createThing, enforcer, sender);
+            }
         } else if (createThing.getThing().getPolicyId().isPresent()) {
-
-            final String policyId = createThing.getThing().getPolicyId().get();
-            checkForErrorsInCreateThingWithPolicy(createThing)
-                    .map(error ->
-                            replyToSender(error, sender))
-                    .orElseGet(() ->
-                            enforceCreateThingForNonexistentThingWithPolicyId(createThing, policyId, sender));
-
+            final String policyId = createThing.getThing().getPolicyId().orElseThrow(IllegalStateException::new);
+            Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
+            if (errorOpt.isPresent()) {
+                replyToSender(errorOpt.get(), sender);
+            } else {
+                enforceCreateThingForNonexistentThingWithPolicyId(createThing, policyId, sender);
+            }
         } else {
             // nothing to do with policy, simply forward the command
             forwardToThingsShardRegion(createThing, sender);
         }
-        return true;
     }
 
-    private boolean createThingWithInitialPolicy(final CreateThing createThing,
+    private void createThingWithInitialPolicy(final CreateThing createThing,
             final Enforcer enforcer,
             final ActorRef sender) {
 
@@ -998,9 +993,8 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                         PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 
                 // CreatePolicy is rejected; abort CreateThing.
-                return authorizedCreatePolicy
-                        .filter(cmd -> createPolicyAndThing(cmd, createThing, sender))
-                        .isPresent();
+                authorizedCreatePolicy.ifPresent(
+                        cmd -> createPolicyAndThing(cmd, createThing, sender));
             } else {
                 // cannot create policy.
                 final String thingId = createThing.getThingId();
@@ -1013,18 +1007,17 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                                 .dittoHeaders(createThing.getDittoHeaders())
                                 .build();
                 replyToSender(error, sender);
-                return true;
             }
         } catch (DittoRuntimeException error) {
             log().error(error, "error before creating thing with initial policy");
             replyToSender(error, sender);
-            return true;
         }
     }
 
     private static Optional<Policy> getInlinedOrDefaultPolicyForCreateThing(final CreateThing createThing) {
-        if (createThing.getInitialPolicy().isPresent()) {
-            final JsonObject policyJson = createThing.getInitialPolicy().get();
+        final Optional<JsonObject> initialPolicy = createThing.getInitialPolicy();
+        if (initialPolicy.isPresent()) {
+            final JsonObject policyJson = initialPolicy.get();
             final JsonObjectBuilder policyJsonBuilder = policyJson.toBuilder();
             final Thing thing = createThing.getThing();
             if (thing.getPolicyId().isPresent() || !policyJson.contains(Policy.JsonFields.ID.getPointer())) {
