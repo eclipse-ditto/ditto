@@ -63,15 +63,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "messageMappingProcessor";
 
-    /**
-     * The pub sub group used to publish responses to live commands and messages.
-     */
-    private static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef pubSubMediator;
-    private final String pubSubTargetPath;
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
     private final Cache<String, TraceContext> traces;
@@ -79,14 +72,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
+    private final ActorRef commandRouter;
 
-    private MessageMappingProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef publisherActor, final AuthorizationContext authorizationContext,
+    private MessageMappingProcessorActor(final ActorRef publisherActor,
+            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
-            final MessageMappingProcessor processor, final String connectionId) {
-        this.pubSubMediator = pubSubMediator;
-        this.pubSubTargetPath = pubSubTargetPath;
+            final MessageMappingProcessor processor,
+            final String connectionId) {
         this.publisherActor = publisherActor;
+        this.commandRouter = commandRouter;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
@@ -101,18 +95,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param pubSubMediator the akka pubsub mediator actor
-     * @param pubSubTargetPath the target path where incoming messages are sent
      * @param publisherActor actor that handles/publishes outgoing messages
+     * @param commandRouter the command router used to send signals into the cluster
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param headerFilter the header filter used to apply on responses
      * @param processor the MessageMappingProcessor to use
      * @param connectionId the connection id
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef publisherActor,
-            final AuthorizationContext authorizationContext,
+    public static Props props(final ActorRef publisherActor,
+            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
@@ -122,8 +114,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(pubSubMediator, pubSubTargetPath, publisherActor,
-                        authorizationContext, headerFilter, processor, connectionId);
+                return new MessageMappingProcessorActor(publisherActor, commandRouter, authorizationContext,
+                        headerFilter, processor,
+                        connectionId);
             }
         });
     }
@@ -131,22 +124,22 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param pubSubMediator the akka pubsub mediator actor
-     * @param pubSubTargetPath the target path where incoming messages are sent
      * @param publisherActor actor that handles outgoing messages
+     * @param commandRouter the command router used to send signals into the cluster
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param processor the MessageMappingProcessor to use
      * @param connectionId the connection id
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef pubSubMediator, final String pubSubTargetPath,
-            final ActorRef publisherActor,
+    public static Props props(final ActorRef publisherActor,
+            final ActorRef commandRouter,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
-        return props(pubSubMediator, pubSubTargetPath, publisherActor,
-                        authorizationContext,
+        return props(publisherActor,
+                commandRouter,
+                authorizationContext,
                 new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);
     }
@@ -161,8 +154,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
-                .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck)
-                .match(DistributedPubSubMediator.UnsubscribeAck.class, this::unsubscribeAck)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -177,9 +168,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling ExternalMessage: {}", externalMessage);
 
         final String authSubjectsArray = authorizationContext.stream()
-                        .map(AuthorizationSubject::getId)
-                        .map(JsonFactory::newValue)
-                        .collect(JsonCollectors.valuesToArray())
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray())
                 .toString();
         final ExternalMessage messageWithAuthSubject =
                 externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
@@ -199,9 +190,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' to '{}'", adjustedSignal.getType(), pubSubTargetPath);
-                pubSubMediator.tell(new DistributedPubSubMediator.Send(pubSubTargetPath, adjustedSignal, true),
-                        getSelf());
+                log.info("Sending '{}' using command router.", adjustedSignal.getType());
+                commandRouter.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e);
@@ -220,7 +210,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         enhanceLogUtil(exception);
 
-        log.info( "Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
                 exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
 
         handleCommandResponse(errorResponse);
@@ -229,13 +219,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse<?> response) {
         enhanceLogUtil(response);
         finishTrace(response);
-
-        response.getDittoHeaders()
-                .getCorrelationId()
-                .map(correlationId -> new DistributedPubSubMediator.Unsubscribe(correlationId,
-                        LIVE_RESPONSES_PUB_SUB_GROUP, getSelf()))
-                .ifPresent(unsubscribe -> pubSubMediator.tell(unsubscribe, getSelf()));
-
         if (response.getDittoHeaders().isResponseRequired()) {
 
             if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
@@ -310,15 +293,5 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         final TraceContext ctx = Kamon.tracer().newContext("roundtrip.amqp_" + type, token);
         ctx.addMetadata("command", type);
         return ctx;
-    }
-
-    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
-        log.debug("Successfully subscribed to distributed pub/sub on topic '{}' in group '{}'.",
-                subscribeAck.subscribe().topic(), subscribeAck.subscribe().group());
-    }
-
-    private void unsubscribeAck(final DistributedPubSubMediator.UnsubscribeAck unsubscribeAck) {
-        log.debug("Successfully unsubscribed to distributed pub/sub on topic '{}' in group '{}'.",
-                unsubscribeAck.unsubscribe().topic(), unsubscribeAck.unsubscribe().group());
     }
 }

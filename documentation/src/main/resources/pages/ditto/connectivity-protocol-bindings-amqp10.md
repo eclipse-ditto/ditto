@@ -1,8 +1,8 @@
 ---
-title: AMQP 0.9.1 protocol binding
+title: AMQP 1.0 protocol binding
 keywords: binding, protocol, amqp, amqp10
-tags: [protocol]
-permalink: protocol-bindings-amqp091.html
+tags: [protocol, connectivity]
+permalink: connectivity-protocol-bindings-amqp10.html
 ---
 
 The Ditto Protocol message can be sent *as is* as **AMQP 1.0** message.
@@ -28,12 +28,12 @@ Ditto's [Connectivity service](architecture-services-connectivity.html) is respo
 existing connections.
 
 This can be done dynamically at runtime without the need to restart any microservice using a
-[Ditto operations command](installation-operating.html#create-a-new-amqp-bridge-connection).
+[Ditto operations command](installation-operating.html#connectivity-service-commands).
 
 
 ## Messages
 
-Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](protocol-bindings-websocket.html)
+Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
 shown for example in the [protocol examples](protocol-examples.html)).
  

@@ -43,7 +43,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -86,9 +85,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, String> consumedTagsToAddresses;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final String pubSubTargetPath,
-            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        super(connection, connectionStatus, pubSubTargetPath);
+            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        super(connection, connectionStatus, commandRouter);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
@@ -99,27 +97,28 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection
      * @param connectionStatus the desired status of the connection
+     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
+    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef commandRouter) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
-                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+                commandRouter, ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection
-     * @param connectionStatus the desired status of the connection
-     * @param pubSubTargetPath the target path on distributed pub/sub to use
+     * @param connectionStatus the desired status of the
+     * @param commandRouter the command router used to send signals into the cluster
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
-            final String pubSubTargetPath, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                pubSubTargetPath, rabbitConnectionFactoryFactory);
+            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
+                rabbitConnectionFactoryFactory);
     }
 
     private static Connection validateConnection(final Connection connection) {

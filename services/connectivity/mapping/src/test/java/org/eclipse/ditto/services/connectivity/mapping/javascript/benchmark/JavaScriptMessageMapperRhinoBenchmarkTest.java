@@ -46,7 +46,7 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
         System.out.println(adaptable);
 
         assertDefaults(adaptable);
-        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"a\":11,\"b\":10,\"c\":99}"));
+        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"a\":11,\"b\":8,\"c\":99}"));
     }
 
     @Test
@@ -78,6 +78,15 @@ public class JavaScriptMessageMapperRhinoBenchmarkTest {
         assertDefaults(adaptable);
         assertThat(adaptable.getPayload().getValue().map(JsonValue::asObject).map(o -> o.getValue("cc")).orElse(null))
                 .contains(JsonValue.of("xxx/456/yyy"));
+    }
+
+    @Test
+    public void test5DecodeBinaryToDitto() {
+        final Adaptable adaptable = runScenario(new Test5DecodeBinaryToDitto());
+        System.out.println(adaptable);
+
+        assertDefaults(adaptable);
+        assertThat(adaptable.getPayload().getValue()).contains(JsonFactory.readFrom("{\"temperature\":{\"properties\":{\"value\":25.43}},\"pressure\":{\"properties\":{\"value\":1015}},\"humidity\":{\"properties\":{\"value\":42}}}"));
     }
 
     private Adaptable runScenario(final MapToDittoProtocolScenario scenario) {

@@ -135,7 +135,7 @@ bindings. We will use the WebSocket binding for now. With it, it is amazingly ea
 receive Messages sent *to* or *from* Things. You only need to fulfill these *three* simple requirements:
 
 1. Having an open connection to the Ditto WebSocket
-2. Having sent the [WebSocket binding specific message](protocol-bindings-websocket.html#request-events) 
+2. Having sent the [WebSocket binding specific message](httpapi-protocol-bindings-websocket.html#request-events) 
 `START-SEND-MESSAGES` to the WebSocket to be able to retrieve Messages
 3. You are allowed ([authorized](basic-auth.html)) to receive Messages 
 

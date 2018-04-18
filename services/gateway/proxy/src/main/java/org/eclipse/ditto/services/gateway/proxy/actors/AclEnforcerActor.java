@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
 import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_EVENTS;
-import static org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor.LIVE_RESPONSES_PUB_SUB_GROUP;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -468,17 +467,6 @@ public final class AclEnforcerActor extends AbstractActorWithStash {
         final Signal<?> enrichedSignal = enrichDittoHeaders(signal);
         log.debug("Received <{}>. Publishing to topic {}.", enrichedSignal.getName(), topic);
         accessCounter++;
-
-        // subscribe the sender with correlationId to receive the response
-        signal.getDittoHeaders()
-                .getCorrelationId()
-                .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
-                        LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
-                .map(subscribe -> {
-                    log.debug("Subscribing sender for response: {}", subscribe);
-                    return subscribe;
-                })
-                .ifPresent(subscribe -> pubSubMediator.tell(subscribe, getSender()));
 
         // using pub/sub to publish the message to any interested parties (e.g. a Websocket):
         pubSubMediator.tell(

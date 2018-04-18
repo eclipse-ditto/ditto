@@ -40,6 +40,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.event.EventStream;
 import akka.event.Logging;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
@@ -97,23 +99,25 @@ public final class WebsocketRoute {
     private final int publisherBackpressureBufferSize;
 
     private final ProtocolAdapter protocolAdapter;
+    private final EventStream eventStream;
 
     /**
      * Constructs the {@code /ws} route builder.
-     *
-     * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
+     *  @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param subscriberBackpressureQueueSize the max queue size of how many inflight Commands a single Websocket client
      * can have.
      * @param publisherBackpressureBufferSize the max buffer size of how many outstanding CommandResponses and Events a
      * single Websocket client can have - additionally incoming CommandResponses and Events are dropped if this size is
-     * reached.
+     * @param eventStream eventStream used to publish events within the actor system
      */
     public WebsocketRoute(final ActorRef streamingActor, final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize, final ProtocolAdapter protocolAdapter) {
+            final int publisherBackpressureBufferSize, final ProtocolAdapter protocolAdapter,
+            final EventStream eventStream) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
         this.protocolAdapter = protocolAdapter;
+        this.eventStream = eventStream;
     }
 
     /**
@@ -169,7 +173,9 @@ public final class WebsocketRoute {
                 .filter(strictText -> processProtocolMessage(connectionAuthContext, connectionCorrelationId,
                         strictText))
                 .map(buildSignal(version, connectionCorrelationId, connectionAuthContext, additionalHeaders))
-                .to(Sink.actorSubscriber(CommandSubscriber.props(streamingActor, subscriberBackpressureQueueSize)));
+                .to(Sink.actorSubscriber(
+                        CommandSubscriber.props(streamingActor, subscriberBackpressureQueueSize, eventStream)));
+
     }
 
     private boolean processProtocolMessage(final AuthorizationContext authContext, final String connectionCorrelationId,
@@ -223,8 +229,20 @@ public final class WebsocketRoute {
                     streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_WS), null);
                     return NotUsed.getInstance();
                 })
+                .map(this::publishResponsePublishedEvent)
                 .map(this::jsonifiableToString)
                 .map(TextMessage::create);
+    }
+
+    private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
+            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
+        if (jsonifiable instanceof WithDittoHeaders) {
+            ((WithDittoHeaders) jsonifiable).getDittoHeaders()
+                    .getCorrelationId()
+                    .map(ResponsePublished::new)
+                    .ifPresent(eventStream::publish);
+        }
+        return jsonifiable;
     }
 
     private Function<String, Signal> buildSignal(final Integer version, final String connectionCorrelationId,

@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-import static org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor.LIVE_RESPONSES_PUB_SUB_GROUP;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,7 +40,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -112,12 +109,6 @@ final class StreamingSessionActor extends AbstractActor {
                     logger.debug(
                             "Got 'CommandResponse' message in <{}> session, telling eventAndResponsePublisher about it: {}",
                             type, response);
-
-                    response.getDittoHeaders().getCorrelationId()
-                            .map(correlationId -> new DistributedPubSubMediator.Unsubscribe(correlationId,
-                                    LIVE_RESPONSES_PUB_SUB_GROUP, getSelf()))
-                            .ifPresent(unsubscribe -> pubSubMediator.tell(unsubscribe, getSelf()));
-
                     eventAndResponsePublisher.forward(response, getContext());
                 })
                 .match(Signal.class, this::handleSignal)
@@ -154,44 +145,33 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     final String topic = subscribeAck.subscribe().topic();
-                    final Option<String> group = subscribeAck.subscribe().group();
-                    if (group.contains(LIVE_RESPONSES_PUB_SUB_GROUP)) {
-                        logger.debug("Subscribed to response topic {}.", topic);
-                    } else {
-                        final StreamingType streamingType = StreamingType.fromTopic(topic);
-
-                        final ActorRef self = getSelf();
-                        /* send the StreamingAck with a little delay, as the akka doc states:
-                         * The acknowledgment means that the subscription is registered, but it can still take some time
-                         * until it is replicated to other nodes.
-                         */
-                        getContext().getSystem().scheduler()
-                                .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                        () ->
-                                                acknowledgeSubscription(streamingType, self),
-                                        getContext().getSystem().dispatcher());
-                    }
+                    final StreamingType streamingType = StreamingType.fromTopic(topic);
+                    final ActorRef self = getSelf();
+                    /* send the StreamingAck with a little delay, as the akka doc states:
+                     * The acknowledgment means that the subscription is registered, but it can still take some time
+                     * until it is replicated to other nodes.
+                     */
+                    getContext().getSystem().scheduler()
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
+                                    () ->
+                                            acknowledgeSubscription(streamingType, self),
+                                    getContext().getSystem().dispatcher());
                 })
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     final String topic = unsubscribeAck.unsubscribe().topic();
-                    final Option<String> group = unsubscribeAck.unsubscribe().group();
-                    if (group.contains(LIVE_RESPONSES_PUB_SUB_GROUP)) {
-                        logger.debug("Removed response topic {} from pub sub.", topic);
-                    } else {
-                        final StreamingType streamingType = StreamingType.fromTopic(topic);
+                    final StreamingType streamingType = StreamingType.fromTopic(topic);
 
-                        final ActorRef self = getSelf();
-                        /* send the StreamingAck with a little delay, as the akka doc states:
-                         * The acknowledgment means that the subscription is registered, but it can still take some time
-                         * until it is replicated to other nodes.
-                         */
-                        getContext().getSystem().scheduler()
-                                .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                        () ->
-                                                acknowledgeUnsubscription(streamingType, self),
-                                        getContext().getSystem().dispatcher());
-                    }
+                    final ActorRef self = getSelf();
+                    /* send the StreamingAck with a little delay, as the akka doc states:
+                     * The acknowledgment means that the subscription is registered, but it can still take some time
+                     * until it is replicated to other nodes.
+                     */
+                    getContext().getSystem().scheduler()
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
+                                    () ->
+                                            acknowledgeUnsubscription(streamingType, self),
+                                    getContext().getSystem().dispatcher());
                 })
                 .match(Terminated.class, terminated -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);

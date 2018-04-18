@@ -13,9 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +42,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
@@ -61,13 +57,11 @@ public class MessageMappingProcessorActorTest {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private static ActorSystem actorSystem;
-    private static ActorRef pubSubMediator;
 
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
     }
 
     @AfterClass
@@ -81,11 +75,7 @@ public class MessageMappingProcessorActorTest {
     @Test
     public void testExternalMessageInDittoProtocolIsProcessed() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
-
-            final ActorRef messageMappingProcessorActor =
-                    createMessageMappingProcessorActor(pubSubTargetPath, getRef());
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
 
             final Map<String, String> headers = new HashMap<>();
             final String correlationId = UUID.randomUUID().toString();
@@ -110,11 +100,8 @@ public class MessageMappingProcessorActorTest {
     @Test
     public void testCommandResponseIsProcessed() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
-
             final ActorRef messageMappingProcessorActor =
-                    createMessageMappingProcessorActor(pubSubTargetPath, getRef());
+                    createMessageMappingProcessorActor(getRef());
 
             final String correlationId = UUID.randomUUID().toString();
             final ModifyAttributeResponse commandResponse =
@@ -135,11 +122,8 @@ public class MessageMappingProcessorActorTest {
     public void testCommandResponseWithResponseRequiredFalseIsNotProcessed() {
         new TestKit(actorSystem) {
             {
-                final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-                pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
-
                 final ActorRef messageMappingProcessorActor =
-                        createMessageMappingProcessorActor(pubSubTargetPath, getRef());
+                        createMessageMappingProcessorActor(getRef());
 
                 final ModifyAttributeResponse commandResponse =
                         ModifyAttributeResponse.modified("my:thing", JsonPointer.of("foo"),
@@ -154,10 +138,10 @@ public class MessageMappingProcessorActorTest {
         };
     }
 
-    private ActorRef createMessageMappingProcessorActor(final String pubSubTargetPath, final ActorRef ref) {
-        final Props props = MessageMappingProcessorActor.props(pubSubMediator,
-                pubSubTargetPath,
-                ref,
+    private ActorRef createMessageMappingProcessorActor(final ActorRef publisherActor) {
+        final Props props = MessageMappingProcessorActor.props(
+                publisherActor,
+                publisherActor,
                 AUTHORIZATION_CONTEXT,
                 getMessageMappingProcessor(null),
                 CONNECTION_ID);

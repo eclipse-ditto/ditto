@@ -22,7 +22,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilt
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +74,6 @@ import akka.actor.DynamicAccess;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.cluster.pubsub.DistributedPubSub;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -101,9 +99,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final List<String> headerBlacklist;
-
-    private final ActorRef pubSubMediator;
-    private final String pubSubTargetPath;
+    private final ActorRef commandRouter;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -111,12 +107,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private long publishedMessageCounter = 0L;
 
     protected BaseClientActor(final Connection connection, final ConnectionStatus desiredConnectionStatus,
-            final String pubSubTargetPath) {
-
+            final ActorRef commandRouter) {
+        this.commandRouter = checkNotNull(commandRouter, "commandRouter");
         checkNotNull(connection, "connection");
-        this.pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
-        this.pubSubTargetPath = checkNotNull(pubSubTargetPath, "PubSubTargetPath");
-
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
@@ -638,7 +631,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
             final Props props =
-                    MessageMappingProcessorActor.props(pubSubMediator, pubSubTargetPath, getSelf(),
+                    MessageMappingProcessorActor.props(getSelf(), commandRouter,
                             connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
                             processor, connectionId());
 

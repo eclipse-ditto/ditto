@@ -41,15 +41,10 @@ public final class StreamingActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "streaming";
 
-    /**
-     * The pub sub group used to publish responses to live commands and messages.
-     */
-    public static final String LIVE_RESPONSES_PUB_SUB_GROUP = "live-responses";
-
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
-    private final ActorRef proxyActor;
+    private final ActorRef commandRouter;
 
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
@@ -60,25 +55,25 @@ public final class StreamingActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private StreamingActor(final ActorRef pubSubMediator, final ActorRef proxyActor) {
+    private StreamingActor(final ActorRef pubSubMediator, final ActorRef commandRouter) {
         this.pubSubMediator = pubSubMediator;
-        this.proxyActor = proxyActor;
+        this.commandRouter = commandRouter;
     }
 
     /**
-     * Creates Akka configuration object Props for this StreamingSessionActor.
+     * Creates Akka configuration object Props for this StreamingActor.
      *
      * @param pubSubMediator the PubSub mediator actor
-     * @param proxyActor the proxy actor which delegates commands.
+     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef proxyActor) {
+    public static Props props(final ActorRef pubSubMediator, final ActorRef commandRouter) {
         return Props.create(StreamingActor.class, new Creator<StreamingActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public StreamingActor create() throws Exception {
-                return new StreamingActor(pubSubMediator, proxyActor);
+            public StreamingActor create() {
+                return new StreamingActor(pubSubMediator, commandRouter);
             }
         });
     }
@@ -113,7 +108,7 @@ public final class StreamingActor extends AbstractActor {
                     if (origin.isPresent()) {
                         final ActorRef sessionActor = getContext().getChild(origin.get());
                         if (sessionActor != null) {
-                            proxyActor.tell(signal, sessionActor);
+                            commandRouter.tell(signal, sessionActor);
                         }
                     } else {
                         logger.warning("Signal is missing the required origin header: {}",
@@ -141,5 +136,4 @@ public final class StreamingActor extends AbstractActor {
         logger.debug("Forwarding to session actor '{}': {}", connectionCorrelationId, object);
         getContext().actorSelection(connectionCorrelationId).forward(object, getContext());
     }
-
 }

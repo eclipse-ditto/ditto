@@ -68,6 +68,13 @@ public class JavaScriptMessageMapperRhinoBenchmark {
         runScenario(scenario);
     }
 
+    @Benchmark
+    @Warmup(iterations = WARMUP_ITERATIONS, time = WARMUP_TIME, timeUnit = TimeUnit.MILLISECONDS)
+    @Measurement(iterations = MEASUREMENT_ITERATIONS, time = MEASUREMENT_TIME, timeUnit = TimeUnit.MILLISECONDS)
+    public void test5DecodeBinaryToDitto(final Test5DecodeBinaryToDitto scenario) {
+        runScenario(scenario);
+    }
+
     private void runScenario(final MapToDittoProtocolScenario scenario) {
         final MessageMapper messageMapper = scenario.getMessageMapper();
         final ExternalMessage externalMessage = scenario.getExternalMessage();

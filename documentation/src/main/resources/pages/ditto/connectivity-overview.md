@@ -1,7 +1,7 @@
 ---
 title: Connectivity overview
 keywords: 
-tags: connectivity
+tags: [connectivity]
 permalink: connectivity-overview.html
 ---
 

@@ -19,13 +19,15 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.EventStream;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.actor.AbstractActorSubscriber;
@@ -46,25 +48,30 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
     private final int backpressureQueueSize;
     private final List<String> outstandingCommandCorrelationIds = new ArrayList<>();
 
-    private CommandSubscriber(final ActorRef delegateActor, final int backpressureQueueSize) {
+    private CommandSubscriber(final ActorRef delegateActor, final int backpressureQueueSize,
+            final EventStream eventStream) {
         this.delegateActor = delegateActor;
         this.backpressureQueueSize = backpressureQueueSize;
+
+        eventStream.subscribe(getSelf(), ResponsePublished.class);
     }
 
     /**
      * Creates Akka configuration object Props for this CommandSubscriber.
      *
-     * @param delegateActor the ActorRef of the Actor to which to forward {@link org.eclipse.ditto.signals.commands.base.Command}s.
+     * @param delegateActor the ActorRef of the Actor to which to forward {@link Command}s.
      * @param backpressureQueueSize the max queue size of how many inflight commands a single producer can have.
+     * @param eventStream used to subscribe to {@link ResponsePublished} events
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef delegateActor, final int backpressureQueueSize) {
+    public static Props props(final ActorRef delegateActor, final int backpressureQueueSize,
+            final EventStream eventStream) {
         return Props.create(CommandSubscriber.class, new Creator<CommandSubscriber>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public CommandSubscriber create() throws Exception {
-                return new CommandSubscriber(delegateActor, backpressureQueueSize);
+            public CommandSubscriber create() {
+                return new CommandSubscriber(delegateActor, backpressureQueueSize, eventStream);
             }
         });
     }
@@ -79,12 +86,14 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                         final String correlationId = correlationIdOpt.get();
                         LogUtil.enhanceLogWithCorrelationId(logger, correlationId);
 
-                        outstandingCommandCorrelationIds.add(correlationId);
-                        if (outstandingCommandCorrelationIds.size() > backpressureQueueSize) {
-                            // this should be prevented by akka and never happen!
-                            throw new IllegalStateException(
-                                    "queued too many: " + outstandingCommandCorrelationIds.size() +
-                                            " - backpressureQueueSize is: " + backpressureQueueSize);
+                        if (isResponseExpected(signal)) {
+                            outstandingCommandCorrelationIds.add(correlationId);
+                            if (outstandingCommandCorrelationIds.size() > backpressureQueueSize) {
+                                // this should be prevented by akka and never happen!
+                                throw new IllegalStateException(
+                                        "queued too many: " + outstandingCommandCorrelationIds.size() +
+                                                " - backpressureQueueSize is: " + backpressureQueueSize);
+                            }
                         }
 
                         logger.debug("Got new Signal <{}>, currently outstanding are <{}>", signal.getType(),
@@ -95,15 +104,9 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                                 signal.getType(), signal);
                     }
                 })
-                .match(CommandResponse.class, response -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, response.getDittoHeaders().getCorrelationId());
-                    response.getDittoHeaders().getCorrelationId().ifPresent(outstandingCommandCorrelationIds::remove);
-                    if (response.getDittoHeaders().isResponseRequired()) {
-                        delegateActor.forward(response, getContext());
-                    } else {
-                        logger.debug("Requester did not require response (via DittoHeader '{}') - not sending one",
-                                DittoHeaderDefinition.RESPONSE_REQUIRED);
-                    }
+                .match(ResponsePublished.class, responded -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, responded.getCorrelationId());
+                    outstandingCommandCorrelationIds.remove(responded.getCorrelationId());
                 })
                 .match(DittoRuntimeException.class, cre -> handleDittoRuntimeException(delegateActor, cre))
                 .match(RuntimeException.class,
@@ -125,6 +128,10 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                     }
                 })
                 .matchAny(any -> logger.warning("Got unknown message '{}'", any)).build();
+    }
+
+    private boolean isResponseExpected(final Signal<?> signal) {
+        return signal instanceof Command && signal.getDittoHeaders().isResponseRequired();
     }
 
     private void handleDittoRuntimeException(final ActorRef delegateActor, final DittoRuntimeException cre) {
