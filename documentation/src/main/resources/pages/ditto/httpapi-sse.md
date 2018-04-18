@@ -9,7 +9,7 @@ HTML5 <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossar
 to get notified when the state of **Digital Twins** change.
 
 This is the second mechanism of Ditto in order to get [change notifications](basic-changenotifications.html).
-The benefit of this mechanism in contrary to the [WebSocket](protocol-bindings-websocket.html) channel is that it is
+The benefit of this mechanism in contrary to the [WebSocket](httpapi-protocol-bindings-websocket.html) channel is that it is
 even easier to open a SSE connection from the client than a WebSocket and that in Ditto's interpretation of SSEs the
 events sent back from the backend have the same JSON structure as the HTTP API on which they are invoked. 
 

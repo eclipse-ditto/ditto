@@ -1,5 +1,5 @@
 ---
-title: Payload mapping
+title: Payload mapping in connectivity
 keywords: mapping, transformation, payload, javascript
 tags: [connectivity]
 permalink: connectivity-mapping.html

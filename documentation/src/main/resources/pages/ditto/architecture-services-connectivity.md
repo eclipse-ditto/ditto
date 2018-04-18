@@ -9,7 +9,7 @@ permalink: architecture-services-connectivity.html
   {%
     include note.html content="In Ditto 0.1.0-M2 the AMQP-Bridge service was added with the goal to be able to establish connections to 
                                 [Eclipse Hono](https://eclipse.org/hono/) as well as other [AMQP 1.0] endpoints. 
-                                With Ditto [TODO: release tag] the AMQP-Bridge architecture became more modular and extensible to support additional 
+                                With Ditto 0.3.0-M1 the AMQP-Bridge architecture became more modular and extensible to support additional 
                                 protocols beside [AMQP 1.0]. Therefore it was renamed to connectivity service."
   %}
 
@@ -40,7 +40,7 @@ Other services can communicate with the connectivity service via:
 ## Persistence
 
 The connectivity service uses [Akka persistence](https://doc.akka.io/docs/akka/current/persistence.html?language=java) and 
-with that [Event sourcing](http://localhost:4000/basic-signals.html#architectural-style) in order to persist changes 
+with that [Event sourcing](basic-signals.html#architectural-style) in order to persist changes 
 and restore persisted entities.
 
 ## Tasks
@@ -56,7 +56,7 @@ and restore persisted entities.
 
 
   
-[AMQP 1.0]: protocol-bindings-amqp10.html
+[AMQP 1.0]: connectivity-protocol-bindings-amqp10.html
 [Ditto Protocol]: protocol-overview.html
 [Ditto Protocol Message]: protocol-specification-things-messages.html
 [payload mapping]: protocol-specification-things-messages.html

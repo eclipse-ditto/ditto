@@ -157,6 +157,9 @@ entries:
     - title: Messages
       url: /httpapi-messages.html
       output: web
+    - title: WebSocket protocol binding
+      url: /httpapi-protocol-bindings-websocket.html
+      output: web
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
@@ -170,8 +173,17 @@ entries:
     - title: Overview
       url: /connectivity-overview.html
       output: web
-    - title: Payload Mapping
+    - title: Payload mapping
       url: /connectivity-mapping.html
+      output: web
+    - title: Manage connections
+      url: /connectivity-manage-connections.html
+      output: web
+    - title: AMQP 0.9.1 protocol binding
+      url: /connectivity-protocol-bindings-amqp091.html
+      output: web
+    - title: AMQP 1.0 protocol binding
+      url: /connectivity-protocol-bindings-amqp10.html
       output: web
 
   - title: Ditto Protocol
@@ -223,15 +235,6 @@ entries:
 
     - title: Bindings
       url: /protocol-bindings.html
-      output: web
-    - title: → Websocket Binding
-      url: /protocol-bindings-websocket.html
-      output: web
-    - title: → AMQP 0.9.1 Binding
-      url: /protocol-bindings-amqp091.html
-      output: web
-    - title: → AMQP 1.0 Binding
-      url: /protocol-bindings-amqp10.html
       output: web
 
     - title: Examples

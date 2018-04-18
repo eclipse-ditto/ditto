@@ -31,7 +31,7 @@ Eclipse Ditto is not a message broker and does not want to offer features a mess
 
 It can be seen as a message router which:
 * accepts messages via 2 APIs ([HTTP](httpapi-messages.html) and 
-  [Ditto Protocol](protocol-specification-things-messages.html), e.g. via [WebSocket binding](protocol-bindings-websocket.html))
+  [Ditto Protocol](protocol-specification-things-messages.html), e.g. via [WebSocket binding](httpapi-protocol-bindings-websocket.html))
 * checks for **currently connected** interested parties whether they may receive a specific Message 
   (performs [authorization checks](basic-auth.html#authorization))
 * routes the Message and reply Messages in between connected clients 
@@ -73,11 +73,11 @@ content-type and serialization is arbitrary.
 ## APIs
 
 Messages can be sent via
-* the [WebSocket API](protocol-bindings-websocket.html) as [Ditto Protocol](protocol-overview.html) messages,
+* the [WebSocket API](httpapi-protocol-bindings-websocket.html) as [Ditto Protocol](protocol-overview.html) messages,
 * the [HTTP API](httpapi-overview.html) either as "fire and forget" messages or, when expecting a response, in a
   blocking way at the [Messages HTTP API endpoint](http-api-doc.html#/Messages)
 
-Messages can, however, be received only via the [WebSocket API](protocol-bindings-websocket.html) as
+Messages can, however, be received only via the [WebSocket API](httpapi-protocol-bindings-websocket.html) as
 [Ditto Protocol](protocol-overview.html) messages.
 
 

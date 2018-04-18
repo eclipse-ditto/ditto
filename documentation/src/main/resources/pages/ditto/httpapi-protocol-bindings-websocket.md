@@ -1,11 +1,11 @@
 ---
 title: WebSocket protocol binding
-keywords: binding, protocol, websocket
-tags: [protocol]
-permalink: protocol-bindings-websocket.html
+keywords: binding, protocol, websocket, http
+tags: [protocol, http]
+permalink: httpapi-protocol-bindings-websocket.html
 ---
 
-The Ditto Protocol message can be sent *as is* as [WebSocket](https://tools.ietf.org/html/rfc6455) message.
+[Ditto Protocol](protocol-overview.html) messages can be sent *as is* as [WebSocket](https://tools.ietf.org/html/rfc6455) message.
 The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
 
 
