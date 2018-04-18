@@ -30,7 +30,7 @@ import akka.japi.Creator;
 public class FaultyConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory faultyConnectionActorPropsFactory =
-            (connection, connectionStatus, commandRouter) -> FaultyConnectionActor.props(true);
+            (connection, connectionStatus) -> FaultyConnectionActor.props(true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private boolean allowCreate;

@@ -38,14 +38,13 @@ public final class DefaultConnectionActorPropsFactory implements ConnectionActor
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter) {
+    public Props getActorPropsForType(final Connection connection, final ConnectionStatus connectionStatus) {
         final ConnectionType connectionType = connection.getConnectionType();
         switch (connectionType) {
             case AMQP_091:
-                return RabbitMQClientActor.props(connection, connectionStatus, commandRouter);
+                return RabbitMQClientActor.props(connection, connectionStatus);
             case AMQP_10:
-                return AmqpClientActor.props(connection, connectionStatus, commandRouter);
+                return AmqpClientActor.props(connection, connectionStatus);
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }

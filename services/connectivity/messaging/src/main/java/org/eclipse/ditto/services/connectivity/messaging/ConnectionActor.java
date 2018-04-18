@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionD
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -121,7 +120,6 @@ final class ConnectionActor extends AbstractPersistentActor {
     private final SnapshotAdapter<ConnectionData> snapshotAdapter;
     private final ConnectionActorPropsFactory propsFactory;
     private final Receive connectionCreatedBehaviour;
-    private final Props commandProducerProps;
     private ConnectionStatus connectionStatus;
 
     @Nullable private ActorRef clientActor;
@@ -151,8 +149,6 @@ final class ConnectionActor extends AbstractPersistentActor {
         connectionStatus = ConnectionStatus.CLOSED;
 
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
-
-        commandProducerProps = CommandRouterPropsFactory.getProps(config);
     }
 
 
@@ -383,7 +379,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private boolean isConnectionConfigurationValid(final Connection connection, final ActorRef origin) {
         try {
             // try to create actor props before persisting the connection to fail early
-            propsFactory.getActorPropsForType(connection, connectionStatus, getSelf());
+            propsFactory.getActorPropsForType(connection, connectionStatus);
             return true;
         } catch (final Exception e) {
             handleException("connect", origin, e);
@@ -580,10 +576,9 @@ final class ConnectionActor extends AbstractPersistentActor {
         checkNotNull(connectionId, "connectionId");
         checkNotNull(connection, "connection");
         if (clientActor == null) {
-            final ActorRef commandRouter = getContext().actorOf(commandProducerProps, "commandRouter");
             final int clientCount = connection.getClientCount();
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", connectionId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(connection, connectionStatus, commandRouter);
+            final Props props = propsFactory.getActorPropsForType(connection, connectionStatus);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));

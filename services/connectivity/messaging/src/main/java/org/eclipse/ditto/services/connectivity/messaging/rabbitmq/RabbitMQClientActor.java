@@ -85,7 +85,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, String> consumedTagsToAddresses;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        this(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
+    }
+
+    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            @Nullable final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
         super(connection, connectionStatus, commandRouter);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
@@ -97,13 +102,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
      *
      * @param connection the connection
      * @param connectionStatus the desired status of the connection
-     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter) {
+    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                commandRouter, ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
     }
 
     /**
@@ -115,7 +118,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+    public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
                 rabbitConnectionFactoryFactory);

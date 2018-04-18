@@ -54,6 +54,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClie
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -107,12 +108,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private long publishedMessageCounter = 0L;
 
     protected BaseClientActor(final Connection connection, final ConnectionStatus desiredConnectionStatus,
-            final ActorRef commandRouter) {
-        this.commandRouter = checkNotNull(commandRouter, "commandRouter");
+            @Nullable final ActorRef commandRouter) {
         checkNotNull(connection, "connection");
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
+
+        if (commandRouter != null) {
+            this.commandRouter = commandRouter;
+        } else {
+            this.commandRouter = getContext().actorOf(CommandRouterPropsFactory.getProps(config), "commandRouter");
+        }
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
                 desiredConnectionStatus, "initialized", null));

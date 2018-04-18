@@ -190,7 +190,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using command router.", adjustedSignal.getType());
+                log.info("Sending '{}' using command router", adjustedSignal.getType());
                 commandRouter.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {

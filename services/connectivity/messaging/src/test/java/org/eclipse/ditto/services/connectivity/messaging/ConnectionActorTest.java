@@ -212,7 +212,7 @@ public class ConnectionActorTest {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            (connection, connectionStatus, commandRouter) -> {
+                            (connection, connectionStatus) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             });
@@ -249,7 +249,7 @@ public class ConnectionActorTest {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            (connection, connectionStatus, commandRouter) -> TestActor.props(probe));
+                            (connection, connectionStatus) -> TestActor.props(probe));
             watch(underTest);
 
             // create connection

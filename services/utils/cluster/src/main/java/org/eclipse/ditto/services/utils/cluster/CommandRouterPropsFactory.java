@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import java.util.Collections;
 
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -25,8 +25,8 @@ import akka.cluster.routing.ClusterRouterGroupSettings;
 import akka.routing.ConsistentHashingGroup;
 
 /**
- * Creates {@link Props} for a routing actor that can be used to send {@link Signal}s to the gateway proxy actor. It
- * uses consistent hashing based on the correlation id i.e. corresponding signals are routed to the same gateway
+ * Creates {@link Props} for a routing actor that can be used to send {@link WithDittoHeaders}s to the gateway proxy actor.
+ * It uses consistent hashing based on the correlation id i.e. corresponding signals are routed to the same gateway
  * instance.
  */
 public class CommandRouterPropsFactory {
@@ -55,13 +55,14 @@ public class CommandRouterPropsFactory {
         return new ClusterRouterGroup(new ConsistentHashingGroup(routeesPaths)
                 .withHashMapper(
                         message -> {
-                            if (message instanceof Signal) {
-                                return ((Signal) message).getDittoHeaders().getCorrelationId().orElse(null);
+                            if (message instanceof WithDittoHeaders) {
+                                return ((WithDittoHeaders) message).getDittoHeaders().getCorrelationId().orElse(null);
                             } else {
                                 return null;
                             }
                         }),
-                new ClusterRouterGroupSettings(totalInstances, routeesPaths, ALLOW_LOCAL_ROUTEES, role)).props();
+                new ClusterRouterGroupSettings(totalInstances, routeesPaths, ALLOW_LOCAL_ROUTEES,
+                        Collections.singleton(role))).props();
     }
 
     private static Config defaults() {

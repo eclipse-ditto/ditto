@@ -82,7 +82,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private ActorRef amqpPublisherActor;
 
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory) {
+        this(connection, connectionStatus, null, jmsConnectionFactory);
+    }
+
+    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            @Nullable final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
         super(connection, connectionStatus, commandRouter);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new ConnectionListener();
@@ -94,13 +99,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @param connection the connection
      * @param connectionStatus the desired status of the connection
-     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter) {
+    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
-                commandRouter, ConnectionBasedJmsConnectionFactory.getInstance());
+                ConnectionBasedJmsConnectionFactory.getInstance());
     }
 
     /**
@@ -112,7 +115,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+    public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
                 jmsConnectionFactory);
