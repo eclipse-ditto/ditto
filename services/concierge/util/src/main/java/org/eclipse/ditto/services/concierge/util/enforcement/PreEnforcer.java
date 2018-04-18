@@ -11,9 +11,11 @@
  */
 package org.eclipse.ditto.services.concierge.util.enforcement;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -78,10 +80,13 @@ public final class PreEnforcer {
 
         final Flow<WithSender<WithDittoHeaders>, WithSender, NotUsed> flow =
                 Flow.<WithSender<WithDittoHeaders>>create()
-                        .mapAsync(1, wrapped ->
-                                processor.apply(wrapped.message())
-                                        .<Object>thenApply(result -> WithSender.of(result, wrapped.sender()))
-                                        .exceptionally(error -> handleError(error, wrapped, self)))
+                        .mapAsync(1, wrapped -> {
+                            final Supplier<CompletionStage<Object>> futureSupplier = () ->
+                                    processor.apply(wrapped.message())
+                                            .<Object>thenApply(result -> WithSender.of(result, wrapped.sender()));
+
+                            return handleErrorNowOrLater(futureSupplier, wrapped, self);
+                        })
                         .log("PreEnforcer")
                         .withAttributes(logLevels)
                         .flatMapConcat(PreEnforcer::keepResultAndLogErrors);
@@ -89,6 +94,19 @@ public final class PreEnforcer {
         return Pipe.joinUnhandledSink(
                 Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), flow),
                 GraphActor.unhandled());
+    }
+
+    private static CompletionStage<Object> handleErrorNowOrLater(
+            final Supplier<CompletionStage<Object>> futureSupplier,
+            final WithSender<WithDittoHeaders> wrapped,
+            final ActorRef self) {
+
+        try {
+            return futureSupplier.get()
+                    .exceptionally(error -> handleError(error, wrapped, self));
+        } catch (final Throwable error) {
+            return CompletableFuture.completedFuture(handleError(error, wrapped, self));
+        }
     }
 
     private static Graph<SourceShape<WithSender>, NotUsed> keepResultAndLogErrors(final Object result) {

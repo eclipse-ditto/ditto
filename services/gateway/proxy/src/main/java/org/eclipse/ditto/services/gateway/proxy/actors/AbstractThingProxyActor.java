@@ -12,14 +12,10 @@
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -53,17 +49,6 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
-
-                /* Sudo Commands */
-                .match(SudoRetrieveThings.class, this::forwardToConciergeService)
-
-                /* Thing Commands */
-                .match(RetrieveThings.class, this::forwardToConciergeService)
-
-                /* Search Commands */
-                .match(ThingSearchCommand.class, this::forwardToConciergeService)
-
-                .match(ThingSearchSudoCommand.class, this::forwardToConciergeService)
 
                 /* send all other Commands to Concierge Service */
                 .match(Command.class, this::forwardToConciergeService)
