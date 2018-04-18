@@ -9,6 +9,8 @@ hide_sidebar: true
 sidebar: false
 ---
 
+TODO adjust date before publishing blog post
+
 It has been quite lately on our website and on GitHub as the Ditto team currently prepares its new `connectivity` 
 microservice. Until now Ditto's `amqp-bridge` service could connect to AMQP1.0 endpoints 
 (e.g. [Eclipse Hono](https://www.eclipse.org/hono/)).
@@ -36,7 +38,8 @@ The Docker image and the maven artifacts are affected by this change.
 
 ### Enhanced connectivity
 
-The new `connectivity` microservice can now manage and handle both AMQP 1.0 and AMQP 0.9.1 connections at the same time. <br/>
+The new [connectivity](architecture-services-connectivity.html) microservice can now manage and handle both AMQP 1.0 and 
+AMQP 0.9.1 connections at the same time. <br/>
 That means that Ditto from now on supports connecting to running AMQP 1.0 endpoints or to AMQP 0.9.1 brokers (e.g. RabbitMQ).
 The architecture of the `connectivity` microservice is designed to also support connecting via other protocols in the future.
 
@@ -73,7 +76,9 @@ The `incoming` and `outgoing` scripts must be configured when creating a new con
 
 
 ## Example
-Please find more information and an example at TODO ...
+Please find more information and examples at:
+* [Connectivity overview](connectivity-overview.html)
+* [Payload mapping in connectivity](connectivity-mapping.html)
 
 
 <br/>

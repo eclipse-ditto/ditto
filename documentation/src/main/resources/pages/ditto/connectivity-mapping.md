@@ -52,7 +52,7 @@ Or could even look like this (binary payload, used for example in constrained de
 0x08BD (hex representation)
 ```
 
-## Transformation engine
+## JavaScript mapping engine
 
 Ditto utilizes the [Rhino](https://github.com/mozilla/rhino) JavaScript engine for Java for evaluating the JavaScript
 to apply for mapping payloads.
@@ -63,6 +63,19 @@ applied in a better way.
 Sandboxing of different payload scripts is required as Ditto is intended to be run as cloud service where multiple
 connections to different endpoints are managed for different tenants at the same time. That requires that a single
 script may not interfere with other scripts or even do harm to the complete JVM the script is running in. 
+
+
+### Configuration options
+
+The Ditto `JavaScript` mapping engine does support the following configuration options:
+* `incomingScript` (String): the JavaScript function to invoke in order to transform incoming external messages to Ditto Protocol messages
+* `outgoingScript` (String): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
+* `loadBytebufferJS` (boolean): whether to load the [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) library
+* `loadLongJS` (boolean): whether to load the [long.js](https://github.com/dcodeIO/long.js) library
+* `maxScriptSizeBytes` (number): maximum script size of `incomingScript` and `outgoingScript` in bytes - default: *50* KB
+* `maxScriptExecutionTime` (number): maximum script execution time in milliseconds before it gets terminates - default: *500*
+* `maxScriptStackDepth` (number): maximum call stack depth of the scripts - default: *10*
+
 
 ### Constraints
 
@@ -268,7 +281,7 @@ That's where the helper method `Ditto.buildExternalMsg` can help: it explicitly 
 message.
 
 
-## Payload types
+## JavaScript payload types
 
 Both text payloads and byte payloads may be mapped.
 
@@ -342,9 +355,105 @@ buf.remaining(); // gets the number of remaining readable bytes in the buffer
 Check the [ByteBuffer API documentation](https://github.com/dcodeIO/bytebuffer.js/wiki/API) to find out what is possible with that helper.
 
 
-## Example
+## JavaScript Examples
 
-Let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) HTTP adapter into the cloud.
+### Text payload example
+
+Let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) MQTT adapter into the cloud.
+And that an example payload of your device is:
+
+```json
+{
+  "temp": "23.42 °C",
+  "hum": 78,
+  "pres": {
+    "value": 760,
+    "unit": "mmHg"
+  }
+}
+```
+
+We want to map a single message of this device containing updates for all 3 values to a Thing in the following structure:
+
+```json
+{
+  "thingId": "the.namespace:the-thing-id",
+  "policyId": "the.namespace:the-policy-id",
+  "features": {
+    "temperature": {
+       "properties": {
+         "value": 23.42
+       }
+     },
+    "pressure": {
+       "properties": {
+         "value": 760
+       }
+     },
+    "humidity": {
+       "properties": {
+         "value": 78
+       }
+     }
+  }
+}
+```
+
+So we define following `incoming` mapping function:
+
+```javascript
+function mapToDittoProtocolMsg(
+    headers,
+    textPayload,
+    bytePayload,
+    contentType
+) {
+    
+    if (contentType !== 'application/json') {
+        return null; // only handle messages with content-type application/json
+    }
+    
+    let jsonData = JSON.parse(textPayload);
+    
+    let value = {};
+    value.temperature = {};
+    value.temperature.properties = {};
+    value.temperature.properties.value = jsonData.temp.split(" ")[0]; // omit the unit
+    
+    value.pressure = {};
+    value.pressure.properties = {};
+    value.pressure.properties.value = jsonData.pres.value;
+    
+    value.humidity = {};
+    value.humidity.properties = {};
+    value.humidity.properties.value = jsonData.hum;
+
+    return Ditto.buildDittoProtocolMsg(
+        'org.eclipse.ditto', // in this example always the same
+        headers['device_id'], // Eclipse Hono sets the authenticated device_id as AMQP 1.0 header
+        'things', // we deal with a Thing
+        'twin', // we want to update the twin
+        'commands', // we want to create a command to update a twin
+        'modify', // modify the twin
+        '/features', // modify all features at once
+        headers, // pass through the headers from AMQP 1.0
+        value
+    );
+}
+```
+
+When your device now sends its payload via the MQTT adapter of Eclipse Hono:
+
+```bash
+mosquitto_pub -u 'sensor1@DEFAULT_TENANT' -P hono-secret -t telemetry -m '{"temp": "23.42 °C","hum": 78,"pres": {"value": 760,"unit": "mmHg"}}'
+```
+
+Your digital twin is updated by applying the specified script and extracting the relevant values from the passed `textPayload`.
+
+
+### Bytes payload example
+
+For this example let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) HTTP adapter into the cloud.
 An example payload of your device is (displayed as hexadecimal):
 
 ```
@@ -404,7 +513,7 @@ function mapToDittoProtocolMsg(
     let value = {};
     value.temperature = {};
     value.temperature.properties = {};
-    // interpret the first 2 bytes (16 bit) as signed int and devide through 100.0:
+    // interpret the first 2 bytes (16 bit) as signed int and divide through 100.0:
     value.temperature.properties.value = view.getInt16(0) / 100.0; 
     
     value.pressure = {};
@@ -431,10 +540,44 @@ function mapToDittoProtocolMsg(
 }
 ```
 
-So when your device now sends its payload via the HTTP adapter of Eclipse Hono:
+When your device now sends its payload via the HTTP adapter of Eclipse Hono:
 
 ```bash
 echo -e $((0x09EF03F72A)) | curl -i -X POST -u sensor1@DEFAULT_TENANT:hono-secret -H 'Content-Type: application/octet-stream' --data-binary @- http://127.0.0.1:8080/telemetry
 ```
 
 Your digital twin is updated by applying the specified script and extracting the relevant values from the passed `bytePayload`.
+
+
+## Custom Java based implementation
+
+Besides from the JavaScript based mapping which can be configured/changed at runtime without the need of restarting the
+connectivity service there is also the possibility to implement a custom Java based mapper.
+
+The interface to be implemented is `org.eclipse.ditto.services.connectivity.mapping.MessageMapper` (TODO insert link to GitHub)
+with the following signature to implement (this is only en expert, the sources contain JavaDoc): 
+
+```java
+public interface MessageMapper {
+    
+    void configure(MessageMapperConfiguration configuration);
+    
+    Optional<Adaptable> map(ExternalMessage message);
+    
+    Optional<ExternalMessage> map(Adaptable adaptable);
+}
+```
+
+After instantiation of the custom `MessageMapper`, the `configure` method is called with all the *options* which were 
+provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). Use that
+in order to pass in configurations, thresholds, etc.
+
+Then simply implement both of the `map` methods:
+* `Optional<Adaptable> map(ExternalMessage message)` maps from an incoming external message to a [Ditto Protocol](protocol-overview.html) `Adaptable`
+* `Optional<ExternalMessage> map(Adaptable adaptable)` maps from an outgoing [Ditto Protocol](protocol-overview.html) `Adaptable` to an external message
+
+In order to use this custom Java based mapper implementation, two steps are required:
+* the Class has obviously be on the classpath of the [connectivity](architecture-services-connectivity.html) microservice 
+  in order to be loaded
+* when creating a new connection you have to specify the full qualified classname of your class as `mappingEngine` in the
+  connection's `mappingContext`
