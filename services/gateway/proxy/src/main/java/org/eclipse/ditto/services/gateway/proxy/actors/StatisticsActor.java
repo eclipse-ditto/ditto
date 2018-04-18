@@ -169,11 +169,12 @@ public final class StatisticsActor extends AbstractActor {
                             .map(ShardRegion.ShardState::getEntityIds)
                             .flatMap(strSet -> strSet.stream()
                                     .map(str -> {
-                                        final String namespace = str.split(":", 2)[0];
-                                        if (namespace.isEmpty()) {
+                                        // groupKey may be either namespace or resource-type (in case of concierge)
+                                        final String groupKey = str.split(":", 2)[0];
+                                        if (groupKey.isEmpty()) {
                                             return "<empty>";
                                         } else {
-                                            return namespace;
+                                            return groupKey;
                                         }
                                     })
                             )
@@ -260,8 +261,8 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<Long> HOT_CONCIERGE_ENFORCERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotConciergeEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersNamespacesHotness", FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_RESOURCE_TYPES_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersResourceTypesHotness", FieldType.REGULAR);
 
         private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotSearchUpdatersCount", FieldType.REGULAR);
@@ -274,7 +275,7 @@ public final class StatisticsActor extends AbstractActor {
         private final long hotPoliciesCount;
         private final Map<String, Long> policiesNamespacesHotness;
         private final long hotConciergeEnforcersCount;
-        private final Map<String, Long> conciergeEnforcersNamespacesHotness;
+        private final Map<String, Long> conciergeEnforcersResourceTypesHotness;
         private final long hotSearchUpdatersCount;
         private final Map<String, Long> searchUpdatersNamespacesHotness;
 
@@ -283,7 +284,7 @@ public final class StatisticsActor extends AbstractActor {
                 final long hotPoliciesCount,
                 final Map<String, Long> policiesNamespacesHotness,
                 final long hotConciergeEnforcersCount,
-                final Map<String, Long> conciergeEnforcersNamespacesHotness,
+                final Map<String, Long> conciergeEnforcersResourceTypesHotness,
                 final long hotSearchUpdatersCount,
                 final Map<String, Long> searchUpdatersNamespacesHotness) {
 
@@ -292,7 +293,7 @@ public final class StatisticsActor extends AbstractActor {
             this.hotPoliciesCount = hotPoliciesCount;
             this.policiesNamespacesHotness = policiesNamespacesHotness;
             this.hotConciergeEnforcersCount = hotConciergeEnforcersCount;
-            this.conciergeEnforcersNamespacesHotness = conciergeEnforcersNamespacesHotness;
+            this.conciergeEnforcersResourceTypesHotness = conciergeEnforcersResourceTypesHotness;
             this.hotSearchUpdatersCount = hotSearchUpdatersCount;
             this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
         }
@@ -311,22 +312,22 @@ public final class StatisticsActor extends AbstractActor {
         public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
             return JsonFactory.newObjectBuilder()
                     .set(HOT_THINGS_COUNT, hotThingsCount, predicate)
-                    .set(THINGS_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(thingsNamespacesHotness), predicate)
+                    .set(THINGS_NAMESPACE_HOTNESS, buildHotnessMapJson(thingsNamespacesHotness), predicate)
                     .set(HOT_POLICIES_COUNT, hotPoliciesCount, predicate)
-                    .set(POLICIES_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(policiesNamespacesHotness), predicate)
+                    .set(POLICIES_NAMESPACE_HOTNESS, buildHotnessMapJson(policiesNamespacesHotness), predicate)
                     .set(HOT_CONCIERGE_ENFORCERS_COUNT, hotConciergeEnforcersCount, predicate)
-                    .set(CONCIERGE_ENFORCERS_NAMESPACE_HOTNESS,
-                            buildNamespaceHotnessJson(conciergeEnforcersNamespacesHotness), predicate)
+                    .set(CONCIERGE_ENFORCERS_RESOURCE_TYPES_HOTNESS,
+                            buildHotnessMapJson(conciergeEnforcersResourceTypesHotness), predicate)
                     .set(HOT_SEARCH_UPDATERS_COUNT, hotSearchUpdatersCount, predicate)
-                    .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(searchUpdatersNamespacesHotness),
+                    .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildHotnessMapJson(searchUpdatersNamespacesHotness),
                             predicate)
                     .build();
         }
 
-        private static JsonObject buildNamespaceHotnessJson(final Map<String, Long> namespaceHotnessMap) {
+        private static JsonObject buildHotnessMapJson(final Map<String, Long> hotnessMap) {
             final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
             // sort it:
-            namespaceHotnessMap.entrySet().stream()
+            hotnessMap.entrySet().stream()
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                     .forEachOrdered(e -> objectBuilder.set(e.getKey(), e.getValue()));
             return objectBuilder.build();
@@ -346,7 +347,7 @@ public final class StatisticsActor extends AbstractActor {
                     hotSearchUpdatersCount == that.hotSearchUpdatersCount &&
                     Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
                     Objects.equals(policiesNamespacesHotness, that.policiesNamespacesHotness) &&
-                    Objects.equals(conciergeEnforcersNamespacesHotness, that.conciergeEnforcersNamespacesHotness) &&
+                    Objects.equals(conciergeEnforcersResourceTypesHotness, that.conciergeEnforcersResourceTypesHotness) &&
                     Objects.equals(searchUpdatersNamespacesHotness, that.searchUpdatersNamespacesHotness);
         }
 
@@ -354,7 +355,7 @@ public final class StatisticsActor extends AbstractActor {
         public int hashCode() {
             return Objects.hash(hotThingsCount, thingsNamespacesHotness, hotPoliciesCount,
                     policiesNamespacesHotness, hotConciergeEnforcersCount,
-                    conciergeEnforcersNamespacesHotness,
+                    conciergeEnforcersResourceTypesHotness,
                     hotSearchUpdatersCount, searchUpdatersNamespacesHotness);
         }
 
@@ -366,7 +367,7 @@ public final class StatisticsActor extends AbstractActor {
                     ", hotPoliciesCount=" + hotPoliciesCount +
                     ", policiesNamespacesHotness=" + policiesNamespacesHotness +
                     ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
-                    ", conciergeEnforcersNamespacesHotness=" + conciergeEnforcersNamespacesHotness +
+                    ", conciergeEnforcersResourceTypesHotness=" + conciergeEnforcersResourceTypesHotness +
                     ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";
