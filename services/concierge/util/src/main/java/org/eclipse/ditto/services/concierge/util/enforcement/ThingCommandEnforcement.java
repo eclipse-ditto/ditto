@@ -58,7 +58,7 @@ import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
-import org.eclipse.ditto.services.models.policies.PolicyInvalidException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;

@@ -84,6 +84,7 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(PolicyIdNotModifiableException.ERROR_CODE, PolicyIdNotModifiableException::fromJson);
         parseStrategies.put(PolicyIdNotAllowedException.ERROR_CODE, PolicyIdNotAllowedException::fromJson);
         parseStrategies.put(PolicyNotAllowedException.ERROR_CODE, PolicyNotAllowedException::fromJson);
+        parseStrategies.put(PolicyInvalidException.ERROR_CODE, PolicyInvalidException::fromJson);
         parseStrategies.put(PolicyIdMissingException.ERROR_CODE, PolicyIdMissingException::fromJson);
         parseStrategies.put(ThingUnavailableException.ERROR_CODE, ThingUnavailableException::fromJson);
         parseStrategies.put(ThingTooManyModifyingRequestsException.ERROR_CODE,
