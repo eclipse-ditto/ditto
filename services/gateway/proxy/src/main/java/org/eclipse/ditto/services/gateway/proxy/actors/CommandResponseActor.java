@@ -67,6 +67,7 @@ public class CommandResponseActor extends AbstractActor {
                     log.debug("Received response of type '{}', forwarding to original sender '{}'.", response.getType(),
                             sender);
                     sender.tell(response, getSender());
+                    getContext().stop(getSelf());
                 })
                 .match(ReceiveTimeout.class, r -> {
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
