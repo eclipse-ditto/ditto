@@ -53,13 +53,13 @@ import akka.pattern.PatternsCS;
  */
 public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
-    private final ActorRef policiesShardRegion;
-    private final EnforcerRetriever enforcerRetriever;
     /**
      * Json fields that are always shown regardless of authorization.
      */
     private static final JsonFieldSelector POLICY_QUERY_COMMAND_RESPONSE_WHITELIST =
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
+    private final ActorRef policiesShardRegion;
+    private final EnforcerRetriever enforcerRetriever;
 
     private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
@@ -68,55 +68,6 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         requireNonNull(enforcerCache);
         enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
-    }
-
-    /**
-     * Authorize a policy command. Either the command is forwarded to policies-shard-region for execution or
-     * the sender is told of an error.
-     *
-     * @param command the command to authorize.
-     * @param sender sender of the command.
-     */
-    @Override
-    public void enforce(final PolicyCommand command, final ActorRef sender) {
-        enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
-            if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(command, enforcerEntry.getValue(), sender);
-            } else {
-                enforcePolicyCommandByNonexistentEnforcer(command, sender);
-            }
-        });
-    }
-
-    /**
-     * Provides {@link Enforcement} for commands of type {@link PolicyCommand}.
-     */
-    public static final class Provider implements EnforcementProvider<PolicyCommand> {
-
-        private ActorRef policiesShardRegion;
-        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
-
-        /**
-         * Constructor.
-         *
-         * @param policiesShardRegion the ActorRef to the Policies shard region.
-         * @param enforcerCache the enforcer cache.
-         */
-        public Provider(final ActorRef policiesShardRegion,
-                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
-            this.policiesShardRegion = requireNonNull(policiesShardRegion);
-            this.enforcerCache = requireNonNull(enforcerCache);
-        }
-
-        @Override
-        public Class<PolicyCommand> getCommandClass() {
-            return PolicyCommand.class;
-        }
-
-        @Override
-        public Enforcement<PolicyCommand> createEnforcement(final Enforcement.Context context) {
-            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
-        }
     }
 
     /**
@@ -180,6 +131,47 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
                 POLICY_QUERY_COMMAND_RESPONSE_WHITELIST, Permissions.newInstance(Permission.READ));
     }
 
+    private static PolicyCommand transformModifyPolicyToCreatePolicy(final PolicyCommand receivedCommand) {
+        if (receivedCommand instanceof ModifyPolicy) {
+            final ModifyPolicy modifyPolicy = (ModifyPolicy) receivedCommand;
+            return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
+        } else {
+            return receivedCommand;
+        }
+    }
+
+    /**
+     * Create error due to failing to execute a policy-command in the expected way.
+     *
+     * @param policyCommand the command.
+     * @return the error.
+     */
+    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand policyCommand) {
+        final CommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> registry =
+                policyCommand instanceof PolicyModifyCommand
+                        ? PolicyCommandToModifyExceptionRegistry.getInstance()
+                        : PolicyCommandToAccessExceptionRegistry.getInstance();
+        return registry.exceptionFrom(policyCommand);
+    }
+
+    /**
+     * Authorize a policy command. Either the command is forwarded to policies-shard-region for execution or
+     * the sender is told of an error.
+     *
+     * @param command the command to authorize.
+     * @param sender sender of the command.
+     */
+    @Override
+    public void enforce(final PolicyCommand command, final ActorRef sender) {
+        enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
+            if (enforcerEntry.exists()) {
+                enforcePolicyCommandByEnforcer(command, enforcerEntry.getValue(), sender);
+            } else {
+                enforcePolicyCommandByNonexistentEnforcer(command, sender);
+            }
+        });
+    }
+
     private void enforcePolicyCommandByEnforcer(final PolicyCommand<?> policyCommand, final Enforcer enforcer,
             final ActorRef sender) {
         final Optional<? extends PolicyCommand> authorizedCommandOpt = authorizePolicyCommand(policyCommand, enforcer);
@@ -216,35 +208,12 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         }
     }
 
-    private static PolicyCommand transformModifyPolicyToCreatePolicy(final PolicyCommand receivedCommand) {
-        if (receivedCommand instanceof ModifyPolicy) {
-            final ModifyPolicy modifyPolicy = (ModifyPolicy) receivedCommand;
-            return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
-        } else {
-            return receivedCommand;
-        }
-    }
-
     private void forwardToPoliciesShardRegion(final Object message, final ActorRef sender) {
         policiesShardRegion.tell(message, sender);
     }
 
     private void respondWithError(final PolicyCommand policyCommand, final ActorRef sender) {
         sender.tell(errorForPolicyCommand(policyCommand), self());
-    }
-
-    /**
-     * Create error due to failing to execute a policy-command in the expected way.
-     *
-     * @param policyCommand the command.
-     * @return the error.
-     */
-    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> registry =
-                policyCommand instanceof PolicyModifyCommand
-                        ? PolicyCommandToModifyExceptionRegistry.getInstance()
-                        : PolicyCommandToAccessExceptionRegistry.getInstance();
-        return registry.exceptionFrom(policyCommand);
     }
 
     private void askPoliciesShardRegionAndBuildJsonView(
@@ -254,15 +223,15 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
 
         PatternsCS.ask(policiesShardRegion, commandWithReadSubjects, getAskTimeout().toMillis())
                 .handleAsync((response, error) -> {
-                    if (error != null) {
-                        reportUnexpectedError("before building JsonView", sender, error,
-                                commandWithReadSubjects.getDittoHeaders());
-                    } else if (response instanceof PolicyQueryCommandResponse) {
+                    if (response instanceof PolicyQueryCommandResponse) {
                         reportJsonViewForPolicyQuery(sender, (PolicyQueryCommandResponse) response, enforcer);
                     } else if (response instanceof DittoRuntimeException) {
                         replyToSender(response, sender);
                     } else if (isAskTimeoutException(response, error)) {
                         reportTimeoutForPolicyQuery(commandWithReadSubjects, sender, (AskTimeoutException) response);
+                    } else if (error != null) {
+                        reportUnexpectedError("before building JsonView", sender, error,
+                                commandWithReadSubjects.getDittoHeaders());
                     } else {
                         reportUnknownResponse("before building JsonView", sender, response,
                                 commandWithReadSubjects.getDittoHeaders());
@@ -292,6 +261,37 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         } catch (final DittoRuntimeException e) {
             log().error(e, "Error after building JsonView");
             replyToSender(e, sender);
+        }
+    }
+
+    /**
+     * Provides {@link Enforcement} for commands of type {@link PolicyCommand}.
+     */
+    public static final class Provider implements EnforcementProvider<PolicyCommand> {
+
+        private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
+        private ActorRef policiesShardRegion;
+
+        /**
+         * Constructor.
+         *
+         * @param policiesShardRegion the ActorRef to the Policies shard region.
+         * @param enforcerCache the enforcer cache.
+         */
+        public Provider(final ActorRef policiesShardRegion,
+                final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
+            this.policiesShardRegion = requireNonNull(policiesShardRegion);
+            this.enforcerCache = requireNonNull(enforcerCache);
+        }
+
+        @Override
+        public Class<PolicyCommand> getCommandClass() {
+            return PolicyCommand.class;
+        }
+
+        @Override
+        public Enforcement<PolicyCommand> createEnforcement(final Enforcement.Context context) {
+            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
     }
 }
