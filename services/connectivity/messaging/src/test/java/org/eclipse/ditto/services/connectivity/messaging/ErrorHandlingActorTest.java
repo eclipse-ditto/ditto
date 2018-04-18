@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.services.connectivity.messaging.FaultyConnectionActor.faultyConnectionActorPropsFactory;
 
-import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -63,7 +62,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator,
-                    (con, connectionStatus) -> FaultyConnectionActor.props(false));
+                    (con, connectionStatus, commandRouter) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection

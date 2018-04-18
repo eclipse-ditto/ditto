@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
@@ -201,8 +202,11 @@ final class GatewayRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(proxyActor), getSelf());
 
+        final Props commandRouterProps = CommandRouterPropsFactory.getProps(config);
+        final ActorRef commandRouter = startChildActor("commandRouter", commandRouterProps);
+
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(pubSubMediator, proxyActor));
+                StreamingActor.props(pubSubMediator, commandRouter));
 
         final ActorRef healthCheckActor = createHealthCheckActor(config);
 

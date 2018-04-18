@@ -54,7 +54,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ReconnectClient;
-import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -83,8 +82,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private ActorRef amqpPublisherActor;
 
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final String pubSubTargetPath, final JmsConnectionFactory jmsConnectionFactory) {
-        super(connection, connectionStatus, pubSubTargetPath);
+            final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
+        super(connection, connectionStatus, commandRouter);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new ConnectionListener();
         consumerMap = new HashMap<>();
@@ -95,12 +94,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @param connection the connection
      * @param connectionStatus the desired status of the connection
+     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
+    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef commandRouter) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
-                ConnectivityMessagingConstants.GATEWAY_PROXY_ACTOR_PATH,
-                ConnectionBasedJmsConnectionFactory.getInstance());
+                commandRouter, ConnectionBasedJmsConnectionFactory.getInstance());
     }
 
     /**
@@ -108,14 +108,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @param connection connection parameters
      * @param connectionStatus the desired status of the connection
-     * @param pubSubTargetPath the pub sub target path
+     * @param commandRouter the command router used to send signals into the cluster
      * @param jmsConnectionFactory the JMS connection factory
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
-            final String pubSubTargetPath,
-            final JmsConnectionFactory jmsConnectionFactory) {
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, pubSubTargetPath,
+            final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
                 jmsConnectionFactory);
     }
 
@@ -161,14 +160,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("connect", connection).tell(new JmsConnect(origin), getSelf());
     }
 
     @Override
     protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("reconnect", connection).tell(new JmsReconnect(origin, jmsConnection),
                 getSelf());
@@ -176,7 +173,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("disconnect", connection)
                 .tell(new JmsDisconnect(origin, jmsConnection), getSelf());

@@ -67,21 +67,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AmqpClientActorTest {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmqpClientActorTest.class);
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
@@ -94,16 +88,16 @@ public class AmqpClientActorTest {
     private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
 
     @Mock
-    private JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
+    private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
     private final JmsConnectionFactory jmsConnectionFactory = (connection1, exceptionListener) -> mockConnection;
     @Mock
-    private Session mockSession = Mockito.mock(Session.class);
+    private final Session mockSession = Mockito.mock(Session.class);
     @Mock
-    private MessageConsumer mockConsumer = Mockito.mock(MessageConsumer.class);
+    private final MessageConsumer mockConsumer = Mockito.mock(MessageConsumer.class);
     @Mock
-    private MessageProducer mockProducer = Mockito.mock(MessageProducer.class);
+    private final MessageProducer mockProducer = Mockito.mock(MessageProducer.class);
     @Mock
-    private TextMessage mockTextMessage = Mockito.mock(TextMessage.class);
+    private final TextMessage mockTextMessage = Mockito.mock(TextMessage.class);
 
     @BeforeClass
     public static void setUp() {
@@ -135,9 +129,9 @@ public class AmqpClientActorTest {
                 .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
                 .build();
 
-        final ThrowableAssert.ThrowingCallable props1 = () -> AmqpClientActor.props(connection, connectionStatus);
+        final ThrowableAssert.ThrowingCallable props1 = () -> AmqpClientActor.props(connection, connectionStatus, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> AmqpClientActor.props(connection, connectionStatus, "target", jmsConnectionFactory);
+                () -> AmqpClientActor.props(connection, connectionStatus, null, jmsConnectionFactory);
 
         Stream.of(props1, props2).forEach(throwingCallable ->
                 assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -148,9 +142,7 @@ public class AmqpClientActorTest {
     @Test
     public void testExceptionDuringJMSConnectionCreation() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            final Props props = AmqpClientActor.props(connection, connectionStatus,
-                    pubSubTargetPath,
+            final Props props = AmqpClientActor.props(connection, connectionStatus, getRef(), 
                     (ac, el) -> { throw JMS_EXCEPTION; });
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
@@ -163,8 +155,7 @@ public class AmqpClientActorTest {
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            final Props props = AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
+            final Props props = AmqpClientActor.props(connection, connectionStatus, getRef(),
                     (connection1, exceptionListener) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
@@ -183,9 +174,8 @@ public class AmqpClientActorTest {
     @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final CountDownLatch latch = new CountDownLatch(1);
-            final Props props = AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
+            final Props props = AmqpClientActor.props(connection, connectionStatus, getRef(),
                     (ac, el) -> waitForLatchAndReturn(latch, mockConnection));
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
@@ -201,10 +191,8 @@ public class AmqpClientActorTest {
     @Test
     public void sendConnectCommandWhenAlreadyConnected() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -220,10 +208,8 @@ public class AmqpClientActorTest {
     @Test
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -235,11 +221,9 @@ public class AmqpClientActorTest {
     @Test
     public void testStartConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -250,11 +234,9 @@ public class AmqpClientActorTest {
     @Test
     public void testCreateSessionFails() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             doThrow(JMS_EXCEPTION).when(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -265,12 +247,10 @@ public class AmqpClientActorTest {
     @Test
     public void testCreateConsumerFails() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
             doThrow(JMS_EXCEPTION).when(mockSession).createConsumer(any());
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -281,11 +261,9 @@ public class AmqpClientActorTest {
     @Test
     public void testCloseConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -299,13 +277,8 @@ public class AmqpClientActorTest {
     @Test
     public void testConsumeMessageAndExpectForwardToProxyActor() throws JMSException {
         new TestKit(actorSystem) {{
-            final ActorRef mediator = DistributedPubSub.get(actorSystem).mediator();
-            mediator.tell(new DistributedPubSubMediator.Put(getRef()), getRef());
-
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -325,10 +298,8 @@ public class AmqpClientActorTest {
     @Test
     public void testReceiveThingEventAndExpectForwardToJMSProducer() throws JMSException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    AmqpClientActor.props(connection, connectionStatus, pubSubTargetPath,
-                            (ac, el) -> mockConnection);
+                    AmqpClientActor.props(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());

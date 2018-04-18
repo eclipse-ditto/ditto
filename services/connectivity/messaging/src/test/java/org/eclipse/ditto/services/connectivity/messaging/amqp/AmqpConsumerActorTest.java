@@ -46,8 +46,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.DefaultResizer;
 import akka.routing.RoundRobinPool;
@@ -62,12 +60,10 @@ public class AmqpConsumerActorTest {
     private static final String CONNECTION_ID = "connection";
 
     private static ActorSystem actorSystem;
-    private static ActorRef pubSubMediator;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
     }
 
     @AfterClass
@@ -81,9 +77,6 @@ public class AmqpConsumerActorTest {
     @Test
     public void plainStringMappingTest() throws IdConversionException {
         new TestKit(actorSystem) {{
-            final String targetActorPath = getTestActor().path().toStringWithoutAddress();
-            pubSubMediator.tell(new DistributedPubSubMediator.Put(getTestActor()), null);
-
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
                     MessageMappers.createJavaScriptMapperConfigurationBuilder()
@@ -153,7 +146,7 @@ public class AmqpConsumerActorTest {
             final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
             final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(pubSubMediator, targetActorPath, getRef(),
+                    MessageMappingProcessorActor.props(getRef(), getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                             mappingProcessor, CONNECTION_ID);
 
@@ -187,24 +180,20 @@ public class AmqpConsumerActorTest {
     }
 
     @Test
-    public void createWithDefaultMapperOnly() throws IdConversionException {
+    public void createWithDefaultMapperOnly() {
         new TestKit(actorSystem) {{
-            ActorRef underTest = setupActor(getTestActor(), null);
-            ExternalMessage in =
+            final ActorRef underTest = setupActor(getTestActor(), null);
+            final ExternalMessage in =
                     ConnectivityModelFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
             underTest.tell(in, null);
         }};
     }
 
     private ActorRef setupActor(final ActorRef testActor, @Nullable final MappingContext mappingContext) {
-
-        pubSubMediator.tell(new DistributedPubSubMediator.Put(testActor), null);
-        final String pubSubTarget = testActor.path().toStringWithoutAddress();
-
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(pubSubMediator, pubSubTarget, testActor,
+                MessageMappingProcessorActor.props(testActor, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
                         mappingProcessor, CONNECTION_ID);
 

@@ -104,9 +104,10 @@ public class RabbitMQClientActorTest {
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
                 .build();
 
-        final ThrowableAssert.ThrowingCallable props1 = () -> RabbitMQClientActor.props(connection, connectionStatus);
+        final ThrowableAssert.ThrowingCallable props1 =
+                () -> RabbitMQClientActor.props(connection, connectionStatus, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.props(connection, connectionStatus, "target", rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.props(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -119,8 +120,7 @@ public class RabbitMQClientActorTest {
     @Test
     public void testExceptionDuringConnectionFactoryCreation() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                     (con, exHandler) -> { throw CUSTOM_EXCEPTION; });
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
@@ -133,8 +133,7 @@ public class RabbitMQClientActorTest {
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                     (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
@@ -153,9 +152,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final CountDownLatch latch = new CountDownLatch(1);
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                     (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
@@ -171,9 +169,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void sendConnectCommandWhenAlreadyConnected() throws IOException {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                             (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
@@ -189,9 +186,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                             (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
@@ -204,9 +200,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void testCloseConnectionFails() {
         new TestKit(actorSystem) {{
-            final String pubSubTargetPath = getRef().path().toStringWithoutAddress();
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, pubSubTargetPath,
+                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
                             (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 

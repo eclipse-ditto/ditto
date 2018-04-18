@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import static org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor.LIVE_RESPONSES_PUB_SUB_GROUP;
 import static org.eclipse.ditto.services.models.policies.Permission.READ;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
@@ -236,19 +235,6 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         final Signal<?> commandWithReadSubjects = enrichDittoHeaders(signal, resourcePath, signal.getResourceType());
         log.debug("Publishing signal <{}> to topic <{}>.", signal.getName(), topic);
         accessCounter++;
-
-        // subscribe the sender with correlationId to receive the response, if a response is required
-        signal.getDittoHeaders()
-                .getCorrelationId()
-                .filter(correlationId -> signal.getDittoHeaders().isResponseRequired())
-                .map(correlationId -> new DistributedPubSubMediator.Subscribe(correlationId,
-                        LIVE_RESPONSES_PUB_SUB_GROUP, getSender()))
-                .map(subscribe -> {
-                    log.debug("Subscribing for response: {}", subscribe);
-                    return subscribe;
-                })
-                .ifPresent(subscribe -> getPubsubMediator().tell(subscribe, getSender()));
-
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         pubSubMediator.tell(
                 new DistributedPubSubMediator.Publish(topic, commandWithReadSubjects, true),
