@@ -31,6 +31,10 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
@@ -58,16 +62,15 @@ public final class StatisticsActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "statistics";
 
-    private static final String SR_THING = "thing";
-    private static final String SR_POLICY = "policy";
-    private static final String SR_POLICY_ENFORCER = "policyEnforcer";
-    private static final String SR_ACL_ENFORCER = "aclEnforcer";
-    private static final String SR_SEARCH_UPDATER = "search-updater";
+    private static final String SR_THING = ThingsMessagingConstants.SHARD_REGION;
+    private static final String SR_POLICY = PoliciesMessagingConstants.SHARD_REGION;
+    private static final String SR_CONCIERGE = ConciergeMessagingConstants.SHARD_REGION;
+    private static final String SR_SEARCH_UPDATER = ThingsSearchConstants.SHARD_REGION;
 
-    private static final String THINGS_ROOT = "/user/thingsRoot";
-    private static final String POLICIES_ROOT = "/user/policiesRoot";
-    private static final String GATEWAY_ROOT = "/user/gatewayRoot";
-    private static final String SEARCH_UPDATER_ROOT = "/user/searchUpdaterRoot";
+    private static final String THINGS_ROOT = ThingsMessagingConstants.ROOT_ACTOR_PATH;
+    private static final String POLICIES_ROOT = PoliciesMessagingConstants.ROOT_ACTOR_PATH;
+    private static final String CONCIERGE_ROOT = ConciergeMessagingConstants.ROOT_ACTOR_PATH;
+    private static final String SEARCH_UPDATER_ROOT = ThingsSearchConstants.UPDATER_ROOT_ACTOR_PATH;
 
     /**
      * The wait time in milliseconds to gather all statistics from the cluster nodes.
@@ -97,7 +100,7 @@ public final class StatisticsActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public StatisticsActor create() throws Exception {
+            public StatisticsActor create() {
                 return new StatisticsActor(pubSubMediator);
             }
         });
@@ -111,14 +114,13 @@ public final class StatisticsActor extends AbstractActor {
 
                     tellRootActorToGetShardRegionState(THINGS_ROOT);
                     tellRootActorToGetShardRegionState(POLICIES_ROOT);
-                    tellRootActorToGetShardRegionState(GATEWAY_ROOT);
+                    tellRootActorToGetShardRegionState(CONCIERGE_ROOT);
                     tellRootActorToGetShardRegionState(SEARCH_UPDATER_ROOT);
 
                     final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
                     tellShardRegionToSendClusterShardingStats(SR_THING, shardStatisticsMap);
                     tellShardRegionToSendClusterShardingStats(SR_POLICY, shardStatisticsMap);
-                    tellShardRegionToSendClusterShardingStats(SR_POLICY_ENFORCER, shardStatisticsMap);
-                    tellShardRegionToSendClusterShardingStats(SR_ACL_ENFORCER, shardStatisticsMap);
+                    tellShardRegionToSendClusterShardingStats(SR_CONCIERGE, shardStatisticsMap);
                     tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER, shardStatisticsMap);
 
                     final ActorRef self = getSelf();
@@ -202,10 +204,8 @@ public final class StatisticsActor extends AbstractActor {
                             shardStatisticsMap.get(SR_THING).hotnessMap,
                             shardStatisticsMap.get(SR_POLICY).count,
                             shardStatisticsMap.get(SR_POLICY).hotnessMap,
-                            shardStatisticsMap.get(SR_POLICY_ENFORCER).count,
-                            shardStatisticsMap.get(SR_POLICY_ENFORCER).hotnessMap,
-                            shardStatisticsMap.get(SR_ACL_ENFORCER).count,
-                            shardStatisticsMap.get(SR_ACL_ENFORCER).hotnessMap,
+                            shardStatisticsMap.get(SR_CONCIERGE).count,
+                            shardStatisticsMap.get(SR_CONCIERGE).hotnessMap,
                             shardStatisticsMap.get(SR_SEARCH_UPDATER).count,
                             shardStatisticsMap.get(SR_SEARCH_UPDATER).hotnessMap
                     );
@@ -222,10 +222,8 @@ public final class StatisticsActor extends AbstractActor {
         if (shardStatistics == null) {
             if (getSender().path().toStringWithoutAddress().contains(SR_SEARCH_UPDATER)) {
                 shardStatistics = shardStatisticsMap.get(SR_SEARCH_UPDATER);
-            } else if (getSender().path().toStringWithoutAddress().contains(SR_ACL_ENFORCER)) {
-                shardStatistics = shardStatisticsMap.get(SR_ACL_ENFORCER);
-            } else if (getSender().path().toStringWithoutAddress().contains(SR_POLICY_ENFORCER)) {
-                shardStatistics = shardStatisticsMap.get(SR_POLICY_ENFORCER);
+            } else if (getSender().path().toStringWithoutAddress().contains(SR_CONCIERGE)) {
+                shardStatistics = shardStatisticsMap.get(SR_CONCIERGE);
             } else if (getSender().path().toStringWithoutAddress().contains(SR_POLICY)) {
                 shardStatistics = shardStatisticsMap.get(SR_POLICY);
             } else if (getSender().path().toStringWithoutAddress().contains(SR_THING)) {
@@ -259,23 +257,11 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<JsonObject> POLICIES_NAMESPACE_HOTNESS =
                 JsonFactory.newJsonObjectFieldDefinition("policiesNamespacesHotness", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<Long> HOT_TOPOLOGIES_COUNT =
-                JsonFactory.newLongFieldDefinition("hotTopologiesCount", FieldType.REGULAR);
+        private static final JsonFieldDefinition<Long> HOT_CONCIERGE_ENFORCERS_COUNT =
+                JsonFactory.newLongFieldDefinition("hotConciergeEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<Long> TOPOLOGIES_NAMESPACE_HOTNESS =
-                JsonFactory.newLongFieldDefinition("topologiesNamespacesHotness", FieldType.REGULAR);
-
-        private static final JsonFieldDefinition<Long> HOT_POLICY_ENFORCERS_COUNT =
-                JsonFactory.newLongFieldDefinition("hotPolicyEnforcersCount", FieldType.REGULAR);
-
-        private static final JsonFieldDefinition<JsonObject> POLICY_ENFORCERS_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("policyEnforcersNamespacesHotness", FieldType.REGULAR);
-
-        private static final JsonFieldDefinition<Long> HOT_ACL_ENFORCERS_COUNT =
-                JsonFactory.newLongFieldDefinition("hotAclEnforcersCount", FieldType.REGULAR);
-
-        private static final JsonFieldDefinition<JsonObject> ACL_ENFORCERS_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("aclEnforcersNamespacesHotness", FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersNamespacesHotness", FieldType.REGULAR);
 
         private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotSearchUpdatersCount", FieldType.REGULAR);
@@ -287,10 +273,8 @@ public final class StatisticsActor extends AbstractActor {
         private final Map<String, Long> thingsNamespacesHotness;
         private final long hotPoliciesCount;
         private final Map<String, Long> policiesNamespacesHotness;
-        private final long hotPolicyEnforcersCount;
-        private final Map<String, Long> policyEnforcersNamespacesHotness;
-        private final long hotAclEnforcersCount;
-        private final Map<String, Long> aclEnforcersNamespacesHotness;
+        private final long hotConciergeEnforcersCount;
+        private final Map<String, Long> conciergeEnforcersNamespacesHotness;
         private final long hotSearchUpdatersCount;
         private final Map<String, Long> searchUpdatersNamespacesHotness;
 
@@ -298,10 +282,8 @@ public final class StatisticsActor extends AbstractActor {
                 final Map<String, Long> thingsNamespacesHotness,
                 final long hotPoliciesCount,
                 final Map<String, Long> policiesNamespacesHotness,
-                final long hotPolicyEnforcersCount,
-                final Map<String, Long> policyEnforcersNamespacesHotness,
-                final long hotAclEnforcersCount,
-                final Map<String, Long> aclEnforcersNamespacesHotness,
+                final long hotConciergeEnforcersCount,
+                final Map<String, Long> conciergeEnforcersNamespacesHotness,
                 final long hotSearchUpdatersCount,
                 final Map<String, Long> searchUpdatersNamespacesHotness) {
 
@@ -309,10 +291,8 @@ public final class StatisticsActor extends AbstractActor {
             this.thingsNamespacesHotness = thingsNamespacesHotness;
             this.hotPoliciesCount = hotPoliciesCount;
             this.policiesNamespacesHotness = policiesNamespacesHotness;
-            this.hotPolicyEnforcersCount = hotPolicyEnforcersCount;
-            this.policyEnforcersNamespacesHotness = policyEnforcersNamespacesHotness;
-            this.hotAclEnforcersCount = hotAclEnforcersCount;
-            this.aclEnforcersNamespacesHotness = aclEnforcersNamespacesHotness;
+            this.hotConciergeEnforcersCount = hotConciergeEnforcersCount;
+            this.conciergeEnforcersNamespacesHotness = conciergeEnforcersNamespacesHotness;
             this.hotSearchUpdatersCount = hotSearchUpdatersCount;
             this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
         }
@@ -334,12 +314,9 @@ public final class StatisticsActor extends AbstractActor {
                     .set(THINGS_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(thingsNamespacesHotness), predicate)
                     .set(HOT_POLICIES_COUNT, hotPoliciesCount, predicate)
                     .set(POLICIES_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(policiesNamespacesHotness), predicate)
-                    .set(HOT_POLICY_ENFORCERS_COUNT, hotPolicyEnforcersCount, predicate)
-                    .set(POLICY_ENFORCERS_NAMESPACE_HOTNESS,
-                            buildNamespaceHotnessJson(policyEnforcersNamespacesHotness), predicate)
-                    .set(HOT_ACL_ENFORCERS_COUNT, hotAclEnforcersCount, predicate)
-                    .set(ACL_ENFORCERS_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(aclEnforcersNamespacesHotness),
-                            predicate)
+                    .set(HOT_CONCIERGE_ENFORCERS_COUNT, hotConciergeEnforcersCount, predicate)
+                    .set(CONCIERGE_ENFORCERS_NAMESPACE_HOTNESS,
+                            buildNamespaceHotnessJson(conciergeEnforcersNamespacesHotness), predicate)
                     .set(HOT_SEARCH_UPDATERS_COUNT, hotSearchUpdatersCount, predicate)
                     .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildNamespaceHotnessJson(searchUpdatersNamespacesHotness),
                             predicate)
@@ -365,21 +342,19 @@ public final class StatisticsActor extends AbstractActor {
             final Statistics that = (Statistics) o;
             return hotThingsCount == that.hotThingsCount &&
                     hotPoliciesCount == that.hotPoliciesCount &&
-                    hotPolicyEnforcersCount == that.hotPolicyEnforcersCount &&
-                    hotAclEnforcersCount == that.hotAclEnforcersCount &&
+                    hotConciergeEnforcersCount == that.hotConciergeEnforcersCount &&
                     hotSearchUpdatersCount == that.hotSearchUpdatersCount &&
                     Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
                     Objects.equals(policiesNamespacesHotness, that.policiesNamespacesHotness) &&
-                    Objects.equals(policyEnforcersNamespacesHotness, that.policyEnforcersNamespacesHotness) &&
-                    Objects.equals(aclEnforcersNamespacesHotness, that.aclEnforcersNamespacesHotness) &&
+                    Objects.equals(conciergeEnforcersNamespacesHotness, that.conciergeEnforcersNamespacesHotness) &&
                     Objects.equals(searchUpdatersNamespacesHotness, that.searchUpdatersNamespacesHotness);
         }
 
         @Override
         public int hashCode() {
             return Objects.hash(hotThingsCount, thingsNamespacesHotness, hotPoliciesCount,
-                    policiesNamespacesHotness, hotPolicyEnforcersCount,
-                    policyEnforcersNamespacesHotness, hotAclEnforcersCount, aclEnforcersNamespacesHotness,
+                    policiesNamespacesHotness, hotConciergeEnforcersCount,
+                    conciergeEnforcersNamespacesHotness,
                     hotSearchUpdatersCount, searchUpdatersNamespacesHotness);
         }
 
@@ -390,10 +365,8 @@ public final class StatisticsActor extends AbstractActor {
                     ", thingsNamespacesHotness=" + thingsNamespacesHotness +
                     ", hotPoliciesCount=" + hotPoliciesCount +
                     ", policiesNamespacesHotness=" + policiesNamespacesHotness +
-                    ", hotPolicyEnforcersCount=" + hotPolicyEnforcersCount +
-                    ", policyEnforcersNamespacesHotness=" + policyEnforcersNamespacesHotness +
-                    ", hotAclEnforcersCount=" + hotAclEnforcersCount +
-                    ", aclEnforcersNamespacesHotness=" + aclEnforcersNamespacesHotness +
+                    ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
+                    ", conciergeEnforcersNamespacesHotness=" + conciergeEnforcersNamespacesHotness +
                     ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";

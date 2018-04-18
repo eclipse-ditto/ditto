@@ -19,6 +19,19 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class PoliciesMessagingConstants {
 
+    @SuppressWarnings("squid:S1075")
+    private static final String USER_PATH = "/user";
+
+    /**
+     * Path of the root actor.
+     */
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/policiesRoot";
+
+    /**
+     * Path of the policies-stream-provider actor.
+     */
+    public static final String POLICIES_STREAM_PROVIDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/persistenceStreamingActor";
+
     /**
      * Name of the shard region for Policy entities.
      */

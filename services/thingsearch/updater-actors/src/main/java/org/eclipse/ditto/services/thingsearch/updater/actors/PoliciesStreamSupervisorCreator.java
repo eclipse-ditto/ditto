@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
@@ -35,8 +36,6 @@ public final class PoliciesStreamSupervisorCreator {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "policiesStreamSupervisor";
-    @SuppressWarnings("squid:S1075")
-    private static final String POLICIES_STREAM_PROVIDER_ACTOR_PATH = "/user/policiesRoot/persistenceStreamingActor";
 
     private PoliciesStreamSupervisorCreator() {
         throw new AssertionError();
@@ -68,7 +67,7 @@ public final class PoliciesStreamSupervisorCreator {
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
             final SudoStreamModifiedEntities sudoStreamModifiedEntities) {
 
-        return new DistributedPubSubMediator.Send(POLICIES_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities,
+        return new DistributedPubSubMediator.Send(PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities,
                 true);
     }
 

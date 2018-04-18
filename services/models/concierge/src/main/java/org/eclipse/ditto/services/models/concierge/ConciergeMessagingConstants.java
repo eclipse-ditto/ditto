@@ -20,9 +20,15 @@ import javax.annotation.concurrent.Immutable;
 public final class ConciergeMessagingConstants {
 
     /**
+     * Path of the concierge root actor.
+     */
+    @SuppressWarnings("squid:S1075")
+    public static final String ROOT_ACTOR_PATH = "/user/conciergeRoot";
+
+    /**
      * Path of the concierge dispatcher actor.
      */
-    public static final String DISPATCHER_ACTOR_PATH = "/user/conciergeRoot/dispatcherActor";
+    public static final String DISPATCHER_ACTOR_PATH = ROOT_ACTOR_PATH + "/dispatcherActor";
 
     /**
      * Name of the shard region for authorization entities.
