@@ -51,6 +51,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.testkit.CallingThreadDispatcher;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -117,7 +118,7 @@ public class RabbitMQClientActorTest {
     public void testExceptionDuringConnectionFactoryCreation() {
         new TestKit(actorSystem) {{
             final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> { throw CUSTOM_EXCEPTION; });
+                    (con, exHandler) -> { throw CUSTOM_EXCEPTION; }).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
             connectionActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -130,7 +131,7 @@ public class RabbitMQClientActorTest {
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
             final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> mockConnectionFactory);
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
@@ -149,7 +150,7 @@ public class RabbitMQClientActorTest {
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> mockConnectionFactory);
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
@@ -164,7 +165,7 @@ public class RabbitMQClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -172,7 +173,7 @@ public class RabbitMQClientActorTest {
 
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-            verify(mockConnection, Mockito.times(2)).createChannel();
+            verify(mockConnection, Mockito.atLeast(2)).createChannel();
         }};
     }
 
@@ -181,7 +182,7 @@ public class RabbitMQClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -195,7 +196,7 @@ public class RabbitMQClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
