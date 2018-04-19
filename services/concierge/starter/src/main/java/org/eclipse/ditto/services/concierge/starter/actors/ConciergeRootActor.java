@@ -20,15 +20,12 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 
 import akka.actor.AbstractActor;
@@ -57,6 +54,11 @@ import akka.stream.ActorMaterializer;
  * The root actor of the concierge service.
  */
 public final class ConciergeRootActor extends AbstractActor {
+
+    /**
+     * Name of this actor.
+     */
+    public static final String ACTOR_NAME = "conciergeRoot";
 
     private static final String RESTARTING_CHILD_MSG = "Restarting child...";
 
@@ -108,11 +110,6 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    /**
-     * Name of this actor.
-     */
-    public static final String ACTOR_NAME = "conciergeRoot";
-
     private ConciergeRootActor(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final AuthorizationProxyPropsFactory authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
@@ -124,7 +121,8 @@ public final class ConciergeRootActor extends AbstractActor {
 
         conciergeShardRegion = authorizationProxyPropsFactory.startActors(getContext(), configReader, pubSubMediator);
 
-        final ActorRef healthCheckingActor = startHealthCheckingActor(configReader.health());
+        final ActorRef healthCheckingActor = authorizationProxyPropsFactory
+                .startHealthCheckingActor(getContext(), configReader);
 
         final HttpConfigReader httpConfig = configReader.http();
 
@@ -149,6 +147,14 @@ public final class ConciergeRootActor extends AbstractActor {
                         materializer));
     }
 
+    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
+        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
+                healthCheckingActor, actorSystem);
+
+        return logRequest("http-request", () ->
+                logResult("http-response", statusRoute::buildStatusRoute));
+    }
+
     @Override
     public SupervisorStrategy supervisorStrategy() {
         return supervisorStrategy;
@@ -164,21 +170,6 @@ public final class ConciergeRootActor extends AbstractActor {
                     log.warning("Unknown message <{}>.", m);
                     unhandled(m);
                 }).build();
-    }
-
-    private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
-        return getContext().actorOf(props, actorName);
-    }
-
-    private ActorRef startHealthCheckingActor(final HealthConfigReader healthConfig) {
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(),
-                        healthConfig.getInterval());
-
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
     }
 
     private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
@@ -199,14 +190,6 @@ public final class ConciergeRootActor extends AbstractActor {
                     getContext().system().terminate();
                     return null;
                 });
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () ->
-                logResult("http-response", statusRoute::buildStatusRoute));
     }
 
     private void logServerBinding(final ServerBinding serverBinding) {

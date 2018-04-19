@@ -33,19 +33,6 @@ import akka.cluster.sharding.ClusterShardingSettings;
 public abstract class AuthorizationProxyPropsFactory {
 
     /**
-     * Start actors of Concierge service.
-     *
-     * @param context context in which to start actors other than shard regions and shard region proxies.
-     * @param configReader the configuration reader of Concierge service.
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @return actor reference to Concierge shard region.
-     */
-    public abstract ActorRef startActors(final ActorContext context,
-            final ConciergeConfigReader configReader,
-            final ActorRef pubSubMediator);
-
-
-    /**
      * Start a proxy to a shard region.
      *
      * @param actorSystem actor system to start the proxy in.
@@ -85,4 +72,39 @@ public abstract class AuthorizationProxyPropsFactory {
 
         return ClusterSharding.get(actorSystem).start(SHARD_REGION, props, settings, extractor);
     }
+
+    /**
+     * Start a child actor.
+     *
+     * @param context actor context to start the child actor in.
+     * @param actorName the name of the actor.
+     * @param props props of actors to start.
+     * @return actor reference to the child actor.
+     */
+    protected static ActorRef startChildActor(final ActorContext context, final String actorName, final Props props) {
+        return context.actorOf(props, actorName);
+    }
+
+    /**
+     * Start actors of Concierge service.
+     *
+     * @param context context in which to start actors other than shard regions and shard region proxies.
+     * @param configReader the configuration reader of Concierge service.
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @return actor reference to Concierge shard region.
+     */
+    public abstract ActorRef startActors(final ActorContext context,
+            final ConciergeConfigReader configReader,
+            final ActorRef pubSubMediator);
+
+    /**
+     * Start the health checking actor for the Concierge service.
+     *
+     * @param context context in which to start actors other than shard regions and shard region proxies.
+     * @param configReader the configuration reader of Concierge service.
+     * @return actor reference to Concierge shard region.
+     */
+    public abstract ActorRef startHealthCheckingActor(final ActorContext context,
+            final ConciergeConfigReader configReader);
+
 }
