@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
  * Retrieves an enforcer by using an ID Cache and Enforcer Cache.
  */
 public final class EnforcerRetriever {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(EnforcerRetriever.class);
 
     private final Cache<EntityId, Entry<EntityId>> idCache;
@@ -91,22 +93,40 @@ public final class EnforcerRetriever {
                     if (enforcerCache == null) {
                         throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
                     }
-                    enforcerCache.get(enforcerKey)
-                            .thenAccept(enforcerEntryOptional -> {
-                                if (!enforcerEntryOptional.isPresent()) {
-                                    // must not happen
-                                    LOGGER.error("Did not get enforcer-cache value for entityKey <{}>.",
-                                            enforcerKey);
-                                } else {
-                                    final Entry<Enforcer> enforcerEntry = enforcerEntryOptional.get();
-                                    consumer.accept(enforcerKeyEntry, enforcerEntry);
-                                }
-                            });
+                    retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
+                            consumer.accept(enforcerKeyEntry, enforcerEntry));
                 } else {
                     consumer.accept(enforcerKeyEntry, Entry.nonexistent());
                 }
             }
         });
+    }
+
+    /**
+     * Lookup the enforcer by its own key (as opposed to the key of an entity it governs).
+     *
+     * @param enforcerKey key of the enforcer.
+     * @param consumer what to do with the enforcer.
+     */
+    public void retrieveByEnforcerKey(final EntityId enforcerKey, final Consumer<Entry<Enforcer>> consumer) {
+        final String resourceType = enforcerKey.getResourceType();
+        final Cache<EntityId, Entry<Enforcer>> enforcerCache =
+                enforcerCacheFunction.apply(resourceType);
+        if (enforcerCache == null) {
+            throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
+        }
+        enforcerCache.get(enforcerKey)
+                .thenAccept(enforcerEntryOptional -> {
+                    if (!enforcerEntryOptional.isPresent()) {
+                        // must not happen
+                        LOGGER.error("Did not get enforcer-cache value for entityKey <{}>.",
+                                enforcerKey);
+                    } else {
+                        final Entry<Enforcer> enforcerEntry = enforcerEntryOptional.get();
+                        consumer.accept(enforcerEntry);
+                    }
+                });
+
     }
 
 }
