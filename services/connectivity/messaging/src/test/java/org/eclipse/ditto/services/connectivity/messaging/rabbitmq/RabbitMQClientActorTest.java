@@ -69,16 +69,13 @@ public class RabbitMQClientActorTest {
     private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
 
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
+    private final ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
     private final RabbitConnectionFactoryFactory
             rabbitConnectionFactoryFactory = (con, exHandler) -> mockConnectionFactory;
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
+    private final com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private Channel mockChannel = Mockito.mock(Channel.class);
+    private final Channel mockChannel = Mockito.mock(Channel.class);
 
     @BeforeClass
     public static void setUp() {
