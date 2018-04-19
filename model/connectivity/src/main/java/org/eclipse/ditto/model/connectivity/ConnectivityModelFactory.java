@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,16 +36,29 @@ public final class ConnectivityModelFactory {
      * Returns a new {@code ConnectionBuilder} with the required fields set.
      *
      * @param id the connection identifier.
-     * @param connectionType the connection type
+     * @param connectionType the connection type.
+     * @param connectionStatus the connection status.
      * @param uri the connection uri.
      * @param authorizationContext the connection authorization context.
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final String id,
-            final ConnectionType connectionType, final String uri,
+            final ConnectionType connectionType, final ConnectionStatus connectionStatus, final String uri,
             final AuthorizationContext authorizationContext) {
-        return ImmutableConnectionBuilder.of(id, connectionType, uri, authorizationContext);
+        return ImmutableConnectionBuilder.of(id, connectionType, connectionStatus, uri, authorizationContext);
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with the
+     * values of the given Connection.
+     *
+     * @param connection the Connection which provides the initial values of the builder.
+     * @return the new builder.
+     * @throws NullPointerException if {@code connection} is {@code null}.
+     */
+    public static ConnectionBuilder newConnectionBuilder(final Connection connection) {
+        return ImmutableConnectionBuilder.of(connection);
     }
 
     /**
@@ -76,6 +90,7 @@ public final class ConnectivityModelFactory {
      *
      * @param connectionStatus the ConnectionStatus of the metrics to create
      * @param connectionStatusDetails the optional details about the connection status
+     * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus
      * @param clientState the current state of the Client performing the connection
      * @param sourcesMetrics the metrics of all sources of the Connection
      * @param targetsMetrics the metrics of all targets of the Connection
@@ -83,10 +98,11 @@ public final class ConnectivityModelFactory {
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
     public static ConnectionMetrics newConnectionMetrics(final ConnectionStatus connectionStatus,
-            final @Nullable String connectionStatusDetails, final String clientState,
+            final @Nullable String connectionStatusDetails, final Instant inConnectionStatusSince,
+            final String clientState,
             final List<SourceMetrics> sourcesMetrics, final List<TargetMetrics> targetsMetrics) {
-        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails, clientState, sourcesMetrics,
-                targetsMetrics);
+        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails, inConnectionStatusSince,
+                clientState, sourcesMetrics, targetsMetrics);
     }
 
     /**
@@ -145,12 +161,13 @@ public final class ConnectivityModelFactory {
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
      * @param messageCount the amount of totally consumed/published messages
+     * @param lastMessageAt the timestamp when the last message was consumed/published
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
     public static AddressMetric newAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long messageCount) {
-        return ImmutableAddressMetric.of(status, statusDetails, messageCount);
+            final long messageCount, @Nullable final Instant lastMessageAt) {
+        return ImmutableAddressMetric.of(status, statusDetails, messageCount, lastMessageAt);
     }
 
     /**

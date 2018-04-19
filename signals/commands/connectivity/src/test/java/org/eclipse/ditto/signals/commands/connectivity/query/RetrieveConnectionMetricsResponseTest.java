@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -38,7 +39,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveConnectionMetricsResponseTest {
 
     private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN,
-            "some status", "CONNECTED", Collections.emptyList(), Collections.emptyList());
+            "some status", Instant.now(),"CONNECTED", Collections.emptyList(),
+            Collections.emptyList());
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)

@@ -101,11 +101,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection
-     * @param connectionStatus the desired status of the connection
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
+    public static Props props(final Connection connection) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
     }
 
@@ -470,7 +469,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             super(channel);
             this.consumerActor = consumerActor;
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer initialized at " + Instant.now(), 0), null);
+                    "Consumer initialized at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -502,7 +501,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer started at " + Instant.now(), 0), null);
+                    "Consumer started at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -516,7 +515,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Consumer for queue cancelled at " + Instant.now(), 0), null);
+                    "Consumer for queue cancelled at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -530,7 +529,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0), null);
+                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0, null), null);
         }
 
         @Override

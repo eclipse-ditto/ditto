@@ -124,7 +124,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
                 .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
                 .build();

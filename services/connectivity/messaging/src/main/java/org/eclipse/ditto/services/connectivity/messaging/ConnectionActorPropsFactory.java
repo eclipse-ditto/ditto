@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 
 import akka.actor.Props;
 
@@ -25,9 +24,8 @@ public interface ConnectionActorPropsFactory {
      * Create actor {@link Props} for a connection.
      *
      * @param connection the connection
-     * @param connectionStatus the status of the connection
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, ConnectionStatus connectionStatus);
+    Props getActorPropsForType(Connection connection);
 
 }

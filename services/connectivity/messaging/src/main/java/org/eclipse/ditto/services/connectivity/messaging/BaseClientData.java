@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -38,6 +39,7 @@ public final class BaseClientData {
     private final ConnectionStatus connectionStatus;
     private final ConnectionStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
+    private final Instant inConnectionStatusSince;
     @Nullable private final ActorRef origin;
 
     /**
@@ -47,18 +49,21 @@ public final class BaseClientData {
      * @param connectionStatus the current {@link ConnectionStatus} of the Connection.
      * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
+     * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
      * @param origin the ActorRef which caused the latest state data change.
      */
     BaseClientData(final String connectionId, final Connection connection,
             final ConnectionStatus connectionStatus,
             final ConnectionStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
+            final Instant inConnectionStatusSince,
             @Nullable final ActorRef origin) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
+        this.inConnectionStatusSince = inConnectionStatusSince;
         this.origin = origin;
     }
 
@@ -82,33 +87,37 @@ public final class BaseClientData {
         return Optional.ofNullable(connectionStatusDetails);
     }
 
+    public Instant getInConnectionStatusSince() {
+        return inConnectionStatusSince;
+    }
+
     public Optional<ActorRef> getOrigin() {
         return Optional.ofNullable(origin);
     }
 
     public BaseClientData setConnection(final Connection connection) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, inConnectionStatusSince, origin);
     }
 
     public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, Instant.now(), origin);
     }
 
     public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, inConnectionStatusSince, origin);
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, inConnectionStatusSince, origin);
     }
 
     public BaseClientData setOrigin(@Nullable final ActorRef origin) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, inConnectionStatusSince, origin);
     }
 
     @Override
@@ -121,13 +130,14 @@ public final class BaseClientData {
                 connectionStatus == that.connectionStatus &&
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
+                Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
                 Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, origin);
+                connectionStatusDetails, inConnectionStatusSince, origin);
     }
 
     @Override
@@ -138,6 +148,7 @@ public final class BaseClientData {
                 ", connectionStatus=" + connectionStatus +
                 ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
+                ", inConnectionStatusSince=" + inConnectionStatusSince +
                 ", origin=" + origin +
                 "]";
     }

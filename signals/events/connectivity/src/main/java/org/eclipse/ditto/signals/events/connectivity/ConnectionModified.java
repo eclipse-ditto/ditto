@@ -34,16 +34,16 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
- * This event is emitted after a {@link Connection} was created.
+ * This event is emitted after a {@link Connection} was modified.
  */
 @Immutable
-public final class ConnectionCreated extends AbstractConnectivityEvent<ConnectionCreated>
-        implements ConnectivityEvent<ConnectionCreated> {
+public final class ConnectionModified extends AbstractConnectivityEvent<ConnectionModified>
+        implements ConnectivityEvent<ConnectionModified> {
 
     /**
      * Name of this event.
      */
-    public static final String NAME = "connectionCreated";
+    public static final String NAME = "connectionModified";
 
     /**
      * Type of this event.
@@ -52,41 +52,41 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
 
     private final Connection connection;
 
-    private ConnectionCreated(final Connection connection, @Nullable final Instant timestamp,
+    private ConnectionModified(final Connection connection, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         super(TYPE, connection.getId(), timestamp, dittoHeaders);
         this.connection = connection;
     }
 
     /**
-     * Returns a new {@code ConnectionCreated} event.
+     * Returns a new {@code ConnectionModified} event.
      *
-     * @param connection the created Connection.
+     * @param connection the modified Connection.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionCreated of(final Connection connection, final DittoHeaders dittoHeaders) {
+    public static ConnectionModified of(final Connection connection, final DittoHeaders dittoHeaders) {
         return of(connection,null, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code ConnectionCreated} event.
+     * Returns a new {@code ConnectionModified} event.
      *
-     * @param connection the created Connection.
+     * @param connection the modified Connection.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the event.
      * @throws NullPointerException if {@code connection} or {@code dittoHeaders} are {@code null}.
      */
-    public static ConnectionCreated of(final Connection connection, @Nullable final Instant timestamp,
+    public static ConnectionModified of(final Connection connection, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connection, "Connection");
-        return new ConnectionCreated(connection, timestamp, dittoHeaders);
+        return new ConnectionModified(connection, timestamp, dittoHeaders);
     }
 
     /**
-     * Creates a {@code ConnectionCreated} event from a JSON string.
+     * Creates a {@code ConnectionModified} event from a JSON string.
      *
      * @param jsonString the JSON string of which the event is to be created.
      * @param dittoHeaders the headers of the command which was the cause of this event.
@@ -95,12 +95,12 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static ConnectionCreated fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static ConnectionModified fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a {@code ConnectionCreated} event from a JSON object.
+     * Creates a {@code ConnectionModified} event from a JSON object.
      *
      * @param jsonObject the JSON object of which the event is to be created.
      * @param dittoHeaders the headers of the command which was the cause of this event.
@@ -109,8 +109,8 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ConnectionCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ConnectionCreated>(TYPE, jsonObject)
+    public static ConnectionModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new EventJsonDeserializer<ConnectionModified>(TYPE, jsonObject)
                 .deserialize((revision, timestamp) -> {
                     final JsonObject connectionJsonObject = jsonObject.getValueOrThrow(JsonFields.CONNECTION);
                     final Connection readConnection = ConnectivityModelFactory.connectionFromJson(connectionJsonObject);
@@ -139,7 +139,7 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
     }
 
     @Override
-    public ConnectionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public ConnectionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connection, getTimestamp().orElse(null), dittoHeaders);
     }
 
@@ -152,7 +152,7 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ConnectionCreated);
+        return (other instanceof ConnectionModified);
     }
 
     @Override
@@ -160,13 +160,13 @@ public final class ConnectionCreated extends AbstractConnectivityEvent<Connectio
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ConnectionCreated)) {
+        if (!(o instanceof ConnectionModified)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
-        final ConnectionCreated that = (ConnectionCreated) o;
+        final ConnectionModified that = (ConnectionModified) o;
         return Objects.equals(connection, that.connection);
     }
 

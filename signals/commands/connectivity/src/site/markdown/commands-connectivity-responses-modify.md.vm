@@ -10,6 +10,18 @@ $h3 Create Connection
 #parse( "snippet" )
 ```
 
+$h3 Modify Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/responses/modify/modifyConnectionCreated.json" )
+```
+#parse( "snippet" )
+```
+
+#set( $snippetFile = "/target/generated-resources/connectivity/responses/modify/modifyConnectionModified.json" )
+```
+#parse( "snippet" )
+```
+
 $h3 Delete Connection
 
 #set( $snippetFile = "/target/generated-resources/connectivity/responses/modify/deleteConnection.json" )

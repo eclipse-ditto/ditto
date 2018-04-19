@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.signals.events.connectivity;
+package org.eclipse.ditto.signals.commands.connectivity.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -21,50 +21,51 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ConnectionCreated}.
+ * Unit test for {@link ModifyConnection}.
  */
-public final class ConnectionCreatedTest {
+public final class ModifyConnectionTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Event.JsonFields.TYPE, ConnectionCreated.TYPE)
-            .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
-            .set(ConnectivityEvent.JsonFields.CONNECTION, TestConstants.CONNECTION.toJson())
+            .set(Command.JsonFields.TYPE, ModifyConnection.TYPE)
+            .set(ModifyConnection.JSON_CONNECTION, TestConstants.CONNECTION.toJson())
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ConnectionCreated.class)
+        EqualsVerifier.forClass(ModifyConnection.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ConnectionCreated.class, areImmutable(),
-                provided(Connection.class, MappingContext.class).isAlsoImmutable());
+        assertInstancesOf(ModifyConnection.class, areImmutable(), provided(Connection.class, MappingContext.class)
+                .isAlsoImmutable
+                ());
     }
 
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionCreated.of(null, null, DittoHeaders.empty()))
+                .isThrownBy(() -> ModifyConnection.of(null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final ConnectionCreated expected =
-                ConnectionCreated.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
+        final ModifyConnection expected =
+                ModifyConnection.of(TestConstants.CONNECTION, DittoHeaders.empty());
 
-        final ConnectionCreated actual =
-                ConnectionCreated.fromJson(KNOWN_JSON, DittoHeaders.empty());
+        final ModifyConnection actual =
+                ModifyConnection.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -72,7 +73,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectionCreated.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
+                ModifyConnection.of(TestConstants.CONNECTION, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

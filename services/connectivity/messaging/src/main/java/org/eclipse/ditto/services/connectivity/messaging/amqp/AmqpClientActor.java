@@ -98,11 +98,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection
-     * @param connectionStatus the desired status of the connection
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus) {
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
+    public static Props props(final Connection connection) {
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
                 ConnectionBasedJmsConnectionFactory.getInstance());
     }
 
@@ -463,7 +462,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                 .ifPresent(consumerActor ->
                                         consumerActor.tell(
                                                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                                                        "Consumer closed at " + Instant.now(), 0), null));
+                                                        "Consumer closed at " + Instant.now(),
+                                                        0, null), null));
                     });
         }
 
@@ -476,7 +476,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final String name = escapeActorName(AmqpPublisherActor.ACTOR_NAME);
             getContext().findChild(name).ifPresent(producerActor ->
                     producerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                            "Producer closed at " + Instant.now(), 0), null));
+                            "Producer closed at " + Instant.now(), 0, null), null));
         }
     }
 

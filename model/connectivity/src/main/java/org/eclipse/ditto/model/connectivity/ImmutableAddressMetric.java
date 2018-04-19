@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -33,12 +34,14 @@ final class ImmutableAddressMetric implements AddressMetric {
     private final ConnectionStatus status;
     @Nullable private final String statusDetails;
     private final long messageCount;
+    @Nullable private final Instant lastMessageAt;
 
     private ImmutableAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long messageCount) {
+            final long messageCount, @Nullable final Instant lastMessageAt) {
         this.status = status;
         this.statusDetails = statusDetails;
         this.messageCount = messageCount;
+        this.lastMessageAt = lastMessageAt;
     }
 
     /**
@@ -47,11 +50,12 @@ final class ImmutableAddressMetric implements AddressMetric {
      * @param status the current status of the connection
      * @param statusDetails the optional status details
      * @param consumedMessages the current message count
+     * @param lastMessageAt the timestamp when the last message was consumed/published
      * @return a new instance of ImmutableAddressMetric
      */
     public static ImmutableAddressMetric of(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long consumedMessages) {
-        return new ImmutableAddressMetric(status, statusDetails, consumedMessages);
+            final long consumedMessages, @Nullable final Instant lastMessageAt) {
+        return new ImmutableAddressMetric(status, statusDetails, consumedMessages, lastMessageAt);
     }
 
     @Override
@@ -70,6 +74,11 @@ final class ImmutableAddressMetric implements AddressMetric {
     }
 
     @Override
+    public Optional<Instant> getLastMessageAt() {
+        return Optional.ofNullable(lastMessageAt);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -80,6 +89,9 @@ final class ImmutableAddressMetric implements AddressMetric {
             jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
         }
         jsonObjectBuilder.set(JsonFields.MESSAGE_COUNT, messageCount, predicate);
+        if (lastMessageAt != null) {
+            jsonObjectBuilder.set(JsonFields.LAST_MESSAGE_AT, lastMessageAt.toString(), predicate);
+        }
         return jsonObjectBuilder.build();
     }
 
@@ -97,7 +109,10 @@ final class ImmutableAddressMetric implements AddressMetric {
         final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS)
                 .orElse(null);
         final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.MESSAGE_COUNT);
-        return ImmutableAddressMetric.of(readConnectionStatus, readConnectionStatusDetails, readConsumedMessages);
+        final Instant readLastMessageAt = jsonObject.getValue(JsonFields.LAST_MESSAGE_AT).map(Instant::parse)
+                .orElse(null);
+        return ImmutableAddressMetric.of(readConnectionStatus, readConnectionStatusDetails, readConsumedMessages,
+                readLastMessageAt);
     }
 
     @Override
@@ -107,12 +122,13 @@ final class ImmutableAddressMetric implements AddressMetric {
         final ImmutableAddressMetric that = (ImmutableAddressMetric) o;
         return status == that.status &&
                 Objects.equals(statusDetails, that.statusDetails) &&
-                messageCount == that.messageCount;
+                messageCount == that.messageCount &&
+                Objects.equals(lastMessageAt, that.lastMessageAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(status, statusDetails, messageCount);
+        return Objects.hash(status, statusDetails, messageCount, lastMessageAt);
     }
 
     @Override
@@ -121,6 +137,7 @@ final class ImmutableAddressMetric implements AddressMetric {
                 "status=" + status +
                 ", statusDetails=" + statusDetails +
                 ", messageCount=" + messageCount +
+                ", lastMessageAt=" + lastMessageAt +
                 "]";
     }
 }

@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonField;
@@ -34,6 +35,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -84,6 +87,10 @@ public class JsonExamplesProducer {
                 CreateConnection.of(TestConstants.CONNECTION, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnection);
 
+        final ModifyConnection modifyConnection =
+                ModifyConnection.of(TestConstants.CONNECTION, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("modifyConnection.json")), modifyConnection);
+
         final DeleteConnection deleteConnection =
                 DeleteConnection.of(TestConstants.ID, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("deleteConnection.json")), deleteConnection);
@@ -108,6 +115,14 @@ public class JsonExamplesProducer {
         final CreateConnectionResponse createConnectionResponse =
                 CreateConnectionResponse.of(TestConstants.CONNECTION, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("createConnection.json")), createConnectionResponse);
+
+        final ModifyConnectionResponse modifyConnectionResponseCreated =
+                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("modifyConnectionCreated.json")), modifyConnectionResponseCreated);
+
+        final ModifyConnectionResponse modifyConnectionResponseModified =
+                ModifyConnectionResponse.created(TestConstants.CONNECTION, DittoHeaders.empty());
+        writeJson(commandsDir.resolve(Paths.get("modifyConnectionModified.json")), modifyConnectionResponseModified);
 
         final DeleteConnectionResponse deleteConnectionResponse =
                 DeleteConnectionResponse.of(TestConstants.ID, DittoHeaders.empty());
@@ -155,7 +170,7 @@ public class JsonExamplesProducer {
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.of(TestConstants.ID,
                         ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status",
-                                "CONNECTED", Collections.emptyList(), Collections.emptyList()),
+                                Instant.now(), "CONNECTED",  Collections.emptyList(), Collections.emptyList()),
                         DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }

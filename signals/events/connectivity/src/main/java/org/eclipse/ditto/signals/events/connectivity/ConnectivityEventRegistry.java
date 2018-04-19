@@ -38,6 +38,7 @@ public final class ConnectivityEventRegistry extends AbstractEventRegistry<Conne
         final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies = new HashMap<>();
 
         parseStrategies.put(ConnectionCreated.TYPE, ConnectionCreated::fromJson);
+        parseStrategies.put(ConnectionModified.TYPE, ConnectionModified::fromJson);
         parseStrategies.put(ConnectionOpened.TYPE, ConnectionOpened::fromJson);
         parseStrategies.put(ConnectionClosed.TYPE, ConnectionClosed::fromJson);
         parseStrategies.put(ConnectionDeleted.TYPE, ConnectionDeleted::fromJson);

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,6 +43,11 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
      * @return the optional details of the ConnectionStatus of the related {@link Connection}.
      */
     Optional<String> getConnectionStatusDetails();
+
+    /**
+     * @return the Instant since when the connection is in its current {@link #getConnectionStatus()}.
+     */
+    Instant getInConnectionStatusSince();
 
     /**
      * @return in which state the client handling the {@link Connection} currently is.
@@ -99,6 +105,13 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
          */
         public static final JsonFieldDefinition<String> CLIENT_STATE =
                 JsonFactory.newStringFieldDefinition("clientState", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing since when the client is in its current state.
+         */
+        public static final JsonFieldDefinition<String> IN_CONNECTION_STATUS_SINCE =
+                JsonFactory.newStringFieldDefinition("inConnectionStatusSince", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

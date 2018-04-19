@@ -49,6 +49,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     ConnectionType getConnectionType();
 
     /**
+     * Returns the persisted/desired ConnectionStatus of this {@code Connection}.
+     *
+     * @return the persisted ConnectionStatus
+     */
+    ConnectionStatus getConnectionStatus();
+
+    /**
      * Returns the Authorization Context of this {@code Connection}.
      *
      * @return the Authorization Context.
@@ -163,6 +170,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Optional<MappingContext> getMappingContext();
 
     /**
+     * Returns a mutable builder with a fluent API for immutable {@code Connection}. The builder is initialised with the
+     * entries of this instance.
+     *
+     * @return the new builder.
+     */
+    default ConnectionBuilder toBuilder() {
+        return ConnectivityModelFactory.newConnectionBuilder(this);
+    }
+
+    /**
      * Returns all non hidden marked fields of this {@code Connection}.
      *
      * @return a JSON object representation of this Connection including only non hidden marked fields.
@@ -202,6 +219,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<String> CONNECTION_TYPE =
                 JsonFactory.newStringFieldDefinition("connectionType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code ConnectionStatus}.
+         */
+        public static final JsonFieldDefinition<String> CONNECTION_STATUS =
+                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
