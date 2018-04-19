@@ -366,12 +366,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
         onClientConnected(clientConnected, data);
-        clientConnected.getOrigin().ifPresent(o -> o.tell(new Status.Success(CONNECTED), getSelf()));
         return goTo(CONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.OPEN)
                 .setConnectionStatusDetails("Connected at " + Instant.now())
                 .setOrigin(getSender())
-        );
+        ).replying(new Status.Success(CONNECTED));
     }
 
     private State<BaseClientState, BaseClientData> handleClientDisconnected(final ClientDisconnected event,
@@ -380,12 +379,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         stopMessageMappingProcessorActor();
         onClientDisconnected(event, data);
-        event.getOrigin().ifPresent(o -> o.tell(new Status.Success(DISCONNECTED), getSelf()));
         return goTo(DISCONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.CLOSED)
                 .setConnectionStatusDetails("Disconnected at " + Instant.now())
                 .setOrigin(getSender())
-        );
+        ).replying(new Status.Success(DISCONNECTED));
     }
 
     private State<BaseClientState, BaseClientData> handleConnectionFailure(final ConnectionFailure event,

@@ -175,7 +175,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         stopCommandConsumers();
         stopCommandPublisher();
-        getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), getSender());
+        getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), origin);
     }
 
     @Override
@@ -295,7 +295,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
                             log.info("Established RMQ connection: {}", rmqConnection);
-                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), getSelf());
+                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), origin);
                             return null;
                         });
                 rmqConnectionActor = startChildActor(RMQ_CONNECTION_ACTOR_NAME, props);

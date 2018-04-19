@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -149,15 +148,12 @@ public class RabbitMQClientActorTest {
     @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
-            final CountDownLatch latch = new CountDownLatch(1);
             final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
                     (con, exHandler) -> mockConnectionFactory);
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
-
-            latch.countDown();
 
             expectMsg(CONNECTED_SUCCESS);
         }};
