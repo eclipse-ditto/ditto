@@ -21,12 +21,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.model.query.QueryConstants;
+import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 
 /**
  * Tests limited instances of {@link MongoQueryBuilder}.

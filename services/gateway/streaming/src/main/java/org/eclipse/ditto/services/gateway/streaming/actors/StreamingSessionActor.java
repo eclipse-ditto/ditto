@@ -21,14 +21,25 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
+import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
 import org.eclipse.ditto.services.gateway.streaming.StreamingType;
+import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -36,6 +47,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -72,6 +84,7 @@ final class StreamingSessionActor extends AbstractActor {
     private final Set<StreamingType> outstandingSubscriptionAcks;
 
     private List<String> authorizationSubjects;
+    @Nullable private Criteria eventFilterCriteria;
 
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
             final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
@@ -159,6 +172,10 @@ final class StreamingSessionActor extends AbstractActor {
                 .match(Event.class, this::handleEvent)
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
+                    eventFilterCriteria = startStreaming.getEventFilter()
+                            .map(this::parseCriteria)
+                            .orElse(null);
+
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster..",
                             type, startStreaming.getStreamingType().name());
@@ -280,11 +297,49 @@ final class StreamingSessionActor extends AbstractActor {
             // check if this session is "allowed" to receive the event
             if (authorizationSubjects != null &&
                     !Collections.disjoint(readSubjects, authorizationSubjects)) {
-                logger.debug(
-                        "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
-                        type, event);
-                eventAndResponsePublisher.tell(event, getSelf());
+
+                if (matchesFilter(event)) {
+                    logger.debug(
+                            "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
+                            type, event);
+                    eventAndResponsePublisher.tell(event, getSelf());
+                } else {
+                    logger.debug("Event does not match filter");
+                }
             }
+        }
+    }
+
+    private Criteria parseCriteria(final String filter) {
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+                new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+
+        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
+    }
+
+    private boolean matchesFilter(final Event<?> event) {
+        if (event instanceof ThingEvent) {
+            // currently only ThingEvents may be filtered
+            return StreamingHelpers.thingEventToThing((ThingEvent) event)
+                    .filter(this::doMatchFilter)
+                    .isPresent();
+        } else {
+            return true;
+        }
+    }
+
+    private boolean doMatchFilter(final Thing thing) {
+
+        if (eventFilterCriteria != null) {
+            return ThingPredicateVisitor.apply(eventFilterCriteria)
+                    .test(thing);
+        } else {
+            // let all events through if there was no criteria/filter set
+            return true;
         }
     }
 

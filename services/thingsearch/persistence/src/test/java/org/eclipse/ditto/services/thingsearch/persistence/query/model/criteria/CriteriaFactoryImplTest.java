@@ -17,23 +17,22 @@ import static org.mockito.Mockito.mock;
 import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.ditto.model.query.model.criteria.AndCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.AnyCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.model.criteria.ExistsCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.FieldCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.InPredicateImpl;
+import org.eclipse.ditto.model.query.model.criteria.NePredicateImpl;
+import org.eclipse.ditto.model.query.model.criteria.NorCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.OrCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AndCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AnyCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.ExistsCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.FieldCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.InPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.NePredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.NorCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.OrCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 
 /**
  * Tests {@link CriteriaFactoryImpl}.

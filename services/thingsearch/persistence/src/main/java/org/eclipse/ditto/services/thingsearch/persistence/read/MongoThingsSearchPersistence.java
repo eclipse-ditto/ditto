@@ -34,8 +34,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
+import org.eclipse.ditto.model.query.model.query.Query;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
@@ -109,7 +108,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                     list.add(entry);
                     return list;
                 })
-                .map(SearchNamespaceReportResult::new);
+                .<SearchNamespaceReportResult>map(SearchNamespaceReportResult::new);
     }
 
     @Override
@@ -121,7 +120,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return source.map(doc -> doc.get(PersistenceConstants.COUNT_RESULT_NAME))
                 .map(countResult -> (Number) countResult)
                 .map(Number::longValue) // use Number.longValue() to support both Integer and Long values
-                .orElse(Source.single(0L))
+                .orElse(Source.<Long>single(0L))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("count");
     }

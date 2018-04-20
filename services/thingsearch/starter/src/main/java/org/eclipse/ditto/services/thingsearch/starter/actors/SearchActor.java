@@ -29,14 +29,14 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveN
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.IsPolicyLookupNeededVisitor;
-import org.eclipse.ditto.services.thingsearch.query.actors.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.query.actors.QueryActor;
-import org.eclipse.ditto.services.thingsearch.query.actors.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
+import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
+import org.eclipse.ditto.model.query.model.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
@@ -212,18 +212,18 @@ public final class SearchActor extends AbstractActor {
                                 return processSearchPersistenceResult(
                                         () -> searchPersistence.count((PolicyRestrictedSearchAggregation) query),
                                         traceContext, dittoHeaders)
-                                        .map(count -> CountThingsResponse.of(count, dittoHeaders));
+                                        .<Object>map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof Query) {
                                 // count without aggregation for things without policies
                                 return processSearchPersistenceResult(() -> searchPersistence.count((Query) query),
                                         traceContext, dittoHeaders)
-                                        .map(count -> CountThingsResponse.of(count, dittoHeaders));
+                                        .<Object>map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.failed((Throwable) query);
+                                return Source.<Object>failed((Throwable) query);
                             } else {
                                 log.error("Expected 'PolicyRestrictedSearchAggregation', but got: {}", query);
-                                return Source.single(CountThingsResponse.of(-1, dittoHeaders));
+                                return Source.<Object>single(CountThingsResponse.of(-1, dittoHeaders));
                             }
                         })
                         .via(Flow.fromFunction(foo -> {
@@ -278,11 +278,11 @@ public final class SearchActor extends AbstractActor {
                                                 traceContext));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.failed((Throwable) query);
+                                return Source.<QueryThingsResponse>failed((Throwable) query);
                             } else {
                                 log.error("Expected 'PolicyRestrictedSearchAggregation' or 'query', but got: {}",
                                         query);
-                                return Source.single(
+                                return Source.<QueryThingsResponse>single(
                                         QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                             }
                         })
@@ -311,7 +311,7 @@ public final class SearchActor extends AbstractActor {
                     return result;
                 });
 
-        return source.via(logAndFinishPersistenceSegmentFlow);
+        return source.<T, NotUsed>via(logAndFinishPersistenceSegmentFlow);
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
@@ -322,7 +322,7 @@ public final class SearchActor extends AbstractActor {
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
         LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
         if (thingIds.isEmpty()) {
-            result = Source.single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
+            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
         } else if (queryThings.getFields()
                 .map(JsonFieldSelector::getPointers)
                 .filter(jsonPointers -> jsonPointers.size() == 1)
@@ -339,7 +339,7 @@ public final class SearchActor extends AbstractActor {
                     .collect(JsonCollectors.valuesToArray());
             final SearchResult searchResult = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
 
-            result = Source.single(QueryThingsResponse.of(searchResult, dittoHeaders));
+            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(searchResult, dittoHeaders));
         } else {
             final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
                     .dittoHeaders(dittoHeaders)
@@ -392,14 +392,14 @@ public final class SearchActor extends AbstractActor {
                             final JsonArray items = ((RetrieveThingsResponse) tcr).getEntity().asArray();
                             final SearchResult searchResult =
                                     SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
-                            return Source.single(QueryThingsResponse.of(searchResult, dittoHeaders));
+                            return Source.<QueryThingsResponse>single(QueryThingsResponse.of(searchResult, dittoHeaders));
                         } else if (ThingErrorResponse.TYPE.equals(tcr.getType())) {
                             final ThingErrorResponse error = (ThingErrorResponse) tcr;
-                            return Source.failed(error.getDittoRuntimeException());
+                            return Source.<QueryThingsResponse>failed(error.getDittoRuntimeException());
                         }
                     }
                     log.warning("Retrieved a response from the things service which was not expected: {}", response);
-                    return Source.single(
+                    return Source.<QueryThingsResponse>single(
                             QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                 });
     }

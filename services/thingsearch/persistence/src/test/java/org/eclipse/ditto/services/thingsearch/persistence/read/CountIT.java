@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.junit.Test;
 
 /**

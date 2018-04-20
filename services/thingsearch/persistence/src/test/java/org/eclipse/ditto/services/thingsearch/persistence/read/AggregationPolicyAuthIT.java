@@ -32,10 +32,9 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Permission;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.junit.Before;
 import org.junit.Test;
 

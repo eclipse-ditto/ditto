@@ -21,15 +21,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.model.query.QueryConstants;
+import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.junit.Test;
 
 /**

@@ -15,7 +15,7 @@ import org.assertj.core.api.Assertions;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FeatureExpressionImpl;
+import org.eclipse.ditto.model.query.model.expression.FeatureExpressionImpl;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 

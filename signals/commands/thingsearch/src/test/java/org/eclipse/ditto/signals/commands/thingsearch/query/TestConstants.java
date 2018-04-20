@@ -13,14 +13,13 @@ package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
+import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 
 /**

@@ -16,9 +16,9 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
 
 /**
  * Unit test for {@link MongoQueryBuilderFactory}.

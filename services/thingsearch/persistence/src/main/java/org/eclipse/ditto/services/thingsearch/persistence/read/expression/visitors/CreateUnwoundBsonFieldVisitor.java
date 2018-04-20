@@ -30,9 +30,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors
 
 import com.mongodb.client.model.Filters;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.model.expression.visitors.FieldExpressionVisitor;
 
 /**
  * Creates the Bson object to filter out irrelevant fields.

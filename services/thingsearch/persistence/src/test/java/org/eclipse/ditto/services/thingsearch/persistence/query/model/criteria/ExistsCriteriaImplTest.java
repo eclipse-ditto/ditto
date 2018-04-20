@@ -13,13 +13,12 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.ExistsCriteriaImpl;
+import org.eclipse.ditto.model.query.model.expression.AttributeExpressionImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.ExistsCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.AttributeExpressionImpl;
 
 /**
  * Unit test for {@link ExistsCriteriaImpl}.

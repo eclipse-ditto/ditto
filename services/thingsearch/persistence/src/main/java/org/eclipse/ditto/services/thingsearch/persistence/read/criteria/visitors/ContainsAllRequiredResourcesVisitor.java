@@ -19,10 +19,10 @@ import org.bson.Document;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.IsInternalViewVisitor;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 
 /**
  * Tests whether all resources requried to evaluate a search criteria are present.
@@ -80,7 +80,7 @@ public class ContainsAllRequiredResourcesVisitor implements CriteriaVisitor<Pred
 
     @Override
     public Predicate<Document> visitField(final FilterFieldExpression fieldExpression,
-            final org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate predicate) {
+            final org.eclipse.ditto.model.query.model.criteria.Predicate predicate) {
         return thingResult -> {
             final java.util.function.Predicate<Document> javaPredicate =
                     fieldExpression.accept(new IsInternalViewVisitor());

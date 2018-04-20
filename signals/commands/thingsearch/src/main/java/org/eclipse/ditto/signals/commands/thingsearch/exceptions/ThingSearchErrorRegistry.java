@@ -18,6 +18,8 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
+import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;

@@ -73,21 +73,21 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreatePolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateUnwoundBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AnyCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.eclipse.ditto.model.query.model.criteria.AnyCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
+import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
+import org.eclipse.ditto.model.query.model.query.QueryConstants;
+import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
 import org.reactivestreams.Publisher;
 
@@ -379,7 +379,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
                 // query is faster with cursor disabled
                 .useCursor(false);
 
-        return Source.fromPublisher(publisher);
+        return Source.<Document>fromPublisher(publisher);
     }
 
     /**

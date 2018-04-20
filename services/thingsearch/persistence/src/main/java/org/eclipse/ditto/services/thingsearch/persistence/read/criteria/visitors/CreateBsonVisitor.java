@@ -21,11 +21,11 @@ import com.mongodb.client.model.Filters;
 
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 
 /**
  * Creates the Bson object used for the PolicyRestrictedSearchAggregation.

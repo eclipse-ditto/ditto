@@ -13,10 +13,9 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.model.criteria.AnyCriteriaImpl;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AnyCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 
 /**
  * Tests {@link AnyCriteriaImpl}.

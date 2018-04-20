@@ -20,56 +20,26 @@ import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
+import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
 import org.eclipse.ditto.services.gateway.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
-import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeDeleted;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesCreated;
-import org.eclipse.ditto.signals.events.things.AttributesDeleted;
-import org.eclipse.ditto.signals.events.things.AttributesModified;
-import org.eclipse.ditto.signals.events.things.FeatureCreated;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.FeaturesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
-import org.eclipse.ditto.signals.events.things.PolicyIdModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 
 import de.heikoseeberger.akkasse.javadsl.marshalling.EventStreamMarshalling;
 import de.heikoseeberger.akkasse.javadsl.model.MediaTypes;
@@ -97,9 +67,6 @@ public class SseThingsRoute extends AbstractRoute {
 
     private ActorRef streamingActor;
 
-    private static final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> EVENT_TO_THING_MAPPERS =
-            createEventToThingMappers();
-
     /**
      * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
      *
@@ -126,10 +93,13 @@ public class SseThingsRoute extends AbstractRoute {
                                         parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 parameterOptional(ThingsParameter.IDS.toString(),
                                                         idsString -> // "ids" is optional for SSE
-                                                                createSseRoute(dittoHeaders,
-                                                                        calculateSelectedFields(fieldsString).orElse(
-                                                                                null),
-                                                                        idsString.map(ids -> ids.split(",")))
+                                                                parameterOptional("filter", filterString ->
+                                                                        createSseRoute(dittoHeaders,
+                                                                                calculateSelectedFields(
+                                                                                        fieldsString).orElse(null),
+                                                                                idsString.map(ids -> ids.split(",")),
+                                                                                filterString.orElse(null))
+                                                                )
                                                 )
                                         )
                                 )
@@ -147,7 +117,7 @@ public class SseThingsRoute extends AbstractRoute {
          }, false);
        */
     private Route createSseRoute(final DittoHeaders dittoHeaders, final JsonFieldSelector fieldSelector,
-            final Optional<String[]> thingIds) {
+            final Optional<String[]> thingIds, @Nullable final String filterString) {
         final Optional<List<String>> targetThingIds = thingIds.map(Arrays::asList);
 
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
@@ -162,14 +132,15 @@ public class SseThingsRoute extends AbstractRoute {
                                     null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                                            dittoHeaders.getAuthorizationContext()),
+                                            dittoHeaders.getAuthorizationContext(), filterString),
                                     null);
                             return NotUsed.getInstance();
                         })
                         .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
                                 thingEvent.getThingId())) // only Events of the target thingIds
-                        .map(this::thingEventToThing)
-                        .filter(Objects::nonNull)
+                        .map(StreamingHelpers::thingEventToThing)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
                         .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
                                 thing.toJson(jsonSchemaVersion))
                         .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
@@ -182,84 +153,6 @@ public class SseThingsRoute extends AbstractRoute {
                                 de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
-    }
-
-    /**
-     * Creates a Thing from the passed ThingEvent
-     */
-    private Thing thingEventToThing(final ThingEvent te) {
-        final BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing> eventToThingMapper =
-                EVENT_TO_THING_MAPPERS.get(te.getClass());
-        if (eventToThingMapper == null) {
-            return null;
-        }
-
-        final ThingBuilder.FromScratch tb = Thing.newBuilder().setId(te.getThingId()).setRevision(te.getRevision());
-        return eventToThingMapper.apply(te, tb);
-    }
-
-    private static Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {
-        final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> mappers = new HashMap<>();
-
-        mappers.put(ThingCreated.class,
-                (te, tb) -> ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
-        mappers.put(ThingModified.class,
-                (te, tb) -> ((ThingModified) te).getThing().toBuilder().setRevision(te.getRevision()).build());
-        mappers.put(ThingDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(AclModified.class,
-                (te, tb) -> tb.setPermissions(((AclModified) te).getAccessControlList()).build());
-        mappers.put(AclEntryCreated.class,
-                (te, tb) -> tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build());
-        mappers.put(AclEntryModified.class,
-                (te, tb) -> tb.setPermissions(((AclEntryModified) te).getAclEntry()).build());
-        mappers.put(AclEntryDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build());
-        mappers.put(PolicyIdModified.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build());
-
-        mappers.put(AttributesCreated.class,
-                (te, tb) -> tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build());
-        mappers.put(AttributesModified.class,
-                (te, tb) -> tb.setAttributes(((AttributesModified) te).getModifiedAttributes()).build());
-        mappers.put(AttributesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(AttributeCreated.class, (te, tb) -> tb.setAttribute(((AttributeCreated) te).getAttributePointer(),
-                ((AttributeCreated) te).getAttributeValue()).build());
-        mappers.put(AttributeModified.class, (te, tb) -> tb.setAttribute(((AttributeModified) te).getAttributePointer(),
-                ((AttributeModified) te).getAttributeValue()).build());
-        mappers.put(AttributeDeleted.class, (te, tb) -> tb.build());
-
-        mappers.put(FeaturesCreated.class, (te, tb) -> tb.setFeatures(((FeaturesCreated) te).getFeatures()).build());
-        mappers.put(FeaturesModified.class, (te, tb) -> tb.setFeatures(((FeaturesModified) te).getFeatures()).build());
-        mappers.put(FeaturesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(FeatureCreated.class, (te, tb) -> tb.setFeature(((FeatureCreated) te).getFeature()).build());
-        mappers.put(FeatureModified.class, (te, tb) -> tb.setFeature(((FeatureModified) te).getFeature()).build());
-        mappers.put(FeatureDeleted.class, (te, tb) -> tb.build());
-
-        mappers.put(FeaturePropertiesCreated.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
-                .properties(((FeaturePropertiesCreated) te).getProperties())
-                .withId(((FeaturePropertiesCreated) te).getFeatureId())
-                .build()).build());
-        mappers.put(FeaturePropertiesModified.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
-                .properties(((FeaturePropertiesModified) te).getProperties())
-                .withId(((FeaturePropertiesModified) te).getFeatureId())
-                .build()).build());
-        mappers.put(FeaturePropertiesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(FeaturePropertyCreated.class, (te, tb) ->
-                tb.setFeatureProperty(((FeaturePropertyCreated) te).getFeatureId(),
-                        ((FeaturePropertyCreated) te).getPropertyPointer(),
-                        ((FeaturePropertyCreated) te).getPropertyValue()).build());
-        mappers.put(FeaturePropertyModified.class, (te, tb) ->
-                tb.setFeatureProperty(((FeaturePropertyModified) te).getFeatureId(),
-                        ((FeaturePropertyModified) te).getPropertyPointer(),
-                        ((FeaturePropertyModified) te).getPropertyValue()).build());
-        mappers.put(FeaturePropertyDeleted.class, (te, tb) -> tb.build());
-
-        return mappers;
     }
 
     private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {

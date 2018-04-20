@@ -18,11 +18,11 @@ import java.util.List;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.model.query.QueryConstants;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 
 /**
  * Mongo implementation for {@link QueryBuilder}.

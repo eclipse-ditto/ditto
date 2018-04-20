@@ -87,9 +87,10 @@ public final class GatewayAuthenticationDirective {
 
                     final Uri requestUri = requestContext.getRequest().getUri();
                     if (applicableDirective.isPresent()) {
+                        final AuthenticationProvider authenticationProvider = applicableDirective.get();
                         LOGGER.debug("Applying Authentication Directive '{}' to URI '{}'",
-                                applicableDirective.getClass().getSimpleName(), requestUri);
-                        return applicableDirective.get().authenticate(correlationId, inner);
+                                authenticationProvider.getClass().getSimpleName(), requestUri);
+                        return authenticationProvider.authenticate(correlationId, inner);
                     } else {
                         LOGGER.debug("Missing Authentication for URI '{}'. Applying unauthorizedDirective '{}'",
                                 requestUri, unauthorizedDirective);

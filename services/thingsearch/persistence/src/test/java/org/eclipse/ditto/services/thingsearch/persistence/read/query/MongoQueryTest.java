@@ -23,14 +23,14 @@ import java.util.List;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldExpressionImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.expression.SimpleFieldExpressionImpl;
+import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.model.query.QueryConstants;
+import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -13,11 +13,11 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitor
 
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.PolicyRestrictedFieldExpression;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.PolicyRestrictedFieldExpression;
 
 /**
  * Check whether a filter criteria requires policy lookup.

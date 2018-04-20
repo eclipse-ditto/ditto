@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.gateway.streaming;
 
 import java.util.Objects;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
@@ -23,6 +26,7 @@ public final class StartStreaming {
     private final StreamingType streamingType;
     private final String connectionCorrelationId;
     private final AuthorizationContext authorizationContext;
+    @Nullable private final String eventFilter;
 
     /**
      * Constructs a new {@link StartStreaming} instance.
@@ -30,12 +34,14 @@ public final class StartStreaming {
      * @param streamingType the type of entity to start the streaming for.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param authorizationContext the {@link AuthorizationContext} of the connection/session.
+     * @param eventFilter
      */
     public StartStreaming(final StreamingType streamingType, final String connectionCorrelationId,
-            final AuthorizationContext authorizationContext) {
+            final AuthorizationContext authorizationContext, @Nullable final String eventFilter) {
         this.streamingType = streamingType;
         this.connectionCorrelationId = connectionCorrelationId;
         this.authorizationContext = authorizationContext;
+        this.eventFilter = eventFilter;
     }
 
     /**
@@ -53,6 +59,10 @@ public final class StartStreaming {
         return authorizationContext;
     }
 
+    public Optional<String> getEventFilter() {
+        return Optional.ofNullable(eventFilter);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
@@ -60,12 +70,13 @@ public final class StartStreaming {
         final StartStreaming that = (StartStreaming) o;
         return streamingType == that.streamingType &&
                 Objects.equals(connectionCorrelationId, that.connectionCorrelationId) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(eventFilter, that.eventFilter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext);
+        return Objects.hash(streamingType, connectionCorrelationId, authorizationContext, eventFilter);
     }
 
     @Override
@@ -74,6 +85,7 @@ public final class StartStreaming {
                 "streamingType=" + streamingType +
                 ", connectionCorrelationId=" + connectionCorrelationId +
                 ", authorizationContext=" + authorizationContext +
+                ", eventFilter=" + eventFilter +
                 "]";
     }
 }

@@ -18,8 +18,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FilterFieldExpressionVisitor;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.visitors.FilterFieldExpressionVisitor;
 
 /**
  * Creates a Mongo Bson object for field-based search criteria.

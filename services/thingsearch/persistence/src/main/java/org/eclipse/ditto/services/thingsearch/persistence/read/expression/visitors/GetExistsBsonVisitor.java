@@ -16,9 +16,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.model.expression.visitors.ExistsFieldExpressionVisitor;
 
 /**
  * Creates a Mongo Bson object for field-based exists criteria.

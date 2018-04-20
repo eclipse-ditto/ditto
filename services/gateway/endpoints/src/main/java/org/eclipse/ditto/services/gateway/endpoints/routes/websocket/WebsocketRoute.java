@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
+import org.eclipse.ditto.services.gateway.streaming.SetupStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -161,7 +163,7 @@ public final class WebsocketRoute {
                         return textMsg.getStreamedText();
                     }
                 })
-                .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
+                .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
                 .log("ws-incoming-msg")
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
                         Logging.WarningLevel()))
@@ -173,38 +175,65 @@ public final class WebsocketRoute {
 
     private boolean processProtocolMessage(final AuthorizationContext authContext, final String connectionCorrelationId,
             final String protocolMessage) {
-        final Object messageToTellStreamingActor;
+        Object messageToTellStreamingActor;
         switch (protocolMessage) {
             case START_SEND_EVENTS:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext);
+                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext, null);
                 break;
             case STOP_SEND_EVENTS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.EVENTS, connectionCorrelationId);
                 break;
             case START_SEND_MESSAGES:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext);
+                        new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext, null);
                 break;
             case STOP_SEND_MESSAGES:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId);
                 break;
             case START_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
-                        authContext);
+                        authContext, null);
                 break;
             case STOP_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId);
                 break;
             case START_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext);
+                        new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext, null);
                 break;
             case STOP_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId);
                 break;
             default:
                 messageToTellStreamingActor = null;
+        }
+
+        if (messageToTellStreamingActor == null) {
+            messageToTellStreamingActor = Optional.of(JsonFactory.readFrom(protocolMessage))
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(jsonObj -> {
+                        try {
+                            return SetupStreaming.fromJson(jsonObj);
+                        } catch (final RuntimeException e) {
+                            return null;
+                        }
+                    })
+                    .map(setupStreaming -> {
+                        final StreamingType streamingType = mapSetupStreamingType(setupStreaming);
+                        if (streamingType != null && setupStreaming.getAction()
+                                .equalsIgnoreCase("start")) {
+                            return new StartStreaming(streamingType, connectionCorrelationId,
+                                    authContext, setupStreaming.getEventFilter().orElse(null));
+                        } else if (streamingType != null && setupStreaming.getAction()
+                                .equalsIgnoreCase("stop")) {
+                            return new StopStreaming(streamingType, connectionCorrelationId);
+                        } else {
+                            return null;
+                        }
+                    })
+                    .orElse(null);
         }
 
         if (messageToTellStreamingActor != null) {
@@ -215,6 +244,21 @@ public final class WebsocketRoute {
         return true;
     }
 
+    private static StreamingType mapSetupStreamingType(final SetupStreaming setupStreaming) {
+        switch (setupStreaming.getType()) {
+            case "events":
+                return StreamingType.EVENTS;
+            case "messages":
+                return StreamingType.MESSAGES;
+            case "live-commands":
+                return StreamingType.LIVE_COMMANDS;
+            case "live-events":
+                return StreamingType.LIVE_EVENTS;
+            default:
+                return null;
+        }
+    }
+
     private Source<Message, NotUsed> createSource(final String connectionCorrelationId) {
         return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                 EventAndResponsePublisher.props(publisherBackpressureBufferSize))
@@ -223,7 +267,7 @@ public final class WebsocketRoute {
                     return NotUsed.getInstance();
                 })
                 .map(jsonifiable -> jsonifiableToString(connectionCorrelationId, jsonifiable))
-                .map(TextMessage::create);
+                .<Message>map(TextMessage::create);
     }
 
     private Function<String, Signal> buildSignal(final Integer version, final String connectionCorrelationId,

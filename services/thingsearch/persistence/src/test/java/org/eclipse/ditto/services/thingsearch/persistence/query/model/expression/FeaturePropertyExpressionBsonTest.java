@@ -16,9 +16,9 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FeaturePropertyExpressionImpl;
+import org.eclipse.ditto.model.query.model.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.expression.FeaturePropertyExpressionImpl;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 

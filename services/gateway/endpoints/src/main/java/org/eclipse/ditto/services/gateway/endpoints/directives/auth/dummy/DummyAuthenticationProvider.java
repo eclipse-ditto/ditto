@@ -54,7 +54,8 @@ public final class DummyAuthenticationProvider implements AuthenticationProvider
 
     @Override
     public boolean isApplicable(final RequestContext context) {
-        return getRequestHeader(context, HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent();
+        return getRequestHeader(context, HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent() ||
+                context.getRequest().getUri().query().get(HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent();
     }
 
     @Override
@@ -76,16 +77,20 @@ public final class DummyAuthenticationProvider implements AuthenticationProvider
     public Route authenticate(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(requestContext -> enhanceLogWithCorrelationId(correlationId, () -> {
             final String dummyAuth =
-                    getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()) //
-                            .orElseThrow(
-                                    () -> new IllegalStateException("This method must not be called if header'" +
-                                            HttpHeader.X_DITTO_DUMMY_AUTH.getName() + "' is not set"));
+                    getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName())
+                            .orElseGet(() -> requestContext.getRequest().getUri().query()
+                                    .get(HttpHeader.X_DITTO_DUMMY_AUTH.getName())
+                                    .orElseThrow(
+                                            () -> new IllegalStateException(
+                                                    "This method must not be called if header'" +
+                                                            HttpHeader.X_DITTO_DUMMY_AUTH.getName() + "' is not set")));
 
             final List<AuthorizationSubject> authorizationSubjects = extractAuthorizationSubjects(dummyAuth);
             if (authorizationSubjects.isEmpty()) {
-                throw GatewayAuthenticationFailedException.newBuilder("Failed to extract AuthorizationSubjects from "
-                        + HttpHeader.X_DITTO_DUMMY_AUTH.getName() +
-                        " header value '" + dummyAuth + "'.").build();
+                throw GatewayAuthenticationFailedException.newBuilder(
+                        "Failed to extract AuthorizationSubjects from "
+                                + HttpHeader.X_DITTO_DUMMY_AUTH.getName() +
+                                " header value '" + dummyAuth + "'.").build();
             }
 
             final AuthorizationContext authorizationContext = AuthorizationModelFactory //

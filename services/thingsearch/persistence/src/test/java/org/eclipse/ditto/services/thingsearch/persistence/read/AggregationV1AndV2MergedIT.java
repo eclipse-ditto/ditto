@@ -21,7 +21,6 @@ import java.util.Collection;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.junit.Before;
 import org.junit.Test;
 

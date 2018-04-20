@@ -11,20 +11,19 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 
 /**
  * Tests unlimited instances of {@link MongoQueryBuilder}.

@@ -16,9 +16,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.PolicyRestrictedFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
+import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.model.expression.PolicyRestrictedFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.visitors.PolicyRestrictedFieldExpressionVisitor;
 
 /**
  * Gets a Bson which allows filtering on the policy resource path matching the expression.

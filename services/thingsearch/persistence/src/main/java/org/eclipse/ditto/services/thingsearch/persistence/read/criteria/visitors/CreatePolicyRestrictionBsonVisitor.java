@@ -25,13 +25,13 @@ import com.mongodb.client.model.Filters;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetPolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetUnwoundExistsFilterBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.PolicyRestrictedFieldExpression;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.PolicyRestrictedFieldExpression;
 
 /**
  * Builds the BSON query including "granted" and "revoked" fields based on the passed {@code
