@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
 
 /**
- * Creates Predicate<Thing> of a predicate.
+ * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s match a given filter.
  */
 public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Function<String, Predicate<Thing>>> {
 
@@ -45,11 +45,12 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     /**
-     * Creates a Predicate<Thing> from a predicate and its field name.
+     * Creates a Java {@link Predicate} from a Ditto query {@link org.eclipse.ditto.model.query.model.criteria.Predicate Predicate}
+     * and its field name.
      *
-     * @param predicate The predicate to generate the Predicate<Thing> from.
+     * @param predicate The Ditto Predicate to generate the Predicate from.
      * @param fieldName Name of the field where the predicate is applied to.
-     * @return The created Predicate<Thing>.
+     * @return The created Predicate.
      */
     public static Predicate<Thing> apply(
             final org.eclipse.ditto.model.query.model.criteria.Predicate predicate,
@@ -161,9 +162,9 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                 return doubleValue;
             }
         } else if (jsonValue.isArray()) {
-            return null; // searching for arrays is not supported
+            return null; // filtering arrays is not supported
         } else if (jsonValue.isObject()) {
-            return null; // searching for objects is not supported
+            return null; // filtering objects is not supported
         } else {
             return null;
         }

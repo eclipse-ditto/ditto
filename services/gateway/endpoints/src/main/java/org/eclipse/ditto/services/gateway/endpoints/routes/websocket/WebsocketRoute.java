@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -40,7 +39,6 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
-import org.eclipse.ditto.services.gateway.streaming.SetupStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -209,31 +207,16 @@ public final class WebsocketRoute {
                 messageToTellStreamingActor = null;
         }
 
-        if (messageToTellStreamingActor == null) {
-            messageToTellStreamingActor = Optional.of(JsonFactory.readFrom(protocolMessage))
-                    .filter(JsonValue::isObject)
-                    .map(JsonValue::asObject)
-                    .map(jsonObj -> {
-                        try {
-                            return SetupStreaming.fromJson(jsonObj);
-                        } catch (final RuntimeException e) {
-                            return null;
-                        }
-                    })
-                    .map(setupStreaming -> {
-                        final StreamingType streamingType = mapSetupStreamingType(setupStreaming);
-                        if (streamingType != null && setupStreaming.getAction()
-                                .equalsIgnoreCase("start")) {
-                            return new StartStreaming(streamingType, connectionCorrelationId,
-                                    authContext, setupStreaming.getEventFilter().orElse(null));
-                        } else if (streamingType != null && setupStreaming.getAction()
-                                .equalsIgnoreCase("stop")) {
-                            return new StopStreaming(streamingType, connectionCorrelationId);
-                        } else {
-                            return null;
-                        }
-                    })
-                    .orElse(null);
+        if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + ":")) {
+            // parse the optional eventFilter string (RQL):
+            final String eventFilter = protocolMessage.split(":", 2)[1];
+            messageToTellStreamingActor =
+                    new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext, eventFilter);
+        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + ":")) {
+            // parse the optional eventFilter string (RQL):
+            final String eventFilter = protocolMessage.split(":", 2)[1];
+            messageToTellStreamingActor =
+                    new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext, eventFilter);
         }
 
         if (messageToTellStreamingActor != null) {
@@ -242,21 +225,6 @@ public final class WebsocketRoute {
         }
         // let all other messages pass:
         return true;
-    }
-
-    private static StreamingType mapSetupStreamingType(final SetupStreaming setupStreaming) {
-        switch (setupStreaming.getType()) {
-            case "events":
-                return StreamingType.EVENTS;
-            case "messages":
-                return StreamingType.MESSAGES;
-            case "live-commands":
-                return StreamingType.LIVE_COMMANDS;
-            case "live-events":
-                return StreamingType.LIVE_EVENTS;
-            default:
-                return null;
-        }
     }
 
     private Source<Message, NotUsed> createSource(final String connectionCorrelationId) {

@@ -49,7 +49,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
- * TODO TJ doc
+ * Helpers and utils for streaming based stuff.
  */
 public final class StreamingHelpers {
 

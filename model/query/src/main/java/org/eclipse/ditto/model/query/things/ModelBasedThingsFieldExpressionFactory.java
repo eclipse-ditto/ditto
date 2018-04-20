@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
 
 /**
- * TODO doc
+ * {@link ThingsFieldExpressionFactory} which applies a special field mapping
  */
 public final class ModelBasedThingsFieldExpressionFactory implements ThingsFieldExpressionFactory {
 

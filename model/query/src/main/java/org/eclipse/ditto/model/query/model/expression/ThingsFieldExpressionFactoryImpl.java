@@ -23,24 +23,26 @@ import java.util.function.Supplier;
  */
 public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFactory {
 
-    private static final Map<String, String> defaultSimpleFieldMappings = new HashMap<>();
+    private static final Map<String, String> mongoSimpleFieldMappings = new HashMap<>();
 
     static {
-        defaultSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
-        defaultSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
+        mongoSimpleFieldMappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
     }
 
     private final Map<String, String> simpleFieldMappings;
 
     /**
-     * TODO TJ doc
+     * Creates a ThingsFieldExpressionFactory with default field mappings (MongoDB).
      */
     public ThingsFieldExpressionFactoryImpl() {
-        this(defaultSimpleFieldMappings);
+        this(mongoSimpleFieldMappings);
     }
 
     /**
-     * TODO TJ doc
+     * Creates a ThingsFieldExpressionFactory with custom field mappings.
+     *
+     * @param simpleFieldMappings the field mappings to apply
      */
     public ThingsFieldExpressionFactoryImpl(final Map<String, String> simpleFieldMappings) {
         this.simpleFieldMappings = simpleFieldMappings;

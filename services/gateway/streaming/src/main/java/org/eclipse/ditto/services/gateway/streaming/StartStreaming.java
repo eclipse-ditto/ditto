@@ -34,7 +34,7 @@ public final class StartStreaming {
      * @param streamingType the type of entity to start the streaming for.
      * @param connectionCorrelationId the correlationId of the connection/session.
      * @param authorizationContext the {@link AuthorizationContext} of the connection/session.
-     * @param eventFilter
+     * @param eventFilter the filter string (RQL) to apply for event filtering or {@code null} if none should be applied.
      */
     public StartStreaming(final StreamingType streamingType, final String connectionCorrelationId,
             final AuthorizationContext authorizationContext, @Nullable final String eventFilter) {

@@ -18,7 +18,7 @@ import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.visitors.ExistsFieldExpressionVisitor;
 
 /**
- * Creates a ...
+ * ExistsFieldExpressionVisitor for Java {@link Predicate}s of {@link Thing}s.
  */
 public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionVisitor<Predicate<Thing>> {
 
