@@ -30,9 +30,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -156,7 +159,8 @@ public class SseThingsRoute extends AbstractRoute {
                 dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
 
         final Source<ServerSentEvent, NotUsed> sseSource =
-                Source.<ThingEvent>actorPublisher(EventAndResponsePublisher.props(10))
+                Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
+                        EventAndResponsePublisher.props(10))
                         .mapMaterializedValue(actorRef -> {
                             streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
                                     null);
@@ -166,6 +170,8 @@ public class SseThingsRoute extends AbstractRoute {
                                     null);
                             return NotUsed.getInstance();
                         })
+                        .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
+                        .map(jsonifiable -> ((ThingEvent) jsonifiable))
                         .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
                                 thingEvent.getThingId())) // only Events of the target thingIds
                         .map(this::thingEventToThing)
