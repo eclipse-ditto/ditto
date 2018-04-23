@@ -21,6 +21,9 @@ Supported AMQP 1.0 properties which are interpreted in a specific way are:
 * `content-type`: for defining the Ditto Protocol content-type
 * `correlation-id`: for correlating request messages to responses
 
+## Connection Source/Target format
+
+TODO
 
 ## Establishing connecting to an AMQP 1.0 endpoint
 
