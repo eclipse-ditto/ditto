@@ -26,6 +26,9 @@ function mapFromDittoProtocolMsg(
     // ###
     // Insert your mapping logic here:
     // ###
+    if (dittoHeaders) {
+        return null;
+    }
 
     return  Ditto.buildExternalMsg(
         headers,

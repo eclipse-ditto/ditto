@@ -16,6 +16,9 @@ function mapToDittoProtocolMsg(
     // ###
     // Insert your mapping logic here:
     // ###
+    if (headers) {
+        return null;
+    }
 
     return Ditto.buildDittoProtocolMsg(
         namespace,
