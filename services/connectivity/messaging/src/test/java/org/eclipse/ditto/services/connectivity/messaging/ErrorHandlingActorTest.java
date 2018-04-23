@@ -23,6 +23,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ConnectivityModify
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -87,7 +88,26 @@ public class ErrorHandlingActorTest {
 
     @Test
     public void tryDeleteConnectionExpectErrorResponse() {
-        tryModifyConnectionExpectErrorResponse("delete");
+        new TestKit(actorSystem) {{
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = TestConstants.createConnection(connectionId);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            faultyConnectionActorPropsFactory);
+            watch(underTest);
+
+            // create connection
+            final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
+            underTest.tell(createConnection, getRef());
+            final CreateConnectionResponse createConnectionResponse =
+                    CreateConnectionResponse.of(connection, DittoHeaders.empty());
+            expectMsg(createConnectionResponse);
+
+            // delete connection
+            final ConnectivityModifyCommand command = DeleteConnection.of(connectionId, DittoHeaders.empty());
+            underTest.tell(command, getRef());
+            expectMsg(DeleteConnectionResponse.of(connectionId, DittoHeaders.empty()));
+        }};
     }
 
     private void tryModifyConnectionExpectErrorResponse(final String action) {
@@ -114,9 +134,6 @@ public class ErrorHandlingActorTest {
                     break;
                 case "close":
                     command = CloseConnection.of(connectionId, DittoHeaders.empty());
-                    break;
-                case "delete":
-                    command = DeleteConnection.of(connectionId, DittoHeaders.empty());
                     break;
                 default:
                     throw new IllegalArgumentException("invalid action " + action);
