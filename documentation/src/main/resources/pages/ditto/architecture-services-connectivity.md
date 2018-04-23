@@ -1,7 +1,7 @@
 ---
 title: Connectivity service
 keywords: architecture, service, connectivity, amqp, hono
-tags: [architecture]
+tags: [architecture, connectivity]
 permalink: architecture-services-connectivity.html
 ---
 

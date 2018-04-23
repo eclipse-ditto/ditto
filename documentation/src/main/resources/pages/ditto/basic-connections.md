@@ -1,10 +1,14 @@
 ---
 title: Connections
-keywords: connection
-tags: [connection]
+keywords: connection, connectivity, mapping, connection, integration
+tags: [connection, connectivity]
 permalink: basic-connections.html
 ---
 
+  {%
+    include note.html content="To get started with connections right away, consolidate the [Manage connections](/connectivity-manage-connections.html) 
+                               page for the administration guide. "
+  %}
 
 You can integrate your Ditto instance with external messaging services such as 
 [Eclipse Hono](https://eclipse.org/hono/) or a [RabbitMQ](https://www.rabbitmq.com/) broker via custom "connections". 
@@ -32,11 +36,14 @@ for custom payload formats. Currently the following connection types are support
 The `sources` and `targets` identifier format depends on the `connectionType` and has therefore `connectionType` 
 specific limitations. Those are documented with the corresponding protocol bindings.
 
-A connection handles authorization for all incoming messages.  
-To grant or revoke access to a specific resource you 
-have to
+A connection is initiated by the connectivity service. This obsoletes the need for client authorization, because 
+Ditto becomes the client in this case. Nevertheless to access resources within Ditto, the connection must know on 
+which's behalf it's acting. This is controlled via the configured `authorisationContext`, which holds a list of 
+self-assigned authorization subjects. Before a connection can access a Ditto ressource, one of its 
+`authorizationSubject`s must be referenced in the used authorization mechanism, having the needed access rights. You 
+can achieve this via [ACLs](/basic-acl.html) or [Policies](/basic-policy.html).
 
-* auth subject see /basic-acl.html
+For more information on the `mappingContext` visit the corresponding [Payload Mapping Documentation](/connectivity-mapping.html)
 
 
 [Connectivity API]: connectivity-overview.html
