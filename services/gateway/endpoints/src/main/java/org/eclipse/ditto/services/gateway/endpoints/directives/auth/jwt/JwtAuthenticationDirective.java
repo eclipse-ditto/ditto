@@ -116,11 +116,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
                                                         return authContext;
                                                     })
-                                    ).exceptionally(t -> {
-                                        LOGGER.warn("An error occurred while retrieving a JWK.", t);
-                                        throw buildAuthenticationProviderUnavailableException(correlationId, t);
-                                    }),
-                            inner);
+                                    ), inner);
                 }));
     }
 
