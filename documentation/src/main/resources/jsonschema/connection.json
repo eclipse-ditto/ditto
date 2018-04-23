@@ -22,6 +22,16 @@
         "amqp-10"
       ]
     },
+    "connectionStatus": {
+      "$id": "/properties/connectionStatus",
+      "type": "string",
+      "enum": [ "open", "closed" ],
+      "title": "Connection status",
+      "description": "The persisted/desired status of the connection",
+      "examples": [
+        "open"
+      ]
+    },
     "uri": {
       "$id": "/properties/uri",
       "type": "string",
