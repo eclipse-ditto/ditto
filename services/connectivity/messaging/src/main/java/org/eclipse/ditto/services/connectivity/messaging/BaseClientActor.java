@@ -520,9 +520,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
             final String addressIdentifier, final String childActorName) {
 
-        final Optional<ActorRef> consumerActor = getContext().findChild(childActorName);
-        if (consumerActor.isPresent()) {
-            final ActorRef actorRef = consumerActor.get();
+        final Optional<ActorRef> childActor = getContext().findChild(childActorName);
+        if (childActor.isPresent()) {
+            final ActorRef actorRef = childActor.get();
             return PatternsCS.ask(actorRef, RetrieveAddressMetric.getInstance(),
                     Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS))
                     .handle((response, throwable) -> {

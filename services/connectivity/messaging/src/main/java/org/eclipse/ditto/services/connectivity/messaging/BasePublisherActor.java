@@ -77,6 +77,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .orElse(false));
     }
 
+    protected Map<String, Set<T>> getDestinations() {
+        return Collections.unmodifiableMap(new HashMap<>(destinations));
+    }
+
     protected abstract T toPublishTarget(final String address);
 
 }

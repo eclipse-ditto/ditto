@@ -25,10 +25,11 @@ function mapFromDittoProtocolMsg(
 
     // ###
     // Insert your mapping logic here:
+    let headers = dittoHeaders;
+    let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value));
+    let bytePayload = null;
+    let contentType = 'application/vnd.eclipse.ditto+json';
     // ###
-    if (dittoHeaders) {
-        return null;
-    }
 
     return  Ditto.buildExternalMsg(
         headers,

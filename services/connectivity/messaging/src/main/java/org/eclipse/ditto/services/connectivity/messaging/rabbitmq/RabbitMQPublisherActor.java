@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Map;
@@ -68,7 +69,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private long publishedMessages = 0L;
     private Instant lastMessagePublishedAt;
-    @Nullable private AddressMetric addressMetric = null;
+    @Nullable private AddressMetric addressMetric;
 
     private RabbitMQPublisherActor(final Set<Target> targets) {
         super(targets);
@@ -94,7 +95,31 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ChannelCreated.class, channelCreated -> this.channelActor = channelCreated.channel())
+                .match(ChannelCreated.class, channelCreated -> {
+                    this.channelActor = channelCreated.channel();
+                    addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
+                            0, null);
+
+                    final Set<String> exchanges = getDestinations().values()
+                            .stream()
+                            .flatMap(Set::stream)
+                            .map(RabbitMQTarget::getExchange)
+                            .collect(Collectors.toSet());
+                    final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
+                        exchanges.forEach(exchange -> {
+                            log.debug("Checking for existence of exchange <{}>", exchange);
+                            try {
+                                channel.exchangeDeclarePassive(exchange);
+                            } catch (final IOException e) {
+                                log.warning("Failed to declare exchange <{}> passively", exchange);
+                                addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
+                                        "Exchange '" + exchange + "' was missing at " + Instant.now(), 0, null);
+                            }
+                        });
+                        return null;
+                    }, false);
+                    channelCreated.channel().tell(channelMessage, getSelf());
+                })
                 .match(ExternalMessage.class, this::isResponseOrError, response -> {
                     final String correlationId =
                             response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
@@ -185,7 +210,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 channel.basicPublish(rabbitMQTarget.getExchange(), rabbitMQTarget.getRoutingKey(), basicProperties,
                         body);
             } catch (final Exception e) {
-                log.info("Failed to publish message to RabbitMQ: {}", e.getMessage());
+                log.warning("Failed to publish message to RabbitMQ: {}", e.getMessage());
             }
             return null;
         }, false);
