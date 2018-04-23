@@ -115,8 +115,13 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        final Optional<javax.jms.Connection> connection = disconnect.getConnection();
-        connection.ifPresent(con -> doDisconnect(con, disconnect.getOrigin().orElse(null)));
+        final Optional<javax.jms.Connection> connectionOpt = disconnect.getConnection();
+        if (connectionOpt.isPresent()) {
+            doDisconnect(connectionOpt.get(), disconnect.getOrigin().orElse(null));
+        } else {
+            getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)),
+                    disconnect.getOrigin().orElse(null));
+        }
         log.debug("Stopping myself {}", getSelf());
         getContext().stop(getSelf());
     }

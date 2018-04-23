@@ -77,7 +77,6 @@ import com.typesafe.config.Config;
 import akka.ConfigurationException;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -96,7 +95,6 @@ import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -109,8 +107,6 @@ final class ConnectionActor extends AbstractPersistentActor {
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
-    private static final int SHUTDOWN_DELAY_SECONDS = 10;
-    private static final FiniteDuration SHUTDOWN_DELAY = Duration.apply(SHUTDOWN_DELAY_SECONDS, TimeUnit.SECONDS);
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
@@ -126,8 +122,6 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     @Nullable private ActorRef clientActor;
     @Nullable private Connection connection;
-
-    @Nullable private Cancellable shutdownCancellable;
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
@@ -185,9 +179,6 @@ final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         super.postStop();
-        if (shutdownCancellable != null) {
-            shutdownCancellable.cancel();
-        }
         log.info("stopped connection <{}>", connectionId);
     }
 
@@ -231,7 +222,6 @@ final class ConnectionActor extends AbstractPersistentActor {
                         getContext().become(connectionCreatedBehaviour);
                     }
 
-                    scheduleShutdown();
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
                 })
                 .matchAny(m -> log.warning("Unknown recover message: {}", m))
@@ -344,13 +334,11 @@ final class ConnectionActor extends AbstractPersistentActor {
                             command.getDittoHeaders()),
                     getSelf());
             // terminate this actor's supervisor after a connection test again:
-            final ActorRef parent = getContext().getParent();
-            parent.tell(PoisonPill.getInstance(), getSelf());
+            stopSelf();
         }, error -> {
             handleException("test", origin, error);
             // terminate this actor's supervisor after a connection test again:
-            final ActorRef parent = getContext().getParent();
-            parent.tell(PoisonPill.getInstance(), getSelf());
+            stopSelf();
         });
     }
 
@@ -373,8 +361,11 @@ final class ConnectionActor extends AbstractPersistentActor {
                                 CreateConnectionResponse.of(connection, command.getDittoHeaders()),
                                 getSelf());
                         getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                    }, error ->
-                            handleException("connect", origin, error)
+                    }, error -> {
+                        getContext().become(connectionCreatedBehaviour);
+                        handleException("connect", origin, error);
+                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+                    }
             );
         });
     }
@@ -439,7 +430,7 @@ final class ConnectionActor extends AbstractPersistentActor {
                         subscribeForEvents();
                         origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
                     }, error ->
-                            handleException("disconnect", origin, error)
+                            handleException("open-connection", origin, error)
             );
         });
     }
@@ -470,17 +461,23 @@ final class ConnectionActor extends AbstractPersistentActor {
                 ConnectionDeleted.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
 
-        persistEvent(connectionDeleted, persistedEvent -> {
-            askClientActor(command, response -> {
-                        unsubscribeFromEvents();
-                        stopClientActor();
-                        origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                                getSelf());
-                        stopSelf();
-                    }, error ->
-                            handleException("disconnect", origin, error)
-            );
-        });
+        persistEvent(connectionDeleted, persistedEvent ->
+                askClientActor(command, response -> {
+                            unsubscribeFromEvents();
+                            stopClientActor();
+                            origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
+                                    getSelf());
+                            stopSelf();
+                        }, error -> {
+                            // we can safely ignore this error and do the same as in the "success" case:
+                            unsubscribeFromEvents();
+                            stopClientActor();
+                            origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
+                                    getSelf());
+                            stopSelf();
+                        }
+                )
+        );
     }
 
     private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
@@ -652,15 +649,6 @@ final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Shutting down");
         // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
         getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
-    }
-
-    private void scheduleShutdown() {
-        shutdownCancellable = getContext().getSystem().scheduler()
-                .scheduleOnce(SHUTDOWN_DELAY,
-                        getSelf(),
-                        Shutdown.getInstance(),
-                        getContext().dispatcher(),
-                        ActorRef.noSender());
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
