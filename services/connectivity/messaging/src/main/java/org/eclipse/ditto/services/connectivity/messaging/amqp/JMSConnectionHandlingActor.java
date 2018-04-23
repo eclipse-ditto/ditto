@@ -153,7 +153,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             if (failedSources.isEmpty()) {
                 final AmqpClientActor.JmsConnected connectedMessage =
                         new AmqpClientActor.JmsConnected(origin, jmsConnection, jmsSession, consumerMap);
-                sender.tell(connectedMessage, getSelf());
+                sender.tell(connectedMessage, origin);
                 log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
             } else {
                 log.warning("Failed to consume sources: {}.", failedSources);
@@ -182,7 +182,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         } catch (final JMSException e) {
             log.debug("Connection <{}> already closed: {}", this.connection.getId(), e.getMessage());
         }
-        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), getSender());
+        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), origin);
     }
 
 }

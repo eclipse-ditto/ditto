@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -44,6 +45,11 @@ public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate
      * @return the current message count
      */
     long getMessageCount();
+
+    /**
+     * @return the timestamp when the last message was consumed/published.
+     */
+    Optional<Instant> getLastMessageAt();
 
     /**
      * Returns all non hidden marked fields of this {@code AddressMetric}.
@@ -92,6 +98,13 @@ public interface AddressMetric extends Jsonifiable.WithFieldSelectorAndPredicate
          */
         public static final JsonFieldDefinition<Long> MESSAGE_COUNT =
                 JsonFactory.newLongFieldDefinition("messageCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the timestamp when the last message was consumed/published.
+         */
+        public static final JsonFieldDefinition<String> LAST_MESSAGE_AT =
+                JsonFactory.newStringFieldDefinition("lastMessageAt", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

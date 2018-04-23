@@ -18,7 +18,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -52,6 +51,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.testkit.CallingThreadDispatcher;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -69,16 +69,13 @@ public class RabbitMQClientActorTest {
     private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
 
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
+    private final ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
     private final RabbitConnectionFactoryFactory
             rabbitConnectionFactoryFactory = (con, exHandler) -> mockConnectionFactory;
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
+    private final com.rabbitmq.client.Connection mockConnection = Mockito.mock(com.rabbitmq.client.Connection.class);
     @Mock
-    @SuppressWarnings("FieldMayBeFinal")
-    private Channel mockChannel = Mockito.mock(Channel.class);
+    private final Channel mockChannel = Mockito.mock(Channel.class);
 
     @BeforeClass
     public static void setUp() {
@@ -100,14 +97,14 @@ public class RabbitMQClientActorTest {
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
-                TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                ConnectionStatus.OPEN, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
-                () -> RabbitMQClientActor.props(connection, connectionStatus, null);
+                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.props(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -120,8 +117,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void testExceptionDuringConnectionFactoryCreation() {
         new TestKit(actorSystem) {{
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> { throw CUSTOM_EXCEPTION; });
+            final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (con, exHandler) -> { throw CUSTOM_EXCEPTION; }).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
             connectionActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -133,8 +130,8 @@ public class RabbitMQClientActorTest {
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> mockConnectionFactory);
+            final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
@@ -152,15 +149,12 @@ public class RabbitMQClientActorTest {
     @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
-            final CountDownLatch latch = new CountDownLatch(1);
-            final Props props = RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                    (con, exHandler) -> mockConnectionFactory);
+            final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
-
-            latch.countDown();
 
             expectMsg(CONNECTED_SUCCESS);
         }};
@@ -170,8 +164,8 @@ public class RabbitMQClientActorTest {
     public void sendConnectCommandWhenAlreadyConnected() throws IOException {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                    RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -179,7 +173,7 @@ public class RabbitMQClientActorTest {
 
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-            verify(mockConnection, Mockito.times(2)).createChannel();
+            verify(mockConnection, Mockito.atLeast(2)).createChannel();
         }};
     }
 
@@ -187,8 +181,8 @@ public class RabbitMQClientActorTest {
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                    RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -201,8 +195,8 @@ public class RabbitMQClientActorTest {
     public void testCloseConnectionFails() {
         new TestKit(actorSystem) {{
             final Props props =
-                    RabbitMQClientActor.props(connection, connectionStatus, getRef(),
-                            (con, exHandler) -> mockConnectionFactory);
+                    RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                            (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
             rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());

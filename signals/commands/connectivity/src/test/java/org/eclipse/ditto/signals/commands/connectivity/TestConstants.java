@@ -36,6 +36,7 @@ public final class TestConstants {
     public static String ID = "myConnection";
 
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
+    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
 
     public static String URI = "amqps://username:password@my.endpoint:443";
 
@@ -87,7 +88,7 @@ public final class TestConstants {
                             "}"));
 
     public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
+            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)

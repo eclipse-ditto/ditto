@@ -16,10 +16,36 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+
 /**
  * A mutable builder for a {@link Connection} with a fluent API.
  */
 public interface ConnectionBuilder {
+
+    /**
+     * Sets the AuthorizationContext to use in the {@link Connection}.
+     *
+     * @param authorizationContext the AuthorizationContext
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder authorizationContext(AuthorizationContext authorizationContext);
+
+    /**
+     * Sets the URI to use in the {@link Connection}.
+     *
+     * @param uri the URI
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder uri(String uri);
+
+    /**
+     * Sets the ConnectionStatus to use in the {@link Connection}.
+     *
+     * @param connectionStatus the ConnectionStatus
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder connectionStatus(ConnectionStatus connectionStatus);
 
     /**
      * Enable/disable failover for the {@link Connection}.

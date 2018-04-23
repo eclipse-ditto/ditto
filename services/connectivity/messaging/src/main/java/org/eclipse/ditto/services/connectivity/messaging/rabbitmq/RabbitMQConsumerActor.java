@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -69,6 +70,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     private final ActorRef messageMappingProcessor;
 
     private long consumedMessages = 0L;
+    private Instant lastMessageConsumedAt;
     @Nullable private AddressMetric addressMetric = null;
 
     private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor) {
@@ -104,7 +106,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
                             addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
                             addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
-                            consumedMessages), getSelf());
+                            consumedMessages, lastMessageConsumedAt), getSelf());
                 })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -118,6 +120,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
     private void handleDelivery(final Delivery delivery) {
         consumedMessages++;
+        lastMessageConsumedAt = Instant.now();
         final BasicProperties properties = delivery.getProperties();
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();

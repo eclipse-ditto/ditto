@@ -190,11 +190,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using command router.", adjustedSignal.getType());
+                log.info("Sending '{}' using command router", adjustedSignal.getType());
                 commandRouter.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
-            handleDittoRuntimeException(e);
+            handleDittoRuntimeException(e, DittoHeaders.of(externalMessage.getHeaders()));
         } catch (final Exception e) {
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
@@ -206,7 +206,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
-        final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception);
+        handleDittoRuntimeException(exception, DittoHeaders.empty());
+    }
+
+    private void handleDittoRuntimeException(final DittoRuntimeException exception,
+            final DittoHeaders dittoHeaders) {
+        final DittoHeaders mergedHeaders =
+                DittoHeaders.newBuilder(exception.getDittoHeaders()).putHeaders(dittoHeaders).build();
+        final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception, mergedHeaders);
 
         enhanceLogUtil(exception);
 

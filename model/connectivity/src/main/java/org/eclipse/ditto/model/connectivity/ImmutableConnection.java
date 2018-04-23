@@ -51,6 +51,7 @@ final class ImmutableConnection implements Connection {
 
     private final String id;
     private final ConnectionType connectionType;
+    private final ConnectionStatus connectionStatus;
     private final AuthorizationContext authorizationContext;
     private final String uri;
     private final String protocol;
@@ -72,6 +73,7 @@ final class ImmutableConnection implements Connection {
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
         this.connectionType = builder.connectionType;
+        this.connectionStatus = builder.connectionStatus;
         this.uri = builder.uri;
         this.authorizationContext = builder.authorizationContext;
         checkSourceAndTargetAreValid(builder);
@@ -122,6 +124,11 @@ final class ImmutableConnection implements Connection {
         final ConnectionType readConnectionType = ConnectionType.forName(readConnectionTypeStr)
                 .orElseThrow(() -> JsonParseException.newBuilder()
                         .message("Invalid connection type: " + readConnectionTypeStr)
+                        .build());
+        final String readConnectionStatusStr = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
+        final ConnectionStatus readConnectionStatus = ConnectionStatus.forName(readConnectionStatusStr)
+                .orElseThrow(() -> JsonParseException.newBuilder()
+                        .message("Invalid ConnectionStatus: " + readConnectionStatusStr)
                         .build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
@@ -175,7 +182,8 @@ final class ImmutableConnection implements Connection {
                 .orElse(null);
 
         final ConnectionBuilder builder =
-                ImmutableConnectionBuilder.of(readId, readConnectionType, readUri, readAuthorizationContext);
+                ImmutableConnectionBuilder.of(readId, readConnectionType, readConnectionStatus, readUri,
+                        readAuthorizationContext);
 
         builder.sources(readSources);
         builder.targets(readTargets);
@@ -196,6 +204,11 @@ final class ImmutableConnection implements Connection {
     @Override
     public ConnectionType getConnectionType() {
         return connectionType;
+    }
+
+    @Override
+    public ConnectionStatus getConnectionStatus() {
+        return connectionStatus;
     }
 
     @Override
@@ -286,6 +299,7 @@ final class ImmutableConnection implements Connection {
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
+        jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
         jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                 .map(AuthorizationSubject::getId)
@@ -323,6 +337,7 @@ final class ImmutableConnection implements Connection {
                 port == that.port &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(connectionType, that.connectionType) &&
+                Objects.equals(connectionStatus, that.connectionStatus) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(sources, that.sources) &&
                 Objects.equals(targets, that.targets) &&
@@ -341,7 +356,7 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, connectionType, authorizationContext, sources, targets, clientCount,
+        return Objects.hash(id, connectionType, connectionStatus, authorizationContext, sources, targets, clientCount,
                 failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate,
                 processorPoolSize, specificConfig, mappingContext);
     }
@@ -351,6 +366,7 @@ final class ImmutableConnection implements Connection {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
                 ", connectionType=" + connectionType +
+                ", connectionStatus=" + connectionStatus +
                 ", authorizationContext=" + authorizationContext +
                 ", failoverEnabled=" + failoverEnabled +
                 ", uri=" + uri +

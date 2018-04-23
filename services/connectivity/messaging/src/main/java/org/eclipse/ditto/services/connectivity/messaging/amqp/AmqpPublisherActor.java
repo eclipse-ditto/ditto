@@ -64,6 +64,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private AddressMetric addressMetric;
     private long publishedMessages = 0L;
+    private Instant lastMessagePublishedAt;
 
 
     private AmqpPublisherActor(final Session session, final Set<Target> targets) {
@@ -71,7 +72,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
         addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(), 0);
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
+                        0, null);
     }
 
     /**
@@ -121,7 +123,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
                             addressMetric.getStatus(),
                             addressMetric.getStatusDetails().orElse(null),
-                            publishedMessages), getSelf());
+                            publishedMessages, lastMessagePublishedAt), getSelf());
                 })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -145,6 +147,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 final Message jmsMessage = toJmsMessage(message);
                 producer.send(jmsMessage);
                 publishedMessages++;
+                lastMessagePublishedAt = Instant.now();
             } else {
                 log.warning("No producer for destination {} available.", target);
             }

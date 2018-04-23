@@ -5,7 +5,7 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
+ *  
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
@@ -27,44 +27,44 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ConnectionCreated}.
+ * Unit test for {@link ConnectionModified}.
  */
-public final class ConnectionCreatedTest {
+public final class ConnectionModifiedTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
-            .set(Event.JsonFields.TYPE, ConnectionCreated.TYPE)
+            .set(Event.JsonFields.TYPE, ConnectionModified.TYPE)
             .set(ConnectivityEvent.JsonFields.CONNECTION_ID, TestConstants.ID)
             .set(ConnectivityEvent.JsonFields.CONNECTION, TestConstants.CONNECTION.toJson())
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ConnectionCreated.class)
+        EqualsVerifier.forClass(ConnectionModified.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ConnectionCreated.class, areImmutable(),
+        assertInstancesOf(ConnectionModified.class, areImmutable(),
                 provided(Connection.class, MappingContext.class).isAlsoImmutable());
     }
 
     @Test
     public void createInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectionCreated.of(null, null, DittoHeaders.empty()))
+                .isThrownBy(() -> ConnectionModified.of(null, null, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final ConnectionCreated expected =
-                ConnectionCreated.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
+        final ConnectionModified expected =
+                ConnectionModified.of(TestConstants.CONNECTION, null, DittoHeaders.empty());
 
-        final ConnectionCreated actual =
-                ConnectionCreated.fromJson(KNOWN_JSON, DittoHeaders.empty());
+        final ConnectionModified actual =
+                ConnectionModified.fromJson(KNOWN_JSON, DittoHeaders.empty());
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -72,7 +72,7 @@ public final class ConnectionCreatedTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectionCreated.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
+                ConnectionModified.of(TestConstants.CONNECTION, null, DittoHeaders.empty()).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }

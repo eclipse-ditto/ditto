@@ -104,10 +104,8 @@ public final class CommandSubscriber extends AbstractActorSubscriber {
                                 signal.getType(), signal);
                     }
                 })
-                .match(ResponsePublished.class, responded -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, responded.getCorrelationId());
-                    outstandingCommandCorrelationIds.remove(responded.getCorrelationId());
-                })
+                .match(ResponsePublished.class, responded ->
+                        outstandingCommandCorrelationIds.remove(responded.getCorrelationId()))
                 .match(DittoRuntimeException.class, cre -> handleDittoRuntimeException(delegateActor, cre))
                 .match(RuntimeException.class,
                         jre -> handleDittoRuntimeException(delegateActor, new DittoJsonException(jre)))

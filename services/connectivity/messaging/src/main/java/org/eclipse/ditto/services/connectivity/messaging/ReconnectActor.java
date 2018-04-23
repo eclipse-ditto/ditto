@@ -28,6 +28,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
 import com.typesafe.config.Config;
@@ -82,6 +83,8 @@ public final class ReconnectActor extends AbstractPersistentActor {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionCreated.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionModified.TYPE, ACTOR_NAME, getSelf()),
+                getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionOpened.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionClosed.TYPE, ACTOR_NAME, getSelf()),
@@ -130,6 +133,7 @@ public final class ReconnectActor extends AbstractPersistentActor {
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
                 .match(ConnectionCreated.class, event -> connectionIds.add(event.getConnectionId()))
+                .match(ConnectionModified.class, this::handleConnectionModified)
                 .match(ConnectionOpened.class, event -> connectionIds.add(event.getConnectionId()))
                 .match(ConnectionClosed.class, event -> connectionIds.remove(event.getConnectionId()))
                 .match(ConnectionDeleted.class, event -> connectionIds.remove(event.getConnectionId()))
@@ -148,6 +152,7 @@ public final class ReconnectActor extends AbstractPersistentActor {
                 })
                 .match(ConnectionCreated.class,
                         event -> persistEvent(event, e -> connectionIds.add(e.getConnectionId())))
+                .match(ConnectionModified.class, this::handleConnectionModified)
                 .match(ConnectionOpened.class,
                         event -> persistEvent(event, e -> connectionIds.add(e.getConnectionId())))
                 .match(ConnectionClosed.class,
@@ -164,6 +169,19 @@ public final class ReconnectActor extends AbstractPersistentActor {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleConnectionModified(final ConnectionModified event) {
+        switch (event.getConnection().getConnectionStatus()) {
+            case OPEN:
+                connectionIds.add(event.getConnectionId());
+                break;
+            case CLOSED:
+                connectionIds.remove(event.getConnectionId());
+                break;
+            default:
+                // do nothing
+        }
     }
 
     private <E extends Event> void persistEvent(final E event, final Consumer<E> consumer) {

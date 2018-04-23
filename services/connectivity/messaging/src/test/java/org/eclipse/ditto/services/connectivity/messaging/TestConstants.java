@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -49,6 +50,7 @@ import akka.actor.Props;
 public class TestConstants {
 
     static final ConnectionType TYPE = ConnectionType.AMQP_10;
+    static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     public static final String URI = "amqps://username:password@my.endpoint:443";
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
@@ -69,7 +71,7 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, URI, AUTHORIZATION_CONTEXT)
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();

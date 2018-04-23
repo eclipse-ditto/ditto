@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
 public class JsonExamplesProducer {
@@ -43,6 +45,7 @@ public class JsonExamplesProducer {
     private static final String ID = "myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
+    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 
@@ -118,7 +121,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .mappingContext(MAPPING_CONTEXT)
@@ -127,6 +130,9 @@ public class JsonExamplesProducer {
 
         final ConnectionCreated connectionCreated = ConnectionCreated.of(connection, headers);
         writeJson(eventsDir.resolve(Paths.get("connectionCreated.json")), connectionCreated);
+
+        final ConnectionModified connectionModified = ConnectionModified.of(connection, headers);
+        writeJson(eventsDir.resolve(Paths.get("connectionModified.json")), connectionModified);
 
         final ConnectionOpened connectionOpened = ConnectionOpened.of(ID, headers);
         writeJson(eventsDir.resolve(Paths.get("connectionOpened.json")), connectionOpened);

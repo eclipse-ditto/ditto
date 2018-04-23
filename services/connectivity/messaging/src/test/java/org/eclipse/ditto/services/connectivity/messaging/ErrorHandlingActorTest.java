@@ -62,7 +62,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator,
-                    (con, connectionStatus, commandRouter) -> FaultyConnectionActor.props(false));
+                    (con) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection

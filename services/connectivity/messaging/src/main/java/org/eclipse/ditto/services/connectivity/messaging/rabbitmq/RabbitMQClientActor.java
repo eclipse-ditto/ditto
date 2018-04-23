@@ -85,7 +85,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, String> consumedTagsToAddresses;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        this(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
+    }
+
+    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            @Nullable final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
         super(connection, connectionStatus, commandRouter);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
@@ -96,14 +101,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection
-     * @param connectionStatus the desired status of the connection
-     * @param commandRouter the command router used to send signals into the cluster
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
-                commandRouter, ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+    public static Props props(final Connection connection) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
     }
 
     /**
@@ -115,7 +117,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
      * @return the Akka configuration Props object
      */
-    public static Props props(final Connection connection, final ConnectionStatus connectionStatus,
+    public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
                 rabbitConnectionFactoryFactory);
@@ -173,7 +175,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         stopCommandConsumers();
         stopCommandPublisher();
-        getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), getSender());
+        getSelf().tell((ClientDisconnected) () -> Optional.ofNullable(origin), origin);
     }
 
     @Override
@@ -293,7 +295,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
                             log.info("Established RMQ connection: {}", rmqConnection);
-                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), getSelf());
+                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), origin);
                             return null;
                         });
                 rmqConnectionActor = startChildActor(RMQ_CONNECTION_ACTOR_NAME, props);
@@ -467,7 +469,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             super(channel);
             this.consumerActor = consumerActor;
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer initialized at " + Instant.now(), 0), null);
+                    "Consumer initialized at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -499,7 +501,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                    "Consumer started at " + Instant.now(), 0), null);
+                    "Consumer started at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -513,7 +515,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Consumer for queue cancelled at " + Instant.now(), 0), null);
+                    "Consumer for queue cancelled at " + Instant.now(), 0, null), null);
         }
 
         @Override
@@ -527,7 +529,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             });
 
             consumerActor.tell(ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0), null);
+                    "Channel or the underlying connection has been shut down at " + Instant.now(), 0, null), null);
         }
 
         @Override

@@ -88,9 +88,9 @@ public class ConnectionActorTest {
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, "the status as persisted / desired status", DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
         retrieveConnectionStatusClosedResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, "the status as persisted / desired status", DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -212,7 +212,7 @@ public class ConnectionActorTest {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            (connection, connectionStatus, commandRouter) -> {
+                            (connection) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             });
@@ -249,7 +249,7 @@ public class ConnectionActorTest {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            (connection, connectionStatus, commandRouter) -> TestActor.props(probe));
+                            (connection) -> TestActor.props(probe));
             watch(underTest);
 
             // create connection

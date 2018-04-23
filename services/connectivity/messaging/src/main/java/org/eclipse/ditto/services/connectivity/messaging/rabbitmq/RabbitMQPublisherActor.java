@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -66,6 +67,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Nullable private ActorRef channelActor;
 
     private long publishedMessages = 0L;
+    private Instant lastMessagePublishedAt;
     @Nullable private AddressMetric addressMetric = null;
 
     private RabbitMQPublisherActor(final Set<Target> targets) {
@@ -122,7 +124,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
                             addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
                             addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
-                            publishedMessages), getSelf());
+                            publishedMessages, lastMessagePublishedAt), getSelf());
                 })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -151,6 +153,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
 
         publishedMessages++;
+        lastMessagePublishedAt = Instant.now();
 
         final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
         final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());

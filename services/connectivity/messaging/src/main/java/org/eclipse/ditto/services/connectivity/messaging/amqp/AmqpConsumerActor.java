@@ -68,6 +68,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     private AddressMetric addressMetric;
     private long consumedMessages = 0L;
+    private Instant lastMessageConsumedAt;
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor) {
@@ -75,7 +76,8 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(), 0);
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
+                        0, null);
     }
 
     /**
@@ -107,7 +109,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
                             addressMetric.getStatus(),
                             addressMetric.getStatusDetails().orElse(null),
-                            consumedMessages), getSelf());
+                            consumedMessages, lastMessageConsumedAt), getSelf());
                 })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -143,6 +145,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     private void handleJmsMessage(final JmsMessage message) {
         consumedMessages++;
+        lastMessageConsumedAt = Instant.now();
         try {
             final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
             headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);

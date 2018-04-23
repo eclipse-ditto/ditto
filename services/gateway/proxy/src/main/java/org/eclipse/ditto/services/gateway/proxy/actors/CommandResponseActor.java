@@ -74,7 +74,7 @@ public class CommandResponseActor extends AbstractActor {
                     log.debug("Waiting for a response timed out, stopping myself.");
                     getContext().stop(getSelf());
                 })
-                .matchAny(msg -> log.info("Unexpected message, cannot handle: {}", msg.getClass().getName()))
+                .matchAny(msg -> log.warning("Unexpected message, cannot handle: {}", msg.getClass().getName()))
                 .build();
     }
 
