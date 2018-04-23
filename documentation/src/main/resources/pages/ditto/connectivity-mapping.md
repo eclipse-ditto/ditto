@@ -415,18 +415,23 @@ function mapToDittoProtocolMsg(
     
     let jsonData = JSON.parse(textPayload);
     
-    let value = {};
-    value.temperature = {};
-    value.temperature.properties = {};
-    value.temperature.properties.value = jsonData.temp.split(" ")[0]; // omit the unit
-    
-    value.pressure = {};
-    value.pressure.properties = {};
-    value.pressure.properties.value = jsonData.pres.value;
-    
-    value.humidity = {};
-    value.humidity.properties = {};
-    value.humidity.properties.value = jsonData.hum;
+    let value = {
+        temperature: {
+            properties: {
+                value: jsonData.temp.split(" ")[0] // omit the unit
+            }
+        },
+        pressure: {
+            properties: {
+                value: jsonData.pres.value
+            }
+        },
+        humidity: {
+            properties: {
+                value: jsonData.hum
+            }
+        }
+    };
 
     return Ditto.buildDittoProtocolMsg(
         'org.eclipse.ditto', // in this example always the same
@@ -510,21 +515,26 @@ function mapToDittoProtocolMsg(
     
     let view = new DataView(bytePayload);
     
-    let value = {};
-    value.temperature = {};
-    value.temperature.properties = {};
-    // interpret the first 2 bytes (16 bit) as signed int and divide through 100.0:
-    value.temperature.properties.value = view.getInt16(0) / 100.0; 
-    
-    value.pressure = {};
-    value.pressure.properties = {};
-     // interpret the next 2 bytes (16 bit) as signed int:
-    value.pressure.properties.value = view.getInt16(2);
-    
-    value.humidity = {};
-    value.humidity.properties = {};
-    // interpret the next 1 bytes (8 bit) as unsigned int:
-    value.humidity.properties.value = view.getUint8(4);
+    let value = {
+        temperature: {
+            properties: {
+                // interpret the first 2 bytes (16 bit) as signed int and divide through 100.0:
+                value: view.getInt16(0) / 100.0
+            }
+        },
+        pressure: {
+            properties: {
+                // interpret the next 2 bytes (16 bit) as signed int:
+                value: view.getInt16(2)
+            }
+        },
+        humidity: {
+            properties: {
+                // interpret the next 1 bytes (8 bit) as unsigned int:
+                value: view.getUint8(4)
+            }
+        }
+    };
 
     return Ditto.buildDittoProtocolMsg(
         'org.eclipse.ditto', // in this example always the same

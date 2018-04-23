@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -287,11 +288,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin) {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
+            final ActorRef self = getSelf();
             try {
                 final ConnectionFactory connectionFactory = rabbitConnectionFactoryFactory
-                        .createConnectionFactory(connection, new RabbitMQExceptionHandler());
+                        .createConnectionFactory(connection, new RabbitMQExceptionHandler(throwable -> {
+                            self.tell(new ImmutableConnectionFailure(origin, throwable, null), self);
+                            future.complete(new Status.Failure(throwable));
+                        }));
 
-                final ActorRef self = getSelf();
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
                             log.info("Established RMQ connection: {}", rmqConnection);
@@ -312,7 +316,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                 }),
                                 Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
             } catch (final Exception exception) {
-                getSelf().tell(new ImmutableConnectionFailure(origin, exception, null), getSelf());
+                self.tell(new ImmutableConnectionFailure(origin, exception, null), self);
+                future.complete(new Status.Failure(exception));
             }
         } else {
             log.debug("Connection '{}' is already open.", connectionId());
@@ -443,12 +448,18 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     private class RabbitMQExceptionHandler extends DefaultExceptionHandler {
 
+        private final Consumer<Throwable> exceptionHandler;
+
+        private RabbitMQExceptionHandler(final Consumer<Throwable> exceptionHandler) {
+            this.exceptionHandler = exceptionHandler;
+        }
+
         @Override
         public void handleUnexpectedConnectionDriverException(final com.rabbitmq.client.Connection conn,
                 final Throwable exception) {
 
             // establishing the connection was not possible (maybe wrong host, port, credentials, ...)
-            getSelf().tell(new ImmutableConnectionFailure(null, exception, null), null);
+            exceptionHandler.accept(exception);
         }
     }
 

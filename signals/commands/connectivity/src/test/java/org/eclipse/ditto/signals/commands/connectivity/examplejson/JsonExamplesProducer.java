@@ -109,7 +109,7 @@ public class JsonExamplesProducer {
         Files.createDirectories(commandsDir);
 
         final TestConnectionResponse testConnectionResponse =
-                TestConnectionResponse.of(TestConstants.CONNECTION.getId(), "connected",  DittoHeaders.empty());
+                TestConnectionResponse.success(TestConstants.CONNECTION.getId(), "connected",  DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("testConnectionResponse.json")), testConnectionResponse);
 
         final CreateConnectionResponse createConnectionResponse =

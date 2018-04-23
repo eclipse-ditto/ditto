@@ -139,7 +139,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         whenUnhandled(unhandledHandler(connection.getId()).
                 anyEvent((event, state) -> {
-                    log.warning("received unhandled request {} in state {} - status: {}",
+                    log.warning("received unknown/unsupported message {} in state {} - status: {}",
                             event, stateName(),
                             state.getConnectionStatus() + ": " +
                                     state.getConnectionStatusDetails().orElse(""));

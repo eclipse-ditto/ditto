@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOr
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ReconnectClient;
@@ -154,6 +155,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                                 ex.getClass().getSimpleName() + ": " + ex.getMessage() + "'")
                                         .cause(ex).build();
                         return new Status.Failure(failedException);
+                    } else if (response instanceof ConnectionFailure){
+                        return ((ConnectionFailure) response).getFailure();
                     } else {
                         return new Status.Success(response);
                     }

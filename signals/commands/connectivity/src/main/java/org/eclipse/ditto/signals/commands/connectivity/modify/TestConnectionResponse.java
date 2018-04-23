@@ -51,9 +51,9 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     private final String connectionId;
     private final String testResult;
 
-    private TestConnectionResponse(final String connectionId, final String testResult,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private TestConnectionResponse(final HttpStatusCode httpStatusCode, final String connectionId,
+            final String testResult, final DittoHeaders dittoHeaders) {
+        super(TYPE, httpStatusCode, dittoHeaders);
         this.connectionId = connectionId;
         this.testResult = testResult;
     }
@@ -67,11 +67,25 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * @return a new TestConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TestConnectionResponse of(final String connectionId, final String restResult,
+    public static TestConnectionResponse success(final String connectionId, final String restResult,
             final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "ConnectionId");
         checkNotNull(restResult, "TestResult");
-        return new TestConnectionResponse(connectionId, restResult, dittoHeaders);
+        return new TestConnectionResponse(HttpStatusCode.OK, connectionId, restResult, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code TestConnectionResponse} for an already created connection.
+     *
+     * @param connectionId the connectionId of the tested connection.
+     * @param dittoHeaders the headers of the request.
+     * @return a new TestConnectionResponse.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static TestConnectionResponse alreadyCreated(final String connectionId, final DittoHeaders dittoHeaders) {
+        checkNotNull(connectionId, "ConnectionId");
+        return new TestConnectionResponse(HttpStatusCode.CONFLICT, connectionId,
+                "Connection was already created - no test possible", dittoHeaders);
     }
 
     /**
@@ -105,7 +119,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final String readConnectionResult = jsonObject.getValueOrThrow(JSON_TEST_RESULT);
-                    return of(readConnectionId, readConnectionResult, dittoHeaders);
+                    return new TestConnectionResponse(statusCode, readConnectionId, readConnectionResult, dittoHeaders);
                 });
     }
 
@@ -133,7 +147,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
 
     @Override
     public TestConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, testResult, dittoHeaders);
+        return success(connectionId, testResult, dittoHeaders);
     }
 
     @Override

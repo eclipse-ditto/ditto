@@ -222,8 +222,10 @@ final class ConnectionActor extends AbstractPersistentActor {
                             final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
 
                             final ActorRef origin = getSender();
-                            askClientActor("recovery-connect", connect, origin,
-                                    response -> log.info("CreateConnection result: {}", response));
+                            askClientActor(connect,
+                                    response -> log.info("CreateConnection result: {}", response),
+                                    error -> handleException("recovery-connect", origin, error)
+                            );
                             subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
@@ -255,8 +257,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         return ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection ->
                         getSender().tell(
-                                TestConnectionResponse.of(testConnection.getConnectionId(),
-                                        "Connection was already created - no test possible",
+                                TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
                                         testConnection.getDittoHeaders()),
                                 getSelf()))
                 .match(CreateConnection.class, createConnection -> {
@@ -337,17 +338,20 @@ final class ConnectionActor extends AbstractPersistentActor {
 
         connection = command.getConnection();
 
-        askClientActor("test", command, origin, response -> {
+        askClientActor(command, response -> {
             origin.tell(
-                    TestConnectionResponse.of(command.getConnectionId(), response.toString(),
+                    TestConnectionResponse.success(command.getConnectionId(), response.toString(),
                             command.getDittoHeaders()),
                     getSelf());
+            // terminate this actor's supervisor after a connection test again:
+            final ActorRef parent = getContext().getParent();
+            parent.tell(PoisonPill.getInstance(), getSelf());
+        }, error -> {
+            handleException("test", origin, error);
+            // terminate this actor's supervisor after a connection test again:
+            final ActorRef parent = getContext().getParent();
+            parent.tell(PoisonPill.getInstance(), getSelf());
         });
-
-        // terminate this actor's supervisor after a connection test again:
-        final ActorRef parent = getContext().getParent();
-        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(5, TimeUnit.SECONDS), parent,
-                PoisonPill.getInstance(), getContext().dispatcher(), getSelf());
     }
 
     private void createConnection(final CreateConnection command) {
@@ -362,14 +366,16 @@ final class ConnectionActor extends AbstractPersistentActor {
         persistEvent(connectionCreated, persistedEvent -> {
             connection = persistedEvent.getConnection();
 
-            askClientActor("connect", command, origin, response -> {
-                getContext().become(connectionCreatedBehaviour);
-                subscribeForEvents();
-                origin.tell(
-                        CreateConnectionResponse.of(connection, command.getDittoHeaders()),
-                        getSelf());
-                getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-            });
+            askClientActor(command, response -> {
+                        getContext().become(connectionCreatedBehaviour);
+                        subscribeForEvents();
+                        origin.tell(
+                                CreateConnectionResponse.of(connection, command.getDittoHeaders()),
+                                getSelf());
+                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+                    }, error ->
+                            handleException("connect", origin, error)
+            );
         });
     }
 
@@ -407,14 +413,16 @@ final class ConnectionActor extends AbstractPersistentActor {
         persistEvent(connectionModified, persistedEvent -> {
             connection = persistedEvent.getConnection();
 
-            askClientActor("connect-after-modify", command, origin, response -> {
-                getContext().become(connectionCreatedBehaviour);
-                subscribeForEvents();
-                origin.tell(
-                        ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
-                        getSelf());
-                getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-            });
+            askClientActor(command, response -> {
+                        getContext().become(connectionCreatedBehaviour);
+                        subscribeForEvents();
+                        origin.tell(
+                                ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
+                                getSelf());
+                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+                    }, error ->
+                            handleException("connect-after-modify", origin, error)
+            );
         });
     }
 
@@ -427,10 +435,12 @@ final class ConnectionActor extends AbstractPersistentActor {
 
         persistEvent(connectionOpened, persistedEvent -> {
             connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build();
-            askClientActor("open-connection", command, origin, response -> {
-                subscribeForEvents();
-                origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
-            });
+            askClientActor(command, response -> {
+                        subscribeForEvents();
+                        origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
+                    }, error ->
+                            handleException("disconnect", origin, error)
+            );
         });
     }
 
@@ -444,11 +454,13 @@ final class ConnectionActor extends AbstractPersistentActor {
             if (connection != null) {
                 connection = connection.toBuilder().connectionStatus(ConnectionStatus.CLOSED).build();
             }
-            askClientActor("disconnect", command, origin, response -> {
-                origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                        getSelf());
-                unsubscribeFromEvents();
-            });
+            askClientActor(command, response -> {
+                        origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
+                                getSelf());
+                        unsubscribeFromEvents();
+                    }, error ->
+                            handleException("disconnect", origin, error)
+            );
         });
     }
 
@@ -459,18 +471,20 @@ final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef origin = getSender();
 
         persistEvent(connectionDeleted, persistedEvent -> {
-            askClientActor("disconnect", command, origin, response -> {
-                unsubscribeFromEvents();
-                stopClientActor();
-                origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                        getSelf());
-                stopSelf();
-            });
+            askClientActor(command, response -> {
+                        unsubscribeFromEvents();
+                        stopClientActor();
+                        origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
+                                getSelf());
+                        stopSelf();
+                    }, error ->
+                            handleException("disconnect", origin, error)
+            );
         });
     }
 
-    private void askClientActor(final String action, final Command<?> cmd, final ActorRef origin,
-            final Consumer<Object> onSuccess) {
+    private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
+            final Consumer<Throwable> onError) {
 
         startClientActorIfRequired();
         final long timeout = Optional.ofNullable(cmd.getDittoHeaders().get("timeout"))
@@ -484,11 +498,12 @@ final class ConnectionActor extends AbstractPersistentActor {
                     .whenComplete((response, exception) -> {
                         log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
                         if (exception != null) {
-                            handleException(action, origin, exception);
+                            onError.accept(exception);
                         } else if (response instanceof Status.Failure) {
-                            handleException(action, origin, ((Status.Failure) response).cause());
+                            final Throwable cause = ((Status.Failure) response).cause();
+                            onError.accept(cause);
                         } else if (response instanceof DittoRuntimeException) {
-                            handleException(action, origin, (DittoRuntimeException) response);
+                            onError.accept((DittoRuntimeException) response);
                         } else {
                             onSuccess.accept(response);
                         }
@@ -527,9 +542,9 @@ final class ConnectionActor extends AbstractPersistentActor {
         checkNotNull(connection, "Connection");
 
         final ActorRef origin = getSender();
-        askClientActor("retrieve-metrics", command, origin, response -> {
-            origin.tell(response, getSelf());
-        });
+        askClientActor(command,
+                response -> origin.tell(response, getSelf()),
+                error -> handleException("retrieve-metrics", origin, error));
     }
 
     private void subscribeForEvents() {
