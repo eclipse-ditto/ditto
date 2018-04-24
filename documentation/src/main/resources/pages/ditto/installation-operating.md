@@ -79,8 +79,10 @@ This API is intended for making operating Ditto easier by reducing the need to r
 changes.
 
 Following DevOps commands are supported:
-* dynamically retrieve and change log levels
-* create new connectivity service connections during runtime
+
+
+* Dynamically retrieve and change log levels
+* Piggyback commands
 
 
 ### Dynamically adjust log levels
@@ -178,95 +180,28 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 }
 ```
 
-### Connectivity service commands
+### Piggyback commands
 
-The following sections define the available commands for the connectivity service. 
+You can use a DevOps command to send a command to another actor in the cluster. Those special commands are named
+piggyback commands. A piggyback command must conform to the following schema:
 
-#### Create a new AMQP 1.0 connection
+{% include docson.html schema="jsonschema/piggyback-command.json" %}
 
-Example request payload to create a new AMQP 1.0 connection:<br/>
-`POST /devops/piggyback/connectivity`
-
-```json
-{
-    "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
-    "piggybackCommand": {
-        "type": "connectivity.commands:createConnection",
-        "connection": {
-            "id": "hono-example-connection-123",
-            "connectionType": "amqp-10",
-            "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
-            "failoverEnabled": true,
-            "uri": "amqps://user:password@hono.eclipse.org:5671",
-            "sources": [{
-                "addresses": ["telemetry/FOO"]
-            }],
-            "targets": [{
-                "address": "events/twin",
-                "topics": ["_/_/things/twin/events"]
-            }],
-            "mappingContext": {
-                "mappingEngine": "JavaScript",
-                "options": {
-                    "incomingScript": "..",
-                    "outgoingScript": ".."
-                }
-            }
-        }
-    }
-}
-```
-
-The `id` of the connection may be any string.
-
-The `connectionType` currently may be either `amqp-10` or `amqp-091`.
-
-The `authorizationSubject` is the subject (e.g. user-id) to use for [authorization](basic-auth.html#authorization) of 
-all messages originating from the created connection. This subject is required to have WRITE permission on a `Thing` 
-to change it partially or completely and needs to have READ permission to read the `Thing` or any parts of it.
-
-The `failoverEnabled` property defines whether failover is enabled or not.
-
-The `uri` defines the endpoint including username and password to connect to.
-
-The `sources` defines an array of sources (e.g. Hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
-
-The `targets` defines an array of targets to publish messages to.
-
-
-#### Create a new AMQP 0.9.1 connection
-
-Example request payload to create a new AMQP 0.9.1 connection (e.g. in order to connect to a RabbitMQ):<br/>
-`POST /devops/piggyback/connectivity`
+Example:
 
 ```json
 {
     "targetActorSelection": "/system/sharding/connection",
-    "headers": {},
+    "headers": {
+        "aggregate": false
+    },
     "piggybackCommand": {
         "type": "connectivity.commands:createConnection",
-        "connection": {
-            "id": "rabbit-example-connection-123",
-            "connectionType": "amqp-091",
-            "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
-            "failoverEnabled": true,
-            "uri": "amqp://user:password@localhost:5672",
-            "sources": [{
-                "addresses": ["queueName"]
-            }],
-            "targets": [{
-                "address": "exchangeName/routingKey",
-                "topics": ["_/_/things/twin/events","_/_/things/live/messages"]
-            }],
-            "mappingContext": {
-                "mappingEngine": "JavaScript",
-                "options": {
-                    "incomingScript": "..",
-                    "outgoingScript": ".."
-                }
-            }
-        }
+        ...
     }
 }
 ```
+
+Currently piggybacks are only used to configure Dittos connectivity service. More information on this can be found in
+the [Manage Connections](/connectivity-manage-connections.html) section.
+
