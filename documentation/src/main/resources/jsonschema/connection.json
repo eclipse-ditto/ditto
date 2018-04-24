@@ -66,12 +66,9 @@
       "uniqueItems": true,
       "items": {
         "$id": "/properties/sources/items",
-        "type": "string",
+        "type": "object",
         "title": "Source",
-        "description": "A subscription source identifier subscribed by this connection",
-        "examples": [
-          "mySource"
-        ]
+        "description": "A subscription source subscribed by this connection"
       }
     },
     "targets": {
@@ -82,12 +79,9 @@
       "uniqueItems": true,
       "items": {
         "$id": "/properties/targets/items",
-        "type": "string",
+        "type": "object",
         "title": "Target",
-        "description": "A publish target identifier served by this connection",
-        "examples": [
-          "myTarget"
-        ]
+        "description": "A publish target served by this connection"
       }
     },
     "clientCount": {
