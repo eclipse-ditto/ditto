@@ -40,20 +40,20 @@ The Docker image and the maven artifacts are affected by this change.
 
 The new [connectivity](architecture-services-connectivity.html) microservice can now manage and handle both AMQP 1.0 and 
 AMQP 0.9.1 connections at the same time. <br/>
-That means that Ditto from now on supports connecting to running AMQP 1.0 endpoints or to AMQP 0.9.1 brokers (e.g. RabbitMQ).
+So Ditto from now on supports connecting to running AMQP 1.0 endpoints or to AMQP 0.9.1 brokers (e.g. RabbitMQ).
 The architecture of the `connectivity` microservice is designed to also support connecting via other protocols in the future.
 
 Need to connect to a Kafka in order to process digital twin [commands](basic-signals-command.html) from there or publish 
 [change notifications](basic-changenotifications.html)? <br />
 Or want to send all state changes happening to twins to a time series database?
 
-The `connectivity` service is the new place to do integration of your managed digital twins with other systems. 
+The `connectivity` service is the new place to do the integration of your managed digital twins with other systems. 
 
 
 ### JSON format of connections
 
 As Ditto now supports not only AMQP 1.0, we had to adjust the JSON format for creating new connections. 
-The new one is documented here: [Connectivity DevOps commands](installation-operating.html#connectivity-service-commands)
+The new one is documented here: [Manage connections in connectivity](connectivity-manage-connections.html).
 
 
 ### Payload mapping of external messages
@@ -61,7 +61,7 @@ The new one is documented here: [Connectivity DevOps commands](installation-oper
 Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. In order to
 provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based [model](basic-overview.html).
 
-Devices in the IoT, may them be brownfield devices or newly produced devices, will probably not send their data to the
+Devices in the IoT, no matter if brownfield devices or newly produced devices, will probably not send their data to the
 cloud in the structure and [protocol](protocol-overview.html) Ditto requires. They should not need to be aware of something
 like Ditto running in the cloud mirroring them as digital twins.
 
@@ -72,7 +72,7 @@ That's why we added a JavaScript based payload mapping to the `connectivity` ser
   from Ditto Protocol to some text- or byte-payload before sending the message back via the configured `target` channel 
 
 The `incoming` and `outgoing` scripts must be configured when creating a new connection 
-[via DevOps commands](installation-operating.html#connectivity-service-commands).
+[via DevOps commands](connectivity-manage-connections.html).
 
 
 ## Example
