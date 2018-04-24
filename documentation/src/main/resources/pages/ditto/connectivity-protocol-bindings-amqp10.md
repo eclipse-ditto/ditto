@@ -21,9 +21,46 @@ Supported AMQP 1.0 properties which are interpreted in a specific way are:
 * `content-type`: for defining the Ditto Protocol content-type
 * `correlation-id`: for correlating request messages to responses
 
-## Connection Source/Target format
+## Specific connection configuration
 
-The `sources` defines an array of sources (e.g. Hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
+### Source format
+
+Any `source` item defines an `addresses` array of source identifiers (e.g. Hono's [Telemetry API](https://www.eclipse
+.org/hono/api/telemetry-api)) to consume messages from.
+
+```json
+{
+  "addresses": [
+    "<source>",
+    "..."
+  ]
+}
+```
+
+### Target format
+
+An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source
+identifier. It is continued with a list of topic strings, each representing a subscription of a Ditto
+[protocol topic](/protocol-specification-topic.html).
+
+
+```json
+{
+  "address": "events/twin",
+  "topics": [
+    "_/_/things/twin/events",
+    "_/_/things/live/messages"
+  ]
+}
+```
+
+### Specific configuration properties
+
+The specific configuration properties are interpreted as [JMS Configuration options](https://qpid.apache
+.org/releases/qpid-jms-0.30.0/docs/index.html#jms-configuration-options). Use these to customize and tweak your
+connection as needed.
+
+
 
 ## Establishing connecting to an AMQP 1.0 endpoint
 
@@ -56,14 +93,7 @@ Example connection configuration to create a new AMQP 1.0 connection:
         "_/_/things/twin/events"
       ]
     }
-  ],
-  "mappingContext": {
-    "mappingEngine": "JavaScript",
-    "options": {
-      "incomingScript": "..",
-      "outgoingScript": ".."
-    }
-  }
+  ]
 }
 ```
 
@@ -71,4 +101,5 @@ Example connection configuration to create a new AMQP 1.0 connection:
 
 Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
-shown for example in the [protocol examples](protocol-examples.html)).
+shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
+Protocol](protocol-overview.html), you can configure a custom [payload mapping](/connectivity-mapping.html).

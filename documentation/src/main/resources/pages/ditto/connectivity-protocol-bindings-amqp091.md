@@ -21,9 +21,42 @@ Supported AMQP 0.9.1 properties which are interpreted in a specific way are:
 * `content-type`: for defining the Ditto Protocol content-type
 * `correlation-id`: for correlating request messages to responses
 
-## Connection Source/Target format
+## Specific connection configuration
 
-TODO
+### Source format
+
+An AMQP 0.9.1 connection requires the protocol configuration source object to have an `addresses` property with a list
+of queue names.
+
+```json
+{
+  "addresses": [
+    "<queue_name>",
+    "..."
+  ]
+}
+```
+
+### Target format
+
+An AMQP 0.9.1 connection requires the protocol configuration target object to have an `address` property with a combined
+ value of the `exchange_name` and `routing_key`. It is continued with a list of topic strings, each representing a
+ subscription of a Ditto [protocol topic](/protocol-specification-topic.html).
+
+
+```json
+{
+  "address": "<exchange_name>/<routing_key>",
+  "topics": [
+    "_/_/things/twin/events",
+    "_/_/things/live/messages"
+  ]
+}
+```
+
+### Specific configuration properties
+
+There are no specific configuration properties available for this type of connection.
 
 ## Establishing connecting to an AMQP 0.9.1 endpoint
 
@@ -58,14 +91,7 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
           "_/_/things/live/messages"
         ]
       }
-    ],
-    "mappingContext": {
-      "mappingEngine": "JavaScript",
-      "options": {
-        "incomingScript": "..",
-        "outgoingScript": ".."
-      }
-    }
+    ]
   }
 }
 ```
@@ -74,5 +100,6 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
 
 Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
-shown for example in the [protocol examples](protocol-examples.html)).
+shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
+Protocol](protocol-overview.html), you can configure a custom [payload mapping](/connectivity-mapping.html).
  

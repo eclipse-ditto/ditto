@@ -173,9 +173,6 @@ entries:
     - title: Overview
       url: /connectivity-overview.html
       output: web
-    - title: Payload mapping
-      url: /connectivity-mapping.html
-      output: web
     - title: Manage connections
       url: /connectivity-manage-connections.html
       output: web
@@ -185,6 +182,10 @@ entries:
     - title: AMQP 1.0 protocol binding
       url: /connectivity-protocol-bindings-amqp10.html
       output: web
+    - title: Payload mapping
+      url: /connectivity-mapping.html
+      output: web
+
 
   - title: Ditto Protocol
     output: web

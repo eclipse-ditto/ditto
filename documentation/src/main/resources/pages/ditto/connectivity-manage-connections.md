@@ -28,7 +28,7 @@ A "modify" is currently not available, use delete + create in order to modify ex
 
 ### Create connection
 
-You can create a new connection by sending the following DevOps command:
+Create a new connection by sending the following DevOps command:
 
 ```json
 {
@@ -89,18 +89,70 @@ The following commands are available in help creating connections + retrieve the
 
 ### Test connection
 
-TODO describe command
+Run a test connection command prior creating a persisted connection to validate the connection configuration. This
+command checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
+credentials. The test connection is closed afterwards and will not be persisted. Analog to the [createConnection](#create-connection)
+command, it requires a full connection configuration in the piggyback command.
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "connectivity.commands:testConnection",
+        "connection": {}
+    }
+}
+```
 
 ### Retrieve connection status
 
-TODO describe command
+This command returns the connection status. It shows if a connection is currently enabled/disabled. The only parameter
+necessary for connection deletion is the `connectionId`:
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "connectivity.commands:retrieveConnectionStatus",
+        "connectionId":"<connectionID>"
+    }
+}
+```
 
 ### Retrieve connection metrics
 
-TODO describe command
+This command returns the connection activity. It shows if a connection is currently established. The only parameter
+necessary for connection deletion is the `connectionId`:
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "connectivity.commands:retrieveConnectionMetrics",
+        "connectionId":"<connectionID>"
+    }
+}
+```
 
 
+## Payload mapping configuration
 
+To enable a custom [payload mapping](/connectivity-mapping.html) for a specific connection, you have to configure a
+mapping context in the connection configuration object. The following example shows an example `mappingContext`. This
+configuration must be embeded in the connection configuration as shown in the [Connections](/basic-connections.html) section.
+
+```json
+"mappingContext": {
+    "mappingEngine": "JavaScript",
+    "options": {
+      "incomingScript": "..",
+      "outgoingScript": ".."
+    }
+  }
+```
 
 
 
