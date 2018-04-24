@@ -33,6 +33,42 @@ existing connections.
 This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto operations command](installation-operating.html#connectivity-service-commands).
 
+Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in order to connect to a RabbitMQ):
+
+```json
+{
+  "connection": {
+    "id": "rabbit-example-connection-123",
+    "connectionType": "amqp-091",
+    "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
+    "failoverEnabled": true,
+    "uri": "amqp://user:password@localhost:5672",
+    "sources": [
+      {
+        "addresses": [
+          "queueName"
+        ]
+      }
+    ],
+    "targets": [
+      {
+        "address": "exchangeName/routingKey",
+        "topics": [
+          "_/_/things/twin/events",
+          "_/_/things/live/messages"
+        ]
+      }
+    ],
+    "mappingContext": {
+      "mappingEngine": "JavaScript",
+      "options": {
+        "incomingScript": "..",
+        "outgoingScript": ".."
+      }
+    }
+  }
+}
+```
 
 ## Messages
 

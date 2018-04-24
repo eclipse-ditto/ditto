@@ -68,6 +68,8 @@ script may not interfere with other scripts or even do harm to the complete JVM 
 ### Configuration options
 
 The Ditto `JavaScript` mapping engine does support the following configuration options:
+
+
 * `incomingScript` (String): the JavaScript function to invoke in order to transform incoming external messages to Ditto Protocol messages
 * `outgoingScript` (String): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
 * `loadBytebufferJS` (boolean): whether to load the [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) library
@@ -85,6 +87,8 @@ them in a mapping function: [http://mozilla.github.io/rhino/compat/engines.html]
 #### Sandboxing
 
 For sandboxing/security reasons following restrictions apply:
+
+
 * access to Java packages and classes is not possible
 * using `exit`, `quit`, `print`, etc. is not possible
 * file access is not possible
@@ -97,6 +101,8 @@ For sandboxing/security reasons following restrictions apply:
 ### Helper libraries
 
 In order to work more conveniently with binary payloads, the following libraries may be loaded for payload transformations:
+
+
 * [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) a ByteBuffer implementation using ArrayBuffers
 * [long.js](https://github.com/dcodeIO/long.js) for representing a 64-bit two's-complement integer value
 
