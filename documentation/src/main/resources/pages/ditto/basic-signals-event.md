@@ -12,5 +12,5 @@ Events are one of the centerpieces of Ditto:
 * they are persisted/appended into the data store,
 * they are published in the Ditto cluster, so other Ditto back end services can react on them (e.g. in order to update
   the search index) and
-* they are published to interested and authorized parties via the [WebSocket API](protocol-bindings-websocket.html) as
+* they are published to interested and authorized parties via the [WebSocket API](httpapi-protocol-bindings-websocket.html) as
   well as via [HTTP Server Sent Events](httpapi-sse.html) as [change notifications](basic-changenotifications.html).

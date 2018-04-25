@@ -103,6 +103,9 @@ entries:
     - title: APIs
       url: /basic-apis.html
       output: web
+    - title: Connections
+      url: /basic-connections.html
+      output: web
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
@@ -134,8 +137,8 @@ entries:
           - title: Gateway
             url: /architecture-services-gateway.html
             output: web
-          - title: AMQP-Bridge
-            url: /architecture-services-amqp-bridge.html
+          - title: Connectivity
+            url: /architecture-services-connectivity.html
             output: web
 
   - title: HTTP API
@@ -154,12 +157,35 @@ entries:
     - title: Messages
       url: /httpapi-messages.html
       output: web
+    - title: WebSocket protocol binding
+      url: /httpapi-protocol-bindings-websocket.html
+      output: web
     - title: Server sent events
       url: /httpapi-sse.html
       output: web
     - title: Run in Postman
       url: /httpapi-postman.html
       output: web
+
+  - title: Connectivity API
+    output: web
+    folderitems:
+    - title: Overview
+      url: /connectivity-overview.html
+      output: web
+    - title: Manage connections
+      url: /connectivity-manage-connections.html
+      output: web
+    - title: AMQP 0.9.1 protocol binding
+      url: /connectivity-protocol-bindings-amqp091.html
+      output: web
+    - title: AMQP 1.0 protocol binding
+      url: /connectivity-protocol-bindings-amqp10.html
+      output: web
+    - title: Payload mapping
+      url: /connectivity-mapping.html
+      output: web
+
 
   - title: Ditto Protocol
     output: web
@@ -208,16 +234,10 @@ entries:
           url: /protocol-specification-things-messages.html
           output: web
 
-
     - title: Bindings
       url: /protocol-bindings.html
       output: web
-    - title: Websocket Binding
-      url: /protocol-bindings-websocket.html
-      output: web
-    - title: AMQP 1.0 Binding
-      url: /protocol-bindings-amqp10.html
-      output: web
+
     - title: Examples
       url: /protocol-examples.html
       output: web

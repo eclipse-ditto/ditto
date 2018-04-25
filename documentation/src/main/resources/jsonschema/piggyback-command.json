@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Piggyback Command",
+  "type": "object",
+  "properties": {
+    "targetActorSelection": {
+      "$id": "/properties/targetActorSelection",
+      "type": "string",
+      "title": "Target actor selection",
+      "description": "Selects the AKKA actors which should receive this command",
+      "examples": [
+        "/system/sharding/connection"
+      ]
+    },
+    "headers": {
+      "$id": "/properties/headers",
+      "type": "object",
+      "title": "The Ditto headers sent with the command",
+      "description": "The Ditto headers sent with the command",
+      "additionalProperties": true
+    },
+    "piggybackCommand": {
+      "$id": "/properties/piggybackCommand",
+      "type": "object",
+      "title": "The piggyback command to send",
+      "description": "The piggyback command to send",
+      "properties": {
+        "type": {
+          "$id": "/properties/piggybackCommand/properties/type",
+          "type": "string",
+          "title": "The command type",
+          "description": "The command type",
+          "examples": [
+            "connectivity.commands:createConnection"
+          ]
+        }
+      },
+      "additionalProperties": true,
+      "required": [ "type" ]
+    }
+  },
+  "required": [ "targetActorSelection", "headers", "piggybackCommand"]
+}

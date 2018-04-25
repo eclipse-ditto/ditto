@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 /**
  * Thrown if a {@link TopicPath} is not supported.
  */
-public class UnknownTopicPathException extends DittoRuntimeException {
+public final class UnknownTopicPathException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.

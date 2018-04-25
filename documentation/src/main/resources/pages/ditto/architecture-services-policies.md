@@ -10,11 +10,14 @@ The "policies" service takes care of persisting [Policies](basic-policy.html).
 ## Model
 
 The model of the policies service is defined around the entity `Policy`:
+
+
 * [model](https://github.com/eclipse/ditto/tree/master/model/policies/src/main/java/org/eclipse/ditto/model/policies)
 
 ## Signals
 
 Other services can communicate with the policies service via:
+
 
 * [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/policies/src/main/java/org/eclipse/ditto/signals/commands/policies):
   containing commands and command responses which are processed by this service

@@ -62,7 +62,7 @@ public abstract class AbstractRoute {
 
     protected final ActorRef proxyActor;
     protected final ActorMaterializer materializer;
-    private ActorSystem actorSystem;
+    private final ActorSystem actorSystem;
 
     /**
      * Constructs the abstract route builder.

@@ -35,12 +35,11 @@
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.1</typesafe-config.version>
         <akka.version>2.5.12</akka.version>
-        <akka-http.version>10.0.11</akka-http.version>
-        <akka-sse.version>3.0.0</akka-sse.version>
-        <akka-persistence-mongo.version>2.0.4</akka-persistence-mongo.version>
+        <akka-http.version>10.1.1</akka-http.version>
+        <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
         <casbah.version>3.1.1</casbah.version>
-        <mongo-java-driver.version>3.5.0</mongo-java-driver.version>
-        <mongo-reactivestreams.version>1.6.0</mongo-reactivestreams.version>
+        <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
+        <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
         <guava.version>21.0</guava.version>
@@ -48,7 +47,8 @@
         <jackson-databind.version>2.8.10</jackson-databind.version>
         <asm.version>5.2</asm.version>
         <javax-jms-api.version>2.0.1</javax-jms-api.version>
-        <qpid-jms-client.version>0.27.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.31.0</qpid-jms-client.version>
+        <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <reactive-streams.version>1.0.1</reactive-streams.version>
 
         <slf4j.version>1.7.25</slf4j.version>
@@ -62,6 +62,8 @@
         <metrics-statsd.version>1.0.0</metrics-statsd.version>
         <jsr302.version>3.0.1</jsr302.version>
 
+        <rhino.version>1.7.8</rhino.version>
+        <js.bytebuffer.version>5.0.0</js.bytebuffer.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -133,11 +135,6 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-http_${scala.version}</artifactId>
                 <version>${akka-http.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>de.heikoseeberger</groupId>
-                <artifactId>akka-sse_${scala.version}</artifactId>
-                <version>${akka-sse.version}</version>
             </dependency>
 
             <dependency>
@@ -254,6 +251,12 @@
             </dependency>
 
             <dependency>
+                <groupId>com.newmotion</groupId>
+                <artifactId>akka-rabbitmq_${scala.version}</artifactId>
+                <version>${newmotion-akka-rabbitmq.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
@@ -357,7 +360,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-amqp-bridge</artifactId>
+                <artifactId>ditto-model-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -408,7 +411,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-commands-amqp-bridge</artifactId>
+                <artifactId>ditto-signals-commands-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -444,7 +447,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-signals-events-amqp-bridge</artifactId>
+                <artifactId>ditto-signals-events-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -517,7 +520,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-models-amqp-bridge</artifactId>
+                <artifactId>ditto-services-models-connectivity</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -540,6 +543,18 @@
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>${jsr302.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>${rhino.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.webjars.npm</groupId>
+                <artifactId>bytebuffer</artifactId>
+                <version>${js.bytebuffer.version}</version>
             </dependency>
 
             <!-- ### Provided - own artifacts ### -->

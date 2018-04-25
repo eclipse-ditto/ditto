@@ -133,7 +133,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
                 .build();
     }
 
@@ -156,7 +156,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.retrieve().build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeaders(command.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(command.getDittoHeaders()))
                 .build();
     }
 

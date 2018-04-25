@@ -365,11 +365,11 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                                     2L)))
                     .isTrue();
 
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             if (isV2) {
                 // only policies updates for policies stuff
-                verify(writePoliciesCollectionSpy).bulkWrite(any(), any());
+                verify(writePoliciesCollectionSpy).bulkWrite((List) any(), any());
                 verifyNoMoreInteractions(writePoliciesCollectionSpy);
             } else {
                 verifyNoMoreInteractions(writePoliciesCollectionSpy);
@@ -682,10 +682,10 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
         }
 
         private void verifyCollectionWrites() {
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             if (isV2) {
-                verify(writePoliciesCollectionSpy).bulkWrite(any(), any());
+                verify(writePoliciesCollectionSpy).bulkWrite((List) any(), any());
             }
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
         }
@@ -1199,7 +1199,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
             Assertions.assertThat(runBlockingWithReturn(writePersistence.executeCombinedWrites(KNOWN_THING_ID, writes,
                     policyEnforcer, 1L)))
                     .isTrue();
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
 
@@ -1227,7 +1227,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     policyEnforcer, 1L)))
                     .isTrue();
 
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
 
@@ -1256,7 +1256,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                                     1L)))
                     .isTrue();
 
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
 
@@ -1285,7 +1285,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                     policyEnforcer, 1L)))
                     .isTrue();
 
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
 
@@ -1311,7 +1311,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
                                     1L)))
                     .isTrue();
 
-            verify(writeThingsCollectionSpy).bulkWrite(any(), any());
+            verify(writeThingsCollectionSpy).bulkWrite((List) any(), any());
             verifyNoMoreInteractions(writeThingsCollectionSpy);
             verifyNoMoreInteractions(writePoliciesCollectionSpy);
 

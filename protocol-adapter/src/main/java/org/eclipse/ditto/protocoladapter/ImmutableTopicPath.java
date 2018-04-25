@@ -193,7 +193,8 @@ final class ImmutableTopicPath implements TopicPath {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group
+        return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group +
+                ", channel=" + channel
                 + ", criterion=" + criterion + ", action=" + action + ", subject=" + subject + ", path=" + path + ']';
     }
 

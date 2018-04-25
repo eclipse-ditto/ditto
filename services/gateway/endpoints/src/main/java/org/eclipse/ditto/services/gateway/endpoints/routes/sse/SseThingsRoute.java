@@ -30,9 +30,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.StreamSupport;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -71,17 +74,17 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
-import de.heikoseeberger.akkasse.javadsl.marshalling.EventStreamMarshalling;
-import de.heikoseeberger.akkasse.javadsl.model.MediaTypes;
-import de.heikoseeberger.akkasse.javadsl.model.ServerSentEvent;
-
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
+import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.http.scaladsl.model.sse.ServerSentEvent$;
 import akka.japi.JavaPartialFunction;
 import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
@@ -156,7 +159,8 @@ public class SseThingsRoute extends AbstractRoute {
                 dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
 
         final Source<ServerSentEvent, NotUsed> sseSource =
-                Source.<ThingEvent>actorPublisher(EventAndResponsePublisher.props(10))
+                Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
+                        EventAndResponsePublisher.props(10))
                         .mapMaterializedValue(actorRef -> {
                             streamingActor.tell(new Connect(actorRef, connectionCorrelationId, STREAMING_TYPE_SSE),
                                     null);
@@ -166,6 +170,8 @@ public class SseThingsRoute extends AbstractRoute {
                                     null);
                             return NotUsed.getInstance();
                         })
+                        .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
+                        .map(jsonifiable -> ((ThingEvent) jsonifiable))
                         .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
                                 thingEvent.getThingId())) // only Events of the target thingIds
                         .map(this::thingEventToThing)
@@ -179,7 +185,7 @@ public class SseThingsRoute extends AbstractRoute {
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
                         .keepAlive(FiniteDuration.apply(1, TimeUnit.SECONDS),
-                                de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent::heartbeat);
+                                ServerSentEvent$.MODULE$::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }

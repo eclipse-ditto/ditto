@@ -19,8 +19,9 @@ import java.util.stream.Stream;
  * Represents the path of a topic for the Ditto Protocol.
  * <p>
  * A {@code TopicPath} complies with the scheme
- * <tt>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;criterion&gt;/&lt;action&gt;</tt> <br>
- * for example <tt>org.eclipse.ditto/myThing/things/commands/modify</tt>
+ *
+ * <tt>&lt;namespace&gt;/&lt;id&gt;/&lt;group&gt;/&lt;channel&gt;/&lt;criterion&gt;/&lt;action&gt;</tt> <br>
+ * for example <tt>org.eclipse.ditto/myThing/things/twin/commands/modify</tt>
  * </p>
  */
 public interface TopicPath {
