@@ -5,7 +5,7 @@ tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
-In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#connectivity-service-commands)
+In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#devops-commands)
 have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer using 
 the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
 
@@ -21,10 +21,9 @@ The following commands are available in order to manage connections:
 
 
 * [create](#create-connection)
+* [modify](#modify-connection)
 * [retrieve](#retrieve-connection)
 * [delete](#delete-connection)
-
-A "modify" is currently not available, use delete and create in order to modify existing connections.
 
 ### Create connection
 
@@ -41,11 +40,26 @@ Create a new connection by sending the following DevOps command:
 }
 ```
 
-The content of the connection configuration object is specified in the [Connections section](/basic-connections.html).
-For protocol specific examples consolidate the [AMQP-0.9.1 binding](/connectivity-protocol-bindings-amqp091.html) and
-the [AMQP-1.0 binding](/connectivity-protocol-bindings-amqp10.html) respectively.
+The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
+For protocol specific examples consolidate the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html) and
+the [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) respectively.
 
+### Modify connection
 
+Modify an existing connection by sending the following DevOps command:
+
+```json
+{
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {},
+    "piggybackCommand": {
+        "type": "connectivity.commands:modifyConnection",
+        "connection": {}
+    }
+}
+```
+
+The connection with the specified id has to be created before being able to modify it.
 
 
 ### Retrieve connection
@@ -153,12 +167,3 @@ configuration must be embedded in the connection configuration as shown in the [
     }
   }
 ```
-
-
-
-
-
-
-
-
-

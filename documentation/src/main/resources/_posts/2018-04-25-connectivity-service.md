@@ -1,15 +1,13 @@
 ---
 title: "Ditto's connectivity capabilities are pimped up"
 published: true
-permalink: 2018-04-16-connectivity-service.html
+permalink: 2018-04-25-connectivity-service.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
 ---
-
-TODO adjust date before publishing blog post
 
 It has been quite lately on our website and on GitHub as the Ditto team currently prepares its new `connectivity` 
 microservice. Until now Ditto's `amqp-bridge` service could connect to AMQP1.0 endpoints 
@@ -55,7 +53,7 @@ The `connectivity` service is the new place to integrate your managed digital tw
 ### JSON format of connections
 
 As Ditto now supports more than AMQP 1.0, we had to adjust the JSON format for creating new connections. 
-The new one is documented here: [Connectivity DevOps commands](installation-operating.html#connectivity-service-commands)
+The new one is documented here: [Manage connections in connectivity](connectivity-manage-connections.html).
 
 
 ### Payload mapping of external messages
@@ -75,11 +73,13 @@ That's why we added a JavaScript based payload mapping to the `connectivity` ser
   from Ditto Protocol to some text- or byte-payload before sending the message back via the configured `target` channel 
 
 The `incoming` and `outgoing` scripts must be configured when creating a new connection 
-[via DevOps commands](installation-operating.html#connectivity-service-commands).
+[via DevOps commands](connectivity-manage-connections.html).
 
 
 ## Example
 Please find more information and examples at:
+
+
 * [Connectivity overview](connectivity-overview.html)
 * [Payload mapping in connectivity](connectivity-mapping.html)
 

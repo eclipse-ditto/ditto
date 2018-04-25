@@ -324,8 +324,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private ActorRef startConnectionHandlingActor(final String suffix, final Connection connection) {
         final String name =
                 JMSConnectionHandlingActor.ACTOR_NAME_PREFIX + escapeActorName(connectionId() + "-" + suffix);
-        final Props props = JMSConnectionHandlingActor.props(connection, this, jmsConnectionFactory);
-        return getContext().actorOf(props, name);
+        final Optional<ActorRef> child = getContext().findChild(name);
+        if (child.isPresent()) {
+            log.info("JMSConnectionHandlingActor <{}> is still existing and busy executing a command, queuing " +
+                    "new command..", name);
+            return child.get();
+        } else {
+            final Props props = JMSConnectionHandlingActor.props(connection, this, jmsConnectionFactory);
+            return getContext().actorOf(props, name);
+        }
     }
 
     @Override

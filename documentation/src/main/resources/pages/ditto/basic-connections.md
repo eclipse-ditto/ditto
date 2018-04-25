@@ -1,7 +1,7 @@
 ---
 title: Connections
 keywords: connection, connectivity, mapping, connection, integration
-tags: [connection, connectivity]
+tags: [connectivity]
 permalink: basic-connections.html
 ---
 
@@ -40,7 +40,7 @@ Ditto becomes the client in this case. Nevertheless, to access resources within 
 which instance’s behalf it is acting. This is controlled via the configured `authorisationContext`, which holds a list of 
 self-assigned authorization subjects. Before a connection can access a Ditto resource, one of its 
 `authorizationSubject`s must be referenced in the used authorization mechanism, having the needed access rights. You 
-can achieve this via [ACLs](/basic-acl.html) or [Policies](/basic-policy.html).
+can achieve this via [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
 For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](/connectivity-mapping.html)
 

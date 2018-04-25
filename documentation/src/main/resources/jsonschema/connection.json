@@ -169,5 +169,5 @@
     }
   },
   "additionalProperties": false,
-  "required": [ "id", "connectionType", "uri", "authorizationContext"]
+  "required": [ "id", "connectionType", "connectionStatus", "uri", "authorizationContext"]
 }

@@ -5,14 +5,15 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-amqp091.html
 ---
 
-Any Ditto Protocol message can be sent *as is* as **AMQP 0.9.1** message.
-The Ditto Protocol JSON must be sent as `UTF-8` encoded string payload.
-
-The `content-type` of AMQP 0.9.1 messages must be set to:
+When messages are sent in [Ditto Protocol](protocol-overview.html) (as `UTF-8` encoded String payload), 
+the `content-type` of AMQP 0.9.1 messages must be set to:
 
 ```
 application/vnd.eclipse.ditto+json
 ```
+
+If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+be configured for the AMQP 0.9.1 connection in order to transform the messages. 
 
 ## AMQP 0.9.1 properties
 
@@ -41,7 +42,7 @@ of queue names.
 
 An AMQP 0.9.1 connection requires the protocol configuration target object to have an `address` property with a combined
  value of the `exchange_name` and `routing_key`. It is continued with a list of topic strings, each representing a
- subscription of a Ditto [protocol topic](/protocol-specification-topic.html).
+ subscription of a Ditto [protocol topic](protocol-specification-topic.html).
 
 
 ```json
@@ -64,7 +65,7 @@ Ditto's [Connectivity service](architecture-services-connectivity.html) is respo
 existing connections.
 
 This can be done dynamically at runtime without the need to restart any microservice using a
-[Ditto operations command](installation-operating.html#connectivity-service-commands).
+[Ditto DevOps command](installation-operating.html#devops-commands).
 
 Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in order to connect to a RabbitMQ):
 
@@ -73,6 +74,7 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
   "connection": {
     "id": "rabbit-example-connection-123",
     "connectionType": "amqp-091",
+    "connectionStatus": "open",
     "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
     "failoverEnabled": true,
     "uri": "amqp://user:password@localhost:5672",
@@ -101,5 +103,5 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
 Messages consumed via the AMQP 0.9.1 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
 shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
-Protocol](protocol-overview.html), you can configure a custom [payload mapping](/connectivity-mapping.html).
+Protocol](protocol-overview.html), you can configure a custom [payload mapping](connectivity-mapping.html).
  

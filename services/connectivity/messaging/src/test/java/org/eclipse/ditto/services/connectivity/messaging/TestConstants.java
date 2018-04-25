@@ -49,9 +49,12 @@ import akka.actor.Props;
 
 public class TestConstants {
 
-    static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
-    public static final String URI = "amqps://username:password@my.endpoint:443";
+    public static final Config CONFIG = ConfigFactory.load("test");
+    private static final int AKKA_PORT = CONFIG.getInt("akka.remote.netty.tcp.port");
+
+    private static final ConnectionType TYPE = ConnectionType.AMQP_10;
+    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    public static final String URI = "amqps://username:password@localhost:" + AKKA_PORT;
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
@@ -61,7 +64,6 @@ public class TestConstants {
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey",
                     "_/_/things/twin/events")));
-    public static final Config CONFIG = ConfigFactory.load("test");
     public static final String THING_ID = "ditto:thing";
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
     public static final String CORRELATION_ID = "cid";

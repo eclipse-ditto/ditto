@@ -19,6 +19,9 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.FAILED;
 import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilter.Mode.EXCLUDE;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Arrays;
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -98,6 +102,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private static final int CONNECTING_TIMEOUT = 10;
     protected static final int RETRIEVE_METRICS_TIMEOUT = 2;
+
+    private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final List<String> headerBlacklist;
@@ -192,22 +198,26 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     }
                 })
                 .event(TestConnection.class, BaseClientData.class, (testConnection, data) -> {
+                    final Connection connection = testConnection.getConnection();
+                    if (!canConnectViaSocket(connection, testConnection.getDittoHeaders())) {
+                        return stop();
+                    }
+
                     try {
-                        final CompletionStage<Status.Status> connectionStatus =
-                                doTestConnection(testConnection.getConnection());
-                        final CompletionStage<Status.Status> mappingStatus =
-                                testMessageMappingProcessor(
-                                        testConnection.getConnection().getMappingContext().orElse(null));
+                        final CompletionStage<Status.Status> connectionStatusStage =
+                                doTestConnection(connection);
+                        final CompletionStage<Status.Status> mappingStatusStage =
+                                testMessageMappingProcessor(connection.getMappingContext().orElse(null));
 
                         final ActorRef sender = getSender();
-                        connectionStatus.toCompletableFuture()
-                                .thenCombine(mappingStatus, (connection, mapping) -> {
-                                    if (connection instanceof Status.Success && mapping instanceof Status.Success) {
+                        connectionStatusStage.toCompletableFuture()
+                                .thenCombine(mappingStatusStage, (connectionStatus, mappingStatus) -> {
+                                    if (connectionStatus instanceof Status.Success && mappingStatus instanceof Status.Success) {
                                         return new Status.Success("successfully connected + initialized mapper");
-                                    } else if (connection instanceof Status.Failure) {
-                                        return connection;
+                                    } else if (connectionStatus instanceof Status.Failure) {
+                                        return connectionStatus;
                                     } else {
-                                        return mapping;
+                                        return mappingStatus;
                                     }
                                 }).thenAccept(testStatus -> sender.tell(testStatus, getSelf()));
                     } catch (final DittoRuntimeException e) {
@@ -217,6 +227,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 })
                 .event(CreateConnection.class, BaseClientData.class, (createConnection, data) -> {
                     final Connection connection = createConnection.getConnection();
+                    canConnectViaSocket(connection, createConnection.getDittoHeaders());
+
                     return goTo(baseClientStateFromConnectionStatus(connection.getConnectionStatus()))
                             .using(data
                                     .setConnection(connection)
@@ -358,6 +370,32 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private static BaseClientState baseClientStateFromConnectionStatus(final ConnectionStatus connectionStatus) {
         return connectionStatus == ConnectionStatus.OPEN ? CONNECTING : DISCONNECTING;
+    }
+
+    private boolean canConnectViaSocket(final Connection connection, final DittoHeaders dittoHeaders) {
+        if (!checkHostAndPortForAvailability(connection.getHostname(), connection.getPort())) {
+            final ConnectionFailedException connectionFailedException = ConnectionFailedException
+                    .newBuilder(connection.getId())
+                    .dittoHeaders(dittoHeaders)
+                    .description("Could not establish a connection on '" +
+                            connection.getHostname() + ":" + connection.getPort() + "'. Make sure the " +
+                            "endpoint is reachable and that no firewall prevents the connection.")
+                    .build();
+            getSender().tell(new Status.Failure(connectionFailedException), getSelf());
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkHostAndPortForAvailability(final String host, final int port) {
+        try (final Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), SOCKET_CHECK_TIMEOUT_MS);
+            return true;
+        } catch (final IOException ex) {
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            log.warning("Socket could not be opened for <{}:{}>", host, port);
+        }
+        return false;
     }
 
     private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected clientConnected,
