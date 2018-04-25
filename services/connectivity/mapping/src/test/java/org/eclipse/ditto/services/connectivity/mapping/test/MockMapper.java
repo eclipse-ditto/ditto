@@ -21,6 +21,8 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 
+import com.typesafe.config.Config;
+
 
 public class MockMapper implements MessageMapper {
 
@@ -30,7 +32,7 @@ public class MockMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(@Nonnull final MessageMapperConfiguration configuration) {
+    public void configure(@Nonnull final Config mappingConfig, @Nonnull final MessageMapperConfiguration configuration) {
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
                 (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
     }

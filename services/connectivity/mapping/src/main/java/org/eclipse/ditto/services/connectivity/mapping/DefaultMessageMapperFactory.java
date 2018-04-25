@@ -27,7 +27,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
+import com.typesafe.config.Config;
+
+import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
+import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
@@ -49,6 +53,8 @@ import scala.util.Try;
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
+    private final Config mappingConfig;
+
     /**
      * The actor system used for dynamic class instantiation.
      */
@@ -64,12 +70,14 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     /**
      * Constructor
      *
+     * @param mappingConfig the static service configuration for mapping related stuff
      * @param dynamicAccess the actor systems dynamic access used for dynamic class instantiation
      * @param factoryClass the factory class scanned for factory functions
      * @param log the log adapter used for debug and warning logs
      */
-    private DefaultMessageMapperFactory(final DynamicAccess dynamicAccess, final Class<?> factoryClass,
-            final DiagnosticLoggingAdapter log) {
+    private DefaultMessageMapperFactory(final Config mappingConfig, final DynamicAccess dynamicAccess,
+            final Class<?> factoryClass, final DiagnosticLoggingAdapter log) {
+        this.mappingConfig = checkNotNull(mappingConfig);;
         this.dynamicAccess = checkNotNull(dynamicAccess);
         this.factoryClass = checkNotNull(factoryClass);
         this.log = checkNotNull(log);
@@ -78,14 +86,16 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     /**
      * Creates a new factory and returns the instance
      *
-     * @param dynamicAccess the actor systems dynamic access used for dynamic class instantiation
+     * @param actorSystem the actor system to use for mapping config + dynamicAccess
      * @param factoryClass the factory class scanned for factory functions
      * @param log the log adapter used for debug and warning logs
      * @return the new instance
      */
-    public static DefaultMessageMapperFactory of(final DynamicAccess dynamicAccess, final Class<?> factoryClass,
-            final DiagnosticLoggingAdapter log) {
-        return new DefaultMessageMapperFactory(dynamicAccess, factoryClass, log);
+    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem,
+            final Class<?> factoryClass, final DiagnosticLoggingAdapter log) {
+        final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
+        final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
+        return new DefaultMessageMapperFactory(mappingConfig, dynamicAccess, factoryClass, log);
     }
 
     @Override
@@ -179,7 +189,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private boolean configureInstance(final MessageMapper mapper, final DefaultMessageMapperConfiguration options) {
         try {
-            mapper.configure(options);
+            mapper.configure(mappingConfig, options);
             return true;
         } catch (final MessageMapperConfigurationInvalidException e) {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,

@@ -18,8 +18,8 @@ requires a transport protocol, which is used to transmit [Ditto Protocol] messag
  communication over connections. This enables consumer/producer scenarios as well as fully-fledged command and response use cases. Nevertheless, those options might be limited by the used transport protocol and/or the other endpoint's 
  capabilities.
  
-All connections are configured and supervised via Ditto's [Connectivity service](architecture-services-connectivity
-.html). The following model defines the connection itself:
+All connections are configured and supervised via Ditto's 
+[Connectivity service](architecture-services-connectivity.html). The following model defines the connection itself:
 
 {% include docson.html schema="jsonschema/connection.json" %}
 

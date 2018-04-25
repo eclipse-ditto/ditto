@@ -32,6 +32,8 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
+import com.typesafe.config.Config;
+
 /**
  * A message mapper implementation for the Ditto Protocol.
  * Expects messages to contain a JSON serialized Ditto Protocol message.
@@ -47,7 +49,7 @@ public final class DittoMessageMapper implements MessageMapper {
     );
 
     @Override
-    public void configure(final MessageMapperConfiguration configuration) {
+    public void configure(final Config mappingConfig, final MessageMapperConfiguration configuration) {
         // no op
     }
 

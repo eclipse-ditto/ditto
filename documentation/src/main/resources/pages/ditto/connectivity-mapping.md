@@ -5,6 +5,9 @@ tags: [connectivity]
 permalink: connectivity-mapping.html
 ---
 
+{% include callout.html content="**TL;DR**<br/>The payload mapping feature in Ditto's connectivity APIs can be used to 
+    transform arbitrary payload consumed via the different supported protocols 
+    to [Ditto Protocol](protocol-overview.html) messages and vice versa." type="primary" %}
 
 
 ## Motivation
@@ -51,8 +54,6 @@ In case of constrained devices or IoT protocols, even binary payload might be co
 0x08BD (hex representation)
 ```
 
-The payload mapping feature in Ditto's connectivity APIs can be used to transform arbitrary payload consumed via the 
-different supported protocols to [Ditto Protocol](protocol-overview.html) messages and vice versa.
 
 ## JavaScript mapping engine
 
@@ -63,8 +64,9 @@ Using Rhino instead of Nashorn, the newer JavaScript engine shipped with Java, h
 applied in a better way. 
 
 Sandboxing of different payload scripts is required as Ditto is intended to be run as cloud service where multiple
-connections to different endpoints are managed for different tenants at the same time. That requires that a single
-script may not interfere with other scripts or even do harm to the complete JVM the script is running in. 
+connections to different endpoints are managed for different tenants at the same time. This requires the isolation of
+each single script to avoid interference with other scripts and to protect the JVM executing the script against harmful
+code execution.
 
 
 ### Configuration options
@@ -76,9 +78,6 @@ The Ditto `JavaScript` mapping engine does support the following configuration o
 * `outgoingScript` (string): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
 * `loadBytebufferJS` (boolean): whether to load the [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) library
 * `loadLongJS` (boolean): whether to load the [long.js](https://github.com/dcodeIO/long.js) library
-* `maxScriptSizeBytes` (number): maximum script size of `incomingScript` and `outgoingScript` in bytes - default: *50* KB
-* `maxScriptExecutionTime` (number): maximum script execution time in milliseconds before it gets terminated - default: *500*
-* `maxScriptStackDepth` (number): maximum call stack depth of the scripts - default: *10*
 
 
 ### Constraints
@@ -569,11 +568,11 @@ Your digital twin is updated by applying the specified script and extracting the
 
 ## Custom Java based implementation
 
-Besides from the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
+Beside the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
 connectivity service - there is also the possibility to implement a custom Java based mapper.
 
 The interface to be implemented is `org.eclipse.ditto.services.connectivity.mapping.MessageMapper` (TODO insert link to GitHub)
-with the following signature to implement (this is only en expert, the sources contain JavaDoc): 
+with the following signature to implement (this is only for experts, the sources contain JavaDoc):
 
 ```java
 public interface MessageMapper {
@@ -587,7 +586,7 @@ public interface MessageMapper {
 ```
 
 After instantiation of the custom `MessageMapper`, the `configure` method is called with all the *options* which were 
-provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). Use that
+provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). Use them
 in order to pass in configurations, thresholds, etc.
 
 Then, simply implement both of the `map` methods:
