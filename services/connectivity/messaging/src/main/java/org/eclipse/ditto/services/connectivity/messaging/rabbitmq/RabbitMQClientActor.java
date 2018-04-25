@@ -358,7 +358,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     try {
                         Thread.sleep(10);
                     } catch (final InterruptedException e) {
-                        throw new IllegalStateException(e);
+                        Thread.currentThread().interrupt();
                     }
                     if (--counter == 0) {
                         break;

@@ -158,8 +158,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
         final Message message;
-        if (externalMessage.getTextPayload().isPresent()) {
-            message = session.createTextMessage(externalMessage.getTextPayload().get());
+        final Optional<String> optTextPayload = externalMessage.getTextPayload();
+        if (optTextPayload.isPresent()) {
+            message = session.createTextMessage(optTextPayload.get());
         } else if (externalMessage.getBytePayload().isPresent()) {
             final BytesMessage bytesMessage = session.createBytesMessage();
             bytesMessage.writeBytes(externalMessage.getBytePayload().map(ByteBuffer::array).orElse(new byte[]{}));

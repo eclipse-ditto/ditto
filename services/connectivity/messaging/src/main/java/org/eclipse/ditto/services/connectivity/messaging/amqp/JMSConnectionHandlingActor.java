@@ -129,11 +129,13 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     private void doConnect(final ActorRef sender, @Nullable final ActorRef origin) {
         try {
 
+            @SuppressWarnings("squid:S2095")
             final JmsConnection
                     jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
             log.debug("Starting connection.");
             jmsConnection.start();
             log.debug("Connection started successfully, creating session.");
+            @SuppressWarnings("squid:S2095")
             final Session jmsSession = jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE);
             log.debug("Session created.");
 

@@ -33,7 +33,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 public class TopicPathMapper {
 
     private static final String TOPIC_TEMPLATE = "_/_/{0}/{1}/{2}";
-    public static final Map<String, String> SUPPORTED_TOPICS;
+
+    static final Map<String, String> SUPPORTED_TOPICS;
 
     static {
         SUPPORTED_TOPICS = new HashMap<>();
@@ -43,11 +44,11 @@ public class TopicPathMapper {
         SUPPORTED_TOPICS.put("_/_/things/live/commands", "things-live-commands");
     }
 
-    public static Optional<String> mapToPubSubTopic(final String topicPath) {
+    static Optional<String> mapToPubSubTopic(final String topicPath) {
         return Optional.ofNullable(SUPPORTED_TOPICS.get(topicPath));
     }
 
-    public static String mapSignalToTopicPath(final Signal<?> signal) {
+    static String mapSignalToTopicPath(final Signal<?> signal) {
         // only things as group supported
         final String group = signal instanceof WithThingId ? TopicPath.Group.THINGS.getName() : "unsupported";
         final String channel = signal.getDittoHeaders().getChannel().orElse(TopicPath.Channel.TWIN.getName());
