@@ -260,7 +260,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
-                traces.put(correlationId, createRoundtripContext(correlationId, command.getType()))
+                traces.put(correlationId, createRoundtripContext(correlationId, connectionId, command.getType()))
         );
     }
 
@@ -295,9 +295,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    private static TraceContext createRoundtripContext(final String correlationId, final String type) {
+    private static TraceContext createRoundtripContext(final String correlationId, final String connectionId,
+            final String type) {
         final Option<String> token = Option.apply(correlationId);
-        final TraceContext ctx = Kamon.tracer().newContext("roundtrip.amqp_" + type, token);
+        final TraceContext ctx = Kamon.tracer().newContext("roundtrip." + connectionId + "." + type,
+                token);
         ctx.addMetadata("command", type);
         return ctx;
     }
