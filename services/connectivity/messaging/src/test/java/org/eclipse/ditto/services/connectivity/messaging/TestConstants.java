@@ -46,15 +46,14 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
+import scala.Option;
 
 public class TestConstants {
 
     public static final Config CONFIG = ConfigFactory.load("test");
-    private static final int AKKA_PORT = CONFIG.getInt("akka.remote.netty.tcp.port");
-
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
-    public static final String URI = "amqps://username:password@localhost:" + AKKA_PORT;
+    private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
     public static final String SUBJECT_ID = "mySolutionId:mySubject";
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
@@ -72,8 +71,17 @@ public class TestConstants {
         return "connection-" + UUID.randomUUID();
     }
 
-    public static Connection createConnection(final String connectionId) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+    public static String getUri(final ActorSystem actorSystem) {
+        final String akkaHost =
+                actorSystem.provider().getDefaultAddress().host().get();
+        final Integer akkaPort = ((Integer) actorSystem.provider()
+                .getDefaultAddress()
+                .port().get());
+        return String.format(URI_TEMPLATE, akkaHost, akkaPort);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem), AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();

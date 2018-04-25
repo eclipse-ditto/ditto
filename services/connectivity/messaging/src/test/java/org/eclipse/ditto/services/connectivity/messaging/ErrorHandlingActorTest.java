@@ -60,7 +60,7 @@ public class ErrorHandlingActorTest {
     public void tryCreateConnectionExpectErrorResponse() {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId);
+            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator,
                     (con) -> FaultyConnectionActor.props(false));
@@ -90,7 +90,7 @@ public class ErrorHandlingActorTest {
     public void tryDeleteConnectionExpectErrorResponse() {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId);
+            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             faultyConnectionActorPropsFactory);
@@ -113,7 +113,7 @@ public class ErrorHandlingActorTest {
     private void tryModifyConnectionExpectErrorResponse(final String action) {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Connection connection = TestConstants.createConnection(connectionId);
+            final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             faultyConnectionActorPropsFactory);

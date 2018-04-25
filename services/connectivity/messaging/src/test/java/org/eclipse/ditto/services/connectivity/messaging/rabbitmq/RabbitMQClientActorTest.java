@@ -64,9 +64,9 @@ public class RabbitMQClientActorTest {
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 
-    private final String connectionId = TestConstants.createRandomConnectionId();
-    private final Connection connection = TestConstants.createConnection(connectionId);
-    private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
+    private static final String connectionId = TestConstants.createRandomConnectionId();
+    private static final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
+    private static Connection connection;
 
     @Mock
     private final ConnectionFactory mockConnectionFactory = Mockito.mock(ConnectionFactory.class);
@@ -80,6 +80,7 @@ public class RabbitMQClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connection = TestConstants.createConnection(connectionId, actorSystem);
     }
 
     @AfterClass
@@ -97,7 +98,7 @@ public class RabbitMQClientActorTest {
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
-                ConnectionStatus.OPEN, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                ConnectionStatus.OPEN, TestConstants.getUri(actorSystem), TestConstants.AUTHORIZATION_CONTEXT)
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
                 .build();
 

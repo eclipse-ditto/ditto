@@ -83,8 +83,8 @@ public class AmqpClientActorTest {
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 
-    private final String connectionId = TestConstants.createRandomConnectionId();
-    private final Connection connection = TestConstants.createConnection(connectionId);
+    private static final String connectionId = TestConstants.createRandomConnectionId();
+    private static Connection connection;
     private final ConnectionStatus connectionStatus = ConnectionStatus.OPEN;
 
     @Mock
@@ -102,6 +102,7 @@ public class AmqpClientActorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connection = TestConstants.createConnection(connectionId, actorSystem);
     }
 
     @AfterClass
@@ -124,7 +125,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.URI, TestConstants.AUTHORIZATION_CONTEXT)
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem), TestConstants.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
                 .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
                 .build();

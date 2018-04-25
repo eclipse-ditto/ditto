@@ -79,7 +79,7 @@ public class ConnectionActorTest {
     @Before
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
-        final Connection connection = TestConstants.createConnection(connectionId);
+        final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse = CreateConnectionResponse.of(connection, DittoHeaders.empty());
