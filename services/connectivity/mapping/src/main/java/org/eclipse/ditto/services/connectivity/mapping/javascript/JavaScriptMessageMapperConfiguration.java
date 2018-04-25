@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
-import java.time.Duration;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -57,43 +56,6 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
                 getProperties().get(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS))
                 .map(Boolean::valueOf)
                 .orElse(false);
-    }
-
-    /**
-     * Returns the maximum script size in bytes of a mapping script to run. Prevents loading big JS dependencies
-     * into the script (e.g. jQuery which has ~250kB).
-     *
-     * @return the configured maximum script size in bytes for a script to run.
-     */
-    default int getMaxScriptSizeBytes() {
-        return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES))
-                .map(Integer::parseInt)
-                .orElse(50 * 1000); // default: 50 kB max.
-    }
-
-    /**
-     * Returns the maximum execution time of a mapping script to run. Prevents endless loops and too complex scripts.
-     *
-     * @return the configured maximum execution time for a script to run.
-     */
-    default Duration getMaxScriptExecutionTime() {
-        return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME))
-                .map(Duration::parse)
-                .orElse(Duration.ofMillis(500)); // default: 500ms max.
-    }
-
-    /**
-     * Returns the maximum call stack depth in the mapping script. Prevents recursions or other too complex computation.
-     *
-     * @return the configured maximum call stack depth for a script to run.
-     */
-    default int getMaxScriptStackDepth() {
-        return Optional.ofNullable(
-                getProperties().get(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH))
-                .map(Integer::parseInt)
-                .orElse(10); // default: 10
     }
 
     /**
@@ -153,53 +115,6 @@ public interface JavaScriptMessageMapperConfiguration extends MessageMapperConfi
         default Builder loadLongJS(boolean load) {
             getProperties().put(JavaScriptMessageMapperConfigurationProperties.LOAD_LONG_JS,
                     Boolean.toString(load));
-            return this;
-        }
-
-        /**
-         * Configures the maximum script size in bytes of a mapping script.
-         *
-         * @param maxScriptSizeInBytes maximum script size in bytes for a script to run
-         * @return this builder for chaining
-         */
-        default Builder maxScriptSizeBytes(@Nullable Integer maxScriptSizeInBytes) {
-            if (maxScriptSizeInBytes != null) {
-                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES,
-                        maxScriptSizeInBytes.toString());
-            } else {
-                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_SIZE_BYTES);
-            }
-            return this;
-        }
-        /**
-         * Configures the maximum execution time of a mapping script to run.
-         *
-         * @param maxScriptExecutionTime maximum execution time of a mapping script to run
-         * @return this builder for chaining
-         */
-        default Builder maxScriptExecutionTime(@Nullable Duration maxScriptExecutionTime) {
-            if (maxScriptExecutionTime != null) {
-                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME,
-                        maxScriptExecutionTime.toString());
-            } else {
-                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_EXECUTION_TIME);
-            }
-            return this;
-        }
-
-        /**
-         * Configures the maximum call stack depth in the mapping script.
-         *
-         * @param maxScriptStackDepth maximum call stack depth in the mapping script
-         * @return this builder for chaining
-         */
-        default Builder maxScriptStackDepth(@Nullable Integer maxScriptStackDepth) {
-            if (maxScriptStackDepth != null) {
-                getProperties().put(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH,
-                        maxScriptStackDepth.toString());
-            } else {
-                getProperties().remove(JavaScriptMessageMapperConfigurationProperties.MAX_SCRIPT_STACK_DEPTH);
-            }
             return this;
         }
 

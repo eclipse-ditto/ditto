@@ -27,9 +27,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -40,6 +40,9 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} by initializing different mapping templates and ensuring that they
@@ -57,7 +60,6 @@ public class JavaScriptMessageMapperRhinoTest {
 //    }
 
     private static final String CONTENT_TYPE_PLAIN = "text/plain";
-    private static final String CONTENT_TYPE_MUSTACHE = "text/plain";
     private static final String CONTENT_TYPE_BINARY = "application/octet-stream";
 
     private static final String HEADER_CORRELATION_ID = "correlation-id";
@@ -69,6 +71,12 @@ public class JavaScriptMessageMapperRhinoTest {
     private static final String MAPPING_INCOMING_PAYLOAD_STRING = "hello!";
     private static final ByteBuffer MAPPING_INCOMING_PAYLOAD_BYTES = ByteBuffer.wrap(
             MAPPING_INCOMING_PAYLOAD_STRING.getBytes(StandardCharsets.UTF_8));
+
+    private final static Config MAPPING_CONFIG = ConfigFactory.parseString("javascript {\n" +
+            "        maxScriptSizeBytes = 50000 # 50kB\n" +
+            "        maxScriptExecutionTime = 500ms\n" +
+            "        maxScriptStackDepth = 10\n" +
+            "      }");
 
 
     private static final String MAPPING_INCOMING_PLAIN =
@@ -233,7 +241,7 @@ public class JavaScriptMessageMapperRhinoTest {
     @BeforeClass
     public static void setup() {
         javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperPlain.configure(
+        javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_PLAIN)
@@ -243,7 +251,7 @@ public class JavaScriptMessageMapperRhinoTest {
         );
 
         javaScriptRhinoMapperEmpty = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperEmpty.configure(
+        javaScriptRhinoMapperEmpty.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_PLAIN)
@@ -253,7 +261,7 @@ public class JavaScriptMessageMapperRhinoTest {
         );
 
         javaScriptRhinoMapperBinary = MessageMappers.createJavaScriptMessageMapper();
-        javaScriptRhinoMapperBinary.configure(
+        javaScriptRhinoMapperBinary.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType(CONTENT_TYPE_BINARY)

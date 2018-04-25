@@ -26,6 +26,8 @@ import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 
+import com.typesafe.config.Config;
+
 /**
  * Does wrap any {@link MessageMapper}.
  * <p>
@@ -60,8 +62,8 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final MessageMapperConfiguration configuration) {
-        delegate.configure(configuration);
+    public void configure(final Config mappingConfig, final MessageMapperConfiguration configuration) {
+        delegate.configure(mappingConfig, configuration);
     }
 
     @Override

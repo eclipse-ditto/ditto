@@ -40,19 +40,4 @@ final class JavaScriptMessageMapperConfigurationProperties {
      */
     static final String LOAD_LONG_JS = "loadLongJS";
 
-    /**
-     * Configuration key for the maximum script size in bytes.
-     */
-    static final String MAX_SCRIPT_SIZE_BYTES = "maxScriptSizeBytes";
-
-    /**
-     * Configuration key for the maximum script execution time.
-     */
-    static final String MAX_SCRIPT_EXECUTION_TIME = "maxScriptExecutionTime";
-
-    /**
-     * Configuration key for the maximum script stack depth.
-     */
-    static final String MAX_SCRIPT_STACK_DEPTH = "maxScriptStackDepth";
-
 }
