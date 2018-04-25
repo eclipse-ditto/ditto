@@ -27,11 +27,13 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command to trigger taking snapshot of a thing.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements SudoCommand<TakeSnapshot>, WithId {
 
     /**
@@ -98,6 +100,11 @@ public final class TakeSnapshot extends AbstractCommand<TakeSnapshot> implements
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

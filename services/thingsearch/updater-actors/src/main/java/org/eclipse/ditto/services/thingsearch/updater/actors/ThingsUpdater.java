@@ -71,6 +71,7 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
+            final int maxBulkSize,
             @Nullable final ActorRef thingCacheFacade,
             @Nullable final ActorRef policyCacheFacade) {
 
@@ -84,8 +85,8 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, thingCacheFacade,
-                        policyCacheFacade)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize,
+                        thingCacheFacade, policyCacheFacade)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -107,6 +108,7 @@ final class ThingsUpdater extends AbstractActor {
      * @param shardRegionFactory The shard region factory to use when creating sharded actors.
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
      * actively updated
+     * @param maxBulkSize maximum number of events to update in a bulk.
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster.
      * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
@@ -119,6 +121,7 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
+            final int maxBulkSize,
             @Nullable final ActorRef thingCacheFacade,
             @Nullable final ActorRef policyCacheFacade) {
 
@@ -126,9 +129,9 @@ final class ThingsUpdater extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingsUpdater create() throws Exception {
+            public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, thingCacheFacade,
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, thingCacheFacade,
                         policyCacheFacade);
             }
         });

@@ -68,6 +68,11 @@ public final class ConfigKeys {
     public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
 
     /**
+     * Controls maximum number of events to update in a bulk.
+     */
+    public static final String MAX_BULK_SIZE = SEARCH_UPDATER_PREFIX + "max-bulk-size";
+
+    /**
      * Controls whether thing and policy cache-updates should be active or not.
      */
     public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
@@ -125,6 +130,12 @@ public final class ConfigKeys {
     public static final String THINGS_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_THINGS_PREFIX + "outdated-warning-offset";
 
     /**
+     * Things-Sync: if a query-start is more than this offset in the past, an errir will be logged and health
+     * endpoint shows "DOWN".
+     */
+    public static final String THINGS_SYNCER_OUTDATED_ERROR_OFFSET = SYNC_THINGS_PREFIX + "outdated-error-offset";
+
+    /**
      * Things-Sync: The maximum idle time of the syncer (as a Duration).
      */
     public static final String THINGS_SYNCER_MAX_IDLE_TIME = SYNC_THINGS_PREFIX + "max-idle-time";
@@ -171,6 +182,13 @@ public final class ConfigKeys {
      */
     public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET =
             SYNC_POLICIES_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Policies-Sync: if a query-start is more than this offset in the past, an error will be logged and the health
+     * endpoint shows "DOWN".
+     */
+    public static final String POLICIES_SYNCER_OUTDATED_ERROR_OFFSET =
+            SYNC_POLICIES_PREFIX + "outdated-error-offset";
 
     /**
      * Policies-Sync: The maximum idle time of the syncer (as a Duration).

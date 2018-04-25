@@ -43,6 +43,13 @@ public interface Command<T extends Command> extends Signal<T> {
      */
     String getTypePrefix();
 
+    /**
+     * Returns the category this command belongs to.
+     *
+     * @return the command category.
+     */
+    Category getCategory();
+
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
@@ -67,7 +74,6 @@ public interface Command<T extends Command> extends Signal<T> {
     /**
      * This class contains common definitions for all fields of a {@code Command}'s JSON representation.
      * Implementation of {@code Command} may add additional fields by extending this class.
-     *
      */
     @Immutable
     abstract class JsonFields {
@@ -91,6 +97,27 @@ public interface Command<T extends Command> extends Signal<T> {
             super();
         }
 
+    }
+
+    /**
+     * Categories every command is classified into.
+     */
+    @Immutable
+    enum Category {
+        /**
+         * Category of commands that do not change the state of any entity.
+         */
+        QUERY,
+
+        /**
+         * Category of commands that change the state of entities.
+         */
+        MODIFY,
+
+        /**
+         * Category of commands that delete entities.
+         */
+        DELETE
     }
 
 }

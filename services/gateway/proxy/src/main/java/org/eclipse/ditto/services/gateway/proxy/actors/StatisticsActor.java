@@ -67,7 +67,7 @@ public final class StatisticsActor extends AbstractActor {
     private static final String THINGS_ROOT = "/user/thingsRoot";
     private static final String POLICIES_ROOT = "/user/policiesRoot";
     private static final String GATEWAY_ROOT = "/user/gatewayRoot";
-    private static final String SEARCH_UPDATER_ROOT = "/user/searchUpdaterRoot";
+    private static final String SEARCH_UPDATER_ROOT = "/user/thingsSearchRoot/searchUpdaterRoot";
 
     /**
      * The wait time in milliseconds to gather all statistics from the cluster nodes.

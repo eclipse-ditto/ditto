@@ -118,6 +118,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * How long to wait for things and policies by default.
      */
     static final java.time.Duration DEFAULT_THINGS_TIMEOUT = java.time.Duration.of(20, ChronoUnit.SECONDS);
+
+    /**
+     * (Effectively) Unlimited max bulk size.
+     */
+    static final int UNLIMITED_MAX_BULK_SIZE = Integer.MAX_VALUE;
     /**
      * Max attempts when trying to sync a thing.
      */
@@ -130,12 +135,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private static final String TRACE_THING_MODIFIED = "thing.modified";
     private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATE = "thing.bulkUpdate.count";
     private static final String TRACE_THING_DELETE = "thing.delete";
     private static final String TRACE_POLICY_UPDATE = "policy.update";
 
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
     // configuration
+    private final int maxBulkSize;
     private final String thingId;
     private final FiniteDuration thingsTimeout;
     private final ActorRef thingsShardRegion;
@@ -177,9 +184,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final java.time.Duration activityCheckInterval,
+            final int maxBulkSize,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
 
+        this.maxBulkSize = maxBulkSize;
         this.thingsTimeout = Duration.create(thingsTimeout.toNanos(), TimeUnit.NANOSECONDS);
         this.thingsShardRegion = thingsShardRegion;
         this.policiesShardRegion = policiesShardRegion;
@@ -240,6 +249,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @param activityCheckInterval the interval at which is checked, if the corresponding Thing is still actively
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
+     * @param maxBulkSize maximum number of events to update in a bulk.
      * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
      * accessing the Thing cache in cluster, may be {@code null}.
      * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
@@ -252,6 +262,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ActorRef policiesShardRegion,
             final java.time.Duration activityCheckInterval,
             final java.time.Duration thingsTimeout,
+            final int maxBulkSize,
             final ActorRef thingCacheFacade,
             final ActorRef policyCacheFacade) {
 
@@ -261,7 +272,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             @Override
             public ThingUpdater create() throws Exception {
                 return new ThingUpdater(thingsTimeout, thingsShardRegion, policiesShardRegion,
-                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, thingCacheFacade,
+                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize, thingCacheFacade,
                         policyCacheFacade);
             }
         });
@@ -618,6 +629,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
+            Kamon.metrics().histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
             final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
@@ -651,7 +663,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 final List<ThingEvent> eventsToPersist = gatheredEvents;
                 // reset the gathered events
                 resetGatheredEvents();
-                persistThingEvents(eventsToPersist);
+                final int numberOfEvents = eventsToPersist.size();
+                if (numberOfEvents <= maxBulkSize) {
+                    persistThingEvents(eventsToPersist);
+                } else {
+                    log.info("Triggering synchronization because <{}> events were accumulated since last bulk update," +
+                            " which exceeded the limit of <{}> events per bulk update.", numberOfEvents, maxBulkSize);
+                    triggerSynchronization();
+                }
             }
         } else {
             log.warning("The update operation for thing <{}> failed due to an unexpected sequence number!", thingId);

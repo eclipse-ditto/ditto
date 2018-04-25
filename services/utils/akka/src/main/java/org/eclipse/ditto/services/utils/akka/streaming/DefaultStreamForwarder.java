@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.time.Duration;
 import java.util.function.Function;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.javadsl.Source;
@@ -32,11 +33,11 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
     private final ActorRef completionRecipient;
     private final Duration maxIdleTime;
     private final Class<E> elementClass;
-    private final Function<E, Source<?, ?>> mapEntityFunction;
+    private final Function<E, Source<Object, NotUsed>> mapEntityFunction;
 
     private DefaultStreamForwarder(final ActorRef recipient, final ActorRef completionRecipient,
             final Duration maxIdleTime, final Class<E> elementClass,
-            final Function<E, Source<?, ?>> mapEntityFunction) {
+            final Function<E, Source<Object, NotUsed>> mapEntityFunction) {
         this.recipient = requireNonNull(recipient);
         this.completionRecipient = requireNonNull(completionRecipient);
         this.maxIdleTime = requireNonNull(maxIdleTime);
@@ -57,7 +58,7 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
      */
     public static <E> Props props(final ActorRef recipient, final ActorRef completionRecipient,
             final Duration maxIdleTime, final Class<E> elementClass,
-            final Function<E, Source<?, ?>> mapEntity) {
+            final Function<E, Source<Object, NotUsed>> mapEntity) {
         return Props.create(DefaultStreamForwarder.class, () ->
                 new DefaultStreamForwarder<>(recipient, completionRecipient, maxIdleTime, elementClass, mapEntity));
     }
@@ -83,7 +84,7 @@ public final class DefaultStreamForwarder<E> extends AbstractStreamForwarder<E> 
     }
 
     @Override
-    protected Source<?, ?> mapEntity(final E element) {
+    protected Source<Object, NotUsed> mapEntity(final E element) {
         return mapEntityFunction.apply(element);
     }
 

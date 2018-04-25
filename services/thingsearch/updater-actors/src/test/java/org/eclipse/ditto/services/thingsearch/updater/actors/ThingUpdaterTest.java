@@ -33,6 +33,9 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -187,7 +190,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void unknownThingEventTriggersResync() throws InterruptedException {
+    public void unknownThingEventTriggersResync() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
 
         new TestKit(actorSystem) {
@@ -244,7 +247,6 @@ public final class ThingUpdaterTest {
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
 
-                //This processing will cause that the mocked mongoDB operation to last for 500 ms
                 underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
 
@@ -261,6 +263,64 @@ public final class ThingUpdaterTest {
                         eq(attributeCreated0.getRevision()));
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2), any(),
                         eq(attributeCreated3.getRevision()));
+            }
+        };
+    }
+
+    @Test
+    public void concurrentUpdatesTriggerFullSyncWhenMaxBulkSizeIsExceeded() {
+        final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
+                Permission.READ));
+        assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
+
+        final long firstEventRev = 2L;
+        final ThingEvent attributeCreated0 =
+                AttributeCreated.of(THING_ID, newPointer("p1"), newValue(true), firstEventRev, dittoHeaders);
+
+        final List<ThingEvent> expectedWrites1 =
+                Collections.singletonList(attributeCreated0);
+
+        final long maxBulkSize = 2;
+        final List<ThingEvent> tooManyEventsForBulk = new ArrayList<>();
+        long lastRev = firstEventRev;
+        for (int i = 0; i < maxBulkSize + 1; i++) {
+            final long rev = lastRev + 1;
+
+            final ThingEvent attributeCreated =
+                    AttributeCreated.of(THING_ID, newPointer("p" + rev), newValue(true), rev, dittoHeaders);
+            tooManyEventsForBulk.add(attributeCreated);
+
+            lastRev = rev;
+        }
+
+        when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1),
+                any(), anyLong())).thenReturn
+                (successWithDelay());
+
+        new TestKit(actorSystem) {
+            {
+                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
+                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
+                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe,
+                        ThingUpdater.DEFAULT_THINGS_TIMEOUT, 2);
+
+                final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
+
+                underTest.tell(thingCreated, getRef());
+                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
+
+
+                underTest.tell(attributeCreated0, getRef());
+
+                // WHEN: the events will be added to a bulk which exceeds maxBulkSize
+                tooManyEventsForBulk.forEach(event -> underTest.tell(event, getRef()));
+
+                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites1), any(),
+                        eq(attributeCreated0.getRevision()));
+
+                // THEN: sync is triggered
+                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
             }
         };
     }
@@ -934,7 +994,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsActor = TestProbe.apply(actorSystem);
                 final TestProbe policiesActor = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, V_2);
+                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
                 policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
 
                 // verify thingUpdater registers for cache updates if policy of thing is changed.
@@ -983,7 +1043,7 @@ public final class ThingUpdaterTest {
             final TestProbe thingsActor = TestProbe.apply(actorSystem);
             final TestProbe policiesActor = TestProbe.apply(actorSystem);
             final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                    .ref(), policiesCache.ref(), null, V_2);
+                    .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
 
             // send cache update
             underTest.tell(cacheEvent, getRef());
@@ -1033,7 +1093,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsActor = TestProbe.apply(actorSystem);
                 final TestProbe policiesActor = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, V_2);
+                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
                 policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
 
                 // update the thing to use the new policy and verify the new cache registration
@@ -1070,7 +1130,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsActor = TestProbe.apply(actorSystem);
                 final TestProbe policiesActor = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, V_2);
+                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
                 policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
 
                 // send cache update
@@ -1109,7 +1169,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsActor = TestProbe.apply(actorSystem);
                 final TestProbe policiesActor = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, V_2);
+                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
                 thingsCache.expectMsg(new RegisterForCacheUpdates(THING_ID, underTest));
 
                 // send cache update
@@ -1145,7 +1205,7 @@ public final class ThingUpdaterTest {
                 final TestProbe thingsActor = TestProbe.apply(actorSystem);
                 final TestProbe policiesActor = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, V_2);
+                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
                 thingsCache.expectMsg(new RegisterForCacheUpdates(THING_ID, underTest));
 
                 // send cache update
@@ -1172,7 +1232,7 @@ public final class ThingUpdaterTest {
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
             final TestProbe policiesShardProbe) {
         return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe,
-                ThingUpdater.DEFAULT_THINGS_TIMEOUT);
+                ThingUpdater.DEFAULT_THINGS_TIMEOUT, ThingUpdater.UNLIMITED_MAX_BULK_SIZE);
     }
 
     /**
@@ -1180,7 +1240,7 @@ public final class ThingUpdaterTest {
      */
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
             final TestProbe policiesShardProbe,
-            final java.time.Duration thingsTimeout) {
+            @Nullable final java.time.Duration thingsTimeout, final int maxBulkSize) {
         final ActorRef thingCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.THING,
                 actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.THING));
 
@@ -1189,7 +1249,7 @@ public final class ThingUpdaterTest {
 
         return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, thingCacheFacade,
                 policyCacheFacade,
-                thingsTimeout, V_1);
+                thingsTimeout, maxBulkSize, V_1);
     }
 
     /**
@@ -1199,7 +1259,8 @@ public final class ThingUpdaterTest {
             final TestProbe policiesShardProbe,
             final ActorRef thingsCache,
             final ActorRef policiesCache,
-            final java.time.Duration thingsTimeout,
+            @Nullable final java.time.Duration thingsTimeout,
+            final int maxBulkSize,
             final JsonSchemaVersion schemaVersion) {
 
         // prepare persistence mock for initial synchronization
@@ -1218,7 +1279,7 @@ public final class ThingUpdaterTest {
         }
 
         final ActorRef thingUpdater = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
-                policiesShardProbe.ref(), orDefaultTimeout(thingsTimeout), thingsCache, policiesCache);
+                policiesShardProbe.ref(), thingsCache, policiesCache, orDefaultTimeout(thingsTimeout), maxBulkSize);
 
         final ThingCreated thingCreated = ThingCreated.of(initialThing, 0L, DittoHeaders.empty());
         thingUpdater.tell(thingCreated, thingsShardProbe.ref());
@@ -1235,18 +1296,25 @@ public final class ThingUpdaterTest {
         return thingUpdater;
     }
 
-    /**
-     * Creates an uninitialized ThingUpdater.
-     */
     private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
-            final java.time.Duration thingsTimeout, final ActorRef thingCacheFacade, final ActorRef policyCacheFacade) {
+            final ActorRef thingCacheFacade, final ActorRef
+            policyCacheFacade, @Nullable final java.time.Duration thingsTimeout) {
+        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, thingCacheFacade, policyCacheFacade,
+                thingsTimeout, ThingUpdater.UNLIMITED_MAX_BULK_SIZE);
+    }
 
+    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
+            final ActorRef thingCacheFacade, final ActorRef policyCacheFacade,
+            final @Nullable java.time.Duration thingsTimeout,
+            final int maxBulkSize) {
         final CircuitBreaker circuitBreaker =
-                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5, Duration.create(30, "s"),
-                        Duration.create(1, "min"));
+                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5,
+                        Duration.apply(30, TimeUnit.SECONDS),
+                        Duration.apply(1, TimeUnit.MINUTES));
 
         final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
-                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), thingCacheFacade, policyCacheFacade)
+                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), maxBulkSize,
+                thingCacheFacade, policyCacheFacade)
                 .withMailbox("akka.actor.custom-updater-mailbox");
 
         return actorSystem.actorOf(props, THING_ID);
@@ -1254,8 +1322,8 @@ public final class ThingUpdaterTest {
 
     private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
             final ActorRef thingCacheFacade, final ActorRef policyCacheFacade) {
-        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, ThingUpdater.DEFAULT_THINGS_TIMEOUT,
-                thingCacheFacade, policyCacheFacade);
+        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, thingCacheFacade,
+                policyCacheFacade, ThingUpdater.DEFAULT_THINGS_TIMEOUT);
     }
 
     /**
@@ -1308,7 +1376,7 @@ public final class ThingUpdaterTest {
         return SudoRetrieveThingResponse.of(thingJson, headers);
     }
 
-    private java.time.Duration orDefaultTimeout(final java.time.Duration duration) {
+    private java.time.Duration orDefaultTimeout(@Nullable final java.time.Duration duration) {
         return duration != null ? duration : ThingUpdater.DEFAULT_THINGS_TIMEOUT;
     }
 

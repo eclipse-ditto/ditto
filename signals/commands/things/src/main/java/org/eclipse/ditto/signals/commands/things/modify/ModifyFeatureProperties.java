@@ -193,6 +193,11 @@ public final class ModifyFeatureProperties extends AbstractCommand<ModifyFeature
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyFeatureProperties setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, featureId, properties, dittoHeaders);
     }

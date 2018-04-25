@@ -113,6 +113,11 @@ public final class CloseConnection extends AbstractCommand<CloseConnection>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public CloseConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connectionId, dittoHeaders);
     }

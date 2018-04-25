@@ -26,6 +26,11 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public abstract class AbstractHealthCheckingActor extends AbstractActor {
 
+    /**
+     * The required actor name of the Actor to be created in the ActorSystem.
+     */
+    public static final String ACTOR_NAME = "healthCheckingActor";
+
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private StatusInfo health = StatusInfo.unknown();

@@ -127,6 +127,11 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public CreateConnection setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(connection, dittoHeaders);
     }

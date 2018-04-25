@@ -138,6 +138,12 @@
             <groupId>io.kamon</groupId>
             <artifactId>kamon-statsd_${scala.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

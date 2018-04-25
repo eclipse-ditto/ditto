@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.gateway.endpoints.utils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.TraceUriGenerator.FALLBACK_PATH;
+import static org.eclipse.ditto.services.gateway.endpoints.utils.TraceUriGenerator.MESSAGES_PATH_SUFFIX;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.TraceUriGenerator.SHORTENED_PATH_SUFFIX;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -46,6 +47,18 @@ public final class TraceUriGeneratorTest {
         EqualsVerifier.forClass(TraceUriGenerator.class)
                 .usingGetClass()
                 .verify();
+    }
+
+    @Test
+    public void api1ThingsMessagesUriReturnsCorrectSuffix() {
+        assertTraceUri("/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/inbox/messages/randomMessageSubject",
+                "/api/1/things" + MESSAGES_PATH_SUFFIX);
+    }
+
+    @Test
+    public void api1ThingsClaimMessagesUriReturnsCorrectSuffix() {
+        assertTraceUri("api/1/things/abcdefgh:fancy-car/inbox/claim",
+                "/api/1/things" + MESSAGES_PATH_SUFFIX);
     }
 
     @Test

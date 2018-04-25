@@ -156,6 +156,11 @@ public final class ModifyAcl extends AbstractCommand<ModifyAcl> implements Thing
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyAcl setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, accessControlList, dittoHeaders);
     }

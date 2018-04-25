@@ -175,10 +175,14 @@ public final class ConfigKeys {
         public static final String SNAPSHOT_INTERVAL = POLICY_SNAPSHOT_PREFIX + "interval";
 
         /**
-         * Every interval of this duration (configured by this key), this Actor checks if there was activity "with it" (e.g.
-         * reads/writes). If there was none, the Actor shuts itself down in order to free up resources.
+         * How long to keep deleted Policies in memory.
          */
         public static final String ACTIVITY_CHECK_INTERVAL = PREFIX + "activity.check.interval";
+
+        /**
+         * How long to keep deleted Policies in memory.
+         */
+        public static final String ACTIVITY_CHECK_DELETED_INTERVAL = PREFIX + "activity.check.deleted.interval";
 
         private Policy() {
             throw new AssertionError();

@@ -144,6 +144,11 @@ public final class DeleteFeatureProperties extends AbstractCommand<DeleteFeature
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteFeatureProperties setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, featureId, dittoHeaders);
     }

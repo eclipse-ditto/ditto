@@ -122,6 +122,11 @@ public final class DeleteAttributes extends AbstractCommand<DeleteAttributes>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteAttributes setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, dittoHeaders);
     }
