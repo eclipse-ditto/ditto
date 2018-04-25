@@ -1,5 +1,5 @@
 ---
-title: "Ditto's connectivity capabilities are getting pimped"
+title: "Ditto's connectivity capabilities are pimped up"
 published: true
 permalink: 2018-04-16-connectivity-service.html
 layout: post
@@ -16,6 +16,7 @@ microservice. Until now Ditto's `amqp-bridge` service could connect to AMQP1.0 e
 (e.g. [Eclipse Hono](https://www.eclipse.org/hono/)).
 
 That worked quite well, but still had some issues:
+
 * failover/reconnection was not always done properly
 * the current connection state could not yet be retrieved
 * AMQP 1.0 is a great protocol including [reactive principles](https://www.reactivemanifesto.org) but it still is not very "mainstream"
@@ -23,17 +24,18 @@ That worked quite well, but still had some issues:
   could not understand them
 
 Our current implementation focus lies on two GitHub issues resolving those problems:
+
 * [Enhance existing AMQP-bridge with AMQP 0.9.1 connectivity](https://github.com/eclipse/ditto/issues/129)
 * [Support mapping arbitrary message payloads in AMQP-bridge](https://github.com/eclipse/ditto/issues/130)
 
 
-## Changes + Enhancements
+## Changes and Enhancements
 
 
 ### Renaming
 
-With the new responsibilities of the former amqp-bridge we are renaming the `amqp-bridge-service` to `connectivity-service`. <br/>
-The Docker image and the maven artifacts are affected by this change.
+With the new responsibilities of the former amqp-bridge we have renamed the `amqp-bridge-service` to `connectivity-service`. <br/>
+The Docker image and the Maven artifacts are affected by this change.
 
 
 ### Enhanced connectivity
@@ -47,12 +49,12 @@ Need to connect to a Kafka in order to process digital twin [commands](basic-sig
 [change notifications](basic-changenotifications.html)? <br />
 Or want to send all state changes happening to twins to a time series database?
 
-The `connectivity` service is the new place to do integration of your managed digital twins with other systems. 
+The `connectivity` service is the new place to integrate your managed digital twins with other systems. 
 
 
 ### JSON format of connections
 
-As Ditto now supports not only AMQP 1.0, we had to adjust the JSON format for creating new connections. 
+As Ditto now supports more than AMQP 1.0, we had to adjust the JSON format for creating new connections. 
 The new one is documented here: [Connectivity DevOps commands](installation-operating.html#connectivity-service-commands)
 
 
@@ -61,11 +63,12 @@ The new one is documented here: [Connectivity DevOps commands](installation-oper
 Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. In order to
 provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based [model](basic-overview.html).
 
-Devices in the IoT, may them be brownfield devices or newly produced devices, will probably not send their data to the
+Devices in the IoT, may they be brownfield devices or newly produced devices, will probably not send their data to the
 cloud in the structure and [protocol](protocol-overview.html) Ditto requires. They should not need to be aware of something
 like Ditto running in the cloud mirroring them as digital twins.
 
 That's why we added a JavaScript based payload mapping to the `connectivity` service which is responsible for:
+
 * transforming text- or byte-payload from messages consumed via a `source` of a created connection to 
   [Ditto Protocol](protocol-overview.html) [commands](basic-signals-command.html) and [messages](basic-messages.html)
 * transforming back [responses](basic-signals-commandresponse.html) issued by commands and [events](basic-signals-event.html)
