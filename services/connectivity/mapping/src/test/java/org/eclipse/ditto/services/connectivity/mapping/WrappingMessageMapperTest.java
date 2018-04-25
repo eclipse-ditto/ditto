@@ -64,9 +64,9 @@ public class WrappingMessageMapperTest {
     public void configure() {
         when(mockConfiguration.findContentType()).thenReturn(Optional.of("contentType"));
 
-        underTest.configure(mockConfiguration);
+        underTest.configure(null, mockConfiguration);
 
-        verify(mockMapper).configure(mockConfiguration);
+        verify(mockMapper).configure(null, mockConfiguration);
     }
 
     @Test

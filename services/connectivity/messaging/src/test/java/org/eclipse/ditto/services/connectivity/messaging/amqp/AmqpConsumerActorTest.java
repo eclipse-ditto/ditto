@@ -175,7 +175,7 @@ public class AmqpConsumerActorTest {
     }
 
     private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, ((ExtendedActorSystem) actorSystem).dynamicAccess(),
+        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
                 Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

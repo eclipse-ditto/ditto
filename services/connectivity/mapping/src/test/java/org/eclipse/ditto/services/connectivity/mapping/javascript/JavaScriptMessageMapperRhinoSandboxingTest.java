@@ -25,6 +25,9 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} sandboxing capabilities by trying to exploit CPU time, exiting, etc.
  */
@@ -90,7 +93,12 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
 
     private MessageMapper createMapper(final String maliciousStuff) {
         final MessageMapper mapper = MessageMappers.createJavaScriptMessageMapper();
-        mapper.configure(
+        final Config mappingConfig = ConfigFactory.parseString("javascript {\n" +
+                "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                "        maxScriptExecutionTime = 500ms\n" +
+                "        maxScriptStackDepth = 10\n" +
+                "      }");
+        mapper.configure(mappingConfig,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
                         .contentType("text/plain")

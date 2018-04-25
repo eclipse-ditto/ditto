@@ -76,8 +76,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
-import akka.actor.DynamicAccess;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
@@ -659,7 +657,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            MessageMappingProcessor.of(connectionId(), mappingContext, getDynamicAccess(), log);
+            MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), log);
             return CompletableFuture.completedFuture(new Status.Success("mapping"));
         } catch (final DittoRuntimeException dre) {
             log.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -682,7 +680,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final MessageMappingProcessor processor;
             try {
                 // this one throws DittoRuntimeExceptions when the mapper could not be configured
-                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getDynamicAccess(), log);
+                processor = MessageMappingProcessor.of(connectionId(), mappingContext, getContext().getSystem(), log);
             } catch (final DittoRuntimeException dre) {
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -736,10 +734,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final ConnectionFailedException failedException =
                 ConnectionFailedException.newBuilder(connectionId).message(message).build();
         getSender().tell(new Status.Failure(failedException), getSelf());
-    }
-
-    private DynamicAccess getDynamicAccess() {
-        return ((ExtendedActorSystem) getContext().getSystem()).dynamicAccess();
     }
 
     /**

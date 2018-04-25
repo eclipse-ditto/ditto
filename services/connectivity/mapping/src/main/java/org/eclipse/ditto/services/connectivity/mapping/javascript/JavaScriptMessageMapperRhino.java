@@ -53,6 +53,8 @@ import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.Undefined;
 import org.mozilla.javascript.typedarrays.NativeArrayBuffer;
 
+import com.typesafe.config.Config;
+
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
  */
@@ -75,6 +77,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private static final String INCOMING_FUNCTION_NAME = "mapToDittoProtocolMsgWrapper";
     private static final String OUTGOING_FUNCTION_NAME = "mapFromDittoProtocolMsgWrapper";
 
+    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_SIZE_BYTES = "javascript.maxScriptSizeBytes";
+    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_EXECUTION_TIME = "javascript.maxScriptExecutionTime";
+    private static final String CONFIG_JAVASCRIPT_MAX_SCRIPT_STACK_DEPTH = "javascript.maxScriptStackDepth";
+
     @Nullable
     private ContextFactory contextFactory;
     @Nullable
@@ -87,10 +93,10 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     }
 
     @Override
-    public void configure(final MessageMapperConfiguration options) {
+    public void configure(final Config mappingConfig, final MessageMapperConfiguration options) {
         this.configuration = new ImmutableJavaScriptMessageMapperConfiguration.Builder(options.getProperties()).build();
 
-        final int maxScriptSizeBytes = configuration.getMaxScriptSizeBytes();
+        final int maxScriptSizeBytes = mappingConfig.getInt(CONFIG_JAVASCRIPT_MAX_SCRIPT_SIZE_BYTES);
         final Integer incomingScriptSize = configuration.getIncomingScript().map(String::length).orElse(0);
         final Integer outgoingScriptSize = configuration.getOutgoingScript().map(String::length).orElse(0);
 
@@ -102,8 +108,9 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     .build();
         }
 
-        contextFactory = new SandboxingContextFactory(configuration.getMaxScriptExecutionTime(),
-                configuration.getMaxScriptStackDepth());
+        contextFactory = new SandboxingContextFactory(
+                mappingConfig.getDuration(CONFIG_JAVASCRIPT_MAX_SCRIPT_EXECUTION_TIME),
+                mappingConfig.getInt(CONFIG_JAVASCRIPT_MAX_SCRIPT_STACK_DEPTH));
 
         try {
             // create scope once and load the required libraries in order to get best performance:

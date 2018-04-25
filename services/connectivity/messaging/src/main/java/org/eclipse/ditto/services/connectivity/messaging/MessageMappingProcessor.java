@@ -37,7 +37,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 
-import akka.actor.DynamicAccess;
+import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import kamon.Kamon;
 import kamon.trace.Segment;
@@ -73,7 +73,7 @@ public final class MessageMappingProcessor {
      * to instantiate message mappers for an actor system
      *
      * @param mappingContext the mapping Context
-     * @param access the dynamic access used for message mapper instantiation
+     * @param actorSystem the dynamic access used for message mapper instantiation
      * @param log the log adapter
      * @return the processor instance
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException if the configuration of
@@ -82,8 +82,8 @@ public final class MessageMappingProcessor {
      * one of the {@code mappingContext} failed for a mapper specific reason
      */
     public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
-            final DynamicAccess access, final DiagnosticLoggingAdapter log) {
-        final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(access, MessageMappers.class, log)
+            final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
+        final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
         return new MessageMappingProcessor(connectionId, registry, log);
     }

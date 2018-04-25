@@ -20,6 +20,8 @@ import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
+import com.typesafe.config.Config;
+
 /**
  * Defines a message mapper which maps a {@link org.eclipse.ditto.model.connectivity.ExternalMessage} to a
  * {@link org.eclipse.ditto.protocoladapter.Adaptable} and vice versa.
@@ -34,12 +36,13 @@ public interface MessageMapper {
     /**
      * Applies configuration for this MessageMapper.
      *
+     * @param mappingConfig the ActorSystem's Config scoped to the mapping section "ditto.connectivity.mapping"
      * @param configuration the configuration to apply
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration failed
      * for a mapper specific reason
      */
-    void configure(MessageMapperConfiguration configuration);
+    void configure(Config mappingConfig, MessageMapperConfiguration configuration);
 
     /**
      * Returns the content type of this mapper. This can be used as a hint for mapper selection.

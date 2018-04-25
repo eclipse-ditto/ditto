@@ -40,7 +40,6 @@ import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
@@ -149,7 +148,7 @@ public class MessageMappingProcessorActorTest {
     }
 
     private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, ((ExtendedActorSystem) actorSystem).dynamicAccess(),
+        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
                 Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 

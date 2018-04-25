@@ -77,9 +77,6 @@ The Ditto `JavaScript` mapping engine does support the following configuration o
 * `outgoingScript` (string): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
 * `loadBytebufferJS` (boolean): whether to load the [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) library
 * `loadLongJS` (boolean): whether to load the [long.js](https://github.com/dcodeIO/long.js) library
-* `maxScriptSizeBytes` (number): maximum script size of `incomingScript` and `outgoingScript` in bytes - default: *50* KB
-* `maxScriptExecutionTime` (number): maximum script execution time in milliseconds before it gets terminated - default: *500*
-* `maxScriptStackDepth` (number): maximum call stack depth of the scripts - default: *10*
 
 
 ### Constraints

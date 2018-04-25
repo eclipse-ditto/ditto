@@ -33,13 +33,17 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.javadsl.TestKit;
 
 @SuppressWarnings("NullableProblems")
 public class MessageMapperFactoryTest {
+
+    private final static Config TEST_CONFIG = ConfigFactory.parseString("ditto.connectivity.mapping{}");
 
     private static ActorSystem system;
 
@@ -47,7 +51,7 @@ public class MessageMapperFactoryTest {
 
     @BeforeClass
     public static void setup() {
-        system = ActorSystem.create();
+        system = ActorSystem.create("test", TEST_CONFIG);
     }
 
     @AfterClass
@@ -59,7 +63,7 @@ public class MessageMapperFactoryTest {
     @Before
     public void setUp() {
         DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
-        factory = DefaultMessageMapperFactory.of(((ExtendedActorSystem) system).dynamicAccess(), Mappers.class, log);
+        factory = DefaultMessageMapperFactory.of(system, Mappers.class, log);
     }
 
     @After
