@@ -1,7 +1,7 @@
 ---
 title: "Ditto's connectivity capabilities are getting pimped"
 published: true
-permalink: 2018-04-16-connectivity-service.html
+permalink: 2018-04-25-connectivity-service.html
 layout: post
 author: thomas_jaeckle
 tags: [blog]
@@ -9,13 +9,13 @@ hide_sidebar: true
 sidebar: false
 ---
 
-TODO adjust date before publishing blog post
-
 It has been quite lately on our website and on GitHub as the Ditto team currently prepares its new `connectivity` 
 microservice. Until now Ditto's `amqp-bridge` service could connect to AMQP1.0 endpoints 
 (e.g. [Eclipse Hono](https://www.eclipse.org/hono/)).
 
 That worked quite well, but still had some issues:
+
+
 * failover/reconnection was not always done properly
 * the current connection state could not yet be retrieved
 * AMQP 1.0 is a great protocol including [reactive principles](https://www.reactivemanifesto.org) but it still is not very "mainstream"
@@ -66,6 +66,8 @@ cloud in the structure and [protocol](protocol-overview.html) Ditto requires. Th
 like Ditto running in the cloud mirroring them as digital twins.
 
 That's why we added a JavaScript based payload mapping to the `connectivity` service which is responsible for:
+
+
 * transforming text- or byte-payload from messages consumed via a `source` of a created connection to 
   [Ditto Protocol](protocol-overview.html) [commands](basic-signals-command.html) and [messages](basic-messages.html)
 * transforming back [responses](basic-signals-commandresponse.html) issued by commands and [events](basic-signals-event.html)
@@ -77,6 +79,8 @@ The `incoming` and `outgoing` scripts must be configured when creating a new con
 
 ## Example
 Please find more information and examples at:
+
+
 * [Connectivity overview](connectivity-overview.html)
 * [Payload mapping in connectivity](connectivity-mapping.html)
 
