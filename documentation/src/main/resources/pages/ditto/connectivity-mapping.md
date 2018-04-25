@@ -1,26 +1,25 @@
 ---
-title: Payload mapping in connectivity
+title: Payload mapping in connectivity service
 keywords: mapping, transformation, payload, javascript
 tags: [connectivity]
 permalink: connectivity-mapping.html
 ---
 
-The payload mapping feature in Ditto's connectivity APIs can be used to transform arbitrary payload consumed via the 
-different supported protocols to [Ditto Protocol](protocol-overview.html) messages and vice versa.
+
 
 ## Motivation
 
 Eclipse Ditto is about providing access to IoT devices via the [digital twin](intro-digitaltwins.html) pattern. In order to
 provide structured APIs for different heterogeneous devices Ditto defines a lightweight JSON based [model](basic-overview.html).
 
-For example a [Thing](basic-thing.html) could look like this:
+A [Thing](basic-thing.html) might look like in the following example:
 
 ```json
 {
   "thingId": "the.namespace:the-thing-id",
   "policyId": "the.namespace:the-policy-id",
   "attributes": {
-    "location": "Kitchen"
+    "location": "kitchen"
   },
   "features": {
     "transmission": {
@@ -32,7 +31,7 @@ For example a [Thing](basic-thing.html) could look like this:
 }
 ```
 
-Devices in the IoT, may them be brownfield devices or newly produced devices, will probably not send their data to the
+Devices in the IoT, may they be brownfield devices or newly produced devices, will probably not send their data to the
 cloud in the structure and [protocol](protocol-overview.html) Ditto requires.
 
 They should not need to be aware of something like Ditto running in the cloud mirroring them as digital twins.
@@ -46,18 +45,21 @@ So for example device payload could look like this:
 }
 ```
 
-Or could even look like this (binary payload, used for example in constrained devices or IoT protocols):
+In case of constrained devices or IoT protocols, even binary payload might be common.
 
 ```
 0x08BD (hex representation)
 ```
+
+The payload mapping feature in Ditto's connectivity APIs can be used to transform arbitrary payload consumed via the 
+different supported protocols to [Ditto Protocol](protocol-overview.html) messages and vice versa.
 
 ## JavaScript mapping engine
 
 Ditto utilizes the [Rhino](https://github.com/mozilla/rhino) JavaScript engine for Java for evaluating the JavaScript
 to apply for mapping payloads.
 
-Using Rhino instead of the newer JavaScript engine shipped with Java, Nashorn, has the benefit that sandboxing can be 
+Using Rhino instead of Nashorn, the newer JavaScript engine shipped with Java, has the benefit that sandboxing can be 
 applied in a better way. 
 
 Sandboxing of different payload scripts is required as Ditto is intended to be run as cloud service where multiple
@@ -70,19 +72,19 @@ script may not interfere with other scripts or even do harm to the complete JVM 
 The Ditto `JavaScript` mapping engine does support the following configuration options:
 
 
-* `incomingScript` (String): the JavaScript function to invoke in order to transform incoming external messages to Ditto Protocol messages
-* `outgoingScript` (String): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
+* `incomingScript` (string): the JavaScript function to invoke in order to transform incoming external messages to Ditto Protocol messages
+* `outgoingScript` (string): the JavaScript function to invoke in order to transform outgoing Ditto Protocol messages to external messages 
 * `loadBytebufferJS` (boolean): whether to load the [bytebuffer.js](https://github.com/dcodeIO/bytebuffer.js) library
 * `loadLongJS` (boolean): whether to load the [long.js](https://github.com/dcodeIO/long.js) library
 * `maxScriptSizeBytes` (number): maximum script size of `incomingScript` and `outgoingScript` in bytes - default: *50* KB
-* `maxScriptExecutionTime` (number): maximum script execution time in milliseconds before it gets terminates - default: *500*
+* `maxScriptExecutionTime` (number): maximum script execution time in milliseconds before it gets terminated - default: *500*
 * `maxScriptStackDepth` (number): maximum call stack depth of the scripts - default: *10*
 
 
 ### Constraints
 
-Rhino does not fully support EcmaScript 6, please have a look here on what language constructs are supported before using
-them in a mapping function: [http://mozilla.github.io/rhino/compat/engines.html](http://mozilla.github.io/rhino/compat/engines.html).
+Rhino does not fully support EcmaScript 6. Check which language constructs are supported before using
+them in a mapping function. See [http://mozilla.github.io/rhino/compat/engines.html](http://mozilla.github.io/rhino/compat/engines.html).
 
 #### Sandboxing
 
@@ -109,7 +111,7 @@ In order to work more conveniently with binary payloads, the following libraries
 
 ### Helper functions
 
-Ditto comes with a few helper functions which makes writing the mapping scripts easier. They are available under the
+Ditto comes with a few helper functions, which makes writing the mapping scripts easier. They are available under the
 `Ditto` scope:
 
 ```javascript
@@ -198,7 +200,7 @@ let asByteBuffer = function(arrayBuffer) {
 
 ### Mapping incoming messages
 
-Incoming external messages can be mapped to Ditto Protocol message by implementing the following JavaScript function:
+Incoming external messages can be mapped to Ditto Protocol conform messages by implementing the following JavaScript function:
 
 ```javascript
 /**
@@ -240,7 +242,7 @@ message.
 
 ### Mapping outgoing messages
 
-Outgoing Ditto Protocol message (e.g. [responses](basic-signals-commandresponse.html) or [events](basic-signals-event.html)) 
+Outgoing Ditto Protocol messages (e.g. [responses](basic-signals-commandresponse.html) or [events](basic-signals-event.html)) 
 can be mapped to external messages by implementing the following JavaScript function:
 
 ```javascript
@@ -289,7 +291,7 @@ message.
 
 ## JavaScript payload types
 
-Both text payloads and byte payloads may be mapped.
+Both, text payloads and byte payloads may be mapped.
 
 ### Text payloads
 
@@ -405,7 +407,7 @@ We want to map a single message of this device containing updates for all 3 valu
 }
 ```
 
-So we define following `incoming` mapping function:
+Therefore, we define following `incoming` mapping function:
 
 ```javascript
 function mapToDittoProtocolMsg(
@@ -464,20 +466,20 @@ Your digital twin is updated by applying the specified script and extracting the
 
 ### Bytes payload example
 
-For this example let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) HTTP adapter into the cloud.
-An example payload of your device is (displayed as hexadecimal):
+For this example, let's assume your device sends telemetry data via [Eclipse Hono's](https://www.eclipse.org/hono/) HTTP adapter into the cloud.
+An example payload of your device - displayed as hexadecimal - is:
 
 ```
 0x09EF03F72A
 ```
 
-Let us now assume that
-* the first 2 bytes `09 EF` represent the temperature as 16bit signed integer (so may also be negative)<br/>
-  this is not a float in oder to save space as float needs at least 32 bit
-* the second 2 bytes `03 F7` represent the pressure as 16bit signed integer
-* the last byte `2A` represents the humidity as 8bit unsigned integer
+Let us now also assume that
 
-of our device.
+* the first 2 bytes `09 EF` represent 
+  * the temperature as 16bit signed integer (thus, may also be negative)
+  * this is not a float in oder to save space (as float needs at least 32 bit)
+* the second 2 bytes `03 F7` represent the pressure as 16bit signed integer
+* the last byte `2A` represents the humidity as 8bit unsigned integer of our device.
 
 We want to map a single message of this device containing updates for all 3 values to a Thing in the following structure:
 
@@ -505,7 +507,7 @@ We want to map a single message of this device containing updates for all 3 valu
 }
 ```
 
-So we define following `incoming` mapping function:
+Therefore, we define following `incoming` mapping function:
 
 ```javascript
 function mapToDittoProtocolMsg(
@@ -567,8 +569,8 @@ Your digital twin is updated by applying the specified script and extracting the
 
 ## Custom Java based implementation
 
-Besides from the JavaScript based mapping which can be configured/changed at runtime without the need of restarting the
-connectivity service there is also the possibility to implement a custom Java based mapper.
+Besides from the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
+connectivity service - there is also the possibility to implement a custom Java based mapper.
 
 The interface to be implemented is `org.eclipse.ditto.services.connectivity.mapping.MessageMapper` (TODO insert link to GitHub)
 with the following signature to implement (this is only en expert, the sources contain JavaDoc): 
@@ -588,12 +590,14 @@ After instantiation of the custom `MessageMapper`, the `configure` method is cal
 provided to the mapper in the [configured connection](connectivity-manage-connections.html#create-connection). Use that
 in order to pass in configurations, thresholds, etc.
 
-Then simply implement both of the `map` methods:
+Then, simply implement both of the `map` methods:
+
 * `Optional<Adaptable> map(ExternalMessage message)` maps from an incoming external message to a [Ditto Protocol](protocol-overview.html) `Adaptable`
 * `Optional<ExternalMessage> map(Adaptable adaptable)` maps from an outgoing [Ditto Protocol](protocol-overview.html) `Adaptable` to an external message
 
 In order to use this custom Java based mapper implementation, two steps are required:
-* the Class has obviously be on the classpath of the [connectivity](architecture-services-connectivity.html) microservice 
+
+* the Class needs obviously to be on the classpath of the [connectivity](architecture-services-connectivity.html) microservice 
   in order to be loaded
 * when creating a new connection you have to specify the full qualified classname of your class as `mappingEngine` in the
   connection's `mappingContext`

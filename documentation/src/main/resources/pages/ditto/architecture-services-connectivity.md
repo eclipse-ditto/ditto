@@ -10,12 +10,12 @@ permalink: architecture-services-connectivity.html
     include note.html content="In Ditto 0.1.0-M2 the AMQP-Bridge service was added with the goal to be able to establish connections to 
                                 [Eclipse Hono](https://eclipse.org/hono/) as well as other [AMQP 1.0] endpoints. 
                                 With Ditto 0.3.0-M1 the AMQP-Bridge architecture became more modular and extensible to support additional 
-                                protocols beside [AMQP 1.0]. Therefore it was renamed to connectivity service."
+                                protocols beside [AMQP 1.0]. Therefore, it was renamed to connectivity service."
   %}
 
 The "connectivity" service enables Ditto to establish and manage client-side connections to external service endpoints.
  You can communicate with your connected things/twins over those connections via [Ditto Protocol] messages. The 
- connectivity service supports varying transport protocols, which are bound to the [Ditto Protocol] via specific 
+ connectivity service supports various transport protocols, which are bound to the [Ditto Protocol] via specific 
  [Protocol Bindings].
  
 If you don't have the option to transform your payload to a [Ditto Protocol Message] on the client-side, the 

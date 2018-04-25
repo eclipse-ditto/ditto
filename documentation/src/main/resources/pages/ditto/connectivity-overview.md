@@ -9,7 +9,7 @@ The Connectivity API is a bare management API for Ditto's [Connectivity Service]
 .html). It completely depends on [DevOps Commands](/installation-operating.html#devops-commands) for connection
 management.
 
-Use it to manage client connections to remote systems and exchange [Ditto Protocol](/protocol-specification
+Use it to manage client connections to remote systems and to exchange [Ditto Protocol](/protocol-specification
 .html) messages with those. If a remote system is unable to send messages in the necessary format, there is the option
 to configure custom payload mapping logic to adapt to almost any message format and encoding.
 

@@ -1,13 +1,13 @@
 ---
-title: Manage connections in connectivity
+title: Manage connections
 keywords: 
 tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
 
 In order to manage (CRUD) connections in Ditto [DevOps commands](installation-operating.html#connectivity-service-commands)
-have to be used. There is no separate HTTP API for managing the connections as this is not a task for a developer using 
-the digital twin APIs but more for a "devops engineer" creating new connections to external systems very seldom.
+have to be used. There is no separate HTTP API for managing the connections, as this is not a task for a developer using 
+the digital twin APIs but more for a "DevOps engineer" creating new connections to external systems.
 
 All connection related piggyback commands use the following HTTP endpoint:
 
@@ -24,7 +24,7 @@ The following commands are available in order to manage connections:
 * [retrieve](#retrieve-connection)
 * [delete](#delete-connection)
 
-A "modify" is currently not available, use delete + create in order to modify existing connections.
+A "modify" is currently not available, use delete and create in order to modify existing connections.
 
 ### Create connection
 
@@ -80,7 +80,7 @@ The only parameter necessary for connection deletion is the `connectionId`:
 
 ## Helper commands
 
-The following commands are available in help creating connections + retrieve the status of existing connections:
+The following commands are available to help creating connections and retrieving the status of existing connections:
 
 
 * [test](#test-connection)
@@ -89,7 +89,7 @@ The following commands are available in help creating connections + retrieve the
 
 ### Test connection
 
-Run a test connection command prior creating a persisted connection to validate the connection configuration. This
+Run a test connection command before creating a persisted connection to validate the connection configuration. This
 command checks the configuration and establishes a connection to the remote endpoint in order to validate the connection
 credentials. The test connection is closed afterwards and will not be persisted. Analog to the [createConnection](#create-connection)
 command, it requires a full connection configuration in the piggyback command.
@@ -108,7 +108,7 @@ command, it requires a full connection configuration in the piggyback command.
 ### Retrieve connection status
 
 This command returns the connection status. It shows if a connection is currently enabled/disabled. The only parameter
-necessary for connection deletion is the `connectionId`:
+necessary for retrieving the connection status is the `connectionId`:
 
 ```json
 {
@@ -124,7 +124,7 @@ necessary for connection deletion is the `connectionId`:
 ### Retrieve connection metrics
 
 This command returns the connection activity. It shows if a connection is currently established. The only parameter
-necessary for connection deletion is the `connectionId`:
+necessary for retrieving the connection metrics is the `connectionId`:
 
 ```json
 {
@@ -141,8 +141,8 @@ necessary for connection deletion is the `connectionId`:
 ## Payload mapping configuration
 
 To enable a custom [payload mapping](/connectivity-mapping.html) for a specific connection, you have to configure a
-mapping context in the connection configuration object. The following example shows an example `mappingContext`. This
-configuration must be embeded in the connection configuration as shown in the [Connections](/basic-connections.html) section.
+mapping context in the connection configuration object. The following snippet shows an example `mappingContext`. This
+configuration must be embedded in the connection configuration as shown in the [Connections](/basic-connections.html) section.
 
 ```json
 "mappingContext": {

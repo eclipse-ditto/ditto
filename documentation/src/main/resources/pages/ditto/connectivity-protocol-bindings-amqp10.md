@@ -5,8 +5,8 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-amqp10.html
 ---
 
-The Ditto Protocol message can be sent *as is* as **AMQP 1.0** message.
-The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
+Any Ditto Protocol message can be sent *as is* as **AMQP 1.0** message.
+The Ditto Protocol JSON must be sent as `UTF-8` encoded string payload.
 
 The `content-type` of AMQP 1.0 messages must be set to:
 
@@ -25,7 +25,7 @@ Supported AMQP 1.0 properties which are interpreted in a specific way are:
 
 ### Source format
 
-Any `source` item defines an `addresses` array of source identifiers (e.g. Hono's [Telemetry API](https://www.eclipse
+Any `source` item defines an `addresses` array of source identifiers (e.g. Eclipse Hono's [Telemetry API](https://www.eclipse
 .org/hono/api/telemetry-api)) to consume messages from.
 
 ```json

@@ -5,8 +5,8 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-amqp091.html
 ---
 
-The Ditto Protocol message can be sent *as is* as **AMQP 0.9.1** message.
-The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
+Any Ditto Protocol message can be sent *as is* as **AMQP 0.9.1** message.
+The Ditto Protocol JSON must be sent as `UTF-8` encoded string payload.
 
 The `content-type` of AMQP 0.9.1 messages must be set to:
 
@@ -98,7 +98,7 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
 
 ## Messages
 
-Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
+Messages consumed via the AMQP 0.9.1 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
 shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
 Protocol](protocol-overview.html), you can configure a custom [payload mapping](/connectivity-mapping.html).

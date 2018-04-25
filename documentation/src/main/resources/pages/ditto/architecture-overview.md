@@ -16,6 +16,7 @@ the external dependencies (MongoDB and nginx) and the relations of the services 
 {% include image.html file="pages/architecture/context-overview.png" alt="Ditto services and context" caption="Ditto services in blue and context with nginx as reverse proxy and MongoDB" max-width=800 %}
 
 The components have the following tasks:
+
 * [Policies](architecture-services-policies.html): persistence of [Policies](basic-policy.html)
 * [Things](architecture-services-things.html): persistence of [Things](basic-thing.html) and [Features](basic-feature.html)
 * [Things-Search](architecture-services-things-search.html): tracking changes to `Things`, `Features`, `Policies` and 
@@ -30,6 +31,7 @@ The components have the following tasks:
 Ditto consists of multiple "microservices" as shown in the above component view.
 
 A "microservice" in Ditto is defined as:
+
 * has its own data store which only this microservice may access and write to
 * has an API in form of [signals](basic-signals.html) (commands, command responses, events)
 * can be accessed by other services only via the defined [signals](basic-signals.html)
