@@ -5,6 +5,9 @@ tags: [connectivity]
 permalink: connectivity-mapping.html
 ---
 
+{% include callout.html content="**TL;DR**<br/>The payload mapping feature in Ditto's connectivity APIs can be used to 
+    transform arbitrary payload consumed via the different supported protocols 
+    to [Ditto Protocol](protocol-overview.html) messages and vice versa." type="primary" %}
 
 
 ## Motivation
@@ -51,8 +54,6 @@ In case of constrained devices or IoT protocols, even binary payload might be co
 0x08BD (hex representation)
 ```
 
-The payload mapping feature in Ditto's connectivity APIs can be used to transform arbitrary payload consumed via the 
-different supported protocols to [Ditto Protocol](protocol-overview.html) messages and vice versa.
 
 ## JavaScript mapping engine
 
