@@ -23,5 +23,5 @@ public final class DittoConstants {
     /**
      * Defines the Ditto Protocol Content-Type.
      */
-    public static String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
+    public static final String DITTO_PROTOCOL_CONTENT_TYPE = "application/vnd.eclipse.ditto+json";
 }
