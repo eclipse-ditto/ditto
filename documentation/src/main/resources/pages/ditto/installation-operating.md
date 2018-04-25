@@ -203,5 +203,5 @@ Example:
 ```
 
 Currently piggybacks are only used to configure Dittos connectivity service. More information on this can be found in
-the [Manage Connections](/connectivity-manage-connections.html) section.
+the [Manage Connections](connectivity-manage-connections.html) section.
 

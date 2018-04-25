@@ -5,14 +5,15 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-amqp10.html
 ---
 
-The Ditto Protocol message can be sent *as is* as **AMQP 1.0** message.
-The Ditto Protocol JSON must be sent as `UTF-8` encoded String payload.
-
-The `content-type` of AMQP 1.0 messages must be set to:
+When messages are sent in [Ditto Protocol](protocol-overview.html) (as `UTF-8` encoded String payload), 
+the `content-type` of AMQP 1.0 messages must be set to:
 
 ```
 application/vnd.eclipse.ditto+json
 ```
+
+If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+be configured for the AMQP 1.0 connection in order to transform the messages. 
 
 ## AMQP 1.0 properties
 
@@ -25,8 +26,8 @@ Supported AMQP 1.0 properties which are interpreted in a specific way are:
 
 ### Source format
 
-Any `source` item defines an `addresses` array of source identifiers (e.g. Hono's [Telemetry API](https://www.eclipse
-.org/hono/api/telemetry-api)) to consume messages from.
+Any `source` item defines an `addresses` array of source identifiers (e.g. Hono's 
+[Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
 
 ```json
 {
@@ -41,12 +42,12 @@ Any `source` item defines an `addresses` array of source identifiers (e.g. Hono'
 
 An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source
 identifier. It is continued with a list of topic strings, each representing a subscription of a Ditto
-[protocol topic](/protocol-specification-topic.html).
+[protocol topic](protocol-specification-topic.html).
 
 
 ```json
 {
-  "address": "events/twin",
+  "address": "<target>",
   "topics": [
     "_/_/things/twin/events",
     "_/_/things/live/messages"
@@ -56,9 +57,9 @@ identifier. It is continued with a list of topic strings, each representing a su
 
 ### Specific configuration properties
 
-The specific configuration properties are interpreted as [JMS Configuration options](https://qpid.apache
-.org/releases/qpid-jms-0.30.0/docs/index.html#jms-configuration-options). Use these to customize and tweak your
-connection as needed.
+The specific configuration properties are interpreted as 
+[JMS Configuration options](https://qpid.apache.org/releases/qpid-jms-0.30.0/docs/index.html#jms-configuration-options). 
+Use these to customize and tweak your connection as needed.
 
 
 
@@ -68,7 +69,7 @@ Ditto's [Connectivity service](architecture-services-connectivity.html) is respo
 existing connections.
 
 This can be done dynamically at runtime without the need to restart any microservice using a
-[Ditto operations command](installation-operating.html#connectivity-service-commands).
+[Ditto DevOps command](installation-operating.html#devops-commands).
 
 Example connection configuration to create a new AMQP 1.0 connection:
 
@@ -76,6 +77,7 @@ Example connection configuration to create a new AMQP 1.0 connection:
 {
   "id": "hono-example-connection-123",
   "connectionType": "amqp-10",
+  "connectionStatus": "open",
   "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
   "failoverEnabled": true,
   "uri": "amqps://user:password@hono.eclipse.org:5671",
@@ -102,4 +104,4 @@ Example connection configuration to create a new AMQP 1.0 connection:
 Messages consumed via the AMQP 1.0 binding are treated similar to the [WebSocket binding](httpapi-protocol-bindings-websocket.html)
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as JSON (as 
 shown for example in the [protocol examples](protocol-examples.html)). If your payload is not conform to the [Ditto
-Protocol](protocol-overview.html), you can configure a custom [payload mapping](/connectivity-mapping.html).
+Protocol](protocol-overview.html), you can configure a custom [payload mapping](connectivity-mapping.html).

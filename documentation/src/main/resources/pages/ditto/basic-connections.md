@@ -1,12 +1,12 @@
 ---
 title: Connections
 keywords: connection, connectivity, mapping, connection, integration
-tags: [connection, connectivity]
+tags: [connectivity]
 permalink: basic-connections.html
 ---
 
   {%
-    include note.html content="To get started with connections right away, consolidate the [Manage connections](/connectivity-manage-connections.html) 
+    include note.html content="To get started with connections right away, consolidate the [Manage connections](connectivity-manage-connections.html) 
                                page for the administration guide. "
   %}
 
@@ -19,8 +19,8 @@ requires a transport protocol which is used to transmit [Ditto Protocol] message
  scenarios. Nevertheless those options can be limited by the used transport protocol and/or the other endpoint's 
  capabilities.
  
-All connections are configured and supervised via Ditto's [Connectivity service](architecture-services-connectivity
-.html). The connection itself is defined by the following model:
+All connections are configured and supervised via Ditto's [Connectivity service](architecture-services-connectivity.html). 
+The connection itself is defined by the following model:
 
 {% include docson.html schema="jsonschema/connection.json" %}
 
@@ -41,9 +41,9 @@ Ditto becomes the client in this case. Nevertheless to access resources within D
 which's behalf it's acting. This is controlled via the configured `authorisationContext`, which holds a list of 
 self-assigned authorization subjects. Before a connection can access a Ditto ressource, one of its 
 `authorizationSubject`s must be referenced in the used authorization mechanism, having the needed access rights. You 
-can achieve this via [ACLs](/basic-acl.html) or [Policies](/basic-policy.html).
+can achieve this via [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
-For more information on the `mappingContext` visit the corresponding [Payload Mapping Documentation](/connectivity-mapping.html)
+For more information on the `mappingContext` visit the corresponding [Payload Mapping Documentation](connectivity-mapping.html)
 
 
 [Connectivity API]: connectivity-overview.html
