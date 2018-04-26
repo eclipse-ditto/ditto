@@ -19,9 +19,8 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Factory for the Protocol Adapter library. Provides many static helper methods.
@@ -212,8 +211,8 @@ public final class ProtocolFactory {
      * @param headers the headers map.
      * @return the headers.
      */
-    public static DittoHeaders newHeaders(final Map<String, String> headers) {
-        return DittoHeaders.of(headers);
+    public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
+        return DittoHeaders.of(headers).toBuilder().contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE).build();
     }
 
     /**

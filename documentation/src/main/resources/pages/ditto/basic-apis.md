@@ -9,7 +9,7 @@ Ditto provides two ways to interact with:
 
 * A [REST-like HTTP API](httpapi-overview.html) with a sophisticated resource layout that allows to create, read,
   update and delete Things and the Thing's data.
-* A JSON-based [WebSocket API](protocol-bindings-websocket.html) implementing the
+* A JSON-based [WebSocket API](httpapi-protocol-bindings-websocket.html) implementing the
   [Ditto Protocol](protocol-overview.html).
 
 

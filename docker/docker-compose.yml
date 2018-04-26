@@ -18,13 +18,13 @@ services:
       default:
         aliases:
           - ditto-cluster
-    command: sh -c "java -jar /starter.jar"
+    entrypoint: sh -c "java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dditto.cluster.become-leader=true
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
@@ -34,13 +34,13 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 10; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
@@ -50,13 +50,13 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 15; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 15; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
@@ -66,7 +66,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 20; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
     ports:
       - "8081:8080"
     environment:
@@ -75,7 +75,7 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   amqp-bridge:
     image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
@@ -86,13 +86,30 @@ services:
     depends_on:
       - policies
       - gateway
-    command: sh -c "sleep 30; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 30; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+
+  connectivity:
+    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - gateway
+    entrypoint: sh -c "sleep 40; java -jar /opt/ditto/starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9

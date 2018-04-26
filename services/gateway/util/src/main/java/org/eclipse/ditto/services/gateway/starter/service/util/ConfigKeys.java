@@ -226,6 +226,13 @@ public final class ConfigKeys {
      */
     public static final String CACHE_PUBLIC_KEYS_EXPIRY = CACHE_PREFIX + "publickeys.expiry";
 
+    private static final String THINGS_AGGREGATOR_PREFIX = GATEWAY_PREFIX + "things-aggregator.";
+
+    /**
+     * The timeout for the ThingsAggregratorActor for retrieving a single Thing.
+     */
+    public static final String THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT = THINGS_AGGREGATOR_PREFIX + "single-retrieve-thing-timeout";
+
 
     private static final String ENFORCER_PREFIX = GATEWAY_PREFIX + "enforcer.";
     /**

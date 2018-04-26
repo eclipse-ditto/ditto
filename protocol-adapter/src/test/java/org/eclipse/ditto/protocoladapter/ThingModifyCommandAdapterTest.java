@@ -55,7 +55,7 @@ public final class ThingModifyCommandAdapterTest {
     private ThingModifyCommandAdapter underTest;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = ThingModifyCommandAdapter.newInstance();
     }
 
@@ -104,7 +104,8 @@ public final class ThingModifyCommandAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final CreateThing createThing = CreateThing.of(TestConstants.THING, null, TestConstants.DITTO_HEADERS_V_2);
+        final CreateThing createThing = CreateThing.of(TestConstants.THING, null,
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(createThing);
 
         assertThat(actual).isEqualTo(expected);
@@ -152,7 +153,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyThing modifyThing =
-                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, TestConstants.DITTO_HEADERS_V_2);
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 
         assertThat(actual).isEqualTo(expected);
@@ -196,7 +198,8 @@ public final class ThingModifyCommandAdapterTest {
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
-        final DeleteThing deleteThing = DeleteThing.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+        final DeleteThing deleteThing =
+                DeleteThing.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteThing);
 
         assertThat(actual).isEqualTo(expected);
@@ -244,7 +247,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyAcl modifyAcl =
-                ModifyAcl.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.DITTO_HEADERS_V_1);
+                ModifyAcl.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAcl);
 
         assertThat(actual).isEqualTo(expected);
@@ -292,7 +295,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyAclEntry modifyAclEntry =
-                ModifyAclEntry.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY, TestConstants.DITTO_HEADERS_V_1);
+                ModifyAclEntry.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAclEntry);
 
         assertThat(actual).isEqualTo(expected);
@@ -336,7 +340,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteAclEntry deleteAclEntry = DeleteAclEntry.of(TestConstants.THING_ID,
-                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAclEntry);
 
         assertThat(actual).isEqualTo(expected);
@@ -386,7 +390,7 @@ public final class ThingModifyCommandAdapterTest {
 
         final ModifyAttributes modifyAttributes =
                 ModifyAttributes.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAttributes);
 
         assertThat(actual).isEqualTo(expected);
@@ -432,7 +436,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteAttributes deleteAttributes =
-                DeleteAttributes.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteAttributes.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttributes);
 
         assertThat(actual).isEqualTo(expected);
@@ -480,7 +484,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyAttribute modifyAttribute = ModifyAttribute.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyAttribute);
 
         assertThat(actual).isEqualTo(expected);
@@ -528,7 +533,7 @@ public final class ThingModifyCommandAdapterTest {
 
         final DeleteAttribute deleteAttribute =
                 DeleteAttribute.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                        TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteAttribute);
 
         assertThat(actual).isEqualTo(expected);
@@ -576,7 +581,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyFeatures modifyFeatures =
-                ModifyFeatures.of(TestConstants.THING_ID, TestConstants.FEATURES, TestConstants.DITTO_HEADERS_V_2);
+                ModifyFeatures.of(TestConstants.THING_ID, TestConstants.FEATURES,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatures);
 
         assertThat(actual).isEqualTo(expected);
@@ -621,7 +627,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteFeatures deleteFeatures =
-                DeleteFeatures.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteFeatures.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatures);
 
         assertThat(actual).isEqualTo(expected);
@@ -669,7 +675,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyFeature modifyFeature =
-                ModifyFeature.of(TestConstants.THING_ID, TestConstants.FEATURE, TestConstants.DITTO_HEADERS_V_2);
+                ModifyFeature.of(TestConstants.THING_ID, TestConstants.FEATURE,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeature);
 
         assertThat(actual).isEqualTo(expected);
@@ -715,7 +722,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteFeature deleteFeature =
-                DeleteFeature.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, TestConstants.DITTO_HEADERS_V_2);
+                DeleteFeature.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeature);
 
         assertThat(actual).isEqualTo(expected);
@@ -763,7 +771,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyFeatureDefinition modifyFeatureDefinition = ModifyFeatureDefinition.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureDefinition);
 
         assertThat(actual).isEqualTo(expected);
@@ -809,7 +817,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteFeatureDefinition deleteFeatureDefinition = DeleteFeatureDefinition.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureDefinition);
 
         assertThat(actual).isEqualTo(expected);
@@ -857,7 +865,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyFeatureProperties modifyFeatureProperties = ModifyFeatureProperties.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTIES, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
@@ -903,7 +911,7 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteFeatureProperties deleteFeatureProperties = DeleteFeatureProperties.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
@@ -958,7 +966,7 @@ public final class ThingModifyCommandAdapterTest {
 
         final ModifyFeatureProperty modifyFeatureProperty = ModifyFeatureProperty.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyFeatureProperty);
 
         assertThat(actual).isEqualTo(expected);
@@ -1009,7 +1017,8 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final DeleteFeatureProperty deleteFeatureProperty = DeleteFeatureProperty.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureProperty);
 
         assertThat(actual).isEqualTo(expected);

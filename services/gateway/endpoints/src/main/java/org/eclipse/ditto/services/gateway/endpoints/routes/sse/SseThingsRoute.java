@@ -44,17 +44,17 @@ import org.eclipse.ditto.services.gateway.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
-import de.heikoseeberger.akkasse.javadsl.marshalling.EventStreamMarshalling;
-import de.heikoseeberger.akkasse.javadsl.model.MediaTypes;
-import de.heikoseeberger.akkasse.javadsl.model.ServerSentEvent;
-
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
+import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.http.scaladsl.model.sse.ServerSentEvent$;
 import akka.japi.JavaPartialFunction;
 import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
@@ -156,7 +156,7 @@ public class SseThingsRoute extends AbstractRoute {
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
                         .keepAlive(FiniteDuration.apply(1, TimeUnit.SECONDS),
-                                de.heikoseeberger.akkasse.scaladsl.model.ServerSentEvent::heartbeat);
+                                ServerSentEvent$.MODULE$::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }

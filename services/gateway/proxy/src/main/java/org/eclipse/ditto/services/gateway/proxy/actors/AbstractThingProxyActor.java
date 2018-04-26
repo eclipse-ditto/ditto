@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -117,8 +121,19 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 .match(org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand.class,
                         forwardToLocalEnforcerLookup(thingEnforcerLookup))
 
+                /* Live Signal Responses - directly forward to sender */
+                .match(Signal.class, ProxyActor::isLiveSignalResponse, signal -> {
+                    // forward to response child actor which holds the original sender
+                    signal.getDittoHeaders()
+                            .getCorrelationId()
+                            .map(this::encodeActorName)
+                            .map(correlationId -> getContext().getChild(correlationId))
+                            .ifPresent(childActor -> childActor.forward(signal, getContext()));
+                })
+
                 /* Live Signals */
-                .match(Signal.class, ProxyActor::isLiveSignal, forwardToLocalEnforcerLookup(thingEnforcerLookup))
+                .match(Signal.class, ProxyActor::isLiveSignal,
+                        compose(createResponseActor(), forwardToLocalEnforcerLookup(thingEnforcerLookup)))
 
                 /* Policy Commands */
                 .match(ModifyPolicy.class, command ->
@@ -228,6 +243,35 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         if (isOfType(ThingDeleted.TYPE).defined(response)) {
             deleteEntryFromCache(response, thingCacheFacade);
         }
+    }
+
+    @SafeVarargs
+    private final FI.UnitApply<Signal> compose(final FI.UnitApply<Signal>... pfs) {
+        return signal -> {
+            for (final FI.UnitApply<Signal> pf : pfs) {
+                pf.apply(signal);
+            }
+        };
+    }
+
+    private <T extends Signal<T>> FI.UnitApply<T> createResponseActor() {
+        return signal ->
+                signal.getDittoHeaders()
+                        .getCorrelationId()
+                        .map(this::encodeActorName)
+                        .ifPresent(this::startResponseChildActor);
+    }
+
+    private String encodeActorName(final String correlationId) {
+        try {
+            return URLEncoder.encode(correlationId, StandardCharsets.UTF_8.name());
+        } catch (final UnsupportedEncodingException exception) {
+            throw new IllegalStateException("Unsupported encoding", exception);
+        }
+    }
+
+    private ActorRef startResponseChildActor(final String correlationId) {
+        return getContext().actorOf(CommandResponseActor.props(correlationId, getSender()), correlationId);
     }
 
     private static FI.TypedPredicate<LookupEnforcerResponse> isRetrieveThingWithAggregationNeeded() {

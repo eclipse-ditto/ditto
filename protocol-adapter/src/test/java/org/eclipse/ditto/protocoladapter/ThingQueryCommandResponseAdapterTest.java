@@ -163,12 +163,8 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveThingResponse retrieveThing =
-                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
+                RetrieveThingResponse.of(THING_ID, TestConstants.THING, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
-
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson();
-        System.out.println(jsonObject.toString());
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -204,7 +200,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                         .add(TestConstants.THING.toJsonString())
                         .add(TestConstants.THING2.toJsonString()),
                 namespace,
-                TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
 
         final Adaptable actual = underTest.toAdaptable(retrieveThingsResponse);
 
@@ -237,7 +233,7 @@ public final class ThingQueryCommandResponseAdapterTest {
     }
 
     @Test
-    public void retrieveAclResponseTodaptable() {
+    public void retrieveAclResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl");
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
@@ -256,7 +252,7 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveAclResponse retrieveAcl =
-                RetrieveAclResponse.of(THING_ID, TestConstants.ACL, DITTO_HEADERS_V_1);
+                RetrieveAclResponse.of(THING_ID, TestConstants.ACL, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAcl);
 
         assertThat(actual).isEqualTo(expected);
@@ -288,7 +284,7 @@ public final class ThingQueryCommandResponseAdapterTest {
     }
 
     @Test
-    public void retrieveAclEntryResponseTodaptable() {
+    public void retrieveAclEntryResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT.getId());
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
@@ -307,7 +303,8 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveAclEntryResponse retrieveAclEntry =
-                RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY, DITTO_HEADERS_V_1);
+                RetrieveAclEntryResponse.of(THING_ID, TestConstants.ACL_ENTRY,
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAclEntry);
 
         assertThat(actual).isEqualTo(expected);
@@ -339,7 +336,7 @@ public final class ThingQueryCommandResponseAdapterTest {
     }
 
     @Test
-    public void retrieveAttributesResponseTodaptable() {
+    public void retrieveAttributesResponseToAdaptable() {
         final JsonPointer path = JsonPointer.of("/attributes");
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
@@ -358,7 +355,8 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveAttributesResponse retrieveAttributes =
-                RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES, DITTO_HEADERS_V_1);
+                RetrieveAttributesResponse.of(THING_ID, TestConstants.ATTRIBUTES,
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttributes);
 
         assertThat(actual).isEqualTo(expected);
@@ -411,7 +409,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         final RetrieveAttributeResponse retrieveAttribute =
                 RetrieveAttributeResponse.of(THING_ID, TestConstants.ATTRIBUTE_POINTER, TestConstants.ATTRIBUTE_VALUE,
-                        DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveAttribute);
 
         assertThat(actual).isEqualTo(expected);
@@ -462,7 +460,8 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveFeaturesResponse retrieveFeatures =
-                RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES, DITTO_HEADERS_V_1);
+                RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES,
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatures);
 
         assertThat(actual).isEqualTo(expected);
@@ -513,7 +512,8 @@ public final class ThingQueryCommandResponseAdapterTest {
                 .build();
 
         final RetrieveFeatureResponse retrieveFeature =
-                RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(), DITTO_HEADERS_V_1);
+                RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(),
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeature);
 
         assertThat(actual).isEqualTo(expected);
@@ -566,7 +566,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         final RetrieveFeatureDefinitionResponse retrieveFeatureDefinition =
                 RetrieveFeatureDefinitionResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_DEFINITION,
-                        DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureDefinition);
 
         assertThat(actual).isEqualTo(expected);
@@ -619,7 +619,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         final RetrieveFeaturePropertiesResponse retrieveFeatureProperties =
                 RetrieveFeaturePropertiesResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTIES,
-                        DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperties);
 
         assertThat(actual).isEqualTo(expected);
@@ -674,7 +674,7 @@ public final class ThingQueryCommandResponseAdapterTest {
 
         final RetrieveFeaturePropertyResponse retrieveFeatureProperty =
                 RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
-                        TestConstants.FEATURE_PROPERTY_VALUE, DITTO_HEADERS_V_1);
+                        TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty);
 
         assertThat(actual).isEqualTo(expected);

@@ -37,17 +37,20 @@ public final class DittoBsonJson {
     private final Function<JsonObject, BasicDBObject> jsonObjectToBasicDBObjectMapper;
     private final Function<JsonArray, BasicDBList> jsonArrayToBasicDBListMapper;
     private final Function<BasicDBObject, JsonObject> basicDBObjectToJsonObjectMapper;
+    private final Function<BasicDBList, JsonArray> basicDBListToJsonObjectMapper;
 
     /*
      * Inhibit instantiation of this utility class.
      */
     private DittoBsonJson(final Function<JsonObject, BasicDBObject> jsonObjectToBasicDBObjectMapper,
             final Function<JsonArray, BasicDBList> jsonArrayToBasicDBListMapper,
-            final Function<BasicDBObject, JsonObject> basicDBObjectToJsonObjectMapper) {
+            final Function<BasicDBObject, JsonObject> basicDBObjectToJsonObjectMapper,
+            final Function<BasicDBList, JsonArray> basicDBListToJsonObjectMapper) {
 
         this.jsonObjectToBasicDBObjectMapper = jsonObjectToBasicDBObjectMapper;
         this.jsonArrayToBasicDBListMapper = jsonArrayToBasicDBListMapper;
         this.basicDBObjectToJsonObjectMapper = basicDBObjectToJsonObjectMapper;
+        this.basicDBListToJsonObjectMapper = basicDBListToJsonObjectMapper;
     }
 
     /**
@@ -61,10 +64,12 @@ public final class DittoBsonJson {
 
     private static DittoBsonJson newInstance() {
         final KeyNameReviser jsonToMongoDbKeyNameReviser = KeyNameReviser.escapeProblematicPlainChars();
+        final KeyNameReviser jsonKeyNameReviser = KeyNameReviser.decodeKnownUnicodeChars();
 
         return new DittoBsonJson(JsonValueToDbEntityMapper.forJsonObject(jsonToMongoDbKeyNameReviser),
                 JsonValueToDbEntityMapper.forJsonArray(jsonToMongoDbKeyNameReviser),
-                BasicDBObjectToJsonObjectMapper.getInstance(KeyNameReviser.decodeKnownUnicodeChars()));
+                BasicDBObjectToJsonObjectMapper.getInstance(jsonKeyNameReviser),
+                BasicDBListToJsonObjectMapper.getInstance(jsonKeyNameReviser));
     }
 
     /**
@@ -80,6 +85,8 @@ public final class DittoBsonJson {
         checkNotNull(object, "DBObject to be serialized");
         if (object instanceof BasicDBObject) {
             return serialize((BasicDBObject) object);
+        } else if (object instanceof BasicDBList) {
+            return serialize((BasicDBList) object);
         } else {
             throw new IllegalArgumentException("Can only serialize BasicDBObjects");
         }
@@ -91,10 +98,22 @@ public final class DittoBsonJson {
      *
      * @param basicDBObject the BasicDBObject to be serialized.
      * @return the BasicDBObject serialized as JsonValue.
-     * @throws NullPointerException if {@code object} is {@code null}.
+     * @throws NullPointerException if {@code basicDBObject} is {@code null}.
      */
     public JsonObject serialize(final BasicDBObject basicDBObject) {
         return basicDBObjectToJsonObjectMapper.apply(checkNotNull(basicDBObject, "BasicDBObject to be serialized"));
+    }
+
+    /**
+     * Serializes the specified {@link com.mongodb.BasicDBList} to Json, applying replacement of "special" characters
+     * {@code "$"} and {@code "."}.
+     *
+     * @param basicDBList the BasicDBList to be serialized.
+     * @return the BasicDBList serialized as JsonValue.
+     * @throws NullPointerException if {@code basicDBList} is {@code null}.
+     */
+    public JsonArray serialize(final BasicDBList basicDBList) {
+        return basicDBListToJsonObjectMapper.apply(checkNotNull(basicDBList, "BasicDBList to be serialized"));
     }
 
     /**

@@ -13,11 +13,8 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +42,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -57,7 +53,6 @@ import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -79,8 +74,6 @@ final class StreamingSessionActor extends AbstractActor {
     private final String type;
     private final ActorRef pubSubMediator;
     private final ActorRef eventAndResponsePublisher;
-    private final Set<String> outstandingLiveSignals;
-    private final Map<String, ActorRef> responseAwaitingLiveSignals;
     private final Set<StreamingType> outstandingSubscriptionAcks;
 
     private List<String> authorizationSubjects;
@@ -92,8 +85,6 @@ final class StreamingSessionActor extends AbstractActor {
         this.type = type;
         this.pubSubMediator = pubSubMediator;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
-        outstandingLiveSignals = new HashSet<>();
-        responseAwaitingLiveSignals = new HashMap<>();
         outstandingSubscriptionAcks = new HashSet<>();
 
         getContext().watch(eventAndResponsePublisher);
@@ -128,33 +119,6 @@ final class StreamingSessionActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-
-                /* Live Signals */
-                // publish all those live signals which were issued by this session into the cluster
-                .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
-                                (signal instanceof MessageCommand),
-                        signal -> logger.debug("Don't publishing message again - was already published: <{}>", signal)
-                )
-                .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
-                                (signal instanceof MessageCommandResponse),
-                        publishLiveSignal(StreamingType.MESSAGES.getDistributedPubSubTopic())
-                )
-                .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
-                                (signal instanceof Command || signal instanceof CommandResponse),
-                        publishLiveSignal(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic())
-                )
-                .match(Signal.class, signal -> isLiveSignal(signal) && wasIssuedByThisSession(signal) &&
-                                signal instanceof Event,
-                        publishLiveSignal(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic())
-                )
-                .match(Signal.class, this::isLiveSignal, this::handleLiveSignalIssuedByOtherSession)
-                .match(Command.class, command -> {
-                    LogUtil.enhanceLogWithCorrelationId(logger, command);
-                    logger.debug(
-                            "Got 'Command' message in <{}> session, telling eventAndResponsePublisher about it: {}",
-                            type, command);
-                    eventAndResponsePublisher.forward(command, getContext());
-                })
                 .match(CommandResponse.class, response -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, response);
                     logger.debug(
@@ -162,6 +126,7 @@ final class StreamingSessionActor extends AbstractActor {
                             type, response);
                     eventAndResponsePublisher.forward(response, getContext());
                 })
+                .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, cre -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, cre);
                     logger.info(
@@ -169,7 +134,6 @@ final class StreamingSessionActor extends AbstractActor {
                             type, cre);
                     eventAndResponsePublisher.forward(cre, getContext());
                 })
-                .match(Event.class, this::handleEvent)
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
                     eventFilterCriteria = startStreaming.getEventFilter()
@@ -201,15 +165,16 @@ final class StreamingSessionActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     final String topic = subscribeAck.subscribe().topic();
                     final StreamingType streamingType = StreamingType.fromTopic(topic);
-
                     final ActorRef self = getSelf();
                     /* send the StreamingAck with a little delay, as the akka doc states:
                      * The acknowledgment means that the subscription is registered, but it can still take some time
                      * until it is replicated to other nodes.
                      */
                     getContext().getSystem().scheduler()
-                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS), () ->
-                                    acknowledgeSubscription(streamingType, self), getContext().getSystem().dispatcher());
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
+                                    () ->
+                                            acknowledgeSubscription(streamingType, self),
+                                    getContext().getSystem().dispatcher());
                 })
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -222,8 +187,10 @@ final class StreamingSessionActor extends AbstractActor {
                      * until it is replicated to other nodes.
                      */
                     getContext().getSystem().scheduler()
-                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS), () ->
-                                    acknowledgeUnsubscription(streamingType, self), getContext().getSystem().dispatcher());
+                            .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
+                                    () ->
+                                            acknowledgeUnsubscription(streamingType, self),
+                                    getContext().getSystem().dispatcher());
                 })
                 .match(Terminated.class, terminated -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -249,32 +216,24 @@ final class StreamingSessionActor extends AbstractActor {
                 .build();
     }
 
-    private void handleLiveSignalIssuedByOtherSession(final Signal liveSignal) {
-        // for live signals which were not issued by this session, handle them by forwarding towards WS:
-        LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
+    private void handleSignal(final Signal<?> signal) {
+        LogUtil.enhanceLogWithCorrelationId(logger, signal);
+        acknowledgeSubscriptionForSignal(signal);
 
-        acknowledgeSubscriptionForLiveSignal(liveSignal);
-
-        final DittoHeaders dittoHeaders = liveSignal.getDittoHeaders();
-        final Optional<String> correlationId = dittoHeaders.getCorrelationId();
-        if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
-            logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
+            logger.debug("Got Signal <{}> in <{}> session, " +
                     "but this was issued by this connection itself, not telling "
-                    + "eventAndResponsePublisher about it", liveSignal.getType(), type);
+                    + "eventAndResponsePublisher about it", signal.getType(), type);
         } else {
             // check if this session is "allowed" to receive the LiveSignal
             if (authorizationSubjects != null &&
                     !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
                 logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
                                 "telling eventAndResponsePublisher about it: {}",
-                        liveSignal.getType(), type, liveSignal);
+                        signal.getType(), type, signal);
 
-                if (liveSignal instanceof Command) {
-                    extractActualCorrelationId(liveSignal)
-                            .ifPresent(cId -> responseAwaitingLiveSignals.put(cId, getSender()));
-                }
-
-                eventAndResponsePublisher.tell(liveSignal, getSelf());
+                eventAndResponsePublisher.tell(signal, getSelf());
             }
         }
     }
@@ -343,7 +302,7 @@ final class StreamingSessionActor extends AbstractActor {
         }
     }
 
-    private void acknowledgeSubscriptionForLiveSignal(final Signal liveSignal) {
+    private void acknowledgeSubscriptionForSignal(final Signal liveSignal) {
         if (liveSignal instanceof MessageCommand && outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
             acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
         } else if (liveSignal instanceof Command && outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
@@ -363,65 +322,4 @@ final class StreamingSessionActor extends AbstractActor {
         eventAndResponsePublisher.tell(new StreamingAck(streamingType, false), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session", streamingType, type);
     }
-
-    private FI.UnitApply<Signal> publishLiveSignal(final String topic) {
-        return liveSignal -> {
-            acknowledgeSubscriptionForLiveSignal(liveSignal);
-
-            LogUtil.enhanceLogWithCorrelationId(logger, liveSignal);
-            if (notYetPublished(liveSignal)) {
-                logger.debug("Publishing 'Live' Signal <{}> on topic <{}> into cluster.", liveSignal.getType(), topic);
-                pubSubMediator.forward(new DistributedPubSubMediator.Publish(
-                        topic,
-                        liveSignal,
-                        true
-                ), getContext());
-                savePublished(liveSignal);
-            }
-
-            if (liveSignal instanceof CommandResponse && extractActualCorrelationId(liveSignal)
-                    .filter(responseAwaitingLiveSignals::containsKey).isPresent()) {
-                // we got a live signal waiting for a response
-                extractActualCorrelationId(liveSignal).map(responseAwaitingLiveSignals::remove)
-                        .ifPresent(sender -> {
-                            logger.debug("Answering to a 'Live' Command with CommandResponse <{}> to sender: <{}>",
-                                    liveSignal.getType(), sender);
-                            sender.forward(liveSignal, getContext());
-                        });
-            }
-        };
-    }
-
-    private boolean notYetPublished(final Signal<?> liveSignal) {
-        return !extractActualCorrelationId(liveSignal)
-                .filter(cId -> outstandingLiveSignals.contains(liveSignal.getType() + ":" + cId))
-                .isPresent();
-    }
-
-    private boolean isLiveSignal(final Signal<?> signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
-    }
-
-    private boolean wasIssuedByThisSession(final Signal<?> signal) {
-        return extractConnectionCorrelationId(signal).filter(connectionCorrelationId::equals).isPresent();
-    }
-
-    private void savePublished(final Signal<?> signal) {
-        extractActualCorrelationId(signal).ifPresent(cId -> outstandingLiveSignals.add(signal.getType() + ":" + cId));
-    }
-
-    private static Optional<String> extractConnectionCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withDittoHeaders.getDittoHeaders().getCorrelationId()
-                .map(cId -> cId.split(":", 2))
-                .map(cIds -> cIds[0]);
-    }
-
-    private static Optional<String> extractActualCorrelationId(final WithDittoHeaders withDittoHeaders) {
-        return withDittoHeaders.getDittoHeaders().getCorrelationId()
-                .map(cId -> cId.split(":", 2))
-                .filter(cIds -> cIds.length >= 1)
-                .map(cIds -> cIds.length == 2 ? cIds[1] : cIds[0]);
-    }
-
-
 }

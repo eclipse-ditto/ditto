@@ -226,7 +226,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
 
         return Adaptable.newBuilder(eventsTopicPathBuilder.build()) //
                 .withPayload(payloadBuilder.build()) //
-                .withHeaders(ProtocolFactory.newHeaders(event.getDittoHeaders())) //
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders())) //
                 .build();
     }
 

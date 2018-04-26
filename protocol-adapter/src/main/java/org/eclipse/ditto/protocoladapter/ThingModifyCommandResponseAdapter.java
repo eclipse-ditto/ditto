@@ -113,7 +113,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
 
         return Adaptable.newBuilder(commandsTopicPathBuilder.build()) //
                 .withPayload(payloadBuilder.build()) //
-                .withHeaders(ProtocolFactory.newHeaders(commandResponse.getDittoHeaders())) //
+                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(commandResponse.getDittoHeaders())) //
                 .build();
     }
 

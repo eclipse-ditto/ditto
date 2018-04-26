@@ -13,3 +13,5 @@ allowed-tags:
   - http
   - search
   - protocol
+  - connectivity
+  - connection

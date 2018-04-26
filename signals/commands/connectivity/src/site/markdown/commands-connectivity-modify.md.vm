@@ -1,0 +1,39 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Create Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/modify/createConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Modify Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/modify/modifyConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Delete Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/modify/deleteConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Open Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/modify/openConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Close Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/modify/closeConnection.json" )
+```
+#parse( "snippet" )
+```

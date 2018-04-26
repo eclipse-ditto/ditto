@@ -15,31 +15,21 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
-import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 
 /**
  * This function maps a specified {@link com.mongodb.BasicDBObject} to a {@link org.eclipse.ditto.json.JsonObject}.
  * While mapping, the keys of all JSON objects can be revised by utilising a configurable function.
  */
-@AllParametersAndReturnValuesAreNonnullByDefault
 @Immutable
-final class BasicDBObjectToJsonObjectMapper implements Function<BasicDBObject, JsonObject> {
-
-    private final Function<String, String> jsonKeyNameReviser;
+final class BasicDBObjectToJsonObjectMapper extends AbstractBasicDBMapper<BasicDBObject, JsonObject> {
 
     private BasicDBObjectToJsonObjectMapper(final Function<String, String> theJsonKeyNameReviser) {
-        jsonKeyNameReviser = checkNotNull(theJsonKeyNameReviser, "The JSON key name reviser");
+        super(theJsonKeyNameReviser);
     }
 
     /**
@@ -55,59 +45,7 @@ final class BasicDBObjectToJsonObjectMapper implements Function<BasicDBObject, J
 
     @Override
     public JsonObject apply(final BasicDBObject basicDBObject) {
-        return mapBasicDBObjectToJsonObject(checkNotNull(basicDBObject, "BasicDBObject to be mapped"));
+        return mapBasicDBObjectToJsonObject(checkNotNull(basicDBObject, "BasicDBObject to be mapped"),
+                jsonKeyNameReviser);
     }
-
-    private JsonObject mapBasicDBObjectToJsonObject(final BasicDBObject basicDBObject) {
-        return basicDBObject.entrySet()
-                .stream()
-                .map(e -> JsonFactory.newField(reviseKeyName(e.getKey()), mapJavaObjectToJsonValue(e.getValue())))
-                .collect(JsonCollectors.fieldsToObject());
-    }
-
-    private JsonKey reviseKeyName(final String jsonKeyName) {
-        return JsonFactory.newKey(jsonKeyNameReviser.apply(jsonKeyName));
-    }
-
-    private JsonValue mapJavaObjectToJsonValue(@Nullable final Object object) {
-        final JsonValue result;
-        if (null == object) {
-            result = JsonFactory.nullLiteral();
-        } else if (object instanceof String) {
-            result = JsonFactory.newValue((String) object);
-        } else if (object instanceof Number) {
-            result = mapJavaNumberToJsonNumber((Number) object);
-        } else if (object instanceof BasicDBObject) {
-            result = mapBasicDBObjectToJsonObject((BasicDBObject) object);
-        } else if (object instanceof BasicDBList) {
-            result = mapBasicDBListToJsonArray((BasicDBList) object);
-        } else if (object instanceof Boolean) {
-            result = JsonFactory.newValue((Boolean) object);
-        } else {
-            result = JsonFactory.nullLiteral();
-        }
-
-        return result;
-    }
-
-    private static JsonValue mapJavaNumberToJsonNumber(final Number number) {
-        final JsonValue result;
-        final Class<? extends Number> numberClass = number.getClass();
-        if (Integer.class.isAssignableFrom(numberClass)) {
-            result = JsonFactory.newValue(number.intValue());
-        } else if (Double.class.isAssignableFrom(numberClass)) {
-            result = JsonFactory.newValue(number.doubleValue());
-        } else {
-            result = JsonFactory.newValue(number.longValue());
-        }
-
-        return result;
-    }
-
-    private JsonValue mapBasicDBListToJsonArray(final BasicDBList basicDBList) {
-        return basicDBList.stream()
-                .map(this::mapJavaObjectToJsonValue)
-                .collect(JsonCollectors.valuesToArray());
-    }
-
 }
