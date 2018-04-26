@@ -70,5 +70,6 @@ You have now running:
    * Things
    * Thing-Search
    * Gateway
+   * Connectivity
 * an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
    * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)
