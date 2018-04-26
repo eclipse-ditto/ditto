@@ -103,11 +103,12 @@ services:
     depends_on:
       - policies
       - gateway
-    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
+    entrypoint: sh -c "sleep 40; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
