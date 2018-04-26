@@ -119,6 +119,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return publicKeyCache.get(PublicKeyIdWithIssuer.of(keyId, issuer));
     }
 
+    /* this method is used to asynchronously load the public key into the cache */
     private CompletableFuture<PublicKey> loadPublicKey(final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
             final Executor executor) {
         final String issuer = publicKeyIdWithIssuer.getIssuer();

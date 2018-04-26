@@ -143,7 +143,7 @@ final class GatewayRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(pubSubMediator, conciergeShardRegionProxy));
+                StreamingActor.props(pubSubMediator, proxyActor));
 
         final HealthConfigReader healthConfig = configReader.health();
         final String mongoUri = config.getString(ConfigKeys.MONGO_URI);

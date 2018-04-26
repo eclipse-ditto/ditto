@@ -67,7 +67,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         // do nothing
     }
 
-    protected void forwardToConciergeService(final Signal<?> signal) {
+    private void forwardToConciergeService(final Signal<?> signal) {
         conciergeForwarder.forward(signal, getSender());
     }
 
