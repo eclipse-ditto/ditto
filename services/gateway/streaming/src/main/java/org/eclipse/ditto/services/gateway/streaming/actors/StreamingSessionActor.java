@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
@@ -31,7 +30,6 @@ import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -229,41 +227,15 @@ final class StreamingSessionActor extends AbstractActor {
             // check if this session is "allowed" to receive the LiveSignal
             if (authorizationSubjects != null &&
                     !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
-                logger.debug("Got 'Live' Signal <{}> in <{}> session, " +
-                                "telling eventAndResponsePublisher about it: {}",
-                        signal.getType(), type, signal);
 
-                eventAndResponsePublisher.tell(signal, getSelf());
-            }
-        }
-    }
+                if (matchesFilter(signal)) {
+                    logger.debug("Got Signal <{}> in <{}> session, " +
+                                    "telling eventAndResponsePublisher about it: {}",
+                            signal.getType(), type, signal);
 
-    private void handleEvent(final Event event) {
-        LogUtil.enhanceLogWithCorrelationId(logger, event);
-
-        if (outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
-            acknowledgeSubscription(StreamingType.EVENTS, getSelf());
-        }
-
-        final DittoHeaders dittoHeaders = event.getDittoHeaders();
-        final Optional<String> correlationId = dittoHeaders.getCorrelationId();
-        if (correlationId.map(cId -> cId.startsWith(connectionCorrelationId)).orElse(false)) {
-            logger.debug(
-                    "Got 'Event' message in <{}> session, but this was issued by this connection itself, not telling "
-                            + "eventAndResponsePublisher about it", type);
-        } else {
-            final Set<String> readSubjects = dittoHeaders.getReadSubjects();
-            // check if this session is "allowed" to receive the event
-            if (authorizationSubjects != null &&
-                    !Collections.disjoint(readSubjects, authorizationSubjects)) {
-
-                if (matchesFilter(event)) {
-                    logger.debug(
-                            "Got 'Event' message in <{}> session, telling eventAndResponsePublisher about it: {}",
-                            type, event);
-                    eventAndResponsePublisher.tell(event, getSelf());
+                    eventAndResponsePublisher.tell(signal, getSelf());
                 } else {
-                    logger.debug("Event does not match filter");
+                    logger.debug("Signal does not match filter");
                 }
             }
         }
@@ -280,10 +252,10 @@ final class StreamingSessionActor extends AbstractActor {
         return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
     }
 
-    private boolean matchesFilter(final Event<?> event) {
-        if (event instanceof ThingEvent) {
+    private boolean matchesFilter(final Signal<?> signal) {
+        if (signal instanceof ThingEvent) {
             // currently only ThingEvents may be filtered
-            return StreamingHelpers.thingEventToThing((ThingEvent) event)
+            return StreamingHelpers.thingEventToThing((ThingEvent) signal)
                     .filter(this::doMatchFilter)
                     .isPresent();
         } else {
