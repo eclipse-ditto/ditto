@@ -20,13 +20,21 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
+import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
+import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
@@ -35,11 +43,14 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ShardRegion;
+import akka.cluster.singleton.ClusterSingletonManager;
+import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -119,10 +130,16 @@ public final class ConciergeRootActor extends AbstractActor {
         requireNonNull(authorizationProxyPropsFactory);
         requireNonNull(materializer);
 
-        conciergeShardRegion = authorizationProxyPropsFactory.startActors(getContext(), configReader, pubSubMediator);
+        final ActorContext context = getContext();
 
-        final ActorRef healthCheckingActor = authorizationProxyPropsFactory
-                .startHealthCheckingActor(getContext(), configReader);
+        conciergeShardRegion = authorizationProxyPropsFactory.startActors(context, configReader, pubSubMediator);
+
+        final ConciergeForwarder conciergeForwarder = new ConciergeForwarder(pubSubMediator, conciergeShardRegion);
+
+        startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
+                BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
+
+        final ActorRef healthCheckingActor = startHealthCheckingActor(context, configReader);
 
         final HttpConfigReader httpConfig = configReader.http();
 
@@ -145,6 +162,43 @@ public final class ConciergeRootActor extends AbstractActor {
         return Props.create(ConciergeRootActor.class,
                 () -> new ConciergeRootActor(configReader, pubSubMediator, authorizationProxyPropsFactory,
                         materializer));
+    }
+
+
+    private static void startClusterSingletonActor(final akka.actor.ActorContext context, final String actorName,
+            final Props props) {
+
+        final ClusterSingletonManagerSettings settings =
+                ClusterSingletonManagerSettings.create(context.system())
+                        .withRole(ConciergeMessagingConstants.CLUSTER_ROLE);
+        context.actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
+    }
+
+    private static ActorRef startHealthCheckingActor(final ActorContext context,
+            final ConciergeConfigReader config) {
+
+        final HealthConfigReader healthConfig = config.health();
+        final String mongoUri = MongoConfig.getMongoUri(config.getRawConfig());
+        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
+                .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
+
+        final ActorRef mongoClient = startChildActor(context, MongoClientActor.ACTOR_NAME, MongoClientActor
+                .props(mongoUri, healthConfig.getPersistenceTimeout()));
+
+        if (healthConfig.persistenceEnabled()) {
+            hcBuilder.enablePersistenceCheck();
+        }
+
+        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
+        return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
+
+    }
+
+    private static ActorRef startChildActor(final akka.actor.ActorContext context, final String actorName,
+            final Props props) {
+
+        return context.actorOf(props, actorName);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

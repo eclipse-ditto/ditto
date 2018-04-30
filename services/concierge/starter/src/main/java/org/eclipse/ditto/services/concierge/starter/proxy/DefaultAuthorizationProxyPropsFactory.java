@@ -18,7 +18,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.concierge.util.cache.AclEnforcerCacheLoader;
@@ -39,8 +38,6 @@ import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
-import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.codahale.metrics.MetricRegistry;
@@ -121,15 +118,4 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
         return enforcerShardRegion;
     }
 
-    @Override
-    public ActorRef startHealthCheckingActor(final ActorContext context, final ConciergeConfigReader configReader) {
-
-        final HealthConfigReader healthConfig = configReader.health();
-        final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
-                .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
-
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
-    }
 }
