@@ -7,6 +7,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 After some time of silence of Ditto milestone releases we are very proud to present our next one to the public.

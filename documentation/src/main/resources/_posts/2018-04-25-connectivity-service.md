@@ -4,9 +4,10 @@ published: true
 permalink: 2018-04-25-connectivity-service.html
 layout: post
 author: thomas_jaeckle
-tags: [blog]
+tags: [blog, connectivity]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 It has been quite lately on our website and on GitHub as the Ditto team currently prepares its new `connectivity` 

@@ -7,6 +7,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 The Ditto team is proud to announce the next milestone release.

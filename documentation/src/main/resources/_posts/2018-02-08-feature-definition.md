@@ -7,6 +7,7 @@ author: juergen_fickel
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 Brace yourselves, [Eclipse Vorto](https://eclipse.org/vorto) is going to be integrated with Ditto.
