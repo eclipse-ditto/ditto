@@ -34,8 +34,6 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshot;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshotResponse;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
@@ -51,6 +49,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.TagThing;
+import org.eclipse.ditto.signals.commands.things.modify.TagThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -627,9 +627,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
                 final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
+                underTest.tell(TagThing.of(persistenceId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(persistenceId,2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
@@ -644,9 +644,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
 
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
+                underTest.tell(TagThing.of(persistenceId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse2 = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(persistenceId, 3, dittoHeadersV2));
 
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
             }
@@ -689,11 +689,11 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
                 final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
+                underTest.tell(TagThing.of(persistenceId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(persistenceId, 2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
-                final long revision = takeSnapshotResponse.getSnapshotRevision();
+                final long revision = tagThingResponse.getSnapshotRevision();
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar2"))
@@ -707,9 +707,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
 
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
+                underTest.tell(TagThing.of(persistenceId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse2 = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(persistenceId, 3, dittoHeadersV2));
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2).build();

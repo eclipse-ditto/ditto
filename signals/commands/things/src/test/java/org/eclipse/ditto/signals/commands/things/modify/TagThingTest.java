@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.models.things.commands.sudo;
+package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -25,29 +25,27 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link TakeSnapshot}.
+ * Unit tests for {@link TagThing}.
  */
-public final class TakeSnapshotTest {
+public class TagThingTest {
 
-    private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
-    private static final String THING_ID = "foo:bar";
+    static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
+    static final String THING_ID = "foo:bar";
 
-    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(Command.JsonFields.TYPE, TakeSnapshot.TYPE)
-            .set(TakeSnapshot.JSON_ID, THING_ID)
+    static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
+            .set(Command.JsonFields.TYPE, TagThing.TYPE)
+            .set(ThingModifyCommand.JsonFields.JSON_THING_ID, THING_ID)
             .build();
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(TakeSnapshot.class,
+        assertInstancesOf(TagThing.class,
                 areImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(TakeSnapshot.class)
+        EqualsVerifier.forClass(TagThing.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
@@ -55,8 +53,8 @@ public final class TakeSnapshotTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final TakeSnapshot underTest =
-                TakeSnapshot.of(THING_ID, EMPTY_DITTO_HEADERS);
+        final TagThing underTest =
+                TagThing.of(THING_ID, EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -65,8 +63,8 @@ public final class TakeSnapshotTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final TakeSnapshot underTest =
-                TakeSnapshot.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
+        final TagThing underTest =
+                TagThing.fromJson(KNOWN_JSON.toString(), EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(THING_ID);

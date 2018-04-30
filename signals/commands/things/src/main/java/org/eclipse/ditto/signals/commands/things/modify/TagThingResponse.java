@@ -9,21 +9,20 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.models.things.commands.sudo;
-
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+package org.eclipse.ditto.signals.commands.things.modify;
 
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -31,43 +30,49 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
- * Actor message sent as response from PersistenceActors to the {@link TakeSnapshot} message indicating success.
+ * Actor message sent in response to the {@link TagThing} command indicating success.
  */
-public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnapshotResponse>
-        implements SudoCommandResponse<TakeSnapshotResponse> {
+@Immutable
+public final class TagThingResponse extends AbstractCommandResponse<TagThingResponse> implements
+        ThingModifyCommandResponse<TagThingResponse> {
 
     /**
-     * Type of this command.
+     * Type of this response.
      */
-    public static final String TYPE = TYPE_PREFIX + TakeSnapshot.NAME;
+    public static final String TYPE = TYPE_PREFIX + TagThing.NAME;
 
+    /**
+     * Json field for the revision of the snapshot created by the {@code TagThing} command.
+     */
     static final JsonFieldDefinition<Long> JSON_SNAPSHOT_REVISION =
             JsonFactory.newLongFieldDefinition("snapshotRevision", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    private final String thingId;
     private final long snapshotRevision;
 
-    private TakeSnapshotResponse(final HttpStatusCode statusCode, final long snapshotRevision,
-            final DittoHeaders dittoHeaders) {
-
-        super(TYPE, statusCode, dittoHeaders);
+    private TagThingResponse(final String thingId, final long snapshotRevision, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        this.thingId = thingId;
         this.snapshotRevision = snapshotRevision;
     }
 
     /**
-     * Creates a response to a {@link TakeSnapshot} command.
+     * Creates a response to a {@link TagThing} command.
      *
+     * @param thingId ID of the tagged Thing.
      * @param snapshotRevision the revision number of the snapshot taken.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TakeSnapshotResponse of(final long snapshotRevision, final DittoHeaders dittoHeaders) {
-        return new TakeSnapshotResponse(HttpStatusCode.OK, snapshotRevision, dittoHeaders);
+    public static TagThingResponse of(final String thingId, final long snapshotRevision,
+            final DittoHeaders dittoHeaders) {
+        return new TagThingResponse(thingId, snapshotRevision, dittoHeaders);
     }
 
     /**
-     * Creates a response to a {@code TakeSnapshotResponse} command from a JSON string.
+     * Creates a response to a {@link TagThing} command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -77,12 +82,12 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static TakeSnapshotResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static TagThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a response to a {@code TakeSnapshotResponse} command from a JSON object.
+     * Creates a response to a {@code TagThingResponse} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -91,8 +96,10 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static TakeSnapshotResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return of(jsonObject.getValueOrThrow(JSON_SNAPSHOT_REVISION), dittoHeaders);
+    public static TagThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        final String thingId = jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+        final long revision = jsonObject.getValueOrThrow(JSON_SNAPSHOT_REVISION);
+        return of(thingId, revision, dittoHeaders);
     }
 
     /**
@@ -105,19 +112,18 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
     }
 
     @Override
-    public TakeSnapshotResponse setEntity(final JsonValue entity) {
-        checkNotNull(entity, "entity");
-        return of(entity.asLong(), getDittoHeaders());
+    public String getThingId() {
+        return thingId;
     }
 
     @Override
-    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return JsonValue.of(snapshotRevision);
+    public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
     }
 
     @Override
-    public TakeSnapshotResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(snapshotRevision, dittoHeaders);
+    public TagThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(thingId, snapshotRevision, dittoHeaders);
     }
 
     @Override
@@ -125,12 +131,13 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_SNAPSHOT_REVISION, snapshotRevision, predicate);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof TakeSnapshotResponse;
+        return other instanceof TagThingResponse;
     }
 
     @Override
@@ -141,18 +148,21 @@ public final class TakeSnapshotResponse extends AbstractCommandResponse<TakeSnap
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final TakeSnapshotResponse that = (TakeSnapshotResponse) o;
-        return that.canEqual(this) && Objects.equals(snapshotRevision, that.snapshotRevision) && super.equals(o);
+        final TagThingResponse that = (TagThingResponse) o;
+        return that.canEqual(this) && super.equals(o) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(snapshotRevision, that.snapshotRevision);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), snapshotRevision);
+        return Objects.hash(super.hashCode(), thingId, snapshotRevision);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", snapshotRevision=" + snapshotRevision + "]";
+        return getClass().getSimpleName() + " [" + super.toString() +
+                ", thingId=" + thingId +
+                ", snapshotRevision=" + snapshotRevision + "]";
     }
-
 }
