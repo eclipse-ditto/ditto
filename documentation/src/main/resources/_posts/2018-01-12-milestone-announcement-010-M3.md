@@ -7,6 +7,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 We wish you all a happy new year<br/>

@@ -31,8 +31,7 @@ A Subject ID must conform to one of the following rules:
 
 | Prefix    | Type  | Description   |
 |-----------|-------|---------------|
-| accounts.google.com | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
-| https://accounts.google.com | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+| google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
 
 
 ## Which Resources can be controlled?
