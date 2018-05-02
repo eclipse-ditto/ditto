@@ -86,6 +86,9 @@ public final class PoliciesRootActor extends AbstractActor {
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
+            }).match(IndexOutOfBoundsException.class, e -> {
+                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
             }).match(IllegalStateException.class, e -> {
                 log.warning("Illegal State in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
