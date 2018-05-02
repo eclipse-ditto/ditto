@@ -1313,9 +1313,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             // make sure that the ThingModified-Event contains all data contained in the resulting thing (this is
             // required e.g. for updating the search-index)
-            final ThingBuilder.FromCopy modifiedThingBuilder = thing.toBuilder();
+            final long nextRevision = nextRevision();
+            final ThingBuilder.FromCopy modifiedThingBuilder = thing.toBuilder()
+                    .setRevision(nextRevision)
+                    .setModified(null);
             mergeThingModifications(command.getThing(), modifiedThingBuilder);
-            final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(), nextRevision(),
+            final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(), nextRevision,
                     eventTimestamp(), dittoHeaders);
 
             persistAndApplyEvent(thingModified,
