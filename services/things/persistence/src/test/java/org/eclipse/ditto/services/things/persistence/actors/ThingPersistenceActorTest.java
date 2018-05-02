@@ -326,6 +326,103 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
+    /** Makes sure that it is not possible to modify a thing without a previous create. If this was possible, a thing
+     *  could contain old data (in case of a recreate). */
+    @Test
+    public void modifyThingWithoutPreviousCreate() {
+        final Thing thing = createThingV2WithRandomId();
+        final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
+        final ModifyThing modifyThingCommand = ModifyThing.of(thingId, thing, null, dittoHeadersV2);
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(thing);
+
+                underTest.tell(modifyThingCommand, getRef());
+
+                expectMsgClass(ThingNotAccessibleException.class);
+            }
+        };
+    }
+
+    /** */
+    @Test
+    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecified() {
+        final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
+        final String thingId = thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new);
+
+        final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
+                .setId(thingId)
+                .setPolicyId("org.eclipse.ditto:changedPolicyId")
+                .setAttributes(Attributes.newBuilder().set("changedAttrKey", "changedAttrVal").build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder().withId("changedFeatureId").build()))
+                .build();
+        final ModifyThing modifyThingCommand =
+                ModifyThing.of(thingId, thingWithDifferentFirstLevelFields, null, dittoHeadersV2);
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
+
+                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeadersV2);
+                underTest.tell(createThing, getRef());
+
+                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
+
+                underTest.tell(modifyThingCommand, getRef());
+
+                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeadersV2));
+
+                final RetrieveThing retrieveThing =
+                        RetrieveThing.getBuilder(thingId, dittoHeadersV2)
+                                .withSelectedFields(ALL_FIELDS_SELECTOR)
+                                .build();
+                underTest.tell(retrieveThing, getRef());
+
+                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+                assertThingInResponse(retrieveThingResponse.getThing(), thingWithDifferentFirstLevelFields);
+            }
+        };
+    }
+
+    /** */
+    @Test
+    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten() {
+        final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
+        final String thingId = thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new);
+
+        final Thing minimalThing = Thing.newBuilder()
+                .setId(thingId)
+                .build();
+        final ModifyThing modifyThingCommand =
+                ModifyThing.of(thingId, minimalThing, null, dittoHeadersV2);
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
+
+                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeadersV2);
+                underTest.tell(createThing, getRef());
+
+                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
+
+                underTest.tell(modifyThingCommand, getRef());
+
+                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeadersV2));
+
+                final RetrieveThing retrieveThing =
+                        RetrieveThing.getBuilder(thingId, dittoHeadersV2)
+                                .withSelectedFields(ALL_FIELDS_SELECTOR)
+                                .build();
+                underTest.tell(retrieveThing, getRef());
+
+                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+                assertThingInResponse(retrieveThingResponse.getThing(), thingWithFirstLevelFields);
+            }
+        };
+    }
     /** */
     @Test
     public void retrieveThingV2() {
@@ -411,6 +508,48 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final DeleteThing deleteThing = DeleteThing.of(thing.getId().orElse(null), dittoHeadersV2);
                 underTest.tell(deleteThing, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thing.getId().orElse(null), dittoHeadersV2));
+            }
+        };
+    }
+
+    /** Make sure that a re-created thing does not contain data from the previously deleted thing. */
+    @Test
+    public void deleteAndRecreateThingWithMinimumData() {
+        new TestKit(actorSystem) {
+            {
+                final Thing initialThing = createThingV2WithRandomId();
+                final String thingId = initialThing.getId().orElseThrow(IllegalStateException::new);
+                final String policyId = initialThing.getPolicyId().orElseThrow(IllegalStateException::new);
+                final ActorRef underTest = createPersistenceActorFor(initialThing);
+
+                final CreateThing createThing = CreateThing.of(initialThing, null, dittoHeadersV2);
+                underTest.tell(createThing, getRef());
+
+                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                assertThingInResponse(createThingResponse.getThingCreated().orElse(null), initialThing);
+
+                final DeleteThing deleteThing = DeleteThing.of(thingId, dittoHeadersV2);
+                underTest.tell(deleteThing, getRef());
+                expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
+
+                final Thing minimalThing = Thing.newBuilder()
+                        .setId(thingId)
+                        .setPolicyId(policyId)
+                        .build();
+                final CreateThing recreateThing = CreateThing.of(minimalThing, null, dittoHeadersV2);
+                underTest.tell(recreateThing, getRef());
+
+                final CreateThingResponse recreateThingResponse = expectMsgClass(CreateThingResponse.class);
+                assertThingInResponse(recreateThingResponse.getThingCreated().orElse(null), minimalThing);
+
+                final RetrieveThing retrieveThing =
+                        RetrieveThing.getBuilder(thingId, dittoHeadersV2)
+                                .withSelectedFields(ALL_FIELDS_SELECTOR)
+                                .build();
+                underTest.tell(retrieveThing, getRef());
+
+                final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
+                assertThingInResponse(retrieveThingResponse.getThing(), minimalThing);
             }
         };
     }

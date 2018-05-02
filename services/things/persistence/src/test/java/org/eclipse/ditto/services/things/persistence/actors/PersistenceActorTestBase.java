@@ -20,7 +20,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -28,6 +30,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
@@ -53,13 +58,27 @@ public abstract class PersistenceActorTestBase {
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
 
-    protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.emptyAttributes();
+    protected static final Attributes THING_ATTRIBUTES = ThingsModelFactory.newAttributesBuilder()
+            .set("attrKey", "attrVal")
+            .build();
 
     protected static final Predicate<JsonField> IS_MODIFIED = field -> field.getDefinition()
             .map(Thing.JsonFields.MODIFIED::equals)
             .orElse(false);
 
-    private static final Features THING_FEATURES = ThingsModelFactory.emptyFeatures();
+    protected static final JsonFieldSelector ALL_FIELDS_SELECTOR = JsonFactory.newFieldSelector(
+            Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.ACL,
+            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
+            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+
+    private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
+    private static final FeatureProperties FEATURE_PROPERTIES =
+            FeatureProperties.newBuilder().set("featureKey", "featureValue").build();
+    private static final Feature THING_FEATURE =
+            ThingsModelFactory.newFeature("featureId", FEATURE_DEFINITION, FEATURE_PROPERTIES);
+    private static final Features THING_FEATURES = ThingsModelFactory.newFeaturesBuilder()
+            .set(THING_FEATURE)
+            .build();
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
 

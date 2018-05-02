@@ -266,13 +266,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 // # Thing Modification
                 .match(ThingModified.class, tm -> {
                     // we need to use the current thing as base otherwise we would loose its state
-                    final ThingBuilder.FromCopy copyBuilder = thing.toBuilder().setLifecycle(ThingLifecycle.ACTIVE);
-                    tm.getThing().getPolicyId().ifPresent(copyBuilder::setPolicyId);
-                    tm.getThing().getAccessControlList().ifPresent(copyBuilder::setPermissions);
-                    tm.getThing().getAttributes().ifPresent(copyBuilder::setAttributes);
-                    tm.getThing().getFeatures().ifPresent(copyBuilder::setFeatures);
-                    tm.getTimestamp().ifPresent(copyBuilder::setModified);
-                    thing = copyBuilder.setRevision(getRevisionNumber()).build();
+                    final ThingBuilder.FromCopy copyBuilder = thing.toBuilder().setLifecycle(ThingLifecycle.ACTIVE)
+                            .setRevision(getRevisionNumber())
+                            .setModified(tm.getTimestamp().orElse(null));
+
+                    mergeThingModifications(tm.getThing(), copyBuilder);
+
+                    this.thing = copyBuilder.build();
                 })
 
                 // # Thing Deletion
@@ -484,6 +484,21 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 })
 
                 .build();
+    }
+
+    /**
+     * Merges the modifications from {@code thingWithModifications} to {@code builder}. Merge is implemented very
+     * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
+     * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code
+     * builder} remains unchanged.
+     * @param thingWithModifications the thing containing the modifications.
+     * @param builder the builder to be modified.
+     */
+    private void mergeThingModifications(final Thing thingWithModifications, final ThingBuilder.FromCopy builder) {
+        thingWithModifications.getPolicyId().ifPresent(builder::setPolicyId);
+        thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
+        thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
+        thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
     }
 
     /**
@@ -1200,24 +1215,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         @Override
-        public FI.UnitApply<ModifyThing> getApplyFunction() {
-            return command -> {
-                if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                    handleModifyExistingWithV1Command(command);
-                } else {
-                    // from V2 upwards, use this logic:
-                    handleModifyExistingWithV2Command(command);
-                }
-            };
-        }
-
-        @Override
         protected void doApply(final ModifyThing command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final ThingModified thingModified = ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
-                    dittoHeaders);
-            persistAndApplyEvent(thingModified,
-                    event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
+            if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
+                handleModifyExistingWithV1Command(command);
+            } else {
+                // from V2 upwards, use this logic:
+                handleModifyExistingWithV2Command(command);
+            }
         }
 
         private void handleModifyExistingWithV1Command(final ModifyThing command) {
@@ -1235,7 +1239,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     .map(AccessControlList::isEmpty)
                     .orElse(true);
             if (!isCommandAclEmpty) {
-                doApply(command);
+                applyModifyCommand(command);
             } else {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
                 final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
@@ -1284,7 +1288,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          */
         private void handleModifyExistingV1WithV2Command(final ModifyThing command) {
             if (containsPolicy(command)) {
-                doApply(command);
+                applyModifyCommand(command);
             } else {
                 notifySender(getSender(), PolicyIdMissingException.fromThingId(thingId, command.getDittoHeaders()));
             }
@@ -1298,10 +1302,24 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             // ensure the Thing contains a policy ID
             final Thing thingWithPolicyId =
                     containsPolicyId(command) ? command.getThing() : copyPolicyId(thing, command.getThing());
-            doApply(ModifyThing.of(command.getThingId(),
+            applyModifyCommand(ModifyThing.of(command.getThingId(),
                     thingWithPolicyId,
                     null,
                     command.getDittoHeaders()));
+        }
+
+        private void applyModifyCommand(final ModifyThing command) {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+            // make sure that the ThingModified-Event contains all data contained in the resulting thing (this is
+            // required e.g. for updating the search-index)
+            final ThingBuilder.FromCopy modifiedThingBuilder = thing.toBuilder();
+            mergeThingModifications(command.getThing(), modifiedThingBuilder);
+            final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(), nextRevision(),
+                    eventTimestamp(), dittoHeaders);
+
+            persistAndApplyEvent(thingModified,
+                    event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
 
         private boolean containsPolicy(final ModifyThing command) {
