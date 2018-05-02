@@ -22,7 +22,7 @@
 
     <artifactId>ditto-services-concierge</artifactId>
     <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: Congierge</name>
+    <name>Eclipse Ditto :: Services :: Concierge</name>
 
     <modules>
 		<module>batch</module>

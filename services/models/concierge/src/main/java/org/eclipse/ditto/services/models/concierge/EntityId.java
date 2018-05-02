@@ -45,7 +45,7 @@ public interface EntityId {
      * @return the entity ID with resource type object.
      */
     static EntityId of(final String resourceType, final String id) {
-        return CongiergeModelFactory.newEntityId(resourceType, id);
+        return ConciergeModelFactory.newEntityId(resourceType, id);
     }
 
     /**
@@ -56,6 +56,6 @@ public interface EntityId {
      * @throws IllegalArgumentException if the string does not have the expected format.
      */
     static EntityId readFrom(final String string) {
-        return CongiergeModelFactory.readEntityIdFrom(string);
+        return ConciergeModelFactory.readEntityIdFrom(string);
     }
 }
