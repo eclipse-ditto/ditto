@@ -20,6 +20,7 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRe
 import java.security.PublicKey;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -128,18 +129,21 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                                         return authContext;
                                                     })
                                     ).exceptionally(t -> {
-                                        if (t instanceof GatewayAuthenticationFailedException) {
+                                        final Throwable rootCause =
+                                                (t instanceof CompletionException) ? t.getCause() : t;
+                                        if (rootCause instanceof GatewayAuthenticationFailedException) {
                                             traceContext.rename(TRACE_FILTER_AUTH_JWT_FAIL);
                                             traceContext.finish();
 
-                                            final DittoRuntimeException e = (DittoRuntimeException) t;
+                                            final DittoRuntimeException e = (DittoRuntimeException) rootCause;
                                             LOGGER.debug("JWT authentication failed.", e);
                                             throw e;
                                         } else {
                                             traceContext.finish();
 
-                                            LOGGER.warn("Unexpected error during JWT authentication.", t);
-                                            throw buildAuthenticationProviderUnavailableException(correlationId, t);
+                                            LOGGER.warn("Unexpected error during JWT authentication.", rootCause);
+                                            throw buildAuthenticationProviderUnavailableException(correlationId,
+                                                    rootCause);
                                         }
                                     }),
                             inner);
