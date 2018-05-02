@@ -18,7 +18,7 @@ is provided via AMQP 1.0.<br />
 By doing so it is for example possible to receive [Hono telemetry](https://www.eclipse.org/hono/api/telemetry-api/) 
 messages (see heading "Northbound Operations") which a device `demo-device` connected to the "southbound" of Hono sends 
 via HTTP or MQTT (the currently available protocol adapters of Hono) in Ditto.<br />
-When received, the payload can be translate into a format Ditto understands in order to update the 
+When received, the payload can be translated into a format Ditto understands in order to update the 
 [digital twin](intro-digitaltwins.html) of the `demo-device` device and provide API access to the twin, e.g. via `HTTP`
 or `WebSocket`.
 
@@ -321,7 +321,7 @@ function mapToDittoProtocolMsg(
 ```
 
 In order to add this script to the connection we want to create, the newlines have to be replaced by `\n` so that
-the scripts fits in a single line JSON string and the `"` characters have to be replaced with `\"`: 
+the script fits in a single line JSON string and the `"` characters have to be replaced with `\"`: 
 
 ```json
 "function mapToDittoProtocolMsg(\n    headers,\n    textPayload,\n    bytePayload,\n    contentType\n) {\n\n    if (contentType !== \"application/json\") {\n        return null;\n    }\n\n    var jsonData = JSON.parse(textPayload);\n    var temperature = jsonData.temp;\n    var humidity = jsonData.hum;\n    \n    var path;\n    var value;\n    if (temperature != null && humidity != null) {\n        path = \"/features\";\n        value = {\n                temperature: {\n                    properties: {\n                        value: temperature\n                    }\n                },\n                humidity: {\n                    properties: {\n                        value: humidity\n                    }\n                }\n            };\n    } else if (temperature != null) {\n        path = \"/features/temperature/properties/value\";\n        value = temperature;\n    } else if (humidity != null) {\n        path = \"/features/humidity/properties/value\";\n        value = humidity;\n    }\n    \n    if (!path || !value) {\n        return null;\n    }\n\n    return Ditto.buildDittoProtocolMsg(\n        \"org.eclipse.ditto\",\n        headers[\"device_id\"],\n        \"things\",\n        \"twin\",\n        \"commands\",\n        \"modify\",\n        path,\n        headers,\n        value\n    );\n}"
@@ -330,7 +330,7 @@ the scripts fits in a single line JSON string and the `"` characters have to be 
 #### Create the connection
 
 We use the payload of the previous "test connection" command and add the JavaScript mapping script from above in order
-to specify the "create connection" command we will use to create the connection between Eclipse Hono and Ditto:
+to specify the "create connection" command, which we will use to create the connection between Eclipse Hono and Ditto:
 
 ```bash
 $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
