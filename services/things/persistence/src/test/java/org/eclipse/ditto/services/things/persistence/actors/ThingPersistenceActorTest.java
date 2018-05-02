@@ -128,9 +128,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private static void assertThingInResponseV2(final Thing actualThing, final Thing expectedThing) {
-        // Policy entries are ignored by things-persistence.
-        final Thing expectedThingWithoutPolicyEntries = expectedThing.setPolicyId(expectedThing.getId().get());
-        assertThat(actualThing).hasEqualJson(expectedThingWithoutPolicyEntries, FieldType.notHidden()
+        assertThat(actualThing).hasEqualJson(expectedThing, FieldType.notHidden()
                 .and(IS_MODIFIED.negate()));
 
         assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
@@ -186,9 +184,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void tryToModifyFeaturePropertyAndReceiveCorrectErrorCode() {
         final String thingId = "org.eclipse.ditto:myThing";
-        final Thing thing = Thing.newBuilder() //
-                .setId(thingId) //
-                .setFeatures(JsonFactory.newObject()) //
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setFeatures(JsonFactory.newObject())
                 .build();
         final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV1);
 
@@ -565,9 +563,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final String thingId = ":myThing";
                 final Feature smokeDetector = ThingsModelFactory.newFeature("smokeDetector");
                 final Feature fireExtinguisher = ThingsModelFactory.newFeature("fireExtinguisher");
-                final Thing thing = ThingsModelFactory.newThingBuilder() //
-                        .setId(thingId) //
-                        .setFeature(smokeDetector) //
+                final Thing thing = ThingsModelFactory.newThingBuilder()
+                        .setId(thingId)
+                        .setPolicyId(POLICY_ID)
+                        .setFeature(smokeDetector)
                         .build();
                 final Features featuresToModify = ThingsModelFactory.newFeatures(fireExtinguisher);
 
@@ -609,9 +608,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonPointer bazPointer = JsonFactory.newPointer("baz");
                 final JsonValue bazValue = JsonFactory.newValue(42);
 
-                final Thing thing = ThingsModelFactory.newThingBuilder() //
-                        .setId(thingId) //
-                        .setAttribute(fooPointer, fooValue) //
+                final Thing thing = ThingsModelFactory.newThingBuilder()
+                        .setId(thingId)
+                        .setPolicyId(POLICY_ID)
+                        .setAttribute(fooPointer, fooValue)
                         .build();
                 final Attributes attributesToModify =
                         ThingsModelFactory.newAttributesBuilder().set(bazPointer, bazValue).build();
@@ -647,9 +647,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         attributesBuilder.set("foo", "bar").set("isValid", false).set("answer", 42);
         final JsonObject attributes = attributesBuilder.build();
 
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setAttributes(ThingsModelFactory.newAttributes(attributes)) //
-                .setGeneratedId() //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setAttributes(ThingsModelFactory.newAttributes(attributes))
+                .setGeneratedId()
+                .setPolicyId(POLICY_ID)
                 .build();
 
         final JsonPointer attributeKey = JsonFactory.newPointer("isValid");
@@ -686,9 +687,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         attributesBuilder.set("foo", "bar").set(attributeKey, attributeValue).set("answer", 42);
         final JsonObject attributes = attributesBuilder.build();
 
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setAttributes(ThingsModelFactory.newAttributes(attributes)) //
-                .setGeneratedId() //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setAttributes(ThingsModelFactory.newAttributes(attributes))
+                .setGeneratedId()
+                .setPolicyId(POLICY_ID)
                 .build();
 
         final String thingId = thing.getId().orElse(null);
@@ -721,9 +723,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         attributesBuilder.set("foo", "bar").set(attributeKey, false).set("answer", 42);
         final JsonObject attributes = attributesBuilder.build();
 
-        final Thing thing = ThingsModelFactory.newThingBuilder() //
-                .setAttributes(ThingsModelFactory.newAttributes(attributes)) //
-                .setGeneratedId() //
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setAttributes(ThingsModelFactory.newAttributes(attributes))
+                .setGeneratedId()
+                .setPolicyId(POLICY_ID)
                 .build();
 
         final String thingId = thing.getId().orElse(null);
@@ -984,8 +987,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonFieldSelector versionFieldSelector =
                         JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.toString(), JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
-                final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify) //
-                        .setRevision(versionExpected) //
+                final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
+                        .setRevision(versionExpected)
                         .build();
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(versionFieldSelector)
@@ -1023,8 +1026,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final JsonFieldSelector versionFieldSelector =
                         JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.toString(), JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
-                final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify) //
-                        .setRevision(versionExpected) //
+                final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
+                        .setRevision(versionExpected)
                         .build();
 
                 // restart actor to recover thing state
@@ -1169,6 +1172,28 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(retrieveThingV2, getRef());
                 expectMsgEquals(retrieveThingResponseV2);
+            }
+        };
+    }
+
+    /**
+     */
+    @Test
+    public void createThingInV2WithMissingPolicyIdThrowsPolicyIdMissingException() {
+        final String thingIdOfActor = "test.ns.v1:createThingInV2WithMissingPolicyId";
+        final Thing thingV2 = ThingsModelFactory.newThingBuilder()
+                .setAttributes(THING_ATTRIBUTES)
+                .setId(thingIdOfActor)
+                .build();
+
+        new TestKit(actorSystem) {
+            {
+                final ActorRef underTest = createPersistenceActorFor(thingV2);
+
+                final CreateThing createThingV2 = CreateThing.of(thingV2, null, dittoHeadersV2);
+                underTest.tell(createThingV2, getRef());
+
+                expectMsgClass(PolicyIdMissingException.class);
             }
         };
     }
@@ -1331,7 +1356,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 .build();
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setId(thingId)
-                .setPolicyId("Foo")
+                .setPolicyId(POLICY_ID)
                 .setAttributes(ThingsModelFactory.newAttributesBuilder()
                         .set("isOnline", false)
                         .set("lastUpdate", "Thu Sep 28 15:01:43 CEST 2017")
@@ -1376,7 +1401,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             thingV2WithoutPolicyId,
                             JsonSchemaVersion.V_2,
                             this,
-                            modifyThing -> PolicyIdMissingException.fromThingId(thingId,
+                            modifyThing -> PolicyIdMissingException.fromThingIdOnUpdate(thingId,
                                     modifyThing.getDittoHeaders()));
             expectNoMsg();
         }};
@@ -1522,7 +1547,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             return builder.setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions())
                     .build();
         } else {
-            return builder.setPolicyId(thingId)
+            return builder.setPolicyId(POLICY_ID)
                     .build();
         }
     }

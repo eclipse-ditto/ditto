@@ -1102,6 +1102,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     throw AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
                 }
 
+                // policyId is required for v2
+                if (!thing.getPolicyId().isPresent()) {
+                    throw PolicyIdMissingException.fromThingIdOnCreate(thingId, dittoHeaders);
+                }
+
                 return enhanceThingWithLifecycle(thing);
             }
         }
@@ -1290,7 +1295,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             if (containsPolicy(command)) {
                 applyModifyCommand(command);
             } else {
-                notifySender(getSender(), PolicyIdMissingException.fromThingId(thingId, command.getDittoHeaders()));
+                notifySender(getSender(), PolicyIdMissingException.fromThingIdOnUpdate(thingId, command.getDittoHeaders()));
             }
         }
 

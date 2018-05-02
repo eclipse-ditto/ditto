@@ -54,6 +54,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class PersistenceActorTestBase {
 
     protected static final String THING_ID = "org.eclipse.ditto:thingId";
+    protected static final String POLICY_ID = "org.eclipse.ditto:policyId";
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
@@ -107,7 +108,7 @@ public abstract class PersistenceActorTestBase {
                 .setFeatures(THING_FEATURES)
                 .setRevision(THING_REVISION)
                 .setId(thingId)
-                .setPolicyId(thingId)
+                .setPolicyId(POLICY_ID)
                 .build();
     }
 
