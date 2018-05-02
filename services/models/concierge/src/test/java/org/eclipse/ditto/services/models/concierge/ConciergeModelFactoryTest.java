@@ -17,13 +17,13 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.junit.Test;
 
 /**
- * Tests {@link CongiergeModelFactory}.
+ * Tests {@link ConciergeModelFactory}.
  */
 public class ConciergeModelFactoryTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CongiergeModelFactory.class, areImmutable());
+        assertInstancesOf(ConciergeModelFactory.class, areImmutable());
     }
 
 }

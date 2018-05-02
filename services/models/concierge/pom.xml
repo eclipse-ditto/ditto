@@ -37,14 +37,7 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-thingsearch</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-cluster-tools_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-things</artifactId>
@@ -56,6 +49,15 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-batch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-tools_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
 

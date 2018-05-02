@@ -45,6 +45,13 @@ public final class ConciergeForwarder {
         this.enforcerShardRegion = enforcerShardRegion;
     }
 
+    /**
+     * Forwards the passed {@code signal} based on whether it has an entity ID or not to the {@code pubSubMediator}
+     * or the {@code enforcerShardRegion}.
+     *
+     * @param signal the Signal to forward
+     * @param sender the ActorRef to use as sender
+     */
     public void forward(final Signal<?> signal, final ActorRef sender) {
         if (signal.getId().isEmpty()) {
             LOGGER.debug("Signal does not contain ID, forwarding to concierge-dispatcherActor: <{}>.", signal);

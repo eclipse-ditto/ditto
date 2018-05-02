@@ -14,12 +14,12 @@ package org.eclipse.ditto.services.models.concierge;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Creates model instances for the Congierge Service.
+ * Creates model instances for the Concierge Service.
  */
 @Immutable
-public final class CongiergeModelFactory {
+public final class ConciergeModelFactory {
 
-    private CongiergeModelFactory() {
+    private ConciergeModelFactory() {
         throw new AssertionError();
     }
 
