@@ -195,14 +195,14 @@
         </p>`).appendTo("#health-content");
 
         let items = [];
-        $.each(data.roles, function (key, val) {
-            if (keysToIgnore.includes(key)) {
+        $.each(data.children, function (idx, child) {
+            if (keysToIgnore.includes(child.label)) {
                 // ignore
             } else {
                 items.push(`<li>
-                    <span class="health-key">${key}:</span>
-                    <span class="health ${calcHealthStatusClass(val.status)}"></span>
-                    <span class="health-status">${val.status}</span>
+                    <span class="health-key">${child.label}:</span>
+                    <span class="health ${calcHealthStatusClass(child.status)}"></span>
+                    <span class="health-status">${child.status}</span>
                 </li>`);
             }
         });
