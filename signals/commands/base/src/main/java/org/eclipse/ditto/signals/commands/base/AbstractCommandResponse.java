@@ -90,7 +90,8 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse>
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.TYPE, responseType, predicate)
+                // TYPE is included unconditionally
+                .set(JsonFields.TYPE, responseType)
                 .set(JsonFields.STATUS, statusCode.toInt(), predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
