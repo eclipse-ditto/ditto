@@ -47,7 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.gateway.starter.service.util.GatewayMappingStrategyTest}.
+ * Unit test for {@link org.eclipse.ditto.services.gateway.starter.service.util.GatewayMappingStrategy}.
  */
 public final class GatewayMappingStrategyTest {
 

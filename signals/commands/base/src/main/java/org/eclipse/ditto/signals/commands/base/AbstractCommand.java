@@ -75,7 +75,8 @@ public abstract class AbstractCommand<T extends AbstractCommand> implements Comm
             // backward compatibility to V1!
             jsonObjectBuilder.set(JsonFields.ID, getName(), predicate);
         }
-        jsonObjectBuilder.set(JsonFields.TYPE, type, predicate);
+        // TYPE is included unconditionally
+        jsonObjectBuilder.set(JsonFields.TYPE, type);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
