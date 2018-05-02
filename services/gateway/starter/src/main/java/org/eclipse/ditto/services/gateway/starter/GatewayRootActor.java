@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -35,7 +34,6 @@ import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
 import com.typesafe.config.Config;
 
@@ -146,8 +144,7 @@ final class GatewayRootActor extends AbstractActor {
                 StreamingActor.props(pubSubMediator, proxyActor));
 
         final HealthConfigReader healthConfig = configReader.health();
-        final String mongoUri = config.getString(ConfigKeys.MONGO_URI);
-        final ActorRef healthCheckActor = createHealthCheckActor(healthConfig, mongoUri);
+        final ActorRef healthCheckActor = createHealthCheckActor(healthConfig);
 
         final HttpConfigReader httpConfig = configReader.http();
         String hostname = httpConfig.getHostname();
@@ -224,21 +221,14 @@ final class GatewayRootActor extends AbstractActor {
         return rootRoute.buildRoute();
     }
 
-    private ActorRef createHealthCheckActor(final HealthConfigReader healthConfig, final String mongoUri) {
+    private ActorRef createHealthCheckActor(final HealthConfigReader healthConfig) {
         final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
                 .getBuilder(healthConfig.enabled(),
                         healthConfig.getInterval());
 
-        if (healthConfig.persistenceEnabled()) {
-            hcBuilder.enablePersistenceCheck();
-        }
-
-        final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(mongoUri, healthConfig.getPersistenceTimeout()));
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
     }
 
 }
