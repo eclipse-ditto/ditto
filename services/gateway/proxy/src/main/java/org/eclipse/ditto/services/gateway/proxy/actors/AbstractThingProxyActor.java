@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -27,16 +26,15 @@ import akka.japi.pf.ReceiveBuilder;
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorRef devOpsCommandsActor;
-    private final ConciergeForwarder conciergeForwarder;
+    private final ActorRef conciergeForwarder;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef conciergeShardRegion) {
+            final ActorRef conciergeForwarder) {
         super(pubSubMediator);
 
         this.devOpsCommandsActor = devOpsCommandsActor;
-
-        conciergeForwarder = new ConciergeForwarder(pubSubMediator, conciergeShardRegion);
+        this.conciergeForwarder = conciergeForwarder;
     }
 
     @Override
@@ -68,7 +66,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     }
 
     private void forwardToConciergeService(final Signal<?> signal) {
-        conciergeForwarder.forward(signal, getSender());
+        conciergeForwarder.forward(signal, getContext());
     }
 
 }

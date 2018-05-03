@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
@@ -69,13 +68,13 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
-    private final ConciergeForwarder conciergeForwarder;
+    private final ActorRef conciergeForwarder;
     private final SnapshotAdapter<Set<String>> snapshotAdapter;
     private long snapshotSequenceNr = -1;
 
     private Set<String> batchIds;
 
-    private BatchSupervisorActor( final ActorRef pubSubMediator, final ConciergeForwarder conciergeForwarder) {
+    private BatchSupervisorActor( final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
 
@@ -90,7 +89,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
      * @param conciergeForwarder the ref of the conciergeForwarder.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ConciergeForwarder conciergeForwarder) {
+    public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return Props.create(BatchSupervisorActor.class, new Creator<BatchSupervisorActor>() {
             private static final long serialVersionUID = 1L;
 

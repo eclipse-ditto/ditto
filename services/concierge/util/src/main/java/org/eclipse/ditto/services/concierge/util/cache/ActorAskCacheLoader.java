@@ -122,7 +122,7 @@ public final class ActorAskCacheLoader<V> implements AsyncCacheLoader<EntityId, 
         final Function<String, Command> commandCreator = commandCreatorMap.get(resourceType);
         if (commandCreator == null) {
             final String message =
-                    String.format("Don't how to create retrieve command for resource type <%s> and id <%s>",
+                    String.format("Don't know how to create retrieve command for resource type <%s> and id <%s>",
                             resourceType, id);
             throw new NullPointerException(message);
         } else {

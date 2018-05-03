@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.concierge.util.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
@@ -122,10 +123,6 @@ final class GatewayRootActor extends AbstractActor {
         final Config config = configReader.getRawConfig();
 
         final ActorSystem actorSystem = context().system();
-        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
-                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
-                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         ClusterSharding.get(actorSystem)
                 .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
@@ -135,8 +132,16 @@ final class GatewayRootActor extends AbstractActor {
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
                         ConfigUtil.instanceIndex()));
 
+        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
+                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+
+        final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy));
+
         final ActorRef proxyActor = startChildActor(ProxyActor.ACTOR_NAME,
-                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeShardRegionProxy));
+                ProxyActor.props(pubSubMediator, devOpsCommandsActor, conciergeForwarder));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 

@@ -31,6 +31,16 @@ public final class ConciergeMessagingConstants {
     public static final String DISPATCHER_ACTOR_PATH = ROOT_ACTOR_PATH + "/dispatcherActor";
 
     /**
+     * Path of the concierge forwarder actor.
+     */
+    public static final String FORWARDER_ACTOR_PATH = ROOT_ACTOR_PATH + "/conciergeForwarder";
+
+    /**
+     * Path of the batchSupervisor actor.
+     */
+    public static final String BATCH_SUPERVISOR_ACTOR_PATH = ROOT_ACTOR_PATH + "/batchSupervisor/singleton";
+
+    /**
      * Name of the shard region for authorization entities.
      */
     public static final String SHARD_REGION = "concierge";

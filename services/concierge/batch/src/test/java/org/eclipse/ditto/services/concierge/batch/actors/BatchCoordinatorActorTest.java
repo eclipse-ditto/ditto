@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
@@ -74,14 +73,15 @@ public final class BatchCoordinatorActorTest {
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
-    private static ConciergeForwarder conciergeForwarder;
+    private static ActorRef conciergeForwarder;
 
     @BeforeClass
     public static void setUpActorSystem() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
-        final ActorRef sharedRegionProxy = actorSystem.actorOf(Props.create(SharedRegionProxyMock.class));
-        conciergeForwarder = new ConciergeForwarder(pubSubMediator, sharedRegionProxy);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        final ActorRef sharedRegionProxy = actorSystem.actorOf(Props.create(SharedRegionProxyMock.class));
+        conciergeForwarder = actorSystem.actorOf(BatchSupervisorActorTest.ConciergeForwarderActorMock.props
+                        (sharedRegionProxy), BatchSupervisorActorTest.ConciergeForwarderActorMock.ACTOR_NAME);
     }
 
     /** */

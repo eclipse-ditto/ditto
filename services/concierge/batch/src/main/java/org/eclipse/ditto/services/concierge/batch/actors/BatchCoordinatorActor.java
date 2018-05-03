@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -75,7 +74,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
-    private final ConciergeForwarder conciergeForwarder;
+    private final ActorRef conciergeForwarder;
     private final Set<String> pendingCommands;
     private final Map<String, Command> commands;
     private final List<CommandResponse> commandResponses;
@@ -84,7 +83,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
     private ActorRef originalSender;
     private Cancellable shutdown;
 
-    private BatchCoordinatorActor(final String batchId, final ActorRef pubSubMediator, final ConciergeForwarder conciergeForwarder) {
+    private BatchCoordinatorActor(final String batchId, final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         this.batchId = batchId;
         this.conciergeForwarder = conciergeForwarder;
         this.pubSubMediator = pubSubMediator;
@@ -102,7 +101,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
      * @param pubSubMediator the mediator to use for distributed pubsub.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String batchId, final ActorRef pubSubMediator, final ConciergeForwarder conciergeForwarder) {
+    static Props props(final String batchId, final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return Props.create(BatchCoordinatorActor.class, new Creator<BatchCoordinatorActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -156,7 +155,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
                     if (!pendingCommands.isEmpty()) {
                         log.debug("Resuming execution of batch '{}'.", batchId);
                         pendingCommands.forEach(
-                                correlationId -> conciergeForwarder.forward(commands.get(correlationId), getSelf()));
+                                correlationId -> conciergeForwarder.tell(commands.get(correlationId), getSelf()));
                         becomeCommandResponseAwaiting();
                     } else {
                         log.debug("No pending commands - shutting down in {} seconds.",
@@ -196,7 +195,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
         pendingCommands.add(correlationId);
 
         final Command commandAsDryRun = command.setDittoHeaders(dittoHeadersBuilder.dryRun(true).build());
-        conciergeForwarder.forward(commandAsDryRun, getSelf());
+        conciergeForwarder.tell(commandAsDryRun, getSelf());
     }
 
     private void becomeDryRunCommandResponseAwaiting() {
@@ -219,7 +218,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
 
                             originalSender.tell(ExecuteBatchResponse.of(batchId, buildDittoHeaders()), getSelf());
                             commands.forEach((correlationId, command) -> {
-                                conciergeForwarder.forward(command, getSelf());
+                                conciergeForwarder.tell(command, getSelf());
                                 pendingCommands.add(correlationId);
                             });
 

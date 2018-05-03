@@ -21,10 +21,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
+import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatch;
 import org.eclipse.ditto.signals.commands.batch.ExecuteBatchResponse;
@@ -64,14 +65,15 @@ public final class BatchSupervisorActorTest {
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
     private static ActorRef underTest;
-    private static ConciergeForwarder conciergeForwarder;
+    private static ActorRef conciergeForwarder;
 
     @BeforeClass
     public static void setUpActorSystem() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         final ActorRef sharedRegionProxy = actorSystem.actorOf(Props.create(SharedRegionProxyMock.class));
-        conciergeForwarder = new ConciergeForwarder(pubSubMediator, sharedRegionProxy);
+        conciergeForwarder = actorSystem.actorOf(ConciergeForwarderActorMock.props(sharedRegionProxy),
+                ConciergeForwarderActorMock.ACTOR_NAME);
         underTest = createBatchSupervisorActor();
     }
 
@@ -252,6 +254,40 @@ public final class BatchSupervisorActorTest {
             final ModifyFeatureResponse response = ModifyFeatureResponse.modified(command.getId(), command.getFeatureId(),
                     command.getDittoHeaders());
             getSender().tell(response, getSelf());
+        }
+    }
+
+    public static final class ConciergeForwarderActorMock extends AbstractActor {
+
+        public static final String ACTOR_NAME = "conciergeForwarder";
+
+        private final ActorRef enforcerShardRegion;
+
+        private ConciergeForwarderActorMock(final ActorRef enforcerShardRegion) {
+            this.enforcerShardRegion = enforcerShardRegion;
+        }
+
+
+        /**
+         * Creates Akka configuration object Props for this actor.
+         *
+         * @param enforcerShardRegion the ActorRef of the enforcerShardRegion.
+         * @return the Akka configuration Props object.
+         */
+        public static Props props(final ActorRef enforcerShardRegion) {
+
+            return Props.create(ConciergeForwarderActorMock.class,
+                    () -> new ConciergeForwarderActorMock(enforcerShardRegion));
+        }
+
+        @Override
+        public AbstractActor.Receive createReceive() {
+            return ReceiveBuilder.create()
+                    .match(Signal.class, signal -> {
+                        final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(signal);
+                        enforcerShardRegion.tell(msg, getSender());
+                    })
+                    .build();
         }
     }
 

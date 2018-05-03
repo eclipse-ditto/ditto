@@ -24,8 +24,8 @@ import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
+import org.eclipse.ditto.services.concierge.util.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -48,6 +48,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ShardRegion;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
@@ -134,7 +135,10 @@ public final class ConciergeRootActor extends AbstractActor {
 
         conciergeShardRegion = authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
 
-        final ConciergeForwarder conciergeForwarder = new ConciergeForwarder(pubSubMediator, conciergeShardRegion);
+        final ActorRef conciergeForwarder = startChildActor(context, ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegion));
+
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), getSelf());
 
         startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,
                 BatchSupervisorActor.props(pubSubMediator, conciergeForwarder));
