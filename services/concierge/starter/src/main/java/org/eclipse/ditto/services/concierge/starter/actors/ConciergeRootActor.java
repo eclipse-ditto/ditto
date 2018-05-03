@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.concierge.util.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -85,6 +85,9 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.restart();
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
+            }).match(IndexOutOfBoundsException.class, e -> {
+                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
             }).match(IllegalStateException.class, e -> {
                 log.warning("Illegal State in child actor: {}", e.getMessage());

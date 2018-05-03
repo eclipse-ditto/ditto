@@ -11,10 +11,10 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
-import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
+import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;

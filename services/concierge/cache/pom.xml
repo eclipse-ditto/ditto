@@ -20,39 +20,61 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-concierge-util</artifactId>
-    <name>Eclipse Ditto :: Services :: Concierge :: Util</name>
+    <artifactId>ditto-services-concierge-cache</artifactId>
+    <name>Eclipse Ditto :: Services :: Concierge :: Cache</name>
 
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-base</artifactId>
+            <artifactId>ditto-services-concierge-util</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-model-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-enforcers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-things</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-things</artifactId>
+            <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
+            <artifactId>ditto-signals-commands-policies</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-thingsearch</artifactId>
+            <artifactId>ditto-signals-events-policies</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-concierge</artifactId>
+            <artifactId>ditto-services-utils-cache</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-amqp-bridge</artifactId>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -15,7 +15,6 @@ import java.time.Duration;
 
 import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
 
 /**
