@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.utils.akka.controlflow.components;
 
 import java.util.function.BiConsumer;
 
-import org.eclipse.ditto.services.utils.akka.controlflow.ControlFlowLogic;
+import org.eclipse.ditto.services.utils.akka.controlflow.AbstractControlFlowLogic;
 
 import akka.NotUsed;
 import akka.event.LoggingAdapter;
@@ -62,7 +62,7 @@ public final class PipeWithIdleRoutine<A, T> extends GraphStage<FanInShape2<A, T
 
     @Override
     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-        return new ControlFlowLogic(shape) {
+        return new AbstractControlFlowLogic(shape) {
             private int accessCounter = 0;
             private int accessCounterByLastTick = 0;
 

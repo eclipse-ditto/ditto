@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.base.config;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+/**
+ * TODO Javadoc
+ */
 public class AbstractServiceConfigReader extends AbstractConfigReader implements ServiceConfigReader {
 
     private static final String DEFAULT_CONFIG_PREFIX = "ditto";

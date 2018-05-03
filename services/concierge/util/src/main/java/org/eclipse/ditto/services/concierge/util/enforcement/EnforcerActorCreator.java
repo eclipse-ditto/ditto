@@ -31,11 +31,15 @@ import akka.actor.Props;
 import akka.stream.javadsl.Flow;
 
 /**
- * Utility class to create actors that enforce authorization.
+ * Creator for Actors that enforce authorization.
  */
-public final class EnforcerActor {
+public final class EnforcerActorCreator {
 
     private static final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
+
+    private EnforcerActorCreator() {
+        throw new AssertionError();
+    }
 
     /**
      * Creates Akka configuration object Props for this EnforcerActor. Caution: The actor does not terminate itself
@@ -62,15 +66,15 @@ public final class EnforcerActor {
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
-            @Nullable Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable Duration activityCheckInterval) {
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final Duration activityCheckInterval) {
 
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
 
         return GraphActor.partialWithLog((actorContext, log) -> {
-            final Enforcement.Context enforcementContext =
-                    new Enforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
+            final AbstractEnforcement.Context enforcementContext =
+                    new AbstractEnforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
 
             return Flow.<WithSender>create()
                     .via(ActivityChecker.ofNullable(activityCheckInterval, actorContext.self()))

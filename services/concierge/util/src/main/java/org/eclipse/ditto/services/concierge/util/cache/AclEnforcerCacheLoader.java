@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
@@ -46,15 +47,21 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
 
     private final ActorAskCacheLoader<Enforcer> delegate;
 
+    /**
+     * TODO Javadoc
+     * @param askTimeout
+     * @param thingsShardRegion
+     */
     public AclEnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegion) {
         requireNonNull(askTimeout);
         requireNonNull(thingsShardRegion);
 
-        final Function<String, Object> command = ThingCommandFactory::sudoRetrieveThing;
-        final Function<Object, Entry<Enforcer>> transformer = AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
+        final Function<String, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final Function<Object, Entry<Enforcer>> responseTransformer =
+                AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 
         this.delegate = new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, thingsShardRegion,
-                command, transformer);
+                commandCreator, responseTransformer);
     }
 
     @Override

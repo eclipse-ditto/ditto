@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.concierge.starter;
 
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
-import org.eclipse.ditto.services.concierge.starter.proxy.DefaultAuthorizationProxyPropsFactory;
+import org.eclipse.ditto.services.concierge.starter.proxy.DefaultEnforcerActorFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +46,7 @@ public final class ConciergeService extends AbstractConciergeService {
     protected Props getMainRootActorProps(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConciergeRootActor.props(configReader, pubSubMediator, new DefaultAuthorizationProxyPropsFactory(),
+        return ConciergeRootActor.props(configReader, pubSubMediator, new DefaultEnforcerActorFactory(),
                 materializer);
     }
 

@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.concierge.util.cache.entry;
 
+import java.util.Objects;
+
 import jdk.nashorn.internal.ir.annotations.Immutable;
 
 /**
@@ -42,5 +44,29 @@ final class ExistentEntry<T> implements Entry<T> {
         return true;
     }
 
-    // TODO: equals, hashcode, toString
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ExistentEntry)) {
+            return false;
+        }
+        final ExistentEntry<?> that = (ExistentEntry<?>) o;
+        return revision == that.revision &&
+                Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(revision, value);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "revision=" + revision +
+                ", value=" + value +
+                "]";
+    }
 }

@@ -36,7 +36,7 @@ import akka.actor.Props;
 /**
  * An actor which subscribes to Thing Events and updates caches when necessary.
  */
-public class ThingCacheUpdateActor extends PubSubListenerActor {
+public class ThingCacheUpdateActor extends AbstractPubSubListenerActor {
 
     /**
      * The name of this actor.

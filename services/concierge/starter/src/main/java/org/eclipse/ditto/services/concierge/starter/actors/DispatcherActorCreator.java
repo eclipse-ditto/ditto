@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
-import static akka.cluster.pubsub.DistributedPubSubMediator.Send;
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
 import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants.SEARCH_ACTOR_PATH;
 
@@ -33,6 +31,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.stream.FanInShape2;
 import akka.stream.FanOutShape2;
 import akka.stream.FlowShape;
@@ -42,9 +41,9 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 
 /**
- * Actor that dispatches commands not authorized by any entity.
+ * Creator for Actor that dispatches signals not authorized by any entity meaning signals without entityId.
  */
-public final class DispatcherActor {
+public final class DispatcherActorCreator {
 
     /**
      * The name of this actor.
@@ -62,8 +61,8 @@ public final class DispatcherActor {
             final ActorRef enforcerShardRegion) {
 
         return GraphActor.partial(actorContext -> {
-            initActor(actorContext.self(), pubSubMediator);
-            return dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion);
+            DispatcherActorCreator.initActor(actorContext.self(), pubSubMediator);
+            return DispatcherActorCreator.dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion);
         });
     }
 
@@ -80,10 +79,10 @@ public final class DispatcherActor {
             final Graph<FlowShape<WithSender, WithSender>, NotUsed> preEnforcer) {
 
         return GraphActor.partial(actorContext -> {
-            initActor(actorContext.self(), pubSubMediator);
+            DispatcherActorCreator.initActor(actorContext.self(), pubSubMediator);
             return Flow.<WithSender>create()
                     .via(preEnforcer)
-                    .via(dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
+                    .via(DispatcherActorCreator.dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
         });
     }
 
@@ -95,14 +94,14 @@ public final class DispatcherActor {
      * @param enforcerShardRegion shard region of enforcer actors.
      * @return Akka stream graph to dispatch {@code RetrieveThings} and {@code ThingSearchCommand}.
      */
-    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchGraph(
+    private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchGraph(
             final AbstractActor.ActorContext actorContext,
             final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
 
         return Flow.<WithSender>create()
-                .via(dispatchSearchCommands(pubSubMediator))
-                .via(dispatchRetrieveThings(actorContext, enforcerShardRegion));
+                .via(DispatcherActorCreator.dispatchSearchCommands(pubSubMediator))
+                .via(DispatcherActorCreator.dispatchRetrieveThings(actorContext, enforcerShardRegion));
     }
 
     /**
@@ -110,27 +109,27 @@ public final class DispatcherActor {
      * <pre>
      * {@code
      *              +-----------------------+ output       +-----+
-     * input +----->+searchCommandFilter    +------------->+     |
-     *              +-----------+-----------+          in0 |     |
-     *                          |                          |     |
-     *                          | unhandled                |     | out       +--------------------+
-     *       +------------------+                          |fanIn+---------->+forwardToSearchActor|
-     *       |                                             |     |           +--------------------+
-     *       |                                             |     |
-     *       |      +-----------------------+ output       |     |
-     *       +----->+sudoSearchCommandFilter+------------->+     |
-     *       input  +-----------+-----------+          in1 +-----+
-     *                          |
-     *                          | unhandled
-     *                          |
-     *                          v
-     * }
-     * </pre>
+     *      * input +----->+searchCommandFilter    +------------->+     |
+     *      *              +-----------+-----------+          in0 |     |
+     *      *                          |                          |     |
+     *      *                          | unhandled                |     | out       +--------------------+
+     *      *       +------------------+                          |fanIn+---------->+forwardToSearchActor|
+     *      *       |                                             |     |           +--------------------+
+     *      *       |                                             |     |
+     *      *       |      +-----------------------+ output       |     |
+     *      *       +----->+sudoSearchCommandFilter+------------->+     |
+     *      *       input  +-----------+-----------+          in1 +-----+
+     *      *                          |
+     *      *                          | unhandled
+     *      *                          |
+     *      *                          v
+     *      * }
+     *      * </pre>
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @return Akka stream graph that forwards relevant commands to the search actor.
      */
-    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchSearchCommands(
+    private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchSearchCommands(
             final ActorRef pubSubMediator) {
 
         return GraphDSL.create(builder -> {
@@ -144,7 +143,7 @@ public final class DispatcherActor {
                     WithSender<Object>> fanIn = builder.add(FanIn.of2());
 
             final SinkShape<WithSender<Object>> sinkToSearchActor =
-                    builder.add(forwardToThingSearchActor(pubSubMediator));
+                    builder.add(DispatcherActorCreator.forwardToThingSearchActor(pubSubMediator));
 
             builder.from(searchFilter.out0()).toInlet(fanIn.in0());
             builder.from(searchFilter.out1()).toInlet(sudoSearchFilter.in());
@@ -163,7 +162,7 @@ public final class DispatcherActor {
      * @param enforcerShardRegion shard region of enforcer actors.
      * @return Akka stream graph that forwards relevant commands to the enforcer shard region.
      */
-    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchRetrieveThings(
+    private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchRetrieveThings(
             final ActorContext actorContext,
             final ActorRef enforcerShardRegion) {
 
@@ -194,14 +193,15 @@ public final class DispatcherActor {
 
     private static Consume<Object> forwardToThingSearchActor(final ActorRef pubSubMediator) {
         return Consume.of((message, sender) -> {
-            final Send wrappedCommand = new Send(SEARCH_ACTOR_PATH, message);
+            final DistributedPubSubMediator.Send wrappedCommand =
+                    new DistributedPubSubMediator.Send(SEARCH_ACTOR_PATH, message);
             pubSubMediator.tell(wrappedCommand, sender);
         });
     }
 
     private static void initActor(final ActorRef self, final ActorRef pubSubMediator) {
-        sanityCheck(self);
-        putSelfToPubSubMediator(self, pubSubMediator);
+        DispatcherActorCreator.sanityCheck(self);
+        DispatcherActorCreator.putSelfToPubSubMediator(self, pubSubMediator);
     }
 
     /**
@@ -226,6 +226,6 @@ public final class DispatcherActor {
      * @param pubSubMediator Akka PubSub mediator.
      */
     private static void putSelfToPubSubMediator(final ActorRef self, final ActorRef pubSubMediator) {
-        pubSubMediator.tell(new Put(self), self);
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(self), self);
     }
 }

@@ -39,19 +39,6 @@ public final class EnforcerRetriever {
      * Constructor.
      *
      * @param idCache the ID Cache.
-     * @param enforcerCacheFunction a function to determine a Enforcer Cache for a resource type.
-     */
-    public EnforcerRetriever(
-            final Cache<EntityId, Entry<EntityId>> idCache,
-            final Function<String, Cache<EntityId, Entry<Enforcer>>> enforcerCacheFunction) {
-        this.idCache = requireNonNull(idCache);
-        this.enforcerCacheFunction = requireNonNull(enforcerCacheFunction);
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param idCache the ID Cache.
      * @param enforcerCache the Enforcer Cache.
      */
     public EnforcerRetriever(
@@ -64,9 +51,22 @@ public final class EnforcerRetriever {
      * Constructor.
      *
      * @param idCache the ID Cache.
+     * @param enforcerCacheFunction a function to determine a Enforcer Cache for a resource type.
+     */
+    private EnforcerRetriever(
+            final Cache<EntityId, Entry<EntityId>> idCache,
+            final Function<String, Cache<EntityId, Entry<Enforcer>>> enforcerCacheFunction) {
+        this.idCache = requireNonNull(idCache);
+        this.enforcerCacheFunction = requireNonNull(enforcerCacheFunction);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param idCache the ID Cache.
      * @param enforcerCaches the Enforcer Caches per resource type.
      */
-    public EnforcerRetriever(
+    EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Map<String, Cache<EntityId, Entry<Enforcer>>> enforcerCaches) {
         this(idCache, enforcerCaches::get);

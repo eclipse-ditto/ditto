@@ -42,4 +42,5 @@ final class NonexistentEntry<T> implements Entry<T> {
     static <T> NonexistentEntry<T> getInstance() {
         return (NonexistentEntry<T>) INSTANCE;
     }
+
 }

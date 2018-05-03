@@ -23,7 +23,9 @@ import akka.stream.stage.GraphStageLogic;
  */
 public final class FanIn {
 
-    private FanIn() {}
+    private FanIn() {
+        throw new AssertionError();
+    }
 
     /**
      * Create fan-in graph that funnels 2 inlets into an outlet.
@@ -47,11 +49,11 @@ public final class FanIn {
 
             @Override
             public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-                return new ControlFlowLogic(shape) {
+                return new AbstractControlFlowLogic(shape) {
                     {
                         initOutlets(shape);
-                        when(shape.in0(), a -> emit(shape.out(), a.withMessage(a.message())));
-                        when(shape.in1(), b -> emit(shape.out(), b.withMessage(b.message())));
+                        when(shape.in0(), a -> emit(shape.out(), a.withMessage(a.getMessage())));
+                        when(shape.in1(), b -> emit(shape.out(), b.withMessage(b.getMessage())));
                     }
                 };
             }

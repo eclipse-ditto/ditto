@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
-import org.eclipse.ditto.services.concierge.starter.proxy.AuthorizationProxyPropsFactory;
+import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeForwarder;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -122,7 +122,7 @@ public final class ConciergeRootActor extends AbstractActor {
             }).build());
 
     private ConciergeRootActor(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
 
         requireNonNull(configReader);
@@ -132,7 +132,7 @@ public final class ConciergeRootActor extends AbstractActor {
 
         final ActorContext context = getContext();
 
-        conciergeShardRegion = authorizationProxyPropsFactory.startActors(context, configReader, pubSubMediator);
+        conciergeShardRegion = authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
 
         final ConciergeForwarder conciergeForwarder = new ConciergeForwarder(pubSubMediator, conciergeShardRegion);
 
@@ -151,12 +151,12 @@ public final class ConciergeRootActor extends AbstractActor {
      *
      * @param configReader the config reader.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param authorizationProxyPropsFactory the {@link AuthorizationProxyPropsFactory}.
+     * @param authorizationProxyPropsFactory the {@link AbstractEnforcerActorFactory}.
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AuthorizationProxyPropsFactory authorizationProxyPropsFactory,
+            final AbstractEnforcerActorFactory authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
 
         return Props.create(ConciergeRootActor.class,

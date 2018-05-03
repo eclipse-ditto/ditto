@@ -24,13 +24,11 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Listens to events via PubSub.
+ * Listens to events via PubSub and invokes the abstract {@link #handleEvents()} for each received event.
  */
-public abstract class PubSubListenerActor extends AbstractActor {
+public abstract class AbstractPubSubListenerActor extends AbstractActor {
 
-    final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    final ActorRef pubSubMediator;
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     /**
      * Creates a cache updater.
@@ -39,14 +37,14 @@ public abstract class PubSubListenerActor extends AbstractActor {
      * @param eventTopics the event topics to register for.
      * @param instanceIndex index of this service instance.
      */
-    protected PubSubListenerActor(final ActorRef pubSubMediator,
+    protected AbstractPubSubListenerActor(final ActorRef pubSubMediator,
             final Set<String> eventTopics,
             final int instanceIndex) {
-        this.pubSubMediator = requireNonNull(pubSubMediator);
         requireNonNull(eventTopics);
 
         final String group = getSelf().path().name() + instanceIndex;
-        eventTopics.forEach(topic -> pubSubMediator.tell(subscribe(topic, group), getSelf()));
+        eventTopics.forEach(topic ->
+                pubSubMediator.tell(subscribe(topic, group), getSelf()));
     }
 
     @Override

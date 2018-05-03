@@ -19,7 +19,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 /**
  * Creates commands to access the Things service.
  */
-public class ThingCommandFactory {
+final class ThingCommandFactory {
 
     private ThingCommandFactory() {
         throw new AssertionError();
@@ -30,7 +30,7 @@ public class ThingCommandFactory {
      * @param thingId the thingId.
      * @return the created command.
      */
-    public static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
+    static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
         final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
                 Thing.JsonFields.ID.getPointer(),
                 Thing.JsonFields.REVISION.getPointer(),

@@ -30,6 +30,7 @@ import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 
@@ -45,17 +46,22 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
 
     private final ActorAskCacheLoader<Enforcer> delegate;
 
+    /**
+     * TODO Javadoc
+     * @param askTimeout
+     * @param policiesShardRegion
+     */
     public PolicyEnforcerCacheLoader(final Duration askTimeout, final ActorRef policiesShardRegion) {
         requireNonNull(askTimeout);
         requireNonNull(policiesShardRegion);
 
-        final Function<String, Object> command =
+        final Function<String, Command> commandCreator =
                 policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty());
-        final Function<Object, Entry<Enforcer>> transformer =
+        final Function<Object, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
         this.delegate = new ActorAskCacheLoader<>(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegion,
-                command, transformer);
+                commandCreator, responseTransformer);
     }
 
     @Override

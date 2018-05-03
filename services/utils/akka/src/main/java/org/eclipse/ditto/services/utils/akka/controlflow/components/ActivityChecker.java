@@ -33,6 +33,10 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ActivityChecker {
 
+    private ActivityChecker() {
+        throw new AssertionError();
+    }
+
     /**
      * Create an Akka stream graph to terminate an actor after a period of inactivity.
      *

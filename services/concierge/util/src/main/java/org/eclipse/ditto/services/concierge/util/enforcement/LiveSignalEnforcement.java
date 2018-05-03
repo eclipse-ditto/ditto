@@ -27,7 +27,7 @@ import akka.actor.ActorRef;
 /**
  * Enforces live commands and live events.
  */
-public final class LiveSignalEnforcement extends Enforcement<Signal> {
+public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private final EnforcerRetriever enforcerRetriever;
 
@@ -75,11 +75,11 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
 
         @Override
         public boolean isApplicable(final Signal signal) {
-            return isLiveSignal(signal);
+            return LiveSignalEnforcement.isLiveSignal(signal);
         }
 
         @Override
-        public Enforcement<Signal> createEnforcement(final Context context) {
+        public AbstractEnforcement<Signal> createEnforcement(final Context context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
     }
@@ -108,7 +108,7 @@ public final class LiveSignalEnforcement extends Enforcement<Signal> {
      * @param signal the signal to test.
      * @return whether the signal belongs to the live channel.
      */
-    public static boolean isLiveSignal(final Signal signal) {
+    static boolean isLiveSignal(final Signal signal) {
         return !(signal instanceof MessageCommand) &&
                 signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }

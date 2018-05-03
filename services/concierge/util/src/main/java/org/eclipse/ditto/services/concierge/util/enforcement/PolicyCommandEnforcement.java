@@ -51,7 +51,7 @@ import akka.pattern.PatternsCS;
 /**
  * Authorize {@link PolicyCommand}.
  */
-public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
+public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCommand> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -158,16 +158,16 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
      * Authorize a policy command. Either the command is forwarded to policies-shard-region for execution or
      * the sender is told of an error.
      *
-     * @param command the command to authorize.
+     * @param signal the command to authorize.
      * @param sender sender of the command.
      */
     @Override
-    public void enforce(final PolicyCommand command, final ActorRef sender) {
+    public void enforce(final PolicyCommand signal, final ActorRef sender) {
         enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
-                enforcePolicyCommandByEnforcer(command, enforcerEntry.getValue(), sender);
+                enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
             } else {
-                enforcePolicyCommandByNonexistentEnforcer(command, sender);
+                enforcePolicyCommandByNonexistentEnforcer(signal, sender);
             }
         });
     }
@@ -265,7 +265,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
     }
 
     /**
-     * Provides {@link Enforcement} for commands of type {@link PolicyCommand}.
+     * Provides {@link AbstractEnforcement} for commands of type {@link PolicyCommand}.
      */
     public static final class Provider implements EnforcementProvider<PolicyCommand> {
 
@@ -290,7 +290,7 @@ public final class PolicyCommandEnforcement extends Enforcement<PolicyCommand> {
         }
 
         @Override
-        public Enforcement<PolicyCommand> createEnforcement(final Enforcement.Context context) {
+        public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
     }
