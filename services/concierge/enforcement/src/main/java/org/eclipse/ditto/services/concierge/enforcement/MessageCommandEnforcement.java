@@ -53,12 +53,15 @@ public final class MessageCommandEnforcement extends AbstractEnforcement<Message
     @Override
     public void enforce(final MessageCommand signal, final ActorRef sender) {
         enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
-            if (idEntry.exists() && signal instanceof SendClaimMessage) {
-                publishMessageCommand(signal, sender);
-            } else if (enforcerEntry.exists()) {
-                enforceMessageCommand(signal, enforcerEntry.getValue(), sender);
-            } else {
+            if (!enforcerEntry.exists()) {
                 reportNonexistentEnforcer(signal, sender);
+            } else {
+                final Enforcer enforcer = enforcerEntry.getValue();
+                if (signal instanceof SendClaimMessage) {
+                    publishMessageCommand(signal, enforcer, sender);
+                } else {
+                    enforceMessageCommand(signal, enforcer, sender);
+                }
             }
         });
     }
@@ -111,16 +114,25 @@ public final class MessageCommandEnforcement extends AbstractEnforcement<Message
 
     private void enforceMessageCommand(final MessageCommand command, final Enforcer enforcer, final ActorRef sender) {
         if (isAuthorized(command, enforcer)) {
-            final DittoHeaders headersWithReadSubjects = command.getDittoHeaders()
-                    .toBuilder()
-                    .readSubjects(getThingsReadSubjects(command, enforcer))
-                    .build();
-
-            final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
-            publishMessageCommand(commandWithReadSubjects, sender);
+            publishMessageCommand(command, enforcer, sender);
         } else {
             rejectMessageCommand(command, sender);
         }
+    }
+
+    private void publishMessageCommand(final MessageCommand command, final Enforcer enforcer, final ActorRef sender) {
+        final DittoHeaders headersWithReadSubjects = command.getDittoHeaders()
+                .toBuilder()
+                .readSubjects(getThingsReadSubjects(command, enforcer))
+                .build();
+
+        final MessageCommand commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
+
+        publishToMediator(commandWithReadSubjects, sender);
+
+        // answer the sender immediately for fire-and-forget message commands.
+        getResponseForFireAndForgetMessage(commandWithReadSubjects)
+                .ifPresent(response -> replyToSender(response, sender));
     }
 
     private void rejectMessageCommand(final MessageCommand command, final ActorRef sender) {
@@ -135,16 +147,10 @@ public final class MessageCommandEnforcement extends AbstractEnforcement<Message
         replyToSender(error, sender);
     }
 
-    private void publishMessageCommand(final MessageCommand command, final ActorRef sender) {
-        publishToMediator(command, sender);
-
-        // answer the sender immediately for fire-and-forget message commands.
-        getResponseForFireAndForgetMessage(command)
-                .ifPresent(response -> replyToSender(response, sender));
-    }
-
     private void publishToMediator(final MessageCommand command, final ActorRef sender) {
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
+        log().debug("Publish message to pub-sub: <{}>", command.getTypePrefix());
+
         final DistributedPubSubMediator.Publish publishMessage =
                 new DistributedPubSubMediator.Publish(command.getTypePrefix(), command, true);
         pubSubMediator().tell(publishMessage, sender);
