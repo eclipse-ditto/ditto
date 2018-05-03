@@ -55,6 +55,16 @@ public final class ConfigKeys {
     public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET =
             MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.reset";
 
+    private static final String MONITORING_PREFIX = MONGO_CONFIG_PREFIX + "monitoring.";
+    /**
+     * Whether all commands should be monitored and reported with Kamon.
+     */
+    public static final String MONITORING_COMMANDS_ENABLED = MONITORING_PREFIX + "commands";
+    /**
+     * Whether connection pool statistics should be reported with Kamon.
+     */
+    public static final String MONITORING_CONNECTION_POOL_ENABLED = MONITORING_PREFIX + "connection-pool";
+
     private static final String ENABLED_SUFFIX = "enabled";
 
     /**

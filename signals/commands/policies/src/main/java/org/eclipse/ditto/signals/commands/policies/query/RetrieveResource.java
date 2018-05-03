@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -64,10 +65,9 @@ public final class RetrieveResource extends AbstractCommand<RetrieveResource>
             final Label label,
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
-
         super(TYPE, dittoHeaders);
-
-        this.policyId = checkNotNull(policyId, "Policy identifier");
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
+        this.policyId = policyId;
         this.label = checkNotNull(label, "Label");
         this.resourceKey = checkNotNull(resourceKey, "ResourceKey");
     }
