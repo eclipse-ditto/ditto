@@ -33,6 +33,13 @@ final class PolicyOrAclEnforcerRetrieverFactory {
         throw new AssertionError();
     }
 
+    /**
+     * TODO Javadoc
+     * @param idCache
+     * @param policyEnforcerCache
+     * @param aclEnforcerCache
+     * @return
+     */
     public static EnforcerRetriever create(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,

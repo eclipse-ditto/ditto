@@ -11,13 +11,11 @@
  */
 package org.eclipse.ditto.services.concierge.starter.proxy;
 
-import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.CLUSTER_ROLE;
-import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.SHARD_REGION;
-
 import java.util.Optional;
 
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorContext;
@@ -28,9 +26,9 @@ import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 
 /**
- * Defines the {@link Props} which are used to create an Authorization Proxy Actor for an entity.
+ * Abstract class whose implementations create a sharded {@code EnforcerActor}.
  */
-public abstract class AuthorizationProxyPropsFactory {
+public abstract class AbstractEnforcerActorFactory {
 
     /**
      * Start a proxy to a shard region.
@@ -65,24 +63,24 @@ public abstract class AuthorizationProxyPropsFactory {
             final Props props) {
 
         final ClusterShardingSettings settings = ClusterShardingSettings.create(actorSystem)
-                .withRole(CLUSTER_ROLE);
+                .withRole(ConciergeMessagingConstants.CLUSTER_ROLE);
 
         final ShardRegionExtractor extractor =
                 ShardRegionExtractor.of(clusterConfigReader.numberOfShards(), actorSystem);
 
-        return ClusterSharding.get(actorSystem).start(SHARD_REGION, props, settings, extractor);
+        return ClusterSharding.get(actorSystem)
+                .start(ConciergeMessagingConstants.SHARD_REGION, props, settings, extractor);
     }
 
     /**
-     * Start actors of Concierge service.
+     * Start the {@code EnforcerActor} and all dependent actors.
      *
      * @param context context in which to start actors other than shard regions and shard region proxies.
      * @param configReader the configuration reader of Concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
-     * @return actor reference to Concierge shard region.
+     * @return actor reference to {@code EnforcerActor} shard region.
      */
-    public abstract ActorRef startActors(final ActorContext context,
-            final ConciergeConfigReader configReader,
-            final ActorRef pubSubMediator);
+    public abstract ActorRef startEnforcerActor(ActorContext context, ConciergeConfigReader configReader,
+            ActorRef pubSubMediator);
 
 }

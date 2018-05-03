@@ -11,21 +11,21 @@
  */
 package org.eclipse.ditto.services.concierge.util.enforcement;
 
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.NotUsed;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
 
 /**
- * Provider interface for {@link Enforcement}.
+ * Provider interface for {@link AbstractEnforcement}.
  *
  * @param <T> the type of commands which are enforced.
  */
-public interface EnforcementProvider<T extends WithDittoHeaders> {
+public interface EnforcementProvider<T extends Signal> {
 
     /**
      * The base class of the commands to which this enforcement applies.
@@ -45,12 +45,12 @@ public interface EnforcementProvider<T extends WithDittoHeaders> {
     }
 
     /**
-     * Creates an {@link Enforcement} for the given {@code context}.
+     * Creates an {@link AbstractEnforcement} for the given {@code context}.
      *
      * @param context the context.
-     * @return the {@link Enforcement}.
+     * @return the {@link AbstractEnforcement}.
      */
-    Enforcement<T> createEnforcement(final Enforcement.Context context);
+    AbstractEnforcement<T> createEnforcement(final AbstractEnforcement.Context context);
 
     /**
      * Create a processing unit of Akka stream graph. Unhandled messages are passed downstream.
@@ -59,8 +59,9 @@ public interface EnforcementProvider<T extends WithDittoHeaders> {
      * @return a processing unit.
      */
     default Graph<FlowShape<WithSender, WithSender>, NotUsed> toGraph(
-            final Enforcement.Context context) {
+            final AbstractEnforcement.Context context) {
 
-        return Pipe.joinFilteredSink(Filter.of(getCommandClass(), this::isApplicable), createEnforcement(context).toGraph());
+        return Pipe.joinFilteredSink(Filter.of(getCommandClass(), this::isApplicable),
+                createEnforcement(context).toGraph());
     }
 }

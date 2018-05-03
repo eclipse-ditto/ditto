@@ -20,7 +20,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.concierge.EntityId;
@@ -41,25 +40,32 @@ import akka.stream.SinkShape;
 
 /**
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
+ * Implementations only need to implement {@link #enforce(Signal, ActorRef)} in which they check if the
+ * passed in {@link Signal} is authorized and forward it accordingly or respond with an error to the passed in
+ * {@code sender}.
+ * <p>
  * Do NOT call the methods outside this package.
+ * </p>
  */
-public abstract class Enforcement<T extends WithDittoHeaders> {
+public abstract class AbstractEnforcement<T extends Signal> {
 
     private final Context context;
 
-    protected Enforcement(final Context context) {
+    protected AbstractEnforcement(final Context context) {
         this.context = context;
     }
 
     /**
-     * Authorize a command.
+     * Performs authorization enforcement for the passed {@code signal}.
+     * If the signal is authorized, the implementation chooses to which target to forward. If it is not authorized, the
+     * passed {@code sender} will get an authorization error response.
      *
-     * @param command the command to authorize.
-     * @param sender sender of the command.
+     * @param signal the signal to authorize.
+     * @param sender sender of the signal.
      */
-    public abstract void enforce(final T command, final ActorRef sender);
+    public abstract void enforce(final T signal, final ActorRef sender);
 
-    public Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
+    Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
         return Consume.of(this::enforce);
     }
 
@@ -202,6 +208,9 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
         return context.self;
     }
 
+    /**
+     * TODO Javadoc
+     */
     public static final class Context {
 
         private final ActorRef pubSubMediator;
@@ -216,14 +225,14 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
         @Nullable
         private final ActorRef self;
 
-        public Context(
+        Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout) {
 
             this(pubSubMediator, askTimeout, null, null, null);
         }
 
-        public Context(
+        Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
                 @Nullable final EntityId entityId,
@@ -237,6 +246,12 @@ public abstract class Enforcement<T extends WithDittoHeaders> {
             this.self = self;
         }
 
+        /**
+         * TODO Javadoc
+         * @param actorContext
+         * @param log
+         * @return
+         */
         public Context with(final AbstractActor.ActorContext actorContext, final LoggingAdapter log) {
             final ActorRef self = actorContext.self();
             return new Context(pubSubMediator, askTimeout, decodeEntityId(self), log, self);

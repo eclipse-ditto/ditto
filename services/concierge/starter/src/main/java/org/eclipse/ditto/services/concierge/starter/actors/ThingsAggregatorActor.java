@@ -158,8 +158,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
                         .orElse(Option.empty());
         final TraceContext traceContext = Kamon.tracer().newContext(TRACE_AGGREGATOR_RETRIEVE_THINGS, token);
 
-        final List<Future<Object>> futures = thingIds.stream() //
-                .filter(thingId -> thingIdMatcher.reset(thingId).matches()) //
+        final List<Future<Object>> futures = thingIds.stream()
+                .filter(thingId -> thingIdMatcher.reset(thingId).matches())
                 .map(thingId -> {
                     final Command retrieve;
                     if (command instanceof RetrieveThings) {
@@ -174,10 +174,10 @@ public final class ThingsAggregatorActor extends AbstractActor {
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
                     return askTargetActor(retrieve);
-                }) //
+                })
                 .collect(toList());
 
-        final Future<Iterable<Object>> iterableFuture = Futures.sequence(futures, aggregatorDispatcher);
+        final Future<Iterable<Object>> iterableFuture = Futures.<Object>sequence(futures, aggregatorDispatcher);
 
         final Comparator<WithEntity> comparator;
 
@@ -207,11 +207,11 @@ public final class ThingsAggregatorActor extends AbstractActor {
         return iterableFuture.map(new Mapper<Iterable<Object>, CommandResponse>() {
             @Override
             public CommandResponse apply(final Iterable<Object> p) {
-                final List<JsonValue> things = StreamSupport.stream(p.spliterator(), false) //
-                        .filter(obj -> obj instanceof WithEntity) //
-                        .map(obj -> (WithEntity) obj) //
-                        .sorted(comparator) //
-                        .map(WithEntity::getEntity) //
+                final List<JsonValue> things = StreamSupport.stream(p.spliterator(), false)
+                        .filter(obj -> obj instanceof WithEntity)
+                        .map(obj -> (WithEntity) obj)
+                        .sorted(comparator)
+                        .map(WithEntity::getEntity)
                         .collect(toList());
                 traceContext.addMetadata("count", Integer.toBinaryString(things.size()));
                 traceContext.finish();

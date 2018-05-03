@@ -96,7 +96,7 @@ import akka.pattern.PatternsCS;
  * Authorize {@code ThingCommand}.
  */
 // TODO: migrate logging
-public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
+public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
 
     /**
      * Label of default policy entry in default policy.
@@ -138,25 +138,25 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
      * Authorize a thing command. Either the command is forwarded to things-shard-region for execution or
      * the sender is told of an error.
      *
-     * @param thingCommand the command to authorize.
+     * @param signal the command to authorize.
      * @param sender of the command.
      */
     @Override
-    public void enforce(final ThingCommand thingCommand, final ActorRef sender) {
+    public void enforce(final ThingCommand signal, final ActorRef sender) {
         thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
-                enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, thingCommand, sender);
+                enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
-                enforceThingCommandByAclEnforcer(thingCommand, enforcerEntry.getValue(), sender);
+                enforceThingCommandByAclEnforcer(signal, enforcerEntry.getValue(), sender);
             } else {
                 final String policyId = enforcerKeyEntry.getValue().getId();
-                enforceThingCommandByPolicyEnforcer(thingCommand, policyId, enforcerEntry.getValue(), sender);
+                enforceThingCommandByPolicyEnforcer(signal, policyId, enforcerEntry.getValue(), sender);
             }
         });
     }
 
     /**
-     * Provides {@link Enforcement} for commands of type {@link ThingCommand}.
+     * Provides {@link AbstractEnforcement} for commands of type {@link ThingCommand}.
      */
     public static final class Provider implements EnforcementProvider<ThingCommand> {
 
@@ -224,7 +224,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
         }
 
         @Override
-        public Enforcement<ThingCommand> createEnforcement(final Enforcement.Context context) {
+        public AbstractEnforcement<ThingCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
                     policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
             );
@@ -759,7 +759,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 .map(subject -> Collections.singleton(subject.getId()))
                 .orElse(Collections.emptySet());
         final CreateThing command =
-                Enforcement.addReadSubjectsToSignal(createThing, authorizedSubjects);
+                AbstractEnforcement.addReadSubjectsToSignal(createThing, authorizedSubjects);
         final Enforcer enforcer = new AuthorizedSubjectsEnforcer(authorizedSubjects);
         return Optional.of(new CreateThingWithEnforcer(command, enforcer));
     }
@@ -851,7 +851,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, permission);
         }
         return authorized
-                ? Optional.of(Enforcement.addReadSubjectsToThingSignal(command, policyEnforcer))
+                ? Optional.of(AbstractEnforcement.addReadSubjectsToThingSignal(command, policyEnforcer))
                 : Optional.empty();
     }
 
@@ -871,7 +871,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                 ? computeAclPermissions((ThingModifyCommand) command)
                 : Permissions.newInstance(Permission.READ);
         return aclEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, permissions)
-                ? Optional.of(Enforcement.addReadSubjectsToThingSignal(command, aclEnforcer))
+                ? Optional.of(AbstractEnforcement.addReadSubjectsToThingSignal(command, aclEnforcer))
                 : Optional.empty();
     }
 
@@ -961,7 +961,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
     private void handleInitialCreateThing(final CreateThing createThing, final Enforcer enforcer,
             final ActorRef sender) {
         if (shouldCreatePolicyForCreateThing(createThing)) {
-            Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
+            final Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
             if (errorOpt.isPresent()) {
                 replyToSender(errorOpt.get(), sender);
             } else {
@@ -969,7 +969,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
             }
         } else if (createThing.getThing().getPolicyId().isPresent()) {
             final String policyId = createThing.getThing().getPolicyId().orElseThrow(IllegalStateException::new);
-            Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
+            final Optional<DittoRuntimeException> errorOpt = checkForErrorsInCreateThingWithPolicy(createThing);
             if (errorOpt.isPresent()) {
                 replyToSender(errorOpt.get(), sender);
             } else {
@@ -1017,7 +1017,7 @@ public final class ThingCommandEnforcement extends Enforcement<ThingCommand> {
                                 .build();
                 replyToSender(error, sender);
             }
-        } catch (DittoRuntimeException error) {
+        } catch (final DittoRuntimeException error) {
             log().error(error, "error before creating thing with initial policy");
             replyToSender(error, sender);
         }

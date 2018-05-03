@@ -85,7 +85,7 @@ public final class PipeWithIdleRoutineTest {
 
     private List<Object> test(final ActorRef recipient, final Iterable<Object> messages) {
         return test(recipient,
-                (withSender, log) -> withSender.sender().tell(withSender.message(), ActorRef.noSender()),
+                (withSender, log) -> withSender.getSender().tell(withSender.getMessage(), ActorRef.noSender()),
                 messages);
     }
 
@@ -106,7 +106,7 @@ public final class PipeWithIdleRoutineTest {
                 });
         final Sink<Object, CompletionStage<List<Object>>> sink = Sink.seq();
         final CompletableFuture<List<Object>> result = messageSource.via(filterFlow)
-                .map(WithSender::message)
+                .map(WithSender::getMessage)
                 .toMat(sink, Keep.right())
                 .run(ActorMaterializer.create(actorSystem))
                 .toCompletableFuture();

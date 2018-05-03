@@ -61,7 +61,7 @@ public final class PreEnforcer {
     public static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
-        return fromFunction(ActorRef.noSender(), processor);
+        return PreEnforcer.fromFunction(ActorRef.noSender(), processor);
     }
 
     /**
@@ -71,7 +71,7 @@ public final class PreEnforcer {
      * @param processor function to call.
      * @return Akka stream graph.
      */
-    public static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
+    static Graph<FlowShape<WithSender, WithSender>, NotUsed> fromFunction(
             @Nullable final ActorRef self,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> processor) {
 
@@ -82,8 +82,8 @@ public final class PreEnforcer {
                 Flow.<WithSender<WithDittoHeaders>>create()
                         .mapAsync(1, wrapped -> {
                             final Supplier<CompletionStage<Object>> futureSupplier = () ->
-                                    processor.apply(wrapped.message())
-                                            .<Object>thenApply(result -> WithSender.of(result, wrapped.sender()));
+                                    processor.apply(wrapped.getMessage())
+                                            .<Object>thenApply(result -> WithSender.of(result, wrapped.getSender()));
 
                             return handleErrorNowOrLater(futureSupplier, wrapped, self);
                         })
@@ -130,8 +130,8 @@ public final class PreEnforcer {
             @Nullable final ActorRef self) {
 
         final Throwable rootCause = extractRootCause(error);
-        final ActorRef sender = wrapped.sender();
-        final DittoHeaders dittoHeaders = wrapped.message().getDittoHeaders();
+        final ActorRef sender = wrapped.getSender();
+        final DittoHeaders dittoHeaders = wrapped.getMessage().getDittoHeaders();
 
         if (rootCause instanceof DittoRuntimeException) {
             sender.tell(rootCause, self);

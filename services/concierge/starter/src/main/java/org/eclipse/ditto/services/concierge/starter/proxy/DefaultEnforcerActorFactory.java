@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
-import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
+import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.util.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.util.cache.PolicyEnforcerCacheLoader;
@@ -27,7 +27,7 @@ import org.eclipse.ditto.services.concierge.util.cache.ThingEnforcementIdCacheLo
 import org.eclipse.ditto.services.concierge.util.cache.entry.Entry;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.concierge.util.enforcement.EnforcementProvider;
-import org.eclipse.ditto.services.concierge.util.enforcement.EnforcerActor;
+import org.eclipse.ditto.services.concierge.util.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.util.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.util.enforcement.MessageCommandEnforcement;
 import org.eclipse.ditto.services.concierge.util.enforcement.PolicyCommandEnforcement;
@@ -47,15 +47,15 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Ditto default implementation of {@link AuthorizationProxyPropsFactory}.
+ * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
  */
-public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationProxyPropsFactory {
+public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory {
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
 
     @Override
-    public ActorRef startActors(final ActorContext context, final ConciergeConfigReader configReader,
+    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfigReader configReader,
             final ActorRef pubSubMediator) {
         final Consumer<Map.Entry<String, MetricRegistry>> metricsReportingConsumer =
                 namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry);
@@ -101,7 +101,7 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Props enforcerProps =
-                EnforcerActor.props(pubSubMediator, enforcementProviders, null, activityCheckInterval);
+                EnforcerActorCreator.props(pubSubMediator, enforcementProviders, null, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
@@ -113,7 +113,8 @@ public final class DefaultAuthorizationProxyPropsFactory extends AuthorizationPr
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
 
-        context.actorOf(DispatcherActor.props(pubSubMediator, enforcerShardRegion), DispatcherActor.ACTOR_NAME);
+        context.actorOf(DispatcherActorCreator.props(pubSubMediator, enforcerShardRegion),
+                DispatcherActorCreator.ACTOR_NAME);
 
         return enforcerShardRegion;
     }

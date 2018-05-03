@@ -74,7 +74,9 @@ public final class GraphActor extends AbstractActor {
 
         return Props.create(GraphActor.class,
                 () -> new GraphActor(actorContext ->
-                        Pipe.joinSink(partialCreator.apply(actorContext), unhandled())));
+                        Pipe.joinSink(partialCreator.apply(actorContext), unhandled())
+                )
+        );
     }
 
     /**
@@ -90,7 +92,9 @@ public final class GraphActor extends AbstractActor {
 
         return Props.create(GraphActor.class,
                 () -> new GraphActor((actorContext, log) ->
-                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled())));
+                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled())
+                )
+        );
     }
 
     /**
@@ -98,7 +102,7 @@ public final class GraphActor extends AbstractActor {
      */
     public static GraphStage<SinkShape<WithSender>> unhandled() {
         return Consume.untypedWithLogger((wrapped, log) -> {
-            log.warning("Unexpected message <{}> from <{}>", wrapped.message(), wrapped.sender());
+            log.warning("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
         });
     }
 

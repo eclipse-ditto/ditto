@@ -42,7 +42,7 @@ import akka.stream.stage.GraphStageLogicWithLogging;
  * }
  * </pre>
  */
-public abstract class ControlFlowLogic extends GraphStageLogicWithLogging {
+public abstract class AbstractControlFlowLogic extends GraphStageLogicWithLogging {
 
     private final Shape shape;
 
@@ -51,7 +51,7 @@ public abstract class ControlFlowLogic extends GraphStageLogicWithLogging {
      *
      * @param shape shape of the processing unit.
      */
-    public ControlFlowLogic(final Shape shape) {
+    protected AbstractControlFlowLogic(final Shape shape) {
         super(shape);
         this.shape = shape;
     }

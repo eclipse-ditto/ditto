@@ -86,15 +86,15 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
 
     @Override
     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
-        return new ControlFlowLogic(shape) {
+        return new AbstractControlFlowLogic(shape) {
             {
                 initOutlets(shape);
 
                 when(shape.in(), wrapped -> {
-                    if (clazz.isInstance(wrapped.message())) {
-                        final T message = clazz.cast(wrapped.message());
+                    if (clazz.isInstance(wrapped.getMessage())) {
+                        final T message = clazz.cast(wrapped.getMessage());
                         if (predicate.test(message)) {
-                            emit(shape.out0(), WithSender.of(message, wrapped.sender()));
+                            emit(shape.out0(), WithSender.of(message, wrapped.getSender()));
                         } else {
                             emit(shape.out1(), wrapped);
                         }

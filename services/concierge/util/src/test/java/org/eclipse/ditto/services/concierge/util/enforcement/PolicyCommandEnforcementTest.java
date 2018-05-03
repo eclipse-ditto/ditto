@@ -71,7 +71,7 @@ import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link PolicyCommandEnforcement} and {@link PolicyEnforcerCacheLoader} in context of an
- * {@link EnforcerActor}.
+ * {@link EnforcerActorCreator}.
  */
 public class PolicyCommandEnforcementTest {
 
@@ -474,7 +474,7 @@ public class PolicyCommandEnforcementTest {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders), ENTITY_ID.toString());
+        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders), ENTITY_ID.toString());
     }
 
     private static String createUniqueName(final String prefix) {

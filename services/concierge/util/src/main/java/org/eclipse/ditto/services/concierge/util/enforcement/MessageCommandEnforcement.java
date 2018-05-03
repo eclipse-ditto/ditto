@@ -35,7 +35,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 /**
  * Authorize {@code MessageCommand}.
  */
-public final class MessageCommandEnforcement extends Enforcement<MessageCommand> {
+public final class MessageCommandEnforcement extends AbstractEnforcement<MessageCommand> {
 
     private final EnforcerRetriever enforcerRetriever;
 
@@ -51,14 +51,14 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
     }
 
     @Override
-    public void enforce(final MessageCommand command, final ActorRef sender) {
+    public void enforce(final MessageCommand signal, final ActorRef sender) {
         enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
-            if (idEntry.exists() && command instanceof SendClaimMessage) {
-                publishMessageCommand(command, sender);
+            if (idEntry.exists() && signal instanceof SendClaimMessage) {
+                publishMessageCommand(signal, sender);
             } else if (enforcerEntry.exists()) {
-                enforceMessageCommand(command, enforcerEntry.getValue(), sender);
+                enforceMessageCommand(signal, enforcerEntry.getValue(), sender);
             } else {
-                reportNonexistentEnforcer(command, sender);
+                reportNonexistentEnforcer(signal, sender);
             }
         });
     }
@@ -94,7 +94,7 @@ public final class MessageCommandEnforcement extends Enforcement<MessageCommand>
         }
 
         @Override
-        public Enforcement createEnforcement(final Enforcement.Context context) {
+        public AbstractEnforcement createEnforcement(final AbstractEnforcement.Context context) {
             return new MessageCommandEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache);
         }
     }

@@ -53,7 +53,7 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
      * @return sink.
      */
     public static <T> Consume<T> of(final BiConsumer<? super T, ActorRef> consumer) {
-        return new Consume<>((withSender, log) -> consumer.accept(withSender.message(), withSender.sender()));
+        return new Consume<>((withSender, log) -> consumer.accept(withSender.getMessage(), withSender.getSender()));
     }
 
     /**
@@ -88,7 +88,7 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
 
     @Override
     public GraphStageLogic createLogic(final Attributes inheritedAttributes) throws Exception {
-        return new ControlFlowLogic(shape) {
+        return new AbstractControlFlowLogic(shape) {
             {
                 initOutlets(shape);
                 when(shape.in(), withSender -> {

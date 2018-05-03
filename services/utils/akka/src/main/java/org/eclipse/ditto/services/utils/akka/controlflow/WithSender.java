@@ -45,14 +45,14 @@ public final class WithSender<T> {
     /**
      * @return the message.
      */
-    public T message() {
+    public T getMessage() {
         return message;
     }
 
     /**
      * @return the sender.
      */
-    public ActorRef sender() {
+    public ActorRef getSender() {
         return sender;
     }
 

@@ -24,7 +24,11 @@ import akka.stream.javadsl.GraphDSL;
 /**
  * Combinators to join Akka stream processors.
  */
-public class Pipe {
+public final class Pipe {
+
+    private Pipe() {
+        throw new AssertionError();
+    }
 
     /**
      * Join a flow into a sink.

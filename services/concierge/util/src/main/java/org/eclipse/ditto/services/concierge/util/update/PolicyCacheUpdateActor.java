@@ -28,7 +28,7 @@ import akka.actor.Props;
 /**
  * An actor which subscribes to Policy Events and updates caches when necessary.
  */
-public class PolicyCacheUpdateActor extends PubSubListenerActor {
+public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
 
     /**
      * The name of this actor.
