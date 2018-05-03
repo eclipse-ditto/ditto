@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.devops.AggregatedDevOpsCommandResponse;
@@ -204,8 +205,13 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
             getContext().actorSelection(command.getTargetActorSelection()).forward(piggybackCommand, getContext());
         } else {
-            log.warning("ExecutePiggybackCommand with piggybackCommand <{}> cannot be executed by this service as there" +
-                    "is no mappingStrategy for it.", piggybackCommandType);
+            final String message =
+                    String.format("ExecutePiggybackCommand with piggybackCommand <%s> cannot be executed " +
+                            "by this service as there is no mappingStrategy for it.", piggybackCommandType);
+            log.warning(message);
+            final JsonTypeNotParsableException typeNotMappableException =
+                    JsonTypeNotParsableException.fromMessage(message, command.getDittoHeaders());
+            getSender().tell(typeNotMappableException, getSelf());
         }
     }
 
