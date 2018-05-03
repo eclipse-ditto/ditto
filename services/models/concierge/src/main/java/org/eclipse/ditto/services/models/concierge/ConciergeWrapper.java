@@ -22,8 +22,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
  */
 public final class ConciergeWrapper {
 
-
-    public ConciergeWrapper() {
+    private ConciergeWrapper() {
         throw new AssertionError();
     }
 
@@ -35,7 +34,7 @@ public final class ConciergeWrapper {
      */
     public static ShardedMessageEnvelope wrapForEnforcer(final Signal<?> signal) {
         final EntityId entityId;
-        if (signal instanceof MessageCommand) {
+        if (MessageCommand.RESOURCE_TYPE.equals(signal.getResourceType())) {
             entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, signal.getId());
         } else {
             entityId = EntityId.of(signal.getResourceType(), signal.getId());
