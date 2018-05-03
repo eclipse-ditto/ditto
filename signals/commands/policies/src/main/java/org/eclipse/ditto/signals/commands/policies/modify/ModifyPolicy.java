@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -58,6 +59,7 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
 
     private ModifyPolicy(final String policyId, final Policy policy, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policy = policy;
     }

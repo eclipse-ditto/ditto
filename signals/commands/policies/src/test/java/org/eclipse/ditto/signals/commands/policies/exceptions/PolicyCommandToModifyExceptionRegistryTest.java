@@ -39,13 +39,13 @@ public final class PolicyCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyResourceToResourceNotModifiable() {
-        final ModifyResource modifyResource = ModifyResource.of("policyId", Label.of("myLabel"),
+        final ModifyResource modifyResource = ModifyResource.of("ns:policyId", Label.of("myLabel"),
                 Resource.newInstance("thing", "/", EffectedPermissions.newInstance(new HashSet<>(), new HashSet<>())),
                 DittoHeaders.empty());
 
         final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyResource);
         final DittoRuntimeException expectedException =
-                ResourceNotModifiableException.newBuilder("policyId", "myLabel", "/")
+                ResourceNotModifiableException.newBuilder("ns:policyId", "myLabel", "/")
                         .build();
 
         assertThat(mappedException).isEqualTo(expectedException);

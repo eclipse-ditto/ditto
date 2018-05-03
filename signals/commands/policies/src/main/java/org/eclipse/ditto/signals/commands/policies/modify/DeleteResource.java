@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -62,8 +63,8 @@ public final class DeleteResource extends AbstractCommand<DeleteResource>
 
     private DeleteResource(final String policyId, final Label label, final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
-
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.resourceKey = resourceKey;
