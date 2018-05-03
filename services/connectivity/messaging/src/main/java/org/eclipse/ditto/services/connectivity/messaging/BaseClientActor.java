@@ -413,7 +413,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final BaseClientData data) {
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        stopMessageMappingProcessorActor();
+        if (this.isConsuming()) {
+          stopMessageMappingProcessorActor();
+        }
         onClientDisconnected(event, data);
         return goTo(DISCONNECTED).using(data
                 .setConnectionStatus(ConnectionStatus.CLOSED)
