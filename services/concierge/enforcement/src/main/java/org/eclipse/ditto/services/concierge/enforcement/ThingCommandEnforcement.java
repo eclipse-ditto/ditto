@@ -678,11 +678,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             return ThingNotModifiableException.newBuilder(thingId)
                     .message(message)
                     .description(description)
+                    .dittoHeaders(thingCommand.getDittoHeaders())
                     .build();
         } else {
             return ThingNotAccessibleException.newBuilder(thingId)
                     .message(message)
                     .description(description)
+                    .dittoHeaders(thingCommand.getDittoHeaders())
                     .build();
         }
     }
