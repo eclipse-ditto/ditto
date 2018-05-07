@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<project name="Eclipse Ditto">
+    <skin>
+        <groupId>org.apache.maven.skins</groupId>
+        <artifactId>maven-fluido-skin</artifactId>
+        <version>${maven.skins.fluido.version}</version>
+    </skin>
+    <body>
+        <head><![CDATA[
+            <script type="text/javascript">
+                $(document).ready(function () {
+                var jsonStr = $("pre.source").each(function(index, value) {
+                var jsonStr = $(this).text()
+                var jsonObj = JSON.parse(jsonStr);
+                var jsonPretty = JSON.stringify(jsonObj, null, " ");
+                $(this).text(jsonPretty);
+                });
+
+                $("pre.source").addClass("prettyprint"); //.addClass("linenums");
+                prettyPrint();
+                }
+                );
+            </script>
+        ]]></head>
+        <menu name="JSON Formats">
+            <item name="Commands :: Connectivity service" href="commands-connectivity.html">
+                <item name="Query" href="commands-connectivity-query.html"/>
+                <item name="Modify" href="commands-connectivity-modify.html"/>
+                <item name="Responses" href="commands-connectivity-responses.html">
+                    <item name="Query" href="commands-connectivity-responses-query.html"/>
+                    <item name="Modify" href="commands-connectivity-responses-modify.html"/>
+                </item>
+            </item>
+            <item name="Errors :: Connectivity service" href="errors-connectivity.html">
+            </item>
+        </menu>
+    </body>
+</project>

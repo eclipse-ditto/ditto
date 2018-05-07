@@ -10,6 +10,7 @@ The "things" service takes care of persisting [Things](basic-thing.html) and [Fe
 ## Model
 
 The model of the things service is defined around the entities `Thing` and `Feature`:
+
 * [model](https://github.com/eclipse/ditto/tree/master/model/things/src/main/java/org/eclipse/ditto/model/things)
 
 ## Signals

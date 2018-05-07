@@ -24,7 +24,12 @@ import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
+import com.mongodb.event.CommandListener;
+import com.mongodb.event.ConnectionPoolListener;
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
@@ -54,6 +59,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "searchUpdaterRoot";
 
+    private static final String KAMON_METRICS_PREFIX = "updater";
+
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
@@ -65,7 +72,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final StreamMetadataPersistence policiesSyncPersistence) {
         final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
 
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
+        final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
+                new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
+        final ConnectionPoolListener kamonConnectionPoolListener =
+                config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
+                        new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
+
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
+                kamonCommandListener, kamonConnectionPoolListener);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
                         MongoEventToPersistenceStrategyFactory.getInstance());

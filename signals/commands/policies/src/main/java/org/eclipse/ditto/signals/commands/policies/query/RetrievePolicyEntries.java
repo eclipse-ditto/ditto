@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.signals.commands.policies.query;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +24,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -50,8 +49,8 @@ public final class RetrievePolicyEntries extends AbstractCommand<RetrievePolicyE
 
     private RetrievePolicyEntries(final String policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-
-        this.policyId = checkNotNull(policyId, "Policy identifier");
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
+        this.policyId = policyId;
     }
 
     /**

@@ -26,8 +26,8 @@
     <name>Eclipse Ditto :: Services</name>
 
     <modules>
-        <module>amqp-bridge</module>
         <module>base</module>
+        <module>connectivity</module>
         <module>gateway</module>
         <module>models</module>
         <module>policies</module>
@@ -53,7 +53,7 @@
         <things.docker.image.name>ditto-things</things.docker.image.name>
         <things-search.docker.image.name>ditto-things-search</things-search.docker.image.name>
         <gateway.docker.image.name>ditto-gateway</gateway.docker.image.name>
-        <amqp-bridge.docker.image.name>ditto-amqp-bridge</amqp-bridge.docker.image.name>
+        <connectivity.docker.image.name>ditto-connectivity</connectivity.docker.image.name>
     </properties>
 
     <dependencies>

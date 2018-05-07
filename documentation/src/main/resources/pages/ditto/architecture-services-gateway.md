@@ -6,7 +6,7 @@ permalink: architecture-services-gateway.html
 ---
 
 The "gateway" service is responsible for providing Ditto's [HTTP](httpapi-overview.html) + 
-[WebSocket](protocol-bindings-websocket.html) API and **orchestrating** the backing persistence services.
+[WebSocket](httpapi-protocol-bindings-websocket.html) API and **orchestrating** the backing persistence services.
 
 ## Model
 
@@ -24,8 +24,8 @@ The gateway service has no persistence by its own.
 
 * translate HTTP request to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html)
   back to HTTP responses
-* translate [Ditto Protocol](protocol-overview.html) messages incoming via the [WebSocket](protocol-bindings-websocket.html)
+* translate [Ditto Protocol](protocol-overview.html) messages incoming via the [WebSocket](httpapi-protocol-bindings-websocket.html)
   to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html) back
   to [Ditto Protocol](protocol-overview.html) response messages
 * subscribe for [events](basic-signals-event.html) in Ditto cluster and emits [change notifications](basic-changenotifications.html)
-  via connected [WebSocket](protocol-bindings-websocket.html) clients or via [SSEs](httpapi-sse.html)
+  via connected [WebSocket](httpapi-protocol-bindings-websocket.html) clients or via [SSEs](httpapi-sse.html)

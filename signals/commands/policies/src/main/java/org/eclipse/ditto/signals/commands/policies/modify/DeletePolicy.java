@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -47,6 +48,7 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
 
     private DeletePolicy(final String policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
     }
 

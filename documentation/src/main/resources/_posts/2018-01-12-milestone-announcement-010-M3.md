@@ -7,6 +7,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 We wish you all a happy new year<br/>
@@ -31,7 +32,7 @@ There, everyone with a Google account can try out the HTTP API by using the inte
 
 Try it out and share your experience.
 
-The sandbox does not yet start the new AMQP-bridge in order to connect to Hono; we will work on that soon.
+The sandbox does not yet start the new Connectivity in order to connect to Hono; we will work on that soon.
 
 
 ## Artifacts

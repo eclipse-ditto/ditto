@@ -10,5 +10,5 @@ and the actual services:
 * **thingsearch** - tracking changes to `Things`, `Features`, `Policies` and updating an optimized
 search index + executes queries on this search index
 * **gateway** - provides HTTP and WebSocket API and orchestrates the backing persistence services 
-* **amqp-bridge** - connects to an AMQP 1.0 endpoint (e.g. [Eclipse Hono](https://eclipse.org/hono/)) 
-and consumes messages in Ditto Protocol from it
+* **connectivity** - connects to AMQP 1.0 (e.g. [Eclipse Hono](https://eclipse.org/hono/)) and AMQP 0.9.1 endpoints 
+and consumes messages in Ditto Protocol from it, optionally converts other formats to Ditto Protocol

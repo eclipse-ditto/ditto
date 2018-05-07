@@ -14,7 +14,7 @@
     <fileSets>
         <fileSet>
             <directory>target</directory>
-            <outputDirectory>.</outputDirectory>
+            <outputDirectory>/opt/ditto</outputDirectory>
             <includes>
                 <include>*allinone.jar</include>
             </includes>

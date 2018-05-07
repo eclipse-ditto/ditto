@@ -20,7 +20,7 @@ No custom indexes have to be defined as the structure in the database is "flatte
 ## Search queries
 
 Queries can be made via Ditto's APIs ([HTTP](httpapi-search.html) or 
-[Ditto Protocol](protocol-specification-things-search.html) e.g. via [WebSocket](protocol-bindings-websocket.html)).
+[Ditto Protocol](protocol-specification-things-search.html) e.g. via [WebSocket](httpapi-protocol-bindings-websocket.html)).
 
 **Example:** Search for all things located in "living-room", reorder the list to start with the lowest thing ID as the first element, 
 and return the first 5 results:

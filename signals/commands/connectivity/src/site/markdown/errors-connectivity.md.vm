@@ -1,0 +1,25 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Connection Failed
+
+#set( $snippetFile = "/target/generated-resources/connectivity/errors/connectionFailedException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Not Accessible
+
+#set( $snippetFile = "/target/generated-resources/connectivity/errors/connectionNotAccessibleException.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Unavailable
+
+#set( $snippetFile = "/target/generated-resources/connectivity/errors/connectionUnavailableException.json" )
+```
+#parse( "snippet" )
+```

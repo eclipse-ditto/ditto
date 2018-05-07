@@ -7,6 +7,7 @@ author: florian_fendt
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 There's a new example showing how to combine the REST and WebSocket API

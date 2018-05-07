@@ -180,6 +180,10 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         return policyEnforcer;
     }
 
+    protected JsonPointer getRootResource() {
+        return ROOT_RESOURCE;
+    }
+
     @SuppressWarnings("squid:S1172")
     protected boolean isEnforcerNull(final WithDittoHeaders withDittoHeaders) {
         return policyEnforcer == null;
@@ -222,17 +226,18 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         accessCounter++;
     }
 
-    protected void publishCommand(final Command<?> command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        final Command commandWithReadSubjects =
-                enrichDittoHeaders(command, command.getResourcePath(), command.getResourceType());
-        log.debug("Publishing Command <{}>.", command.getName());
-        accessCounter++;
+    protected void publishLiveSignal(final String topic, final Signal<?> signal) {
+        publishLiveSignal(topic, signal, signal.getResourcePath());
+    }
 
+    protected void publishLiveSignal(final String topic, final Signal<?> signal, final JsonPointer resourcePath) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        final Signal<?> commandWithReadSubjects = enrichDittoHeaders(signal, resourcePath, signal.getResourceType());
+        log.debug("Publishing signal <{}> to topic <{}>.", signal.getName(), topic);
+        accessCounter++;
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         pubSubMediator.tell(
-                new DistributedPubSubMediator.Publish(commandWithReadSubjects.getTypePrefix(), commandWithReadSubjects,
-                        true),
+                new DistributedPubSubMediator.Publish(topic, commandWithReadSubjects, true),
                 getSender());
     }
 
@@ -267,14 +272,14 @@ public abstract class AbstractPolicyEnforcerActor extends AbstractActorWithStash
         log.debug("Received <{}> command. Telling {} about it.", signal.getName(), targetServiceName);
     }
 
-    protected void logUnauthorized(final Command command, final DittoRuntimeException exception) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        log.info("The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
-                command.getType(), getSimpleClassName(exception), exception.getMessage(),
+    protected void logUnauthorized(final Signal<?> signal, final DittoRuntimeException exception) {
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        log.info("The signal <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+                signal.getType(), getSimpleClassName(exception), exception.getMessage(),
                 dittoHeaders.getAuthorizationSubjects());
-        log.debug("The AuthorizationContext for the not allowed command <{}> was: {} - the policyEnforcer was: {}",
-                command.getType(), dittoHeaders.getAuthorizationContext(), policyEnforcer);
+        log.debug("The AuthorizationContext for the not allowed signal <{}> was: {} - the policyEnforcer was: {}",
+                signal.getType(), dittoHeaders.getAuthorizationContext(), policyEnforcer);
     }
 
     protected void doStash() {

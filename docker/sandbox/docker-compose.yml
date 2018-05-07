@@ -19,7 +19,7 @@ services:
       default:
         aliases:
           - ditto-cluster
-    command: sh -c "java -jar /starter.jar"
+    entrypoint: sh -c "java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -34,7 +34,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 10; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -49,7 +49,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 20; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -64,7 +64,7 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 45; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -74,8 +74,8 @@ services:
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
 
-  amqp-bridge:
-    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
+  connectivity:
+    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
@@ -83,7 +83,7 @@ services:
     depends_on:
       - policies
       - gateway
-    command: sh -c "sleep 60; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -116,6 +116,7 @@ services:
        - ./html:/etc/nginx/html
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - /opt/letsencrypt/src/letsencrypt/letsencrypt-site/.well-known:/etc/nginx/html/.well-known:ro
        - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
        - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem:/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem
        - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem:/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem

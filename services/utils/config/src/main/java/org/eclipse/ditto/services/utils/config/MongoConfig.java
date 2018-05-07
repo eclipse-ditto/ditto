@@ -64,6 +64,11 @@ public final class MongoConfig {
     public static final String POOL_MAX_WAIT_TIME = POOL_PREFIX + ".maxWaitTimeSecs";
 
     /**
+     * Whether a jmx connection pool listener should be added.
+     */
+    public static final String POOL_JMX_LISTENER_ENABLED = POOL_PREFIX + ".jmxListenerEnabled";
+
+    /**
      * Fallback client configuration.
      */
     private static final Config fallbackMongoConfig;
@@ -74,6 +79,7 @@ public final class MongoConfig {
         fallbackMap.put(POOL_MAX_SIZE, 100);
         fallbackMap.put(POOL_MAX_WAIT_QUEUE_SIZE, 100);
         fallbackMap.put(POOL_MAX_WAIT_TIME, Duration.ofSeconds(30));
+        fallbackMap.put(POOL_JMX_LISTENER_ENABLED, false);
         fallbackMap.put(MAX_QUERY_TIME, Duration.ofSeconds(60));
         fallbackMongoConfig = ConfigFactory.parseMap(fallbackMap);
     }
@@ -118,6 +124,16 @@ public final class MongoConfig {
      */
     public static Duration getPoolMaxWaitTime(final Config config) {
         return config.withFallback(fallbackMongoConfig).getDuration(POOL_MAX_WAIT_TIME);
+    }
+
+    /**
+     * Whether a JMX {@code ConnectionPoolListener} should be added.
+     *
+     * @param config The configuration.
+     * @return whether the JMXConnectionPoolListener should be added.
+     */
+    public static boolean getJmxListenerEnabled(final Config config) {
+        return config.withFallback(fallbackMongoConfig).getBoolean(POOL_JMX_LISTENER_ENABLED);
     }
 
     /**

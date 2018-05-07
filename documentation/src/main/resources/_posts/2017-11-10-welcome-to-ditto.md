@@ -8,6 +8,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 A warm welcome, dear visitor, to our new project site. 

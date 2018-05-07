@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
@@ -107,6 +109,23 @@ public final class LogUtil {
         if (correlationId != null && !correlationId.isEmpty()) {
             final Map<String, Object> mdcMap = new HashMap<>();
             mdcMap.put(X_CORRELATION_ID, correlationId);
+            loggingAdapter.setMDC(mdcMap);
+        }
+    }
+
+    /**
+     * Enhances the passed {@link DiagnosticLoggingAdapter} with an "MDC" map entry for the passed {@code fieldName}
+     * with the passed {@code fieldValue} (if present).
+     *
+     * @param loggingAdapter the DiagnosticLoggingAdapter to set the "MDC" on.
+     * @param fieldName the field value to set in MDC.
+     * @param fieldValue the optional value to set.
+     */
+    public static void enhanceLogWithCustomField(final DiagnosticLoggingAdapter loggingAdapter,
+            final String fieldName, @Nullable final String fieldValue) {
+        if (fieldValue != null && !fieldValue.isEmpty()) {
+            final Map<String, Object> mdcMap = new HashMap<>(loggingAdapter.getMDC());
+            mdcMap.put(fieldName, fieldValue);
             loggingAdapter.setMDC(mdcMap);
         }
     }

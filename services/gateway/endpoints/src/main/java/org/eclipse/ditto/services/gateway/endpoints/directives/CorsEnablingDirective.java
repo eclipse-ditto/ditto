@@ -29,7 +29,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.AccessControlAllowMethods;
 import akka.http.javadsl.model.headers.AccessControlAllowOrigin;
-import akka.http.javadsl.model.headers.HttpOriginRange;
+import akka.http.javadsl.model.headers.HttpOriginRanges;
 import akka.http.javadsl.server.Route;
 
 /**
@@ -38,7 +38,7 @@ import akka.http.javadsl.server.Route;
 public final class CorsEnablingDirective {
 
     private static final List<HttpHeader> CORS_HEADERS = Arrays.asList(
-            AccessControlAllowOrigin.create(HttpOriginRange.ALL),
+            AccessControlAllowOrigin.create(HttpOriginRanges.ALL),
             AccessControlAllowMethods.create(HttpMethods.OPTIONS, HttpMethods.GET, HttpMethods.PUT,
                     HttpMethods.POST, HttpMethods.HEAD, HttpMethods.DELETE));
 

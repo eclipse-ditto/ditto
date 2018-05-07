@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -53,7 +54,6 @@ import akka.pattern.Patterns;
 import akka.util.Timeout;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -65,21 +65,22 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregator";
 
-    private static final int RETRIEVE_DURATION_VALUE = 5000;
-    private static final Timeout RETRIEVE_TIMEOUT =
-            new Timeout(Duration.create(RETRIEVE_DURATION_VALUE, TimeUnit.MILLISECONDS));
-
     private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregator_retrievethings";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
     private final ExecutionContext aggregatorDispatcher;
     private final Matcher thingIdMatcher;
+    private final java.time.Duration retrieveSingleThingTimeout;
 
     private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup("aggregator-internal-dispatcher");
         thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
+        retrieveSingleThingTimeout = getContext().getSystem()
+                .settings()
+                .config()
+                .getDuration(ConfigKeys.THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
     }
 
     /**
@@ -219,7 +220,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
     }
 
     private Future<Object> askTargetActor(final Command command) {
-        return Patterns.ask(targetActor, command, RETRIEVE_TIMEOUT);
+        return Patterns.ask(targetActor, command, Timeout.apply(retrieveSingleThingTimeout.toMillis(),
+                TimeUnit.MILLISECONDS));
     }
 
 }

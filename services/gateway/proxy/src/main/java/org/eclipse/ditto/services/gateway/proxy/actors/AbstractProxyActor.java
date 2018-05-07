@@ -28,6 +28,7 @@ import org.eclipse.ditto.services.utils.distributedcache.actors.ReadConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.actors.WriteConsistency;
 import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.events.base.Event;
 
@@ -203,6 +204,10 @@ public abstract class AbstractProxyActor extends AbstractActor {
 
     static boolean isLiveSignal(final Signal<?> signal) {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    }
+
+    static boolean isLiveSignalResponse(final Signal<?> signal) {
+        return isLiveSignal(signal) && signal instanceof CommandResponse;
     }
 
     static Object getSignal(final LookupEnforcerResponse lookupEnforcerResponse) {

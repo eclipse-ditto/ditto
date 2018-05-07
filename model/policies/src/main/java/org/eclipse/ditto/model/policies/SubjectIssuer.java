@@ -21,6 +21,11 @@ public interface SubjectIssuer extends CharSequence {
      */
     SubjectIssuer GOOGLE = PoliciesModelFactory.newSubjectIssuer("google");
 
+    /**
+     * The issuer for authentication subjects provided when integrating with external systems.
+     */
+    SubjectIssuer INTEGRATION = PoliciesModelFactory.newSubjectIssuer("integration");
+
     @Override
     String toString();
 

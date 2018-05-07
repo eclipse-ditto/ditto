@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.getResponseForFireAndForgetMessage;
+import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_COMMANDS;
+import static org.eclipse.ditto.services.gateway.streaming.StreamingType.LIVE_EVENTS;
 import static org.eclipse.ditto.services.models.policies.Permission.READ;
 import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 
@@ -30,10 +32,10 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableEx
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -74,19 +77,40 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                 /* directly forward all Thing SudoCommands */
                 .match(SudoCommand.class, this::forwardThingSudoCommand)
 
-                /* MessageCommands */
+                /* Message Commands */
                 .match(SendClaimMessage.class, this::publishMessageCommand)
                 .match(MessageCommand.class, this::isAuthorized, this::publishMessageCommand)
                 .match(MessageCommand.class, this::unauthorized)
 
-                /* Live Signals */
-                .match(Signal.class, AbstractPolicyEnforcerActor::isLiveSignal, liveSignal -> {
-                    final Signal enrichedSignal =
-                            enrichDittoHeaders(liveSignal, liveSignal.getResourcePath(), liveSignal.getResourceType());
-                    getSender().forward(enrichedSignal, getContext());
-                })
+                /* Thing Live Commands */
+                .match(CreateThing.class,
+                        createThing -> isLiveSignal(createThing) && isCreateThingAuthorized(createThing),
+                        liveCreateThing -> publishLiveSignal(LIVE_COMMANDS.getDistributedPubSubTopic(),
+                                liveCreateThing))
+                .match(CreateThing.class, AbstractPolicyEnforcerActor::isLiveSignal, this::unauthorized)
+                .match(ThingModifyCommand.class,
+                        liveModifyThing -> isLiveSignal(liveModifyThing) &&
+                                isThingModifyCommandAuthorized(liveModifyThing),
+                        liveModifyThing -> publishLiveSignal(LIVE_COMMANDS.getDistributedPubSubTopic(),
+                                liveModifyThing))
+                .match(ThingModifyCommand.class, AbstractPolicyEnforcerActor::isLiveSignal, this::unauthorized)
+                .match(ThingQueryCommand.class,
+                        liveQueryThing -> isLiveSignal(liveQueryThing) && isAuthorized(liveQueryThing),
+                        liveQueryThing -> publishLiveSignal(LIVE_COMMANDS.getDistributedPubSubTopic(), liveQueryThing))
+                .match(ThingQueryCommand.class,
+                        AbstractPolicyEnforcerActor::isLiveSignal,
+                        this::unauthorized)
 
-                /* ThingCommands */
+                /* Thing Live Events */
+                .match(ThingEvent.class,
+                        liveEvent -> isLiveSignal(liveEvent) && isAuthorized(liveEvent),
+                        liveEvent -> publishLiveSignal(LIVE_EVENTS.getDistributedPubSubTopic(), liveEvent,
+                                getRootResource()))
+                .match(ThingEvent.class,
+                        AbstractPolicyEnforcerActor::isLiveSignal,
+                        this::unauthorized)
+
+                /* Thing Twin Commands */
                 .match(CreateThing.class, this::isCreateThingAuthorized, this::forwardThingModifyCommand)
                 .match(CreateThing.class, this::unauthorized)
                 .match(ThingModifyCommand.class, this::isThingModifyCommandAuthorized, this::forwardThingModifyCommand)
@@ -96,7 +120,8 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
     }
 
     private void publishMessageCommand(final MessageCommand<?, ?> messageCommand) {
-        publishCommand(messageCommand);
+
+        publishLiveSignal(messageCommand.getTypePrefix(), messageCommand);
 
         // answer the sender immediately for fire-and-forget message commands.
         getResponseForFireAndForgetMessage(messageCommand)
@@ -151,6 +176,16 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
                         WRITE);
     }
 
+    private boolean isAuthorized(final ThingEvent<?> event) {
+        return isLiveSignal(event) &&
+                isEnforcerAvailable() &&
+                getPolicyEnforcer().hasUnrestrictedPermissions(
+                        // only check access to root resource for now
+                        PoliciesResourceType.thingResource(getRootResource()),
+                        event.getDittoHeaders().getAuthorizationContext(),
+                        WRITE);
+    }
+
     private boolean isCreateThingAuthorized(final CreateThing command) {
         if (isEnforcerAvailable()) {
             return isThingModifyCommandAuthorized(command);
@@ -191,6 +226,21 @@ public abstract class AbstractThingPolicyEnforcerActor extends AbstractPolicyEnf
             exception = registry.exceptionFrom(command);
         }
         logUnauthorized(command, exception);
+        getSender().tell(exception, getSelf());
+    }
+
+    private void unauthorized(final ThingEvent thingEvent) {
+        final DittoRuntimeException exception;
+        // if the policy does not exist, produce a more user friendly error
+        if (!isEnforcerAvailable()) {
+            exception = ThingNotModifiableException.newBuilder(thingEvent.getThingId())
+                    .message(MessageFormat.format(THING_POLICY_DELETED_MESSAGE, thingEvent.getThingId(), getPolicyId()))
+                    .description(MessageFormat.format(THING_POLICY_DELETED_DESCRIPTION, getPolicyId()))
+                    .build();
+        } else {
+            exception = EventSendNotAllowedException.newBuilder(thingEvent.getThingId()).build();
+        }
+        logUnauthorized(thingEvent, exception);
         getSender().tell(exception, getSelf());
     }
 

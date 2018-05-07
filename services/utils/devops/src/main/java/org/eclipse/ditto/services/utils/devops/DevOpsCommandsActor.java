@@ -193,7 +193,8 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 piggybackCommand = serviceMappingStrategy.get(piggybackCommandType)
                         .apply(piggybackCommandJson, command.getDittoHeaders());
             } catch (final DittoRuntimeException e) {
-                log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", e.getMessage());
+                log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", piggybackCommandType,
+                        e.getMessage());
                 getSender().tell(e, getSelf());
                 return;
             }
@@ -274,8 +275,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private static final class DevOpsCommandResponseCorrelationActor extends AbstractActor {
 
         private static final String TIMEOUT_HEADER = "timeout";
+        private static final String AGGREGATE_HEADER = "aggregate";
 
         private static final FiniteDuration DEFAULT_RECEIVE_TIMEOUT = Duration.create(100, TimeUnit.MILLISECONDS);
+        private static final boolean DEFAULT_AGGREGATE = true;
+        private Boolean aggregateResults;
 
         /**
          * @return the Akka configuration Props object.
@@ -302,6 +306,10 @@ public final class DevOpsCommandsActor extends AbstractActor {
                             .map(Integer::parseInt)
                             .map(t -> FiniteDuration.apply(t, TimeUnit.MILLISECONDS))
                             .orElse(DEFAULT_RECEIVE_TIMEOUT);
+            aggregateResults = Optional.ofNullable(devOpsCommand.getDittoHeaders()
+                    .get(AGGREGATE_HEADER))
+                    .map(Boolean::valueOf)
+                    .orElse(DEFAULT_AGGREGATE);
             getContext().setReceiveTimeout(receiveTimeout);
         }
 
@@ -314,18 +322,22 @@ public final class DevOpsCommandsActor extends AbstractActor {
                         LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
                         log.info(
                                 "Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and stopping ourself..");
-                        devOpsCommandSender.tell(AggregatedDevOpsCommandResponse.of(commandResponses,
-                                DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
-                                commandResponses.isEmpty() ? HttpStatusCode.REQUEST_TIMEOUT : HttpStatusCode.OK,
-                                devOpsCommand.getDittoHeaders()),
-                                getSelf());
-                        getContext().stop(getSelf());
+                        sendCommandResponsesAndStop();
                     })
                     .matchAny(m -> {
                         LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
                         log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                         unhandled(m);
                     }).build();
+        }
+
+        private void sendCommandResponsesAndStop() {
+            devOpsCommandSender.tell(AggregatedDevOpsCommandResponse.of(commandResponses,
+                    DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
+                    commandResponses.isEmpty() ? HttpStatusCode.REQUEST_TIMEOUT : HttpStatusCode.OK,
+                    devOpsCommand.getDittoHeaders()),
+                    getSelf());
+            getContext().stop(getSelf());
         }
 
         private void handleCommandResponse(final CommandResponse<?> commandResponse) {
@@ -339,15 +351,25 @@ public final class DevOpsCommandsActor extends AbstractActor {
                 log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}",
                         commandResponse.getType());
             }
-            commandResponses.add(commandResponse);
+            addCommandResponse(commandResponse);
         }
 
         private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
             LogUtil.enhanceLogWithCorrelationId(log, dittoRuntimeException);
-            log.warning("Received DittoRuntimeException from service/instance <?/?>: {}", dittoRuntimeException);
 
-            commandResponses.add(DevOpsErrorResponse.of(null, null, dittoRuntimeException.toJson(),
+            log.warning("Received DittoRuntimeException {} from {}: {}", dittoRuntimeException.getClass().getName(),
+                    getSender(), dittoRuntimeException);
+
+            addCommandResponse(DevOpsErrorResponse.of(null, null, dittoRuntimeException.toJson(),
                     dittoRuntimeException.getDittoHeaders()));
+        }
+
+        private void addCommandResponse(final CommandResponse<?> commandResponse) {
+            commandResponses.add(commandResponse);
+            if (!aggregateResults) {
+                log.info("Do not aggregate send response immediately.");
+                sendCommandResponsesAndStop();
+            }
         }
     }
 

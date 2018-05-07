@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.policies.query;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -59,10 +61,21 @@ public final class RetrieveResourceTest {
     }
 
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullPolicyId() {
-        RetrieveResource.of(null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS);
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> RetrieveResource.of(null, TestConstants.Policy.LABEL,
+                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS))
+                .withNoCause();
+    }
+
+
+    @Test
+    public void tryToCreateInstanceWithInvalidPolicyId() {
+        assertThatExceptionOfType(PolicyIdInvalidException.class)
+                .isThrownBy(() -> RetrieveResource.of("undefined", TestConstants.Policy.LABEL,
+                        TestConstants.Policy.RESOURCE.getResourceKey(), EMPTY_DITTO_HEADERS))
+                .withNoCause();
     }
 
 

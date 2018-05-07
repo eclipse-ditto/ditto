@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Connection",
+  "type": "object",
+  "properties": {
+    "id": {
+      "$id": "/properties/id",
+      "type": "string",
+      "title": "Connection ID",
+      "description": "The self assigned unique identifier of the connection",
+      "examples": [
+        "myConnection"
+      ]
+    },
+    "connectionType": {
+      "$id": "/properties/connectionType",
+      "type": "string",
+      "enum": [ "amqp-091", "amqp-10" ],
+      "title": "Connection type",
+      "description": "The type determining the connection's underlying transport protocol",
+      "examples": [
+        "amqp-10"
+      ]
+    },
+    "connectionStatus": {
+      "$id": "/properties/connectionStatus",
+      "type": "string",
+      "enum": [ "open", "closed" ],
+      "title": "Connection status",
+      "description": "The persisted/desired status of the connection",
+      "examples": [
+        "open"
+      ]
+    },
+    "uri": {
+      "$id": "/properties/uri",
+      "type": "string",
+      "format": "uri",
+      "title": "Connection URI",
+      "description": "The URI defining the connections remote endpoint",
+      "examples": [
+        "amqps://user:password@localhost:5671"
+      ]
+    },
+    "authorizationContext": {
+      "$id": "/properties/authorizationContext",
+      "type": "array",
+      "title": "The authorisation context",
+      "description": "The authorization context defines all authorization subjects associated with this connection",
+      "uniqueItems": true,
+      "items": {
+        "$id": "/properties/authorizationContext/items",
+        "type": "string",
+        "title": "Authorization Subject",
+        "description": "An authorization subject associated with this connection",
+        "examples": [
+          "myAuthorizationSubject"
+        ]
+      }
+    },
+    "sources": {
+      "$id": "/properties/sources",
+      "type": "array",
+      "title": "The subscription sources of this connection",
+      "description": "The subscription sources of this connection",
+      "uniqueItems": true,
+      "items": {
+        "$id": "/properties/sources/items",
+        "type": "object",
+        "title": "Source",
+        "description": "A subscription source subscribed by this connection"
+      }
+    },
+    "targets": {
+      "$id": "/properties/targets",
+      "type": "array",
+      "title": "The publish targets of this connection",
+      "description": "The publish targets of this connection",
+      "uniqueItems": true,
+      "items": {
+        "$id": "/properties/targets/items",
+        "type": "object",
+        "title": "Target",
+        "description": "A publish target served by this connection"
+      }
+    },
+    "clientCount": {
+      "$id": "/properties/clientCount",
+      "type": "integer",
+      "title": "Client count",
+      "description": "The client count defines how many clients are instantiated for this connection. Each client opens a separate 'physical' connection and thus raises the overall availability and throughput of the connection. Clients are always instantiated on separate AKKA cluster nodes while having only a single client per node. Therefore the max client count is limited by the number of cluster nodes.",
+      "default": 1,
+      "minimum": 1,
+      "maximum": "#clusterNodes",
+      "examples": [
+        1,2,3
+      ]
+    },
+    "failoverEnabled": {
+      "$id": "/properties/failoverEnabled",
+      "type": "boolean",
+      "title": "Failover enabled",
+      "description": "Defines if this connection uses automatic reconnect/recovery mechanisms when an active open connection fails",
+      "default": true
+    },
+    "validateCertificates": {
+      "$id": "/properties/validateCertificates",
+      "type": "boolean",
+      "title": "Validate certificates",
+      "description": "Defines if SSL certificate validation is enabled for this connection",
+      "default": true
+    },
+    "processorPoolSize": {
+      "$id": "/properties/processorPoolSize",
+      "type": "integer",
+      "title": "Processor pool size",
+      "description": "The processor pool size determines how many mapping processors are instantiated per client, therefore the total amount of mapping processors depends on the configured client count. By increasing the processor count, you can scale the message throughput in mapping scenarios.",
+      "default": 5,
+      "minimum": 1,
+      "examples": [
+        1,2,3,5,8
+      ]
+    },
+    "specificConfig": {
+      "$id": "/properties/specificConfig",
+      "type": "object",
+      "title": "Specific config",
+      "description": "Depending on the configured connection type, there might be protocol specific configuration options or tuning settings available. These can be configured in the specific config object. The specific config object is interpreted as a key value based map of setting properties.",
+      "additionalProperties": false,
+      "patternProperties":
+      {
+        "^.+$":
+        {
+          "title": "Setting value",
+          "description": "Setting value",
+          "type": "string"
+        }
+      }
+    },
+    "mappingContext": {
+      "$id": "/properties/mappingContext",
+      "type": "object",
+      "title": "The mapping context for this connection",
+      "properties": {
+        "mappingEngine": {
+          "$id": "/properties/mappingContext/properties/mappingEngine",
+          "type": "string",
+          "title": "Mapping engine",
+          "description": "The Mapping engine defines which kind of mapping processor is instantiated for this connection. Currently you can choose between \"javascript\" and a full qualified java class name implementing the MessageMapper interface. If you go for the second option, make sure the implementation class is available in CLASSPATH."
+        },
+        "options": {
+          "$id": "/properties/mappingContext/properties/options",
+          "type": "object",
+          "title": "Options",
+          "description": "The mapping options contain specific configuration settings for the selected mapping engine. The options object is interpreted as a key value based map of setting properties.",
+          "additionalProperties": false,
+          "patternProperties":
+          {
+            "^.+$":
+            {
+              "title": "Setting value",
+              "description": "Setting value",
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [ "mappingEngine", "options"]
+    }
+  },
+  "additionalProperties": false,
+  "required": [ "id", "connectionType", "connectionStatus", "uri", "authorizationContext"]
+}
