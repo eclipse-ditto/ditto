@@ -39,6 +39,9 @@ public abstract class AbstractPoliciesService extends DittoService {
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
+            .put(BaseConfigKey.Metrics.SYSTEM_METRICS_ENABLED, ConfigKeys.Metrics.SYSTEM_METRICS_ENABLED)
+            .put(BaseConfigKey.Metrics.PROMETHEUS_ENABLED, ConfigKeys.Metrics.PROMETHEUS_ENABLED)
+            .put(BaseConfigKey.Metrics.JAEGER_ENABLED, ConfigKeys.Metrics.JAEGER_ENABLED)
             .build();
 
     private final Logger logger;

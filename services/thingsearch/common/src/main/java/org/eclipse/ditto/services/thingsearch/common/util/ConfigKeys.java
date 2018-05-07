@@ -31,7 +31,7 @@ public final class ConfigKeys {
     private static final String SEARCH_UPDATER_PREFIX = SEARCH_PREFIX + "updater.";
     private static final String CLUSTER_PREFIX = SEARCH_PREFIX + "cluster.";
     private static final String CLUSTER_MAJORITY_CHECK_PREFIX = CLUSTER_PREFIX + "majority-check.";
-    private static final String STATSD_PREFIX = SEARCH_PREFIX + "statsd.";
+    private static final String METRICS_PREFIX = SEARCH_PREFIX + "metrics.";
     /**
      * Prefix for mongoDB config
      */
@@ -236,13 +236,18 @@ public final class ConfigKeys {
      */
     public static final String HEALTH_CHECK_PERSISTENCE_TIMEOUT = HEALTH_CHECK_PERSISTENCE_PREFIX + "timeout";
     /**
-     * The StatsD hostname used for sending metrics to.
+     * Whether gathering system metrics is enabled.
      */
-    public static final String STATSD_HOSTNAME = STATSD_PREFIX + "hostname";
+    public static final String SYSTEM_METRICS_ENABLED = METRICS_PREFIX + "systemMetrics." + ENABLED_SUFFIX;
     /**
-     * The StatsD port used for sending metrics to.
+     * Whether reporting metrics to prometheus is enabled.
      */
-    public static final String STATSD_PORT = STATSD_PREFIX + "port";
+    public static final String PROMETHEUS_ENABLED = METRICS_PREFIX + "prometheus." + ENABLED_SUFFIX;
+    /**
+     * Whether reporting traces to jaeger is enabled.
+     */
+    public static final String JAEGER_ENABLED = METRICS_PREFIX + "jaeger." + ENABLED_SUFFIX;
+
 
     /*
      * This class is not designed for instantiation.

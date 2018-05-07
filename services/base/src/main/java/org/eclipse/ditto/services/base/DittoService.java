@@ -148,19 +148,22 @@ public abstract class DittoService {
     }
 
     private void startKamon() {
-        final Config config = ConfigFactory.load("kamon");
-        Kamon.reconfigure(config);
+        final Config kamonConfig = ConfigFactory.load("kamon");
+        Kamon.reconfigure(kamonConfig);
 
-        // TODO: make configurable
-
-        // start metrics collection
-        SystemMetrics.startCollecting();
-
-        // start jaeger reporter
-        this.startJaegerReporter();
-
-        // start prometheus reporter
-        this.startPrometheusReporter();
+        final Config serviceConfig = determineConfig();
+        if (serviceConfig.getBoolean(configKeys.getOrThrow(BaseConfigKey.Metrics.SYSTEM_METRICS_ENABLED))) {
+            // start system metrics collection
+            SystemMetrics.startCollecting();
+        }
+        if (serviceConfig.getBoolean(configKeys.getOrThrow(BaseConfigKey.Metrics.JAEGER_ENABLED))) {
+            // start jaeger reporter
+            this.startJaegerReporter();
+        }
+        if (serviceConfig.getBoolean(configKeys.getOrThrow(BaseConfigKey.Metrics.PROMETHEUS_ENABLED))) {
+            // start prometheus reporter
+            this.startPrometheusReporter();
+        }
     }
 
     private void startJaegerReporter() {

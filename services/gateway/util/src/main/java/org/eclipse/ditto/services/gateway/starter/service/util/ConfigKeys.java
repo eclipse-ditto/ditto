@@ -182,18 +182,20 @@ public final class ConfigKeys {
      */
     public static final String HEALTH_CHECK_CLUSTER_ROLES_EXPECTED = HEALTH_CHECK_CLUSTER_ROLES_PREFIX + "expected";
 
-
-    private static final String STATSD_PREFIX = GATEWAY_PREFIX + "statsd.";
-
-    /**
-     * The StatsD hostname used for sending metrics to.
-     */
-    public static final String STATSD_HOSTNAME = STATSD_PREFIX + "hostname";
+    private static final String METRICS_PREFIX = GATEWAY_PREFIX + "metrics.";
 
     /**
-     * The StatsD port used for sending metrics to.
+     * Whether gathering system metrics is enabled.
      */
-    public static final String STATSD_PORT = STATSD_PREFIX + "port";
+    public static final String SYSTEM_METRICS_ENABLED = METRICS_PREFIX + "systemMetrics." + ENABLED_SUFFIX;
+    /**
+     * Whether reporting metrics to prometheus is enabled.
+     */
+    public static final String PROMETHEUS_ENABLED = METRICS_PREFIX + "prometheus." + ENABLED_SUFFIX;
+    /**
+     * Whether reporting traces to jaeger is enabled.
+     */
+    public static final String JAEGER_ENABLED = METRICS_PREFIX + "jaeger." + ENABLED_SUFFIX;
 
     private static final String DEVOPS_PREFIX = GATEWAY_PREFIX + "devops.";
     /**
@@ -255,6 +257,7 @@ public final class ConfigKeys {
      * Key for the Akka HTTP Server's request timeout.
      */
     public static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = AKKA_HTTP_PREFIX + "server.request-timeout";
+
     /*
      * This class is not designed for instantiation.
      */

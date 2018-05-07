@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 public final class ConfigKeys {
 
     private static final String AMQP_BRIDGE_PREFIX = "ditto.amqp-bridge.";
+    private static final String ENABLED_SUFFIX = "enabled";
 
     /**
      * Key of the uri for mongodb.
@@ -99,7 +100,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check for persistence should be enabled or not.
          */
-        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + "enabled";
+        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + ENABLED_SUFFIX;
 
         /**
          * The interval of the health check.
@@ -109,7 +110,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check should be enabled (globally) or not.
          */
-        public static final String ENABLED = PREFIX + "enabled";
+        public static final String ENABLED = PREFIX + ENABLED_SUFFIX;
 
         private HealthCheck() {
             throw new AssertionError();
@@ -117,29 +118,28 @@ public final class ConfigKeys {
 
     }
 
-    /**
-     * Configuration keys for StatsD.
-     */
-    @Immutable
-    public static final class StatsD {
+    public static final class Metrics {
 
-        private static final String PREFIX = AMQP_BRIDGE_PREFIX + "statsd.";
+        private static final String PREFIX = AMQP_BRIDGE_PREFIX + "metrics.";
 
         /**
-         * The StatsD port used for sending metrics to.
+         * Whether gathering system metrics is enabled.
          */
-        public static final String PORT = PREFIX + "port";
-
+        public static final String SYSTEM_METRICS_ENABLED = PREFIX + "systemMetrics." + ENABLED_SUFFIX;
         /**
-         * The StatsD hostname used for sending metrics to.
+         * Whether reporting metrics to prometheus is enabled.
          */
-        public static final String HOSTNAME = PREFIX + "hostname";
+        public static final String PROMETHEUS_ENABLED = PREFIX + "prometheus." + ENABLED_SUFFIX;
+        /**
+         * Whether reporting traces to jaeger is enabled.
+         */
+        public static final String JAEGER_ENABLED = PREFIX + "jaeger." + ENABLED_SUFFIX;
 
-        private StatsD() {
+        private Metrics() {
             throw new AssertionError();
         }
-
     }
+
 
     /**
      * Configuration keys for Connection.

@@ -43,6 +43,9 @@ public final class GatewayService extends DittoService {
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
+            .put(BaseConfigKey.Metrics.SYSTEM_METRICS_ENABLED, ConfigKeys.SYSTEM_METRICS_ENABLED)
+            .put(BaseConfigKey.Metrics.PROMETHEUS_ENABLED, ConfigKeys.PROMETHEUS_ENABLED)
+            .put(BaseConfigKey.Metrics.JAEGER_ENABLED, ConfigKeys.JAEGER_ENABLED)
             .build();
 
     private GatewayService() {

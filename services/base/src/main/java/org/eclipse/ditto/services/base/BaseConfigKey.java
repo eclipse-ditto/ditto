@@ -38,20 +38,24 @@ public interface BaseConfigKey {
     }
 
     /**
-     * Enumeration of keys for StatsD configuration settings.
+     * Enumeration of keys for Metrics configuration settings.
      */
-    enum StatsD implements BaseConfigKey {
+    enum Metrics implements BaseConfigKey {
 
         /**
-         * Key of the StatsD hostname configuration setting.
+         * Key of the configuration setting which indicates whether the system metrics gathering is enabled.
          */
-        HOSTNAME,
+        SYSTEM_METRICS_ENABLED,
 
         /**
-         * Key of the StatsD port configuration setting.
+         * Key of the configuration setting which indicates whether metrics should be reported to prometheus.
          */
-        PORT;
+        PROMETHEUS_ENABLED,
 
+        /**
+         * Key of the configuration setting which indicates whether traces should be reported to jaeger.
+         */
+        JAEGER_ENABLED;
     }
 
 }
