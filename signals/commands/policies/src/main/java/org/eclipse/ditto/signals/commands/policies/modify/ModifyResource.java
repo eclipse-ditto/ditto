@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -70,8 +71,8 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
             final Label label,
             final Resource resource,
             final DittoHeaders dittoHeaders) {
-
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.resource = resource;
@@ -183,6 +184,11 @@ public final class ModifyResource extends AbstractCommand<ModifyResource>
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resource.getFullQualifiedPath(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE, resource.toJson(schemaVersion, thePredicate), predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

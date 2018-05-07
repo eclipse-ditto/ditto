@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 /**
  * Thrown if a {@link org.eclipse.ditto.signals.commands.base.Command} is not supported.
  */
-public class UnknownCommandException extends DittoRuntimeException {
+public final class UnknownCommandException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.

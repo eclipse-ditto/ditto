@@ -60,7 +60,6 @@ import scala.Option;
 import scala.Some;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
-import scala.concurrent.duration.Duration;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -72,21 +71,22 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregator";
 
-    private static final int RETRIEVE_DURATION_VALUE = 5000;
-    private static final Timeout RETRIEVE_TIMEOUT =
-            new Timeout(Duration.create(RETRIEVE_DURATION_VALUE, TimeUnit.MILLISECONDS));
-
     private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregator.retrievethings";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
     private final ExecutionContext aggregatorDispatcher;
     private final Matcher thingIdMatcher;
+    private final java.time.Duration retrieveSingleThingTimeout;
 
     private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup("aggregator-internal-dispatcher");
         thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
+        retrieveSingleThingTimeout = getContext().getSystem()
+                .settings()
+                .config()
+                .getDuration(ConfigKeys.THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
     }
 
     /**

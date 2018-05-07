@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.models.amqpbridge.AmqpBridgeMappingStrategy;
+import org.eclipse.ditto.services.models.connectivity.ConnectivityMappingStrategy;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
@@ -38,7 +38,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
     private final PoliciesMappingStrategy policiesMappingStrategy;
     private final ThingsMappingStrategy thingsMappingStrategy;
-    private final AmqpBridgeMappingStrategy amqpBridgeMappingStrategy;
+    private final ConnectivityMappingStrategy connectivityMappingStrategy;
     private final ThingSearchMappingStrategy thingSearchMappingStrategy;
 
     /**
@@ -47,7 +47,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     public GatewayMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
         thingsMappingStrategy = new ThingsMappingStrategy();
-        amqpBridgeMappingStrategy = new AmqpBridgeMappingStrategy(thingsMappingStrategy);
+        connectivityMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
     }
 
@@ -67,7 +67,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
         combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingSearchMappingStrategy.determineStrategy());
-        combinedStrategy.putAll(amqpBridgeMappingStrategy.determineStrategy());
+        combinedStrategy.putAll(connectivityMappingStrategy.determineStrategy());
         combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
 
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();

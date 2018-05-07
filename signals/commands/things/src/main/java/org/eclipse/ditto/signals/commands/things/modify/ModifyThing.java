@@ -60,8 +60,13 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * Json Field definition for the optional initial "inline" policy when creating a Thing.
      */
     public static final JsonFieldDefinition<JsonObject> JSON_INITIAL_POLICY =
-            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
+     * Json Field definition for the optional initial "inline" policy for usage in getEntity().
+     */
+    public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("_policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String thingId;
     private final Thing thing;
@@ -121,8 +126,8 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for {@link
+     * ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link #JSON_THING}.
      */
     public static ModifyThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyThing>(TYPE, jsonObject).deserialize(() -> {
@@ -140,11 +145,10 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     }
 
     /**
-     * Ensures that the command will not contain inconsistent authorization information.
-     * <ul>
-     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
-     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL information.</li>
-     * </ul>
+     * Ensures that the command will not contain inconsistent authorization information. <ul> <li>{@link
+     * org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} commands may not contain policy information.</li>
+     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL
+     * information.</li> </ul>
      */
     private static void ensureAuthorizationMatchesSchemaVersion(final String thingId,
             final Thing thing,
@@ -204,7 +208,10 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(thing.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        final JsonObject thingJson = thing.toJson(schemaVersion, FieldType.regularOrSpecial());
+        final JsonObject fullThingJson =
+                getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
+        return Optional.of(fullThingJson);
     }
 
     @Override
@@ -216,6 +223,11 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         if (initialPolicy != null) {
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
         }
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

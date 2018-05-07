@@ -1,5 +1,5 @@
 <a href="https://eclipse.org/ditto/">
-  <img src="./documentation/src/main/resources/images/ditto.svg" alt="Ditto Logo" width="100%" height="250">
+  <img src="https://eclipse.org/ditto/images/ditto.svg" alt="Ditto Logo" width="100%" height="250">
 </a>
 
 # Eclipse Ditto
@@ -70,5 +70,6 @@ You have now running:
    * Things
    * Thing-Search
    * Gateway
+   * Connectivity
 * an nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
    * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080)

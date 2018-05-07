@@ -97,7 +97,8 @@ defaults:
 sidebars:
 - ditto_sidebar
 
-description: "Eclipse Ditto Blog"
+title: "Eclipse Ditto Blog"
+description: "Announcements, tutorials and examples around Eclipse Ditto and Digital Twins"
 # the description is used in the feed.xml file
 
 # needed for sitemap.xml file only

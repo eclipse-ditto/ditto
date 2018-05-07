@@ -64,7 +64,7 @@ public final class EventAndResponsePublisher
             private static final long serialVersionUID = 1L;
 
             @Override
-            public EventAndResponsePublisher create() throws Exception {
+            public EventAndResponsePublisher create() {
                 return new EventAndResponsePublisher(backpressureBufferSize);
             }
         });

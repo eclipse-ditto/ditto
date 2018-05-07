@@ -245,19 +245,20 @@
                                     <HTTP_PORT>${docker.image.port}</HTTP_PORT>
                                     <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
                                 </env>
-                                <cmd>
+                                <workdir>/opt/ditto</workdir>
+                                <entryPoint>
                                     <exec>
                                         <arg>java</arg>
                                         <arg>-jar</arg>
-                                        <arg>/starter.jar</arg>
+                                        <arg>/opt/ditto/starter.jar</arg>
                                     </exec>
-                                </cmd>
+                                </entryPoint>
                                 <assembly>
                                     <basedir>/</basedir>
                                     <descriptor>assembly.xml</descriptor>
                                 </assembly>
                                 <runCmds>
-                                    <runCmd>ln -s /${project.build.finalName}-allinone.jar /starter.jar</runCmd>
+                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
                                 </runCmds>
                             </build>
                         </image>

@@ -68,8 +68,9 @@ public final class ConditionChecker {
      * @param argumentName the name or description of the checked char sequence. This is used to build the message of
      * the potential IllegalArgumentException.
      * @param <T> the type of the checked char sequence.
-     * @return {@code argument} if not {@code null}.
+     * @return {@code argument} if not {@code null} and not empty.
      * @throws IllegalArgumentException if {@code argument} is empty.
+     * @throws NullPointerException if {@code argument} is {@code null}.
      */
     public static <T extends CharSequence> T checkNotEmpty(final T argument, final String argumentName) {
         if (0 == argument.length()) {

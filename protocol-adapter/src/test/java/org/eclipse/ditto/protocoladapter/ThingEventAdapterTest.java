@@ -138,7 +138,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final ThingCreated thingCreated =
-                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(thingCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -176,7 +176,8 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final ThingModified thingModified =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(thingModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -212,7 +213,8 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final ThingDeleted thingDeleted =
-                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(thingDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -251,7 +253,7 @@ public final class ThingEventAdapterTest {
 
         final AclModified aclModified =
                 AclModified.of(TestConstants.THING_ID, TestConstants.ACL, TestConstants.REVISION,
-                        TestConstants.DITTO_HEADERS_V_1);
+                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(aclModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -289,7 +291,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AclEntryCreated aclEntryCreated = AclEntryCreated.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(aclEntryCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -327,7 +329,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AclEntryModified aclEntryModified = AclEntryModified.of(TestConstants.THING_ID, TestConstants.ACL_ENTRY,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(aclEntryModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -363,7 +365,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AclEntryDeleted aclEntryDeleted = AclEntryDeleted.of(TestConstants.THING_ID,
-                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_1);
+                TestConstants.AUTHORIZATION_SUBJECT, TestConstants.REVISION, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(aclEntryDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -402,7 +404,7 @@ public final class ThingEventAdapterTest {
 
         final AttributesCreated attributesCreated =
                 AttributesCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTES,
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributesCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -440,7 +442,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AttributesModified attributesModified = AttributesModified.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.ATTRIBUTES, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributesModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -476,7 +478,8 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AttributesDeleted attributesDeleted =
-                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                AttributesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributesDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -516,7 +519,7 @@ public final class ThingEventAdapterTest {
         final AttributeCreated attributeCreated =
                 AttributeCreated.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributeCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -556,7 +559,7 @@ public final class ThingEventAdapterTest {
         final AttributeModified attributeModified =
                 AttributeModified.of(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
                         TestConstants.ATTRIBUTE_VALUE,
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributeModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -592,7 +595,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final AttributeDeleted attributeDeleted = AttributeDeleted.of(TestConstants.THING_ID,
-                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.ATTRIBUTE_POINTER, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(attributeDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -630,7 +633,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeaturesCreated featuresCreated = FeaturesCreated.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featuresCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -668,7 +671,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeaturesModified featuresModified = FeaturesModified.of(TestConstants.THING_ID, TestConstants.FEATURES,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featuresModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -704,7 +707,8 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeaturesDeleted featuresDeleted =
-                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                FeaturesDeleted.of(TestConstants.THING_ID, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featuresDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -742,7 +746,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeatureCreated featureCreated = FeatureCreated.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -780,7 +784,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeatureModified featureModified = FeatureModified.of(TestConstants.THING_ID, TestConstants.FEATURE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -816,7 +820,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeatureDeleted featureDeleted = FeatureDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -857,7 +861,7 @@ public final class ThingEventAdapterTest {
         final FeaturePropertiesCreated featurePropertiesCreated =
                 FeaturePropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
                         TestConstants.FEATURE_PROPERTIES,
-                        TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -897,7 +901,8 @@ public final class ThingEventAdapterTest {
 
         final FeaturePropertiesModified featurePropertiesModified =
                 FeaturePropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTIES, TestConstants.REVISION,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -933,7 +938,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeaturePropertiesDeleted featurePropertiesDeleted = FeaturePropertiesDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertiesDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -975,7 +980,7 @@ public final class ThingEventAdapterTest {
 
         final FeaturePropertyCreated featurePropertyCreated = FeaturePropertyCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertyCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -1017,7 +1022,7 @@ public final class ThingEventAdapterTest {
 
         final FeaturePropertyModified featurePropertyModified = FeaturePropertyModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.FEATURE_PROPERTY_VALUE,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertyModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -1058,7 +1063,7 @@ public final class ThingEventAdapterTest {
 
         final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featurePropertyDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -1098,7 +1103,7 @@ public final class ThingEventAdapterTest {
 
         final FeatureDefinitionCreated featureDefinitionCreated = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionCreated);
 
         assertThat(actual).isEqualTo(expected);
@@ -1138,7 +1143,7 @@ public final class ThingEventAdapterTest {
 
         final FeatureDefinitionModified featureDefinitionModified = FeatureDefinitionModified.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
-                TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionModified);
 
         assertThat(actual).isEqualTo(expected);
@@ -1175,7 +1180,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final FeatureDefinitionDeleted featureDefinitionDeleted = FeatureDefinitionDeleted.of(TestConstants.THING_ID,
-                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.FEATURE_ID, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(featureDefinitionDeleted);
 
         assertThat(actual).isEqualTo(expected);
@@ -1232,7 +1237,7 @@ public final class ThingEventAdapterTest {
                 .build();
 
         final PolicyIdModified policyIdModified = PolicyIdModified.of(TestConstants.THING_ID, TestConstants.THING_ID,
-                TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(policyIdModified);
 
         assertThat(actual).isEqualTo(expected);

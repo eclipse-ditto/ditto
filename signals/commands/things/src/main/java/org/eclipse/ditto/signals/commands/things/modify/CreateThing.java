@@ -62,8 +62,13 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      * Json Field definition for the optional initial "inline" policy when creating a Thing.
      */
     public static final JsonFieldDefinition<JsonObject> JSON_INITIAL_POLICY =
-            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
+     * Json Field definition for the optional initial "inline" policy for usage in getEntity().
+     */
+    public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
+            JsonFactory.newJsonObjectFieldDefinition("_policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Thing thing;
     @Nullable private final JsonObject initialPolicy;
@@ -158,7 +163,10 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(thing.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        final JsonObject thingJson = thing.toJson(schemaVersion, FieldType.regularOrSpecial());
+        final JsonObject fullThingJson =
+                getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
+        return Optional.of(fullThingJson);
     }
 
     @Override
@@ -175,6 +183,11 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         if (initialPolicy != null) {
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
         }
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.MODIFY;
     }
 
     @Override

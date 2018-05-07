@@ -175,6 +175,11 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyFeature setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, feature, dittoHeaders);
     }

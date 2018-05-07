@@ -29,12 +29,14 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 
 /**
  * Command for counting things without checking the permissions.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoCountThings extends AbstractCommand<SudoCountThings>
         implements ThingSearchSudoCommand<SudoCountThings> {
 
@@ -52,6 +54,7 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
             JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    @Nullable
     private final String filter;
 
     private SudoCountThings(final DittoHeaders dittoHeaders, @Nullable final String filter) {
@@ -132,6 +135,11 @@ public final class SudoCountThings extends AbstractCommand<SudoCountThings>
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         getFilter().ifPresent(filter -> jsonObjectBuilder.set(JSON_FILTER, filter, predicate));
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

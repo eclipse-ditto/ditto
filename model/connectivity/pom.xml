@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.eclipse.ditto</groupId>
+        <artifactId>ditto-model</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ditto-model-connectivity</artifactId>
+    <packaging>bundle</packaging>
+    <name>Eclipse Ditto :: Model :: Connectivity</name>
+
+    <dependencies>
+        <!-- ### Compile ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-base</artifactId>
+        </dependency>
+
+        <!-- ### Testing ### -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-base</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>org/eclipse/ditto/model/connectivity/*</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>
+                            org.eclipse.ditto.*
+                        </Import-Package>
+                        <Export-Package>
+                            org.eclipse.ditto.model.connectivity.*
+                        </Export-Package>
+                        <_noee>true</_noee>
+                        <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
+                    </instructions>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <oldVersion>
+                        <dependency>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${binary-compatibility-check.version}</version>
+                            <type>bundle</type>
+                        </dependency>
+                    </oldVersion>
+                    <newVersion>
+                        <file>
+                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
+                        </file>
+                    </newVersion>
+                    <parameter>
+                        <onlyModified>true</onlyModified>
+                        <accessModifier>public</accessModifier>
+                        <breakBuildOnModifications>false</breakBuildOnModifications>
+                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+                        <includeSynthetic>false</includeSynthetic>
+                        <ignoreMissingClasses>false</ignoreMissingClasses>
+                        <skipPomModules>true</skipPomModules>
+                        <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                    </parameter>
+                    <skip>false</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>cmp</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

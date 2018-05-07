@@ -53,6 +53,16 @@ public final class ConfigKeys {
     public static final String MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET =
             MONGO_CIRCUIT_BREAKER_CONFIG_PREFIX + "timeout.reset";
 
+    private static final String MONITORING_PREFIX = MONGO_CONFIG_PREFIX + "monitoring.";
+    /**
+     * Whether all commands should be monitored and reported with Kamon.
+     */
+    public static final String MONITORING_COMMANDS_ENABLED = MONITORING_PREFIX + "commands";
+    /**
+     * Whether connection pool statistics should be reported with Kamon.
+     */
+    public static final String MONITORING_CONNECTION_POOL_ENABLED = MONITORING_PREFIX + "connection-pool";
+
     private static final String ENABLED_SUFFIX = "enabled";
 
     /**
@@ -64,6 +74,16 @@ public final class ConfigKeys {
      * Controls whether thing and policy event processing should be active or not.
      */
     public static final String EVENT_PROCESSING_ACTIVE = SEARCH_UPDATER_PREFIX + "event-processing.active";
+
+    /**
+     * Controls maximum number of events to update in a bulk.
+     */
+    public static final String MAX_BULK_SIZE = SEARCH_UPDATER_PREFIX + "max-bulk-size";
+
+    /**
+     * Controls whether thing and policy cache-updates should be active or not.
+     */
+    public static final String CACHE_UPDATES_ACTIVE = SEARCH_UPDATER_PREFIX + "cache-updates.active";
 
     /**
      * The interval which defines how long a thing updater is considered active. When not active, the corresponding
@@ -104,6 +124,12 @@ public final class ConfigKeys {
      * Things-Sync: if a query-start is more than this offset in the past, a warning will be logged.
      */
     public static final String THINGS_SYNCER_OUTDATED_WARNING_OFFSET = SYNC_THINGS_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Things-Sync: if a query-start is more than this offset in the past, an errir will be logged and health
+     * endpoint shows "DOWN".
+     */
+    public static final String THINGS_SYNCER_OUTDATED_ERROR_OFFSET = SYNC_THINGS_PREFIX + "outdated-error-offset";
 
     /**
      * Things-Sync: The maximum idle time of the syncer (as a Duration).
@@ -152,6 +178,13 @@ public final class ConfigKeys {
      */
     public static final String POLICIES_SYNCER_OUTDATED_WARNING_OFFSET =
             SYNC_POLICIES_PREFIX + "outdated-warning-offset";
+
+    /**
+     * Policies-Sync: if a query-start is more than this offset in the past, an error will be logged and the health
+     * endpoint shows "DOWN".
+     */
+    public static final String POLICIES_SYNCER_OUTDATED_ERROR_OFFSET =
+            SYNC_POLICIES_PREFIX + "outdated-error-offset";
 
     /**
      * Policies-Sync: The maximum idle time of the syncer (as a Duration).

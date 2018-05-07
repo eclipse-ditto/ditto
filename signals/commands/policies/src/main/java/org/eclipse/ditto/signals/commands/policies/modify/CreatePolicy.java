@@ -148,6 +148,11 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public CreatePolicy setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(policy, dittoHeaders);
     }

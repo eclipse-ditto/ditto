@@ -44,7 +44,7 @@ public final class PersistenceHealthCheckingActor extends AbstractHealthChecking
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PersistenceHealthCheckingActor create() throws Exception {
+            public PersistenceHealthCheckingActor create() {
                 return new PersistenceHealthCheckingActor(mongoClientActor);
             }
         });

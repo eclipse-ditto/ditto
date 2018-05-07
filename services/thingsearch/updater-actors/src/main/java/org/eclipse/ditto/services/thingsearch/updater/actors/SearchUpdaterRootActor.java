@@ -11,32 +11,29 @@
  */
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
-
-import java.net.ConnectException;
 import java.time.Duration;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
+import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
+import com.mongodb.event.CommandListener;
+import com.mongodb.event.ConnectionPoolListener;
 import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
-import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
-import akka.actor.InvalidActorNameException;
-import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -48,9 +45,7 @@ import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.AskTimeoutException;
 import akka.pattern.CircuitBreaker;
 import akka.stream.ActorMaterializer;
 
@@ -64,59 +59,29 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "searchUpdaterRoot";
 
-    private static final String RESTART_MSG = "Restarting child...";
+    private static final String KAMON_METRICS_PREFIX = "updater";
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
-            .match(NullPointerException.class, e -> {
-                log.error(e, "NullPointer in child actor: {}", e.getMessage());
-                log.info(RESTART_MSG);
-                return SupervisorStrategy.restart();
-            }).match(IllegalArgumentException.class, e -> {
-                log.warning("Illegal Argument in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(IllegalStateException.class, e -> {
-                log.warning("Illegal State in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(NoSuchElementException.class, e -> {
-                log.warning("NoSuchElement in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(AskTimeoutException.class, e -> {
-                log.warning("AskTimeoutException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ConnectException.class, e -> {
-                log.warning("ConnectException in child actor: {}", e.getMessage());
-                log.info(RESTART_MSG);
-                return SupervisorStrategy.restart();
-            }).match(InvalidActorNameException.class, e -> {
-                log.warning("InvalidActorNameException in child actor: {}", e.getMessage());
-                return SupervisorStrategy.resume();
-            }).match(ActorKilledException.class, e -> {
-                log.error(e, "ActorKilledException in child actor: {}", e.message());
-                log.info(RESTART_MSG);
-                return SupervisorStrategy.restart();
-            }).match(DittoRuntimeException.class, e -> {
-                log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to SearchUpdaterRootActor. Simply resuming Actor.",
-                        e.getErrorCode());
-                return SupervisorStrategy.resume();
-            }).match(Throwable.class, e -> {
-                log.error(e, "Escalating above root actor!");
-                return SupervisorStrategy.escalate();
-            }).matchAny(e -> {
-                log.error("Unknown message:'{}'! Escalating above root actor!", e);
-                return SupervisorStrategy.escalate();
-            }).build());
+    private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
     private final ActorRef thingsUpdaterActor;
 
-    private SearchUpdaterRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
+    private SearchUpdaterRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer, final StreamMetadataPersistence thingsSyncPersistence,
+            final StreamMetadataPersistence policiesSyncPersistence) {
         final int numberOfShards = configReader.cluster().numberOfShards();
 
         final Config config = configReader.getRawConfig();
 
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config);
+        final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
+                new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
+        final ConnectionPoolListener kamonConnectionPoolListener =
+                config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
+                        new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
+
+        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
+                kamonCommandListener, kamonConnectionPoolListener);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
                         MongoEventToPersistenceStrategyFactory.getInstance());
@@ -145,18 +110,16 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
+        final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
+                ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
+                : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize,
+                        thingCacheFacade, policyCacheFacade));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
-            final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
-
-            final StreamMetadataPersistence thingsSyncPersistence =
-                    MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME,
-                            mongoClientWrapper, materializer);
-
             final StreamConsumerSettings streamConsumerSettings = createThingsStreamConsumerSettings(config);
 
             startClusterSingletonActor(ThingsStreamSupervisorCreator.ACTOR_NAME,
@@ -168,12 +131,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final boolean policiesSynchronizationActive = config.getBoolean(ConfigKeys.POLICIES_SYNCER_ACTIVE);
         if (policiesSynchronizationActive) {
-            final ActorMaterializer materializer = ActorMaterializer.create(getContext().getSystem());
-
-            final StreamMetadataPersistence policiesSyncPersistence =
-                    MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME,
-                            mongoClientWrapper, materializer);
-
             final StreamConsumerSettings streamConsumerSettings = createPoliciesStreamConsumerSettings(config);
 
             startClusterSingletonActor(PoliciesStreamSupervisorCreator.ACTOR_NAME,
@@ -217,13 +174,16 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param pubSubMediator the PubSub mediator Actor.
      * @return a Props object to create this actor.
      */
-    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator, final ActorMaterializer materializer,
+            final StreamMetadataPersistence thingsSyncPersistence,
+            final StreamMetadataPersistence policiesSyncPersistence) {
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public SearchUpdaterRootActor create() {
-                return new SearchUpdaterRootActor(configReader, pubSubMediator);
+                return new SearchUpdaterRootActor(configReader, pubSubMediator, materializer, thingsSyncPersistence,
+                        policiesSyncPersistence);
             }
         });
     }
@@ -251,10 +211,4 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ClusterSingletonManagerSettings.create(getContext().system()).withRole(ConfigKeys.SEARCH_ROLE);
         getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
     }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return strategy;
-    }
-
 }

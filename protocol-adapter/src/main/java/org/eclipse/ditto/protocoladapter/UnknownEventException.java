@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 /**
  * Thrown if a {@link org.eclipse.ditto.signals.events.base.Event} is not supported.
  */
-public class UnknownEventException extends DittoRuntimeException {
+public final class UnknownEventException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.

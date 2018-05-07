@@ -1,0 +1,25 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Retrieve Connection
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/view/retrieveConnection.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Connection Status
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/view/retrieveConnectionStatus.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Retrieve Connection Statuses
+
+#set( $snippetFile = "/target/generated-resources/connectivity/commands/view/retrieveConnectionMetrics.json" )
+```
+#parse( "snippet" )
+```

@@ -95,14 +95,13 @@ public final class MongoSearchSyncPersistenceIT {
     }
 
     /**
-     * Checks that the fallback is returned when the timestamp has not yet been persisted.
+     * Checks that an empty {@link Optional} is returned when the timestamp has not yet been persisted.
      */
     @Test
     public void retrieveFallbackForLastSuccessfulSyncTimestamp() {
-        final Instant fallbackTs = Instant.now();
+        final Optional<Instant> actualTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
 
-        final Instant actualTs = syncPersistence.retrieveLastSuccessfulStreamEnd(fallbackTs);
-        assertThat(actualTs).isEqualTo(fallbackTs);
+        assertThat(actualTs).isEmpty();
     }
 
     /**
@@ -112,12 +111,10 @@ public final class MongoSearchSyncPersistenceIT {
     public void updateAndRetrieveLastSuccessfulSyncTimestamp() {
         final Instant ts = Instant.now();
 
-
         runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(ts));
 
-        final Instant fallbackTs = ts.minusSeconds(1000);
-        final Instant persistedTs = syncPersistence.retrieveLastSuccessfulStreamEnd(fallbackTs);
-        assertThat(persistedTs).isEqualTo(ts);
+        final Optional<Instant> persistedTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
+        assertThat(persistedTs).hasValue(ts);
     }
 
     private void runBlocking(final Source<?, ?>... publishers) {

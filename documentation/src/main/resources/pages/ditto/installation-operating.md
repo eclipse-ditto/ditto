@@ -79,8 +79,10 @@ This API is intended for making operating Ditto easier by reducing the need to r
 changes.
 
 Following DevOps commands are supported:
-* dynamically retrieve and change log levels
-* create new AMQP Bridge connections during runtime
+
+
+* Dynamically retrieve and change log levels
+* Piggyback commands
 
 
 ### Dynamically adjust log levels
@@ -122,7 +124,7 @@ Example response for retrieving all currently configured log levels:<br/>
     "things": {
         ...
     },
-    "amqp-bridge": {
+    "connectivity": {
         ...
     }
 }
@@ -178,38 +180,28 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 }
 ```
 
-### Create a new AMQP-Bridge connection
+### Piggyback commands
 
-Example request payload to create a new AMQP 1.0 connection:<br/>
-`POST /devops/piggyback/amqp-bridge`
+You can use a DevOps command to send a command to another actor in the cluster. Those special commands are named
+piggyback commands. A piggyback command must conform to the following schema:
+
+{% include docson.html schema="jsonschema/piggyback-command.json" %}
+
+Example:
 
 ```json
 {
-    "targetActorSelection": "/system/sharding/amqp-connection",
-    "headers": {},
+    "targetActorSelection": "/system/sharding/connection",
+    "headers": {
+        "aggregate": false
+    },
     "piggybackCommand": {
-        "type": "amqp.bridge.commands:createConnection",
-        "connection": {
-            "id": "hono-example-connection-123",
-            "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
-            "failoverEnabled": false,
-            "uri": "amqps://user:password@hono.eclipse.org:5671",
-            "sources": [
-              "telemetry/DEFAULT_TENANT"
-            ]
-        }
+        "type": "connectivity.commands:createConnection",
+        ...
     }
 }
 ```
 
-The `id` of the connection may be any string.
+Currently piggybacks are only used to configure Dittos connectivity service. More information on this can be found in
+the [Manage Connections](connectivity-manage-connections.html) section.
 
-The `authorizationSubject` is the subject (e.g. user-id) to use for [authorization](basic-auth.html#authorization) of 
-all messages originating from the created connection. This subject is required to have WRITE permission on a `Thing` 
-to change it partially or completely and needs to have READ permission to read the `Thing` or any parts of it.
-
-The `failoverEnabled` property defines whether failover is enabled or not.
-
-The `uri` defines the endpoint including username and password to connect to.
-
-The `sources` defines a string array of sources (e.g. hono's [Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.

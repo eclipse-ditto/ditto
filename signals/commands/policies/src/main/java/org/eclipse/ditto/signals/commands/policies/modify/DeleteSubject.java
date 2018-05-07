@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -63,8 +64,8 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
             final Label label,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
-
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.label = label;
         this.subjectId = subjectId;
@@ -169,6 +170,11 @@ public final class DeleteSubject extends AbstractCommand<DeleteSubject> implemen
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.DELETE;
     }
 
     @Override

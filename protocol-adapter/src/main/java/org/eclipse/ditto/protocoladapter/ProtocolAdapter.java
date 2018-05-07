@@ -37,7 +37,16 @@ public interface ProtocolAdapter {
      * @param adaptable the adaptable.
      * @return the Signal.
      */
-    Signal<?> fromAdaptable(final Adaptable adaptable);
+    Signal<?> fromAdaptable(Adaptable adaptable);
+
+    /**
+     * Maps the given {@code Signal} to an {@code Adaptable}.
+     *
+     * @param signal the signal.
+     * @return the adaptable.
+     * @throws UnknownSignalException if the passed Signal was not supported by the ProtocolAdapter
+     */
+    Adaptable toAdaptable(Signal<?> signal);
 
     /**
      * Maps the given {@code CommandResponse} to an {@code Adaptable}.

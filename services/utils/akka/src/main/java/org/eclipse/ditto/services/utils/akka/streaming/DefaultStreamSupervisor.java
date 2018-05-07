@@ -19,6 +19,7 @@ import static org.eclipse.ditto.services.utils.akka.streaming.StreamConstants.ST
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -28,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -134,7 +136,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private final ActorRef forwardTo;
     private final ActorRef provider;
     private final Class<E> elementClass;
-    private final Function<E, Source<?, ?>> mapEntityFunction;
+    private final Function<E, Source<Object, NotUsed>> mapEntityFunction;
     private final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper;
     private final StreamMetadataPersistence streamMetadataPersistence;
     private final Materializer materializer;
@@ -146,7 +148,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
     private DefaultStreamSupervisor(final ActorRef forwardTo, final ActorRef provider,
             final Class<E> elementClass,
-            final Function<E, Source<?, ?>> mapEntityFunction,
+            final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final StreamMetadataPersistence streamMetadataPersistence,
             final Materializer materializer,
@@ -179,7 +181,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
      */
     public static <E> Props props(final ActorRef forwardTo, final ActorRef provider,
             final Class<E> elementClass,
-            final Function<E, Source<?, ?>> mapEntityFunction,
+            final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
             final StreamMetadataPersistence streamMetadataPersistence,
             final Materializer materializer,
@@ -315,8 +317,9 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             // the initial start ts is only used when no sync has been run yet (i.e. no timestamp has been persisted)
             final Instant initialStartTsWithoutStandardOffset =
                     now.minus(streamConsumerSettings.getInitialStartOffset());
-
-            queryStart = streamMetadataPersistence.retrieveLastSuccessfulStreamEnd(initialStartTsWithoutStandardOffset);
+            final Optional<Instant> instant = streamMetadataPersistence.retrieveLastSuccessfulStreamEnd();
+            queryStart = instant.orElse
+                    (initialStartTsWithoutStandardOffset);
         }
 
         final Duration offsetFromNow = Duration.between(queryStart, now);

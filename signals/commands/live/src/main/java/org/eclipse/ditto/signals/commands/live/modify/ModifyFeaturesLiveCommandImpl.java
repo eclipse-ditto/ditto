@@ -55,6 +55,11 @@ final class ModifyFeaturesLiveCommandImpl extends AbstractModifyLiveCommand<Modi
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyFeaturesLiveCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new ModifyFeaturesLiveCommandImpl(ModifyFeatures.of(getThingId(), getFeatures(), dittoHeaders));
     }

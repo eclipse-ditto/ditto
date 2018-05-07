@@ -130,6 +130,13 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getCorrelationId();
 
     /**
+     * Returns the content-type of the entity.
+     *
+     * @return the content-type.
+     */
+    Optional<String> getContentType();
+
+    /**
      * Returns the source which caused the command, e.g. a "clientId".
      *
      * @return the source which caused the command.
@@ -186,5 +193,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @return the "dry run" value.
      */
     boolean isDryRun();
+
+    /**
+     * Returns the id of the orignating session (e.g. WebSocket, AMQP, ...)
+     *
+     * @return the "origin" value.
+     */
+    Optional<String> getOrigin();
 
 }

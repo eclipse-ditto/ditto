@@ -7,6 +7,7 @@ author: thomas_jaeckle
 tags: [blog]
 hide_sidebar: true
 sidebar: false
+toc: false
 ---
 
 We finally managed to build our first milestone of Eclipse Ditto: [0.1.0-M1](release_notes_010-M1.html)

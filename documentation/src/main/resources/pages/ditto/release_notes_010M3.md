@@ -21,8 +21,8 @@ A new service "ditto-amqp-bridge" was added in order to be able establish a conn
 endpoints like for example [Eclipse Hono](https://eclipse.org/hono/).
 
 That way messages in [Ditto Protocol](protocol-overview.html) coming from Eclipse Hono can be processed. 
-For more details, please have a look at the [AMQP 1.0 binding](protocol-bindings-amqp10.html) and the 
-[AMQP-Bridge architecture](architecture-services-amqp-bridge.html).
+For more details, please have a look at the [AMQP 1.0 binding](connectivity-protocol-bindings-amqp10.html) and the 
+[AMQP-Bridge architecture](architecture-services-connectivity.html).
 
 ### [DevOps commands HTTP endpoint](https://github.com/eclipse/ditto/pull/55)
 

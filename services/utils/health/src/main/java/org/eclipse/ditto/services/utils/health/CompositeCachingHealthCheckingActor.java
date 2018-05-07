@@ -76,7 +76,7 @@ public final class CompositeCachingHealthCheckingActor extends AbstractHealthChe
             private static final long serialVersionUID = 1L;
 
             @Override
-            public CompositeCachingHealthCheckingActor create() throws Exception {
+            public CompositeCachingHealthCheckingActor create() {
                 return new CompositeCachingHealthCheckingActor(childActorProps, updateInterval, enabled);
             }
         });

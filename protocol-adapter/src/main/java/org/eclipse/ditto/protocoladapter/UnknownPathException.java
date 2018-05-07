@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 /**
  * Thrown if a path does not correspond to any known command, response or event.
  */
-public class UnknownPathException extends DittoRuntimeException {
+public final class UnknownPathException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.

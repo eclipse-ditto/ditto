@@ -40,6 +40,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
 import com.mongodb.annotations.NotThreadSafe;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -176,7 +177,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 Duration.create(3000, TimeUnit.MILLISECONDS),
 
                 Persistence.get(persistenceActor.getContext().system())
-                        .snapshotStoreFor(persistenceActor.snapshotPluginId()));
+                        .snapshotStoreFor(persistenceActor.snapshotPluginId(), ConfigFactory.empty()));
     }
 
     /**
@@ -524,6 +525,16 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 doLog(logger -> logger.debug(
                         "Completed internal request for snapshot: last snapshot of Thing <{}> is up to date.",
                         persistenceActor.getThingId()));
+                if (persistenceActor.isThingDeleted()) {
+                    doLog(logger -> logger.debug(
+                            " Thing <{}> is deleted, don't schedule next snapshot.",
+                            persistenceActor.getThingId()));
+                } else {
+                    doLog(logger -> logger.debug(
+                            " Thing <{}> is active, schedule next snapshot.",
+                            persistenceActor.getThingId()));
+                    resetMaintenanceSnapshotSchedule();
+                }
             } else {
                 doSaveSnapshot(SnapshotTag.UNPROTECTED, null, null);
             }

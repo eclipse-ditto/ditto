@@ -156,6 +156,11 @@ public final class ModifyAclEntry extends AbstractCommand<ModifyAclEntry>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY;
+    }
+
+    @Override
     public ModifyAclEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, aclEntry, dittoHeaders);
     }

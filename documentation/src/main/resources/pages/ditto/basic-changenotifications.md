@@ -9,7 +9,7 @@ permalink: basic-changenotifications.html
 Events are emitted after an entity (either a **Digital Twin** or an actual device) was changed.
 
 At the Ditto API there are two ways for getting notified of such events:
-* Via the [WebSocket API](protocol-bindings-websocket.html) a WebSocket client gets all Events the authenticated subject
+* Via the [WebSocket API](httpapi-protocol-bindings-websocket.html) a WebSocket client gets all Events the authenticated subject
   (e.g. a user) is [authorized](basic-auth.html) to receive as [Ditto Protocol](protocol-overview.html) messages.
 * Via [HTTP SSEs](httpapi-sse.html) a consumer of the SSE `EventSource` gets all Events the authenticated subject
   (e.g. a user) is [authorized](basic-auth.html) to receive directly in the format of the changed entity 

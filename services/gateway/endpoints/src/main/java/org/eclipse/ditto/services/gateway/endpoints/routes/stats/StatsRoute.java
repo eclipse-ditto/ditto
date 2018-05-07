@@ -86,14 +86,14 @@ public final class StatsRoute extends AbstractRoute {
                         pathEndOrSingleSlash(() ->
                                 handleDevOpsPerRequest(ctx,
                                         RetrieveStatistics.of(
-                                                buildSudoDittoHeaders(correlationId)))
+                                                buildDevOpsDittoHeaders(correlationId)))
                         )
                 ),
                 path(SEARCH_PATH, () -> // /stats/search
                         pathEndOrSingleSlash(() ->
                                 handleSudoCountThingsPerRequest(ctx,
                                         SudoCountThings.of(
-                                                buildSudoDittoHeaders(correlationId)))
+                                                buildDevOpsDittoHeaders(correlationId)))
                         )
                 )
         );
@@ -141,9 +141,9 @@ public final class StatsRoute extends AbstractRoute {
         return completeWithFuture(allThingsCountHttpResponse);
     }
 
-    private static DittoHeaders buildSudoDittoHeaders(final CharSequence correlationId) {
+    private static DittoHeaders buildDevOpsDittoHeaders(final CharSequence correlationId) {
         return DittoHeaders.newBuilder()
-                .schemaVersion(JsonSchemaVersion.V_1)
+                .schemaVersion(JsonSchemaVersion.V_2)
                 .correlationId(correlationId)
                 .build();
     }

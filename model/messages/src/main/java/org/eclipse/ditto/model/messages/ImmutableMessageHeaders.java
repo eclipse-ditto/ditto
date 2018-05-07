@@ -16,8 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
@@ -25,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
@@ -78,11 +75,6 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     @Override
     public Optional<String> getFeatureId() {
         return getStringForDefinition(MessageHeaderDefinition.FEATURE_ID);
-    }
-
-    @Override
-    public Optional<String> getContentType() {
-        return getStringForDefinition(DittoHeaderDefinition.CONTENT_TYPE);
     }
 
     @Override

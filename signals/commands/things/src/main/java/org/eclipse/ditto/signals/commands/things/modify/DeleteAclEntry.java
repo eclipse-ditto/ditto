@@ -153,6 +153,11 @@ public final class DeleteAclEntry extends AbstractCommand<DeleteAclEntry>
     }
 
     @Override
+    public Category getCategory() {
+        return Category.DELETE;
+    }
+
+    @Override
     public DeleteAclEntry setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, authorizationSubject, dittoHeaders);
     }

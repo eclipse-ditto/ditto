@@ -1,0 +1,40 @@
+#set( $h1 = '#' )
+#set( $h2 = '##' )
+#set( $h3 = '###' )
+#set( $snippetName = "" )
+
+$h3 Connection Created
+
+#set( $snippetFile = "/target/generated-resources/connectivity/events/connectionCreated.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Modified
+
+#set( $snippetFile = "/target/generated-resources/connectivity/events/connectionModified.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Opened
+
+#set( $snippetFile = "/target/generated-resources/connectivity/events/connectionOpened.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Closed
+
+#set( $snippetFile = "/target/generated-resources/connectivity/events/connectionClosed.json" )
+```
+#parse( "snippet" )
+```
+
+$h3 Connection Deleted
+
+#set( $snippetFile = "/target/generated-resources/connectivity/events/connectionDeleted.json" )
+```
+#parse( "snippet" )
+```
+

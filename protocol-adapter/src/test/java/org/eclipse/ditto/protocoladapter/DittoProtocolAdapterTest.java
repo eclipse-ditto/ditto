@@ -88,7 +88,7 @@ public final class DittoProtocolAdapterTest {
                 ThingErrorResponse.of(TestConstants.THING_ID, thingNotAccessibleException, DITTO_HEADERS_V_2);
         final ThingErrorResponse actual = (ThingErrorResponse) underTest.fromAdaptable(adaptable);
 
-        assertThat(expected.toJson()).isEqualTo(actual.toJson());
+        assertThat(actual.toJson()).isEqualTo(expected.toJson());
     }
 
     /** */

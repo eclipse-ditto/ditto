@@ -114,10 +114,11 @@ public final class MessageCommandAdapterTest {
         final String subject = subject();
         final String contentType = payload.contentType;
         final JsonPointer path = path(subject);
-        final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
+        final DittoHeaders theHeaders = expectedDittoHeaders(subject, contentType);
 
         // build expected message and message command
-        final Message<Object> expectedMessage = message(subject, contentType, payload.asObject);
+        final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
+        final Message<Object> expectedMessage = message(messageHeaders, payload.asObject);
         final MessageCommand expectedMessageCommand = messageCommand(type, expectedMessage, theHeaders);
 
         // build the adaptable that will be converted to a message command
@@ -140,10 +141,10 @@ public final class MessageCommandAdapterTest {
 
     private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
         return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
-                .contentType(contentType)
                 .correlationId(TestConstants.CORRELATION_ID)
-                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
                 .schemaVersion(version)
+                .contentType(contentType)
+                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
                 .build();
     }
 
@@ -159,7 +160,7 @@ public final class MessageCommandAdapterTest {
                 .messages()
                 .subject(subject)
                 .build();
-        final DittoHeaders expectedHeaders = dittoHeaders(subject, contentType);
+        final DittoHeaders expectedHeaders = expectedDittoHeaders(subject, contentType);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
         if (payload.asJson != null) {
@@ -172,8 +173,9 @@ public final class MessageCommandAdapterTest {
                 .build();
 
         // build the message that will be converted to an adaptable
-        final Message<Object> theMessage = message(subject, contentType, payload.asObject);
-        final DittoHeaders theHeaders = dittoHeaders(subject, contentType);
+        final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
+        final Message<Object> theMessage = message(messageHeaders, payload.asObject);
+        final DittoHeaders theHeaders = dittoHeaders();
         final MessageCommand messageCommand = messageCommand(type, theMessage, theHeaders);
 
         // test
@@ -181,10 +183,8 @@ public final class MessageCommandAdapterTest {
         assertThat(actual).isEqualTo(expectedAdaptable);
     }
 
-    private Message<Object> message(final CharSequence subject, final CharSequence contentType,
-            final Object thePayload) {
+    private Message<Object> message(final MessageHeaders messageHeaders, final Object thePayload) {
 
-        final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
         final MessageBuilder<Object> messageBuilder = Message.newBuilder(messageHeaders);
         if (thePayload != null) {
             if (payload.raw) {
@@ -208,7 +208,14 @@ public final class MessageCommandAdapterTest {
         return path.addLeaf(directionKey).addLeaf(JsonKey.of("messages")).addLeaf(JsonKey.of(subject));
     }
 
-    private DittoHeaders dittoHeaders(final CharSequence subject, final CharSequence contentType) {
+    private DittoHeaders dittoHeaders() {
+        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+        headersBuilder.correlationId(TestConstants.CORRELATION_ID);
+        headersBuilder.schemaVersion(version);
+        return headersBuilder.build();
+    }
+
+    private DittoHeaders expectedDittoHeaders(final CharSequence subject, final CharSequence contentType) {
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);

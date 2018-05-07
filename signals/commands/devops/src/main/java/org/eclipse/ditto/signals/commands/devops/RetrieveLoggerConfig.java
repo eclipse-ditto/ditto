@@ -86,7 +86,8 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName, final DittoHeaders dittoHeaders) {
+    public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName,
+            final DittoHeaders dittoHeaders) {
         return new RetrieveLoggerConfig(serviceName, null, true, Collections.emptyList(), dittoHeaders);
     }
 
@@ -98,7 +99,8 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveLoggerConfig command.
      */
-    public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfig ofAllKnownLoggers(@Nullable final String serviceName,
+            @Nullable final Integer instance,
             final DittoHeaders dittoHeaders) {
         return new RetrieveLoggerConfig(serviceName, instance, true, Collections.emptyList(), dittoHeaders);
     }
@@ -225,6 +227,11 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
                 return of(serviceName, instance, dittoHeaders, extractedSpecificLoggers);
             }
         });
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.QUERY;
     }
 
     @Override

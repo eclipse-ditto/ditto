@@ -57,11 +57,27 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
 
     /**
      * Extract batch size from a command. The rate specifies the number of elements to be sent per message.
+     * Default to 1.
      *
      * @param command The command to start a stream.
      * @return The number of elements to be streamed per second.
      */
-    protected abstract Optional<Integer> getBurst(final C command);
+    protected Optional<Integer> getBurst(final C command) {
+        return Optional.of(1);
+    }
+
+    /**
+     * Batch elements together into 1 message. Default to the first element of the list if it is a singleton and the
+     * list itself otherwise.
+     *
+     * @param elements Elements from the source.
+     * @return A batched message.
+     */
+    protected Object batchMessages(final List<E> elements) {
+        return elements.size() == 1
+                ? elements.get(0)
+                : elements;
+    }
 
     /**
      * Extract timeout in milliseconds.
@@ -78,14 +94,6 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
      * @return A source of elements to stream to the recipient.
      */
     protected abstract Source<E, NotUsed> createSource(final C command);
-
-    /**
-     * Batch elements together into 1 message.
-     *
-     * @param elements Elements from the source.
-     * @return A batched message.
-     */
-    protected abstract Object batchMessages(final List<E> elements);
 
     @Override
     public final Receive createReceive() {

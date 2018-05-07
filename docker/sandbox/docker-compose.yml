@@ -19,13 +19,12 @@ services:
       default:
         aliases:
           - ditto-cluster
+    entrypoint: sh -c "java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Dditto.cluster.become-leader=true
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dditto.cluster.become-leader=true
 
   things:
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
@@ -35,14 +34,12 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 10; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 10; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   things-search:
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
@@ -52,14 +49,12 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 20; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   gateway:
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
@@ -69,35 +64,31 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    command: sh -c "sleep 45; java -jar /starter.jar"
+    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
-      - _JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-      - STATSD_PORT_8125_UDP_ADDR=graphite
-      - STATSD_PORT_8125_UDP_PORT=8125
+      - IBM_JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
 
-#  amqp-bridge:
-#    image: docker.io/eclipse/ditto-amqp-bridge:${DITTO_VERSION:-latest}
-#    networks:
-#      default:
-#        aliases:
-#          - ditto-cluster
-#    depends_on:
-#      - policies
-#      - gateway
-#    command: sh -c "sleep 30; java -jar /starter.jar"
-#    environment:
-#      - TZ=Europe/Berlin
-#      - INSTANCE_INDEX=1
-#      - BIND_HOSTNAME=0.0.0.0
-#      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
-#      - STATSD_PORT_8125_UDP_ADDR=graphite
-#      - STATSD_PORT_8125_UDP_PORT=8125
+  connectivity:
+    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - gateway
+    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
@@ -125,6 +116,7 @@ services:
        - ./html:/etc/nginx/html
        - ../nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - /opt/letsencrypt/src/letsencrypt/letsencrypt-site/.well-known:/etc/nginx/html/.well-known:ro
        - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
        - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem:/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem
        - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem:/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem

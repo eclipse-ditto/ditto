@@ -68,7 +68,8 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval) {
+            final Duration thingUpdaterActivityCheckInterval,
+            final int maxBulkSize) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -80,7 +81,7 @@ final class ThingsUpdater extends AbstractActor {
 
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -101,7 +102,8 @@ final class ThingsUpdater extends AbstractActor {
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
      * @param shardRegionFactory The shard region factory to use when creating sharded actors.
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
-     * actively updated.
+     * actively updated
+     * @param maxBulkSize maximum number of events to update in a bulk.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
@@ -109,7 +111,8 @@ final class ThingsUpdater extends AbstractActor {
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
-            final Duration thingUpdaterActivityCheckInterval) {
+            final Duration thingUpdaterActivityCheckInterval,
+            final int maxBulkSize) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
@@ -117,7 +120,7 @@ final class ThingsUpdater extends AbstractActor {
             @Override
             public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval);
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize);
             }
         });
     }

@@ -167,6 +167,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      */
     protected void startActorSystem() {
         final Config config = configReader.getRawConfig();
+        final double parallelismMax =
+                config.getDouble("akka.actor.default-dispatcher.fork-join-executor.parallelism-max");
+        logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
         final ActorSystem actorSystem = createActorSystem(config);
 
         startStatusSupplierActor(actorSystem, config);

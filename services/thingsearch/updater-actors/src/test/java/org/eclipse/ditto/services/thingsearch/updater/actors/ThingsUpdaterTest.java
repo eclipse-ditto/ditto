@@ -171,7 +171,8 @@ public class ThingsUpdaterTest {
                 persistence,
                 circuitBreaker,
                 eventProcessingActive,
-                activityCheckInterval));
+                activityCheckInterval,
+                Integer.MAX_VALUE));
     }
 
     private ThingsSearchUpdaterPersistence waitUntil() {

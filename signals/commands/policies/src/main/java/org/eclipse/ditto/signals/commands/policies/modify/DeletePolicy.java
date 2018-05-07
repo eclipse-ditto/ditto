@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
@@ -47,6 +48,7 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
 
     private DeletePolicy(final String policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
+        PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
     }
 
@@ -71,7 +73,8 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      * @return the command.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * format.
      */
     public static DeletePolicy fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -84,7 +87,8 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static DeletePolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<DeletePolicy>(TYPE, jsonObject).deserialize(() -> {
@@ -115,6 +119,11 @@ public final class DeletePolicy extends AbstractCommand<DeletePolicy> implements
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyModifyCommand.JsonFields.JSON_POLICY_ID, policyId, predicate);
+    }
+
+    @Override
+    public Category getCategory() {
+        return Category.DELETE;
     }
 
     @Override

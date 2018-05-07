@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
@@ -71,7 +72,7 @@ public final class PoliciesStreamSupervisorCreator {
                 true);
     }
 
-    private static Source<PolicyReferenceTag, ?> toPolicyReferenceTags(final PolicyTag policyTag,
+    private static Source<Object, NotUsed> toPolicyReferenceTags(final PolicyTag policyTag,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence) {
 
         return searchUpdaterPersistence.getOutdatedThingIds(policyTag)
