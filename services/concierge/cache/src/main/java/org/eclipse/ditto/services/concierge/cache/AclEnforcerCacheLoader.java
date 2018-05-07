@@ -40,7 +40,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 
 /**
- * Loads an acl-enforcer by asking the things shard region.
+ * Loads an acl-enforcer by asking the things shard-region-proxy.
  */
 @Immutable
 public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, Entry<Enforcer>> {
@@ -48,19 +48,20 @@ public final class AclEnforcerCacheLoader implements AsyncCacheLoader<EntityId, 
     private final ActorAskCacheLoader<Enforcer> delegate;
 
     /**
-     * TODO Javadoc
-     * @param askTimeout
-     * @param thingsShardRegion
+     * Constructor.
+     *
+     * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
+     * @param thingsShardRegionProxy the shard-region-proxy.
      */
-    public AclEnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegion) {
+    public AclEnforcerCacheLoader(final Duration askTimeout, final ActorRef thingsShardRegionProxy) {
         requireNonNull(askTimeout);
-        requireNonNull(thingsShardRegion);
+        requireNonNull(thingsShardRegionProxy);
 
         final Function<String, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 
-        this.delegate = new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, thingsShardRegion,
+        this.delegate = new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, thingsShardRegionProxy,
                 commandCreator, responseTransformer);
     }
 

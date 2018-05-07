@@ -36,7 +36,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 
 /**
- * Loads entity ID relation for authorization of a Thing by asking entity shard regions.
+ * Loads entity ID relation for authorization of a Thing by asking the things-shard-region proxy.
  */
 @Immutable
 public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<EntityId, Entry<EntityId>> {
@@ -44,17 +44,18 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Ent
     private final ActorAskCacheLoader<EntityId> delegate;
 
     /**
-     * TODO Javadoc
-     * @param askTimeout
-     * @param entityRegion
+     * Constructor.
+     *
+     * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
+     * @param shardRegionProxy the shard-region-proxy.
      */
-    public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef entityRegion) {
+    public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef shardRegionProxy) {
         final Function<String, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
         final Function<Object, Entry<EntityId>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
         this.delegate =
-                new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, entityRegion, commandCreator,
+                new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, shardRegionProxy, commandCreator,
                         responseTransformer);
     }
 

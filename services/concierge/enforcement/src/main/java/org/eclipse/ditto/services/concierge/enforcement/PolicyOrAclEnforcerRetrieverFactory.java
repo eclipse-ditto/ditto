@@ -34,11 +34,12 @@ final class PolicyOrAclEnforcerRetrieverFactory {
     }
 
     /**
-     * TODO Javadoc
-     * @param idCache
-     * @param policyEnforcerCache
-     * @param aclEnforcerCache
-     * @return
+     * Creates a new instance.
+     *
+     * @param idCache the id-cache.
+     * @param policyEnforcerCache the policy-enforcer-cache.
+     * @param aclEnforcerCache the acl-enforcer-cache.
+     * @return the instance.
      */
     public static EnforcerRetriever create(
             final Cache<EntityId, Entry<EntityId>> idCache,

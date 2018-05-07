@@ -49,7 +49,7 @@ import akka.actor.Props;
 /**
  * Ditto default implementation of {@link AbstractEnforcerActorFactory}.
  */
-public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory {
+public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
 
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
@@ -98,10 +98,12 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
+        final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Props enforcerProps =
-                EnforcerActorCreator.props(pubSubMediator, enforcementProviders, null, activityCheckInterval);
+                EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
+                        null, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters

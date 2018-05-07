@@ -13,16 +13,12 @@ package org.eclipse.ditto.services.concierge.util.config;
 
 import java.util.function.Function;
 
-import org.eclipse.ditto.services.base.config.AbstractServiceConfigReader;
-
 import com.typesafe.config.Config;
 
 /**
- * Configuration reader for concierge service.
+ * The default configuration reader for the concierge service.
  */
-public final class ConciergeConfigReader extends AbstractServiceConfigReader {
-
-    private static final String PATH_CACHES = "caches";
+public final class ConciergeConfigReader extends AbstractConciergeConfigReader {
 
     private ConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
@@ -36,15 +32,6 @@ public final class ConciergeConfigReader extends AbstractServiceConfigReader {
      */
     public static Function<Config, ConciergeConfigReader> from(final String serviceName) {
         return config -> new ConciergeConfigReader(config, serviceName);
-    }
-
-    /**
-     * Retrieve configuration reader of caches.
-     *
-     * @return the configuration reader.
-     */
-    public CachesConfigReader caches() {
-        return new CachesConfigReader(getChild(PATH_CACHES));
     }
 
 }

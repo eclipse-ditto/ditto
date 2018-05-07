@@ -99,7 +99,8 @@ public class TestSetup {
                 policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
 
-        final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, preEnforcer, null);
+        final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
+                preEnforcer, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 

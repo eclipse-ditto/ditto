@@ -35,8 +35,6 @@ import akka.stream.javadsl.Flow;
  */
 public final class EnforcerActorCreator {
 
-    private static final Duration askTimeout = Duration.ofSeconds(10); // TODO: make configurable
-
     private EnforcerActorCreator() {
         throw new AssertionError();
     }
@@ -47,12 +45,14 @@ public final class EnforcerActorCreator {
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final Set<EnforcementProvider<?>> enforcementProviders) {
+            final Set<EnforcementProvider<?>> enforcementProviders,
+            final Duration askTimeout) {
 
-        return props(pubSubMediator, enforcementProviders, null, null);
+        return props(pubSubMediator, enforcementProviders, askTimeout, null, null);
     }
 
     /**
@@ -60,12 +60,14 @@ public final class EnforcerActorCreator {
      *
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
+            final Duration askTimeout,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Duration activityCheckInterval) {
 
