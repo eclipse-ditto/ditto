@@ -24,10 +24,14 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceInformation;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
@@ -42,8 +46,6 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.impl.DefaultJwtParser;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
 
 /**
  * Implementation of {@link AuthenticationProvider} handling JWT authentication.
@@ -54,8 +56,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
     private static final String AUTHORIZATION_JWT = "Bearer";
 
-    private static final String TRACE_FILTER_AUTH_JWT_FAIL = "filter.auth.jwt.fail";
-    private static final String TRACE_FILTER_AUTH_JWT_SUCCESS = "filter.auth.jwt.success";
+    private static final String TRACE_FILTER_AUTH_JWT = "filter_auth_jwt";
 
     private final MessageDispatcher blockingDispatcher;
     private final PublicKeyProvider publicKeyProvider;
@@ -98,23 +99,27 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                     final JsonWebToken jwt = authorization.map(ImmutableJsonWebToken::fromAuthorizationString)
                             .orElseThrow(() -> buildMissingJwtException(correlationId));
 
-                    final TraceContext traceContext = Kamon.tracer().newContext(TRACE_FILTER_AUTH_JWT_FAIL);
+                    final TraceInformation traceInformation = TraceUtils.determineTraceInformation(
+                            requestContext.getRequest().getUri().toRelative().path());
+
+                    final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_FILTER_AUTH_JWT,
+                            traceInformation.getTags());
 
                     return onSuccess(() -> CompletableFuture
                             .supplyAsync(() -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
                                     () -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
-                                            .orElseThrow(() -> buildJwtUnauthorizedException(correlationId))),
+                                            .orElseThrow(() -> buildJwtUnauthorizedException(correlationId, timer))),
                                     blockingDispatcher)
                             .thenApply(publicKey -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
                                     () -> {
-                                        validateToken(jwt, publicKey, correlationId);
-                                        traceContext.rename(TRACE_FILTER_AUTH_JWT_SUCCESS);
+                                        validateToken(jwt, publicKey, correlationId, timer);
 
                                         final AuthorizationContext authContext =
                                                 AuthorizationModelFactory.newAuthContext(
                                                         authorizationSubjectsProvider.getAuthorizationSubjects(jwt));
 
-                                        traceContext.finish();
+                                        timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(true))
+                                                .stop();
 
                                         return authContext;
                                     })), inner);
@@ -129,7 +134,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private void validateToken(final JsonWebToken authorizationToken, final PublicKey publicKey,
-            final String correlationId) {
+            final String correlationId, final MutableKamonTimer timer) {
         final DefaultJwtParser defaultJwtParser = new DefaultJwtParser();
 
         try {
@@ -137,11 +142,15 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
             LOGGER.info("Got Exception '{}' during parsing UNKNOWN: {}", e.getClass().getSimpleName(), e.getMessage(),
                     e);
-            throw buildJwtUnauthorizedException(correlationId);
+            throw buildJwtUnauthorizedException(correlationId, timer);
         }
     }
 
-    private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId) {
+    private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId,
+            final MutableKamonTimer timer) {
+        timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
+                .stop();
+
         return GatewayAuthenticationFailedException.newBuilder("The UNKNOWN could not be verified")
                 .description("Check if your token is not expired and set the token accordingly.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())

@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.services.base.BaseConfigKey;
 import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.KamonMongoDbMetricsStarter;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.slf4j.Logger;
 
@@ -39,8 +39,6 @@ public abstract class AbstractPoliciesService extends DittoService {
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.StatsD.HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.StatsD.PORT)
             .build();
 
     private final Logger logger;
@@ -56,8 +54,8 @@ public abstract class AbstractPoliciesService extends DittoService {
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, logger).run();
+    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final Config config) {
+        KamonMongoDbMetricsStarter.newInstance(config, actorSystem, SERVICE_NAME, logger).run();
     }
 
 }

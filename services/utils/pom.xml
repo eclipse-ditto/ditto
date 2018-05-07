@@ -33,6 +33,7 @@
         <module>health</module>
         <module>persistence</module>
         <module>test</module>
+        <module>tracing</module>
     </modules>
 
 </project>

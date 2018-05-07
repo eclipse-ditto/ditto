@@ -128,38 +128,6 @@
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-remote-2.4_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.kamon</groupId>
-                    <artifactId>sigar-loader</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-statsd_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.jjagged</groupId>
-            <artifactId>metrics-statsd</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -227,6 +195,10 @@
                                     <manifestEntries>
                                         <Main-Class>org.eclipse.ditto.services.things.starter.ThingsService</Main-Class>
                                     </manifestEntries>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.XmlAppendingTransformer">
+                                    <resource>META-INF/aop.xml</resource>
                                 </transformer>
                             </transformers>
                         </configuration>

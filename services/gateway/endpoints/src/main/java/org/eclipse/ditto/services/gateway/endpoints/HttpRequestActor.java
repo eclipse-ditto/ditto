@@ -15,7 +15,6 @@ import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndFor
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
@@ -41,7 +39,6 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
 
@@ -65,9 +62,6 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
@@ -83,9 +77,6 @@ public final class HttpRequestActor extends AbstractActor {
      */
     public static final String COMPLETE_MESSAGE = "complete";
 
-    private static final String TRACE_TAG_TYPE = "type";
-    private static final String TRACE_TAG_TYPE_PREFIX = "type-prefix";
-    private static final String TRACE_ROUNDTRIP_HTTP = "roundtrip.http";
     private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
     private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
@@ -104,7 +95,6 @@ public final class HttpRequestActor extends AbstractActor {
     private final Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
-    private TraceContext traceContext;
 
     private HttpRequestActor(final ActorRef proxyActor, final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
@@ -357,13 +347,7 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.info("Got <MessageCommand> with subject <{}>, telling the targetActor about it",
                             command.getMessage().getSubject());
 
-                    final String messageType = command.getMessageType();
                     final Message<?> message = command.getMessage();
-                    final MessageDirection direction = message.getDirection();
-                    newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "." + messageType + "." + direction);
-                    traceContext.addTag("type", messageType);
-                    traceContext.addTag("direction", direction.name());
-                    traceContext.addTag("subject", message.getSubject());
 
                     // authorized!
                     proxyActor.tell(command, getSelf());
@@ -404,7 +388,7 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Command.class, command -> { // receive Commands
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
-                    newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "_" + command.getType());
+                    newTraceFor(command);
 
                     proxyActor.tell(command, getSelf());
 
@@ -440,7 +424,7 @@ public final class HttpRequestActor extends AbstractActor {
             final Optional<ContentType> optionalContentType = message.getContentType().map(ContentType$.MODULE$::parse)
                     .filter(Either::isRight)
                     .map(Either::right)
-                    .map(right -> (ContentType) right.get());
+                    .map(Either.RightProjection::get);
 
             httpResponse =
                     HttpResponse.create()
@@ -498,37 +482,14 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void finishTraceAndStop() {
-        if (traceContext != null) {
-            traceContext.finish();
-            final double durationMs = (System.nanoTime() - traceContext.startTimestamp()) / NANO_TO_MS_DIVIDER;
-            final Option<String> typePrefixOption = traceContext.tags().get(TRACE_TAG_TYPE_PREFIX);
-
-            if (typePrefixOption.contains(ThingSearchCommand.TYPE_PREFIX)) {
-                if (durationMs > SEARCH_WARN_TIMEOUT_MS) {
-                    logger.warning("Encountered slow search which took over {}ms: {}ms",
-                            (int) SEARCH_WARN_TIMEOUT_MS,
-                            (int) durationMs);
-                }
-            } else if (durationMs > HTTP_WARN_TIMEOUT_MS) {
-                logger.warning("Encountered slow HTTP request which took over {}ms: {}ms",
-                        (int) HTTP_WARN_TIMEOUT_MS,
-                        (int) durationMs);
-            }
-        }
         logger.clearMDC();
         // destroy ourself:
         getContext().stop(getSelf());
     }
 
-    private void newTraceFor(final Command command, final String name) {
+    private void newTraceFor(final Command command) {
         final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
-        final Option<String> tokenScalaOption = tokenOptional
-                .map(Option::<String>apply)
-                .orElse(Option.apply(UUID.randomUUID().toString()));
         LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
-        traceContext = Kamon.tracer().newContext(name, tokenScalaOption);
-        traceContext.addTag(TRACE_TAG_TYPE, command.getType());
-        traceContext.addTag(TRACE_TAG_TYPE_PREFIX, command.getTypePrefix());
     }
 
     private static final class ServerRequestTimeoutMessage {

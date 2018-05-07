@@ -45,6 +45,9 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
+import kamon.jaeger.JaegerReporter;
+import kamon.prometheus.PrometheusReporter;
+import kamon.system.SystemMetrics;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -59,20 +62,20 @@ import scala.concurrent.duration.FiniteDuration;
  * order:
  * </p>
  * <ol>
- *     <li>{@link #determineConfig()},</li>
- *     <li>{@link #createActorSystem(Config)},</li>
- *     <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
- *     <li>{@link #joinCluster(ActorSystem, Config)},</li>
- *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
- *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
-     *     <ol>
-     *         <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
-     *         <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
-     *         <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     *         <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
-     *         <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
-     *     </ol>
- *     </li>
+ * <li>{@link #determineConfig()},</li>
+ * <li>{@link #createActorSystem(Config)},</li>
+ * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
+ * <li>{@link #joinCluster(ActorSystem, Config)},</li>
+ * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
+ * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.
+ * <ol>
+ * <li>{@link #startKamonMetricsReporter(ActorSystem, Config)},</li>
+ * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+ * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
+ * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+ * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
+ * </ol>
+ * </li>
  * </ol>
  */
 @NotThreadSafe
@@ -144,8 +147,47 @@ public abstract class DittoService {
         logger.info("Available processors: {}", Runtime.getRuntime().availableProcessors());
     }
 
-    private static void startKamon() {
-        Kamon.start(ConfigFactory.load("kamon"));
+    private void startKamon() {
+        final Config config = ConfigFactory.load("kamon");
+        Kamon.reconfigure(config);
+
+        // TODO: make configurable
+
+        // start metrics collection
+        SystemMetrics.startCollecting();
+
+        // start jaeger reporter
+        this.startJaegerReporter();
+
+        // start prometheus reporter
+        this.startPrometheusReporter();
+    }
+
+    private void startJaegerReporter() {
+        try {
+            final JaegerReporter jaegerReporter = new JaegerReporter();
+            Kamon.addReporter(jaegerReporter);
+            logger.info("Successfully added Jaeger reporter to Kamon.");
+        } catch (Throwable ex) {
+            logger.error("Error while adding Jaeger reporter to Kamon.", ex);
+        }
+    }
+
+    private void startPrometheusReporter() {
+        try {
+            final PrometheusReporter prometheusReporter = new PrometheusReporter();
+            Kamon.addReporter(prometheusReporter);
+            logger.info("Successfully added Prometheus reporter to Kamon.");
+        } catch (Throwable ex) {
+            logger.error("Error while adding Prometheus reporter to Kamon.", ex);
+        }
+    }
+
+    private void stopKamon() {
+        // stop collecting system metrics
+        SystemMetrics.stopCollecting();
+        // stop reporting metrics and traces
+        Kamon.stopAllReporters();
     }
 
     /**
@@ -156,12 +198,12 @@ public abstract class DittoService {
      * automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #determineConfig()},</li>
-     *     <li>{@link #createActorSystem(Config)},</li>
-     *     <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
-     *     <li>{@link #joinCluster(ActorSystem, Config)},</li>
-     *     <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
-     *     <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
+     * <li>{@link #determineConfig()},</li>
+     * <li>{@link #createActorSystem(Config)},</li>
+     * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
+     * <li>{@link #joinCluster(ActorSystem, Config)},</li>
+     * <li>{@link #startClusterMemberAwareActor(ActorSystem, Config)} and</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, Config, Cancellable)}.</li>
      * </ul>
      */
     protected void startActorSystem() {
@@ -234,7 +276,7 @@ public abstract class DittoService {
      * overridden the following method won't be called automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
+     * <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
@@ -249,7 +291,7 @@ public abstract class DittoService {
          * Important: Register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"
          * and they are executed in reverse order.
          */
-        actorSystem.registerOnTermination(Kamon::shutdown);
+        actorSystem.registerOnTermination(this::stopKamon);
 
         return scheduleShutdownIfJoinFails(actorSystem);
     }
@@ -299,11 +341,11 @@ public abstract class DittoService {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     *     <li>{@link #startStatsdMetricsReporter(ActorSystem, Config)},</li>
-     *     <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
-     *     <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
-     *     <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
-     *     <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
+     * <li>{@link #startKamonMetricsReporter(ActorSystem, Config)},</li>
+     * <li>{@link #getMainRootActorProps(Config, ActorRef, ActorMaterializer)},</li>
+     * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
+     * <li>{@link #getAdditionalRootActorsInformation(Config, ActorRef, ActorMaterializer)} and</li>
+     * <li>{@link #startAdditionalRootActors(ActorSystem, Iterable)}.</li>
      * </ul>
      *
      * @param actorSystem Akka actor system for starting actors.
@@ -320,7 +362,7 @@ public abstract class DittoService {
 
             shutdownIfJoinFails.cancel();
 
-            startStatsdMetricsReporter(actorSystem, config);
+            startKamonMetricsReporter(actorSystem, config);
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
@@ -337,7 +379,7 @@ public abstract class DittoService {
      * @param actorSystem Akka actor system for starting actors.
      * @param config the configuration settings of this service.
      */
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
+    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final Config config) {
         // Does nothing by default.
     }
 

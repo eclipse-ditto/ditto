@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -95,7 +96,6 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import kamon.Kamon;
-import kamon.trace.TraceContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
@@ -133,11 +133,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      */
     private static final String NO_SYNC_SESSION_ID = "<no-sync-session-id>";
 
-    private static final String TRACE_THING_MODIFIED = "thing.modified";
-    private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
-    private static final String COUNT_THING_BULK_UPDATE = "thing.bulkUpdate.count";
-    private static final String TRACE_THING_DELETE = "thing.delete";
-    private static final String TRACE_POLICY_UPDATE = "policy.update";
+    private static final String TRACE_THING_MODIFIED = "things_search_thing_modified";
+    private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATE = "things_search_thing_bulkUpdate_count";
+    private static final String TRACE_THING_DELETE = "things_search_thing_delete";
+    private static final String TRACE_POLICY_UPDATE = "things_search_policy_update";
 
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
@@ -629,11 +629,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
-            Kamon.metrics().histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
-            final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
+
+            Kamon.histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
+
+            final MutableKamonTimer bulkUpdate = MutableKamonTimer.build(TRACE_THING_BULK_UPDATE).start();
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
-                    .via(finishTrace(traceContext))
+                    .via(stopTimer(bulkUpdate))
                     .runWith(Sink.last(), materializer)
                     .whenComplete(this::processWriteResult))
                     .exceptionally(t -> {
@@ -919,10 +921,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void deleteThingFromSearchIndex() {
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_DELETE);
+        final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_THING_DELETE).start();
+
         circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .delete(thingId)
-                .via(finishTrace(traceContext))
+                .via(stopTimer(timer))
                 .runWith(Sink.last(), materializer)
                 .whenComplete(this::handleDeletion));
     }
@@ -984,12 +987,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     return new IllegalArgumentException(message);
                 });
 
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_MODIFIED);
+        final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_THING_MODIFIED).start();
 
         return circuitBreaker.callWithCircuitBreakerCS(
                 () -> searchUpdaterPersistence
                         .insertOrUpdate(thing, currentSequenceNumber, policyRevision)
-                        .via(finishTrace(traceContext))
+                        .via(stopTimer(timer))
                         .runWith(Sink.last(), materializer));
     }
 
@@ -1001,10 +1004,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_POLICY_UPDATE);
+        final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_POLICY_UPDATE).start();
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
-                .via(finishTrace(traceContext))
+                .via(stopTimer(timer))
                 .runWith(Sink.last(), materializer)
                 .whenComplete((isPolicyUpdated, throwable) -> {
                     if (null != throwable) {
@@ -1097,9 +1100,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private static Flow<Boolean, Boolean, NotUsed> finishTrace(final TraceContext traceContext) {
+    private static Flow<Boolean, Boolean, NotUsed> stopTimer(final MutableKamonTimer timer) {
         return Flow.fromFunction(foo -> {
-            traceContext.finish(); // finish kamon trace
+            timer.stop(); // stop timer
             return foo;
         });
     }

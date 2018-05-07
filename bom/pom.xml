@@ -56,12 +56,20 @@
         <logstash-logback-encoder.version>4.11</logstash-logback-encoder.version>
         <janino.version>2.7.8</janino.version>
 
-        <kamon.version>0.6.7</kamon.version>
-        <kamon-core.version>0.6.7</kamon-core.version>
-        <metrics.version>3.1.2</metrics.version>
-        <metrics-statsd.version>1.0.0</metrics-statsd.version>
+        <!-- ### Metrics and Tracing -->
+        <kamon.version>1.1.2</kamon.version>
+        <kamon-core.version>1.1.2</kamon-core.version>
+        <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
+        <kamon-akka.version>1.0.1</kamon-akka.version>
+        <kamon-akka-http.version>1.1.0</kamon-akka-http.version>
+        <kamon-scala.version>1.0.0-RC1</kamon-scala.version>
+        <kamon-scala-future.version>1.0.0</kamon-scala-future.version>
+        <kamon-prometheus.version>1.1.0</kamon-prometheus.version>
+        <kamon-jaeger.version>1.0.2</kamon-jaeger.version>
+
         <jsr302.version>3.0.1</jsr302.version>
 
+        <aspectj.version>1.9.1</aspectj.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -287,60 +295,53 @@
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
                 <artifactId>kamon-scala_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
+                <version>${kamon-scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-remote-2.4_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>io.kamon</groupId>
-                        <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-remote_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-cluster_${scala.version}</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>kamon-scala-future_${scala.version}</artifactId>
+                <version>${kamon-scala-future.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
+                <version>${kamon-akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-akka-http-2.5_${scala.version}</artifactId>
+                <version>${kamon-akka-http.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
+                <version>${kamon-akka.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
+                <version>${kamon-system-metrics.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-statsd_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.github.jjagged</groupId>
-                <artifactId>metrics-statsd</artifactId>
-                <version>${metrics-statsd.version}</version>
-                <exclusions>
-                    <!-- replaced by io.dropwizard.metrics:metrics-core -->
-                    <exclusion>
-                        <groupId>com.codahale.metrics</groupId>
-                        <artifactId>metrics-core</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>kamon-prometheus_${scala.version}</artifactId>
+                <version>${kamon-prometheus.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.dropwizard.metrics</groupId>
-                <artifactId>metrics-core</artifactId>
-                <version>${metrics.version}</version>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-jaeger_${scala.version}</artifactId>
+                <version>${kamon-jaeger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
@@ -497,6 +498,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-persistence</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-tracing</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

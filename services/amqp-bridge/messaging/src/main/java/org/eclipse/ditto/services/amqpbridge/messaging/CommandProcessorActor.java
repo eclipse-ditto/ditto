@@ -40,6 +40,9 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -52,9 +55,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 
 /**
  * This Actor processes incoming {@link Command}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -75,14 +75,16 @@ final class CommandProcessorActor extends AbstractActor {
     private final ActorRef pubSubMediator;
     private final String pubSubTargetActorPath;
     private final AuthorizationSubject authorizationSubject;
-    private final Map<String, TraceContext> traces;
+    private final Map<String, MutableKamonTimer> timers;
 
     private CommandProcessorActor(final ActorRef pubSubMediator, final String pubSubTargetActorPath,
             final AuthorizationSubject authorizationSubject) {
         this.pubSubMediator = pubSubMediator;
         this.pubSubTargetActorPath = pubSubTargetActorPath;
         this.authorizationSubject = authorizationSubject;
-        traces = new HashMap<>();
+        // TODO: this map might break if a correlation id is used again before the first request is finished
+        // this will lead to probably never finished spans
+        this.timers = new HashMap<>();
     }
 
     /**
@@ -142,9 +144,11 @@ final class CommandProcessorActor extends AbstractActor {
             log.debug("Received error response: {}", response);
         }
 
-        final Optional<TraceContext> traceContext = correlationId.map(traces::remove);
-        if (traceContext.isPresent()) {
-            traceContext.get().finish();
+        final Optional<MutableKamonTimer> optionalTimer = correlationId.map(timers::remove);
+        if (optionalTimer.isPresent()) {
+            optionalTimer.get()
+                    .tag(TracingTags.STATUS_CODE, response.getStatusCodeValue())
+                    .stop();
         } else {
             log.warning("Trace missing for response: '{}'", response);
         }
@@ -164,10 +168,9 @@ final class CommandProcessorActor extends AbstractActor {
 
     private void traceCommand(final Command<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
-            final Option<String> token = Option.apply(correlationId);
-            final TraceContext traceContext = Kamon.tracer().newContext("roundtrip.amqp_" + command.getType(), token);
-            traceContext.addMetadata("command", command.getType());
-            traces.put(correlationId, traceContext);
+            final MutableKamonTimer timer = TraceUtils.createTimer(command);
+            log.debug("starting timer <{}> for correlation Id <{}>", timer, correlationId);
+            timers.put(correlationId, timer);
         });
     }
 

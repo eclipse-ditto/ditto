@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.gateway.starter;
 import org.eclipse.ditto.services.base.BaseConfigKey;
 import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.KamonMongoDbMetricsStarter;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
@@ -43,8 +43,6 @@ public final class GatewayService extends DittoService {
     private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
             .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.STATSD_HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.STATSD_PORT)
             .build();
 
     private GatewayService() {
@@ -67,8 +65,8 @@ public final class GatewayService extends DittoService {
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, LOGGER).run();
+    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final Config config) {
+        KamonMongoDbMetricsStarter.newInstance(config, actorSystem, SERVICE_NAME, LOGGER).run();
     }
 
     @Override

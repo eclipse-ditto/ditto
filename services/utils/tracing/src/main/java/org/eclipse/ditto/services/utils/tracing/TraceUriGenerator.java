@@ -9,15 +9,18 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.endpoints.utils;
+package org.eclipse.ditto.services.utils.tracing;
 
 import static java.util.Objects.requireNonNull;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * in order to avoid the creation of too many Kamon traces (causing OutOfMemory).
  */
 @Immutable
-final class TraceUriGenerator implements Function<String, String> {
+public final class TraceUriGenerator implements Function<String, TraceInformation> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TraceUriGenerator.class);
 
@@ -49,12 +52,15 @@ final class TraceUriGenerator implements Function<String, String> {
 
     private static final int FIRST_API_VERSION = JsonSchemaVersion.V_1.toInt();
     private static final int LATEST_API_VERSION = JsonSchemaVersion.LATEST.toInt();
-    private static final String API_VERSIONS = "[" + FIRST_API_VERSION + "-" + LATEST_API_VERSION + "]";
+    private static final String API_VERSION_GROUP = "apiVersion";
+    private static final String API_VERSIONS =
+            "(?<" + API_VERSION_GROUP + ">[" + FIRST_API_VERSION + "-" + LATEST_API_VERSION + "])";
     private static final List<String> SUB_PATHS_TO_SHORTEN =
             Arrays.asList("things", "policies", "search/things");
     private static final String PATHS_TO_SHORTEN_GROUP = "shorten";
     private static final String PATHS_TO_SHORTEN_REGEX_TEMPLATE = "(?<" + PATHS_TO_SHORTEN_GROUP + ">^/(api)/" +
-            API_VERSIONS + "/({0}))($|/.*)";
+            API_VERSIONS +
+            "/(?<entityType>{0}))(/(?<entityId>$|.*?))?(/(?<subEntityType>$|.*?))?(/(?<subEntityId>$|.*?))?($|/.*)";
     private static final String PATHS_EXACT_LENGTH_GROUP = "exact";
     private static final List<String> PATHS_EXACT = Arrays.asList("status", "status/health");
     private static final String PATHS_EXACT_REGEX_TEMPLATE = "(?<" + PATHS_EXACT_LENGTH_GROUP + ">^/({0}))/?$";
@@ -115,26 +121,39 @@ final class TraceUriGenerator implements Function<String, String> {
      * @throws NullPointerException if {@code path} is {@code null}.
      */
     @Override
-    public String apply(final String path) {
+    public TraceInformation apply(final String path) {
         requireNonNull(path, "The path must not be null!");
 
-        return generateTraceUri(path);
+        return extractTraceInformation(path);
     }
 
-    private String generateTraceUri(final String path) {
+    private TraceInformation extractTraceInformation(final String path) {
         final String normalizedPath = normalizePath(path);
         final Matcher messageMatcher = messagePattern.matcher(normalizedPath);
         final Matcher matcher = pathPattern.matcher(normalizedPath);
 
+        final Map<String, String> tags = new HashMap<>();
+        tags.put(TracingTags.REQUEST_PATH, path);
         if (matcher.matches()) {
-            final String traceUri;
 
+            final String traceUri;
             final String pathToShorten = matcher.group(PATHS_TO_SHORTEN_GROUP);
             if (pathToShorten != null) {
+                tags.put(TracingTags.API_VERSION, matcher.group(API_VERSION_GROUP));
+                addTagToMap(tags, TracingTags.ENTITY_ID, "entityId", matcher);
+                addTagToMap(tags, TracingTags.ENTITY_TYPE, "entityType", matcher);
+                addTagToMap(tags, TracingTags.ENTITY_SUB_ID, "subEntityId", matcher);
+                addTagToMap(tags, TracingTags.ENTITY_SUB_TYPE, "subEntityType", matcher);
                 if (messageMatcher.matches()) {
                     traceUri = pathToShorten + MESSAGES_PATH_SUFFIX;
                 } else {
-                    traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
+                    if (tags.containsKey(TracingTags.ENTITY_SUB_TYPE)) {
+                        traceUri = pathToShorten + SHORTENED_PATH_SUFFIX + "/" + tags.get(TracingTags.ENTITY_SUB_TYPE) +
+                                SHORTENED_PATH_SUFFIX;
+                    } else {
+                        traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
+                    }
+
                 }
             } else {
                 final String pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);
@@ -150,14 +169,33 @@ final class TraceUriGenerator implements Function<String, String> {
                     throw new IllegalStateException();
                 }
             }
-
-            LOGGER.debug("Generated traceUri for '{}': '{}'", path, traceUri);
-            return traceUri;
+            final TraceInformation info = new TraceInformation(traceUri, tags);
+            LOGGER.debug("Generated traceUri for '{}': '{}'", path, info);
+            return info;
         } else {
             // return fallback trace URI
-            LOGGER.debug("Returning fallback traceUri for '{}': '{}'", path, FALLBACK_PATH);
-            return FALLBACK_PATH;
+            final TraceInformation fallback = new TraceInformation(FALLBACK_PATH, tags);
+            LOGGER.debug("Returning fallback traceUri for '{}': '{}'", path, fallback);
+            return fallback;
         }
+    }
+
+    private void addTagToMap(final Map<String, String> tags, final String tagKey, final String matchingGroup,
+            final Matcher matcher) {
+        tryGetCapturingGroup(matcher, matchingGroup)
+                .filter(Objects::nonNull)
+                .filter(g -> !g.isEmpty())
+                .ifPresent(g -> tags.put(tagKey, g));
+    }
+
+    private Optional<String> tryGetCapturingGroup(final Matcher matcher, final String group) {
+        try {
+            return Optional.ofNullable(matcher.group(group));
+        } catch (final IllegalArgumentException exception) {
+            LOGGER.debug("Getting capturing group <{}> for pattern <{}> failed. This is expected to happen sometimes.",
+                    group, matcher.pattern());
+        }
+        return Optional.empty();
     }
 
     private static String normalizePath(final String path) {
