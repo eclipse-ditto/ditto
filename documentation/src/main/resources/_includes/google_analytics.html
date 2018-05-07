@@ -1,6 +1,33 @@
-<!-- the google_analytics_id gets auto inserted from the config file -->
-
 {% if site.google_analytics %}
+<script>
+    function readCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
 
-<script async src="https://www.googletagmanager.com/gtag/js?id={{site.google_analytics}}"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '{{site.google_analytics}}'); </script>
+    if (readCookie("eclipse_ditto_cookieconsent_status") === "dismiss") {
+
+        var head = document.getElementsByTagName("head")[0];
+        var newscript = document.createElement("script");
+        newscript.async = true;
+        newscript.type = "text/javascript";
+        newscript.src = "https://www.googletagmanager.com/gtag/js?id={{site.google_analytics}}";
+        head.appendChild(newscript);
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', '{{site.google_analytics}}');
+    } else {
+        // Cookies are disabled - no google analytics!
+    }
+</script>
 {% endif %}
