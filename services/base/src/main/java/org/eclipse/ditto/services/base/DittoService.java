@@ -377,7 +377,7 @@ public abstract class DittoService {
     }
 
     /**
-     * May be overridden to start a StatsD metrics reporter. <em>The base implementation does nothing.</em>
+     * May be overridden to start a Kamon metrics reporter. <em>The base implementation does nothing.</em>
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param config the configuration settings of this service.
