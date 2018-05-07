@@ -26,12 +26,40 @@ public class LikePredicateImpl extends AbstractSinglePredicate {
     }
 
     private String convertToRegexSyntaxAndGetOption() {
-        final String valueString = getValue().toString();
-        String escapedString = Pattern.compile(Pattern.quote(valueString)).toString();
+        final String valueString = replaceRepeatingWildcards(getValue().toString());
+
+        if ("*".equals(valueString)) {
+            return ".*";
+        }
+
+        String escapedString = escapeStringWithoutLeadingOrTrailingWildcard(valueString);
         escapedString = escapedString.replaceAll("\\*", "\\\\E.*\\\\Q");
         escapedString = escapedString.replaceAll("\\?", "\\\\E.\\\\Q"); // escape Char wild cards for ?
-        escapedString = "^" + escapedString + "$"; // escape Start and End
+        if (!valueString.startsWith("*")) {
+            escapedString = "^" + escapedString;
+        }
+        if (!valueString.endsWith("*")) {
+            escapedString = escapedString + "$";
+        }
         return escapedString;
+    }
+
+    private String replaceRepeatingWildcards(final String value) {
+        return value.replaceAll("\\*{2,}", "*");
+    }
+
+    private String escapeStringWithoutLeadingOrTrailingWildcard(final String valueString) {
+        String stringToEscape = valueString;
+        if (valueString.startsWith("*")) {
+            stringToEscape = stringToEscape.substring(1);
+        }
+        if (valueString.endsWith("*")) {
+            final int endIndex = stringToEscape.length() - 1;
+            if (endIndex > 0) {
+                stringToEscape = stringToEscape.substring(0, endIndex);
+            }
+        }
+        return Pattern.compile(Pattern.quote(stringToEscape)).toString();
     }
 
     @Override
