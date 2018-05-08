@@ -26,18 +26,29 @@ public class LikePredicateImpl extends AbstractSinglePredicate {
     }
 
     private String convertToRegexSyntaxAndGetOption() {
+        // simplify expression by replacing repeating wildcard with a single one
         final String valueString = replaceRepeatingWildcards(getValue().toString());
-
+        // shortcut for single * wildcard
         if ("*".equals(valueString)) {
             return ".*";
         }
-
-        String escapedString = escapeStringWithoutLeadingOrTrailingWildcard(valueString);
+        // remove leading or trailing wildcard because queries like /^a/ are much faster than /^a.*$/ or /^a.*/
+        // from mongodb docs:
+        // "Additionally, while /^a/, /^a.*/, and /^a.*$/ match equivalent strings, they have different performance
+        // characteristics. All of these expressions use an index if an appropriate index exists;
+        // however, /^a.*/, and /^a.*$/ are slower. /^a/ can stop scanning after matching the prefix."
+        final String valueWithoutLeadingOrTrailingWildcard = removeLeadingOrTrailingWildcard(valueString);
+        // first escape the whole string
+        String escapedString = Pattern.compile(Pattern.quote(valueWithoutLeadingOrTrailingWildcard)).toString();
+        // then enable allowed wildcards (* and ?) again
         escapedString = escapedString.replaceAll("\\*", "\\\\E.*\\\\Q");
         escapedString = escapedString.replaceAll("\\?", "\\\\E.\\\\Q"); // escape Char wild cards for ?
+
+        // prepend ^ if is a prefix match (no * at the beginning of the string, much faster)
         if (!valueString.startsWith("*")) {
             escapedString = "^" + escapedString;
         }
+        // append $ if is a postfix match  (no * at the end of the string, much faster)
         if (!valueString.endsWith("*")) {
             escapedString = escapedString + "$";
         }
@@ -48,18 +59,18 @@ public class LikePredicateImpl extends AbstractSinglePredicate {
         return value.replaceAll("\\*{2,}", "*");
     }
 
-    private String escapeStringWithoutLeadingOrTrailingWildcard(final String valueString) {
-        String stringToEscape = valueString;
+    private String removeLeadingOrTrailingWildcard(final String valueString) {
+        String valueWithoutLeadingOrTrailingWildcard = valueString;
         if (valueString.startsWith("*")) {
-            stringToEscape = stringToEscape.substring(1);
+            valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard.substring(1);
         }
         if (valueString.endsWith("*")) {
-            final int endIndex = stringToEscape.length() - 1;
+            final int endIndex = valueWithoutLeadingOrTrailingWildcard.length() - 1;
             if (endIndex > 0) {
-                stringToEscape = stringToEscape.substring(0, endIndex);
+                valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard.substring(0, endIndex);
             }
         }
-        return Pattern.compile(Pattern.quote(stringToEscape)).toString();
+        return valueWithoutLeadingOrTrailingWildcard;
     }
 
     @Override
