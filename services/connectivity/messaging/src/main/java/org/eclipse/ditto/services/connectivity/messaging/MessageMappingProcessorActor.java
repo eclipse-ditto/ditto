@@ -32,6 +32,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -48,9 +50,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 
 /**
  * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -67,7 +66,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
-    private final Cache<String, TraceContext> traces;
+    private final Cache<String, MutableKamonTimer> timers;
 
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
@@ -85,9 +84,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
-        traces = CacheBuilder.newBuilder()
+        timers = CacheBuilder.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, TraceContext>) notification
+                .removalListener((RemovalListener<String, MutableKamonTimer>) notification
                         -> log.debug("Trace for {} removed.", notification.getKey()))
                 .build();
     }
@@ -260,7 +259,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
-                traces.put(correlationId, createRoundtripContext(correlationId, connectionId, command.getType()))
+                timers.put(correlationId, createStartedTimer(connectionId, command.getType()))
         );
     }
 
@@ -283,24 +282,23 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final TraceContext ctx = traces.getIfPresent(correlationId);
-        if (Objects.isNull(ctx)) {
+        final MutableKamonTimer timer = timers.getIfPresent(correlationId);
+        if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        traces.invalidate(ctx);
+        timers.invalidate(timer);
         if (Objects.isNull(cause)) {
-            ctx.finish();
+            timer.tag(TracingTags.MAPPING_SUCCESS, true)
+                    .stop();
         } else {
-            ctx.finishWithError(cause);
+            timer.tag(TracingTags.MAPPING_SUCCESS, false)
+                    .stop();
         }
     }
 
-    private static TraceContext createRoundtripContext(final String correlationId, final String connectionId,
-            final String type) {
-        final Option<String> token = Option.apply(correlationId);
-        final TraceContext ctx = Kamon.tracer().newContext("roundtrip." + connectionId + "." + type,
-                token);
-        ctx.addMetadata("command", type);
-        return ctx;
+    private static MutableKamonTimer createStartedTimer(final String connectionId, final String type) {
+        return MutableKamonTimer.build("roundtrip_" + connectionId + "_" + type)
+                .tag(TracingTags.COMMAND_TYPE, type)
+                .start();
     }
 }

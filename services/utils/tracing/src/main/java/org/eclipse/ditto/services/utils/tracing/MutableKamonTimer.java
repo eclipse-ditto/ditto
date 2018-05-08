@@ -63,6 +63,11 @@ public final class MutableKamonTimer {
         return this;
     }
 
+    public MutableKamonTimer tag(final String key, final boolean value) {
+        this.tags.put(key, Boolean.toString(value));
+        return this;
+    }
+
     public MutableKamonTimer start() {
         if (!running) {
             this.running = true;

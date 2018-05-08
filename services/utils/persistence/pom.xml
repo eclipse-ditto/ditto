@@ -41,6 +41,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-tracing</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-things</artifactId>
         </dependency>
 
@@ -74,7 +78,7 @@
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
-        
+
         <!-- test dependencies -->
         <dependency>
             <groupId>ch.qos.logback</groupId>

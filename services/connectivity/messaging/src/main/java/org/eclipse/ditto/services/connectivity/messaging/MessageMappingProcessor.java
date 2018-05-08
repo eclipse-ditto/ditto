@@ -11,12 +11,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -35,14 +32,12 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
-import kamon.Kamon;
-import kamon.trace.Segment;
-import kamon.trace.TraceContext;
-import scala.Option;
 
 /**
  * Processes incoming {@link ExternalMessage}s to {@link Signal}s and {@link Signal}s back to {@link ExternalMessage}s.
@@ -50,8 +45,8 @@ import scala.Option;
  */
 public final class MessageMappingProcessor {
 
-    private static final String INBOUND_MAPPING_TRACE_SUFFIX = ".inbound";
-    private static final String OUTBOUND_MAPPING_TRACE_SUFFIX = ".outbound";
+    private static final String INBOUND_MAPPING_TRACE_SUFFIX = "_inbound";
+    private static final String OUTBOUND_MAPPING_TRACE_SUFFIX = "_outbound";
     private static final String SEGMENT_CATEGORY = "payload-mapping";
     private static final String MAPPING_SEGMENT_NAME = "mapping";
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
@@ -103,12 +98,8 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<Signal<?>> process(final ExternalMessage message) {
-
-        final String correlationId = DittoHeaders.of(message.getHeaders()).getCorrelationId()
-                .orElse("no-correlation-id");
-        return doApplyTraced(
-                () -> createProcessingContext(connectionId + INBOUND_MAPPING_TRACE_SUFFIX, correlationId),
-                ctx -> convertMessage(message, ctx));
+        return withTimer(connectionId + INBOUND_MAPPING_TRACE_SUFFIX,
+                () -> convertMessage(message));
     }
 
     /**
@@ -119,28 +110,23 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<ExternalMessage> process(final Signal<?> signal) {
-
-        final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
-        return doApplyTraced(
-                () -> createProcessingContext(connectionId + OUTBOUND_MAPPING_TRACE_SUFFIX, correlationId),
-                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), ctx));
+        return withTimer(connectionId + OUTBOUND_MAPPING_TRACE_SUFFIX,
+                () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal)));
     }
 
-    private Optional<Signal<?>> convertMessage(final ExternalMessage message, final TraceContext ctx) {
+    private Optional<Signal<?>> convertMessage(final ExternalMessage message) {
         checkNotNull(message);
-        checkNotNull(ctx);
 
         try {
-            final Optional<Adaptable> adaptableOpt = doApplyTracedSegment(
-                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME),
+            final Optional<Adaptable> adaptableOpt = withTimer(
+                    MAPPING_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
                     () -> getMapper(message).map(message)
             );
 
             return adaptableOpt.map(adaptable -> {
                 doUpdateCorrelationId(adaptable);
 
-                return doApplyTracedSegment(
-                        () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME),
+                return withTimer(PROTOCOL_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
                         () -> {
                             final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
@@ -162,21 +148,16 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
-            final TraceContext ctx) {
+    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier) {
         checkNotNull(adaptableSupplier);
-        checkNotNull(ctx);
 
         try {
-            final Adaptable adaptable = doApplyTracedSegment(
-                    () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME), adaptableSupplier);
+            final Adaptable adaptable = withTimer(PROTOCOL_SEGMENT_NAME + "_" + SEGMENT_CATEGORY, adaptableSupplier);
 
             doUpdateCorrelationId(adaptable);
 
-            return doApplyTracedSegment(
-                    () -> createSegment(ctx, MAPPING_SEGMENT_NAME),
-                    () -> getMapper(adaptable).map(adaptable)
-            );
+            return withTimer(MAPPING_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
+                    () -> getMapper(adaptable).map(adaptable));
         } catch (final DittoRuntimeException e) {
             throw e;
         } catch (final Exception e) {
@@ -232,40 +213,17 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private Segment createSegment(final TraceContext ctx, final String segmentName) {
-        return ctx.startSegment(segmentName, SEGMENT_CATEGORY, SEGMENT_CATEGORY);
-    }
-
-    private static TraceContext createProcessingContext(final String name, @Nullable final String correlationId) {
-        checkNotEmpty(name, "name");
-        return Objects.isNull(correlationId) || correlationId.isEmpty() ?
-                Kamon.tracer().newContext(name) :
-                Kamon.tracer().newContext(name, Option.apply(correlationId));
-    }
-
-    private static <T> T doApplyTraced(final Supplier<TraceContext> traceContextSupplier,
-            final Function<TraceContext, T> function) {
-        final TraceContext ctx = traceContextSupplier.get();
+    private static <T> T withTimer(final String timerName, final Supplier<T> supplier) {
+        final MutableKamonTimer timer = MutableKamonTimer.build(timerName);
         try {
-            final T t = function.apply(ctx);
-            ctx.finish();
-            return t;
-        } catch (final Exception e) {
-            ctx.finishWithError(e);
-            throw e;
-        }
-    }
-
-    private static <T> T doApplyTracedSegment(final Supplier<Segment> segmentSupplier,
-            final Supplier<T> supplier) {
-        final Segment segment = segmentSupplier.get();
-        try {
-            final T t = supplier.get();
-            segment.finish();
-            return t;
-        } catch (final Exception e) {
-            segment.finishWithError(e);
-            throw e;
+            final T result = supplier.get();
+            timer.tag(TracingTags.MAPPING_SUCCESS, true)
+                    .stop();
+            return result;
+        } catch (final Exception ex) {
+            timer.tag(TracingTags.MAPPING_SUCCESS, false)
+                    .stop();
+            throw ex;
         }
     }
 }

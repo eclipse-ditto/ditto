@@ -67,9 +67,9 @@ public final class TraceUtils {
     }
 
     /**
-     * Rreplaces all characters that are invalid for metrics (at least for Prometheus metrics).
+     * Replaces all characters that are invalid for metrics (at least for Prometheus metrics).
      */
-    private static String metricizeTraceUri(final String traceUri) {
+    public static String metricizeTraceUri(final String traceUri) {
         return traceUri.replaceAll("[./:-]", "_");
     }
 
