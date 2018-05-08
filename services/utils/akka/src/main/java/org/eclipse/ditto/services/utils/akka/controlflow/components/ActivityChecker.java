@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.utils.akka.controlflow.components;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -26,7 +25,6 @@ import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Terminate a graph actor after a period of inactivity.
@@ -47,9 +45,7 @@ public final class ActivityChecker {
      */
     public static <A> Graph<FlowShape<A, A>, NotUsed> of(final Duration interval, final ActorRef self) {
         return GraphDSL.create(builder -> {
-            // TODO: stop converting to Scala FiniteDuration after upgrading to Akka 2.5.12
-            final FiniteDuration scalaDuration = FiniteDuration.create(interval.toMillis(), TimeUnit.MILLISECONDS);
-            final SourceShape<Tick> ticker = builder.add(Source.tick(scalaDuration, scalaDuration, new Tick()));
+            final SourceShape<Tick> ticker = builder.add(Source.tick(interval, interval, new Tick()));
             final FanInShape2<A, Tick, A> killer = builder.add(PipeWithIdleRoutine.of((tick, log) -> {
                 log.info("Terminating actor after <{}> of inactivity: <{}>", interval, self);
                 self.tell(PoisonPill.getInstance(), ActorRef.noSender());
