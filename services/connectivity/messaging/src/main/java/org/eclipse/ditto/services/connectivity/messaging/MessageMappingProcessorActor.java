@@ -32,13 +32,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -85,11 +85,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
-        traces = CacheBuilder.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, TraceContext>) notification
-                        -> log.debug("Trace for {} removed.", notification.getKey()))
-                .build();
+        final Caffeine caffeine = Caffeine.newBuilder()
+                .expireAfterWrite(5, TimeUnit.MINUTES);
+        traces = CaffeineCache.of(caffeine);
     }
 
     /**
@@ -283,11 +281,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final TraceContext ctx = traces.getIfPresent(correlationId);
-        if (Objects.isNull(ctx)) {
+        final Optional<TraceContext> ctxOpt = traces.getBlocking(correlationId);
+        if (!ctxOpt.isPresent()) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        traces.invalidate(ctx);
+        final TraceContext ctx = ctxOpt.get();
+        traces.invalidate(correlationId);
         if (Objects.isNull(cause)) {
             ctx.finish();
         } else {

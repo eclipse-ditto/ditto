@@ -25,6 +25,7 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultConnectionActorPropsFactory;
@@ -135,8 +136,10 @@ public final class ConnectivityRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private ConnectivityRootActor(final Config config, final ActorRef pubSubMediator,
+    private ConnectivityRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
+        final Config config = configReader.getRawConfig();
         final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
         final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.INTERVAL);
 
@@ -198,19 +201,19 @@ public final class ConnectivityRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this ConnectivityRootActor.
      *
-     * @param config the configuration settings of the Things Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
         return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(config, pubSubMediator, materializer);
+                return new ConnectivityRootActor(configReader, pubSubMediator, materializer);
             }
         });
     }

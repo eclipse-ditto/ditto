@@ -113,7 +113,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
 
-        context.actorOf(DispatcherActorCreator.props(pubSubMediator, enforcerShardRegion),
+        context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
                 DispatcherActorCreator.ACTOR_NAME);
 
         return enforcerShardRegion;

@@ -78,6 +78,11 @@ public final class TagThing extends AbstractCommand<TagThing> implements ThingMo
     }
 
     @Override
+    public Category getCategory() {
+        return Category.MODIFY; // TODO TJ is that correct?
+    }
+
+    @Override
     public TagThing setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(thingId, dittoHeaders);
     }

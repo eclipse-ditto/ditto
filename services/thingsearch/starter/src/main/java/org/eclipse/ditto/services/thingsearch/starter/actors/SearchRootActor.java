@@ -16,12 +16,8 @@ import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
-import java.net.ConnectException;
-import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
@@ -111,18 +107,18 @@ public final class SearchRootActor extends AbstractActor {
 
         final ActorRef searchActor = initializeSearchActor(rawConfig, pubSubMediator, mongoClientWrapper);
 
-        final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader.http(), mongoClientWrapper,
+        final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
                 thingsSyncPersistence, policiesSyncPersistence);
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
-        createHealthCheckingActorHttpBinding(config, healthCheckingActor, materializer);
+        createHealthCheckingActorHttpBinding(configReader.http(), healthCheckingActor, materializer);
 
-        startChildActor(SearchUpdaterRootActor.ACTOR_NAME, SearchUpdaterRootActor.props(config, pubSubMediator,
+        startChildActor(SearchUpdaterRootActor.ACTOR_NAME, SearchUpdaterRootActor.props(configReader, pubSubMediator,
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final Config config, ActorRef pubSubMediator, final MongoClientWrapper
+    private ActorRef initializeSearchActor(final Config rawConfig, ActorRef pubSubMediator, final MongoClientWrapper
             mongoClientWrapper) {
         final ThingsSearchPersistence thingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
@@ -145,16 +141,14 @@ public final class SearchRootActor extends AbstractActor {
                 SearchActor.props(pubSubMediator, aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
     }
 
-    private ActorRef initializeHealthCheckActor(final Config config, final MongoClientWrapper mongoClientWrapper,
+    private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader, final MongoClientWrapper mongoClientWrapper,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
         final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
                 MongoReactiveHealthCheckActor.props(mongoClientWrapper));
 
-        final HttpConfigReader httpConfig = configReader.http();
-        String hostname = httpConfig.getHostname();
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
-                SearchHealthCheckingActorFactory.props(config, mongoHealthCheckActor, thingsSyncPersistence,
+                SearchHealthCheckingActorFactory.props(configReader, mongoHealthCheckActor, thingsSyncPersistence,
                         policiesSyncPersistence));
     }
 

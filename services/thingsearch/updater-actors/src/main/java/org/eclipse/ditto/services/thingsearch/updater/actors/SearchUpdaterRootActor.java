@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -26,7 +25,6 @@ import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -115,8 +113,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize,
-                        thingCacheFacade, policyCacheFacade));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
@@ -172,9 +169,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      *
      * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
+     * @param materializer TODO Javadoc
+     * @param thingsSyncPersistence TODO Javadoc
+     * @param policiesSyncPersistence TODO Javadoc
      * @return a Props object to create this actor.
      */
-    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator, final ActorMaterializer materializer,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
@@ -199,6 +200,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                     unhandled(m);
                 })
                 .build();
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return supervisorStrategy;
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {

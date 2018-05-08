@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -79,29 +80,27 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final Matcher thingIdMatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
 
-    private ThingsAggregatorActor(final ActorRef targetActor) {
+    private ThingsAggregatorActor(final ConciergeConfigReader configReader, final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup("aggregator-internal-dispatcher");
         thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
-        retrieveSingleThingTimeout = getContext().getSystem()
-                .settings()
-                .config()
-                .getDuration(ConfigKeys.THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
+        retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
     }
 
     /**
      * Creates Akka configuration object Props for this ThingsAggregatorActor.
      *
+     * @param configReader the configReader for the concierge service.
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ActorRef targetActor) {
+    public static Props props(final ConciergeConfigReader configReader, final ActorRef targetActor) {
         return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ThingsAggregatorActor create() {
-                return new ThingsAggregatorActor(targetActor);
+                return new ThingsAggregatorActor(configReader, targetActor);
             }
         }).withDispatcher("aggregator-internal-dispatcher");
     }
@@ -230,7 +229,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private Future<Object> askTargetActor(final Command command) {
         final ShardedMessageEnvelope envelope = ConciergeWrapper.wrapForEnforcer(command);
-        return Patterns.ask(targetActor, envelope, RETRIEVE_TIMEOUT);
+        return Patterns.ask(targetActor, envelope,
+                Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
 }

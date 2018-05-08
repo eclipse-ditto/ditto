@@ -11,18 +11,11 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import java.util.Collection;
-import java.util.Collections;
-
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
-import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,16 +59,6 @@ public final class SearchService extends DittoService<ServiceConfigReader> {
             final ActorMaterializer materializer) {
 
         return SearchRootActor.props(configReader, pubSubMediator, materializer);
-    }
-
-    @Override
-    protected Collection<RootActorInformation> getAdditionalRootActorsInformation(
-            final ServiceConfigReader configReader,
-            final ActorRef pubSubMediator, final ActorMaterializer actorMaterializer) {
-
-        return Collections.singleton(
-                RootActorInformation.getInstance(SearchUpdaterRootActor.props(configReader, pubSubMediator),
-                        SearchUpdaterRootActor.ACTOR_NAME));
     }
 
 }

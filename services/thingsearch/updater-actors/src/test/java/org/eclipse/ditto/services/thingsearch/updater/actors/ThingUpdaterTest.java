@@ -176,7 +176,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void unknownThingEventTriggersResync() throws InterruptedException {
+    public void unknownThingEventTriggersResync() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
 
         new TestKit(actorSystem) {
@@ -976,7 +976,7 @@ public final class ThingUpdaterTest {
                         Duration.create(1, "min"));
 
         final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
-                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout))
+                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100)
                 .withMailbox("akka.actor.custom-updater-mailbox");
 
         return actorSystem.actorOf(props, THING_ID);

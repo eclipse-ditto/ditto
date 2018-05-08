@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstant
 
 import java.util.Objects;
 
+import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
@@ -53,28 +54,31 @@ public final class DispatcherActorCreator {
     /**
      * Create Akka actor configuration Props object without pre-enforcer.
      *
+     * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerShardRegion shard region of enforcer actors.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
+    public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
 
         return GraphActor.partial(actorContext -> {
             DispatcherActorCreator.initActor(actorContext.self(), pubSubMediator);
-            return DispatcherActorCreator.dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion);
+            return DispatcherActorCreator.dispatchGraph(actorContext, configReader, pubSubMediator,
+                    enforcerShardRegion);
         });
     }
 
     /**
      * Create Akka actor configuration Props object with pre-enforcer.
      *
+     * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerShardRegion shard region of enforcer actors.
      * @param preEnforcer the pre-enforcer as graph.
      * @return the Props object.
      */
-    public static Props props(final ActorRef pubSubMediator,
+    public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion,
             final Graph<FlowShape<WithSender, WithSender>, NotUsed> preEnforcer) {
 
@@ -82,7 +86,8 @@ public final class DispatcherActorCreator {
             DispatcherActorCreator.initActor(actorContext.self(), pubSubMediator);
             return Flow.<WithSender>create()
                     .via(preEnforcer)
-                    .via(DispatcherActorCreator.dispatchGraph(actorContext, pubSubMediator, enforcerShardRegion));
+                    .via(DispatcherActorCreator.dispatchGraph(actorContext, configReader, pubSubMediator,
+                            enforcerShardRegion));
         });
     }
 
@@ -90,18 +95,20 @@ public final class DispatcherActorCreator {
      * Create an Akka stream graph to dispatch {@code RetrieveThings} and {@code ThingSearchCommand}.
      *
      * @param actorContext context of this actor.
+     * @param configReader the configReader for the concierge service.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param enforcerShardRegion shard region of enforcer actors.
      * @return Akka stream graph to dispatch {@code RetrieveThings} and {@code ThingSearchCommand}.
      */
     private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchGraph(
             final AbstractActor.ActorContext actorContext,
+            final ConciergeConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
 
         return Flow.<WithSender>create()
                 .via(DispatcherActorCreator.dispatchSearchCommands(pubSubMediator))
-                .via(DispatcherActorCreator.dispatchRetrieveThings(actorContext, enforcerShardRegion));
+                .via(DispatcherActorCreator.dispatchRetrieveThings(actorContext, configReader, enforcerShardRegion));
     }
 
     /**
@@ -159,14 +166,16 @@ public final class DispatcherActorCreator {
      * SudoRetrieveThings}.
      *
      * @param actorContext context of the dispatcher actor.
+     * @param configReader the configReader for the concierge service.
      * @param enforcerShardRegion shard region of enforcer actors.
      * @return Akka stream graph that forwards relevant commands to the enforcer shard region.
      */
     private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchRetrieveThings(
             final ActorContext actorContext,
+            final ConciergeConfigReader configReader,
             final ActorRef enforcerShardRegion) {
 
-        final Props props = ThingsAggregatorActor.props(enforcerShardRegion);
+        final Props props = ThingsAggregatorActor.props(configReader, enforcerShardRegion);
         final ActorRef thingsAggregatorActor = actorContext.actorOf(props, ThingsAggregatorActor.ACTOR_NAME);
 
         return GraphDSL.create(builder -> {
