@@ -148,6 +148,8 @@ public abstract class DittoService {
     }
 
     private void startKamon() {
+        checkForAspectJ();
+
         final Config kamonConfig = ConfigFactory.load("kamon");
         Kamon.reconfigure(kamonConfig);
 
@@ -163,6 +165,14 @@ public abstract class DittoService {
         if (serviceConfig.getBoolean(configKeys.getOrThrow(BaseConfigKey.Metrics.PROMETHEUS_ENABLED))) {
             // start prometheus reporter
             this.startPrometheusReporter();
+        }
+    }
+
+    private void checkForAspectJ() {
+        try {
+            Class.forName("org.aspectj.weaver.loadtime.Agent");
+        } catch (ClassNotFoundException e) {
+            logger.warn("AspectJ weaving agent is not loaded");
         }
     }
 

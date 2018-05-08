@@ -31,6 +31,9 @@
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.3</scala.full.version>
 
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.1</typesafe-config.version>
@@ -62,14 +65,13 @@
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
         <kamon-akka.version>1.0.1</kamon-akka.version>
         <kamon-akka-http.version>1.1.0</kamon-akka-http.version>
-        <kamon-scala.version>1.0.0-RC1</kamon-scala.version>
-        <kamon-scala-future.version>1.0.0</kamon-scala-future.version>
         <kamon-prometheus.version>1.1.0</kamon-prometheus.version>
         <kamon-jaeger.version>1.0.2</kamon-jaeger.version>
 
         <jsr302.version>3.0.1</jsr302.version>
 
-        <aspectj.version>1.9.1</aspectj.version>
+        <aspectj.version>1.8.13</aspectj.version>
+        <aspectj-maven-plugin.version>1.11</aspectj-maven-plugin.version>
 
         <rhino.version>1.7.8</rhino.version>
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
@@ -302,16 +304,6 @@
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
                 <version>${kamon-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-scala_${scala.version}</artifactId>
-                <version>${kamon-scala.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-scala-future_${scala.version}</artifactId>
-                <version>${kamon-scala-future.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>

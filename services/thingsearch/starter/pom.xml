@@ -98,6 +98,22 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-slf4j_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-akka-http-2.5_${scala.version}</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -233,6 +249,47 @@
                         </image>
                     </images>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <version>${aspectj-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <!-- IMPORTANT -->
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <source>${javac.target}</source>
+                    <target>${javac.target}</target>
+                    <complianceLevel>${javac.target}</complianceLevel>
+                    <weaveDependencies>
+                        <weaveDependency>
+                            <groupId>io.kamon</groupId>
+                            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
+                        </weaveDependency>
+                        <weaveDependency>
+                            <groupId>io.kamon</groupId>
+                            <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
+                        </weaveDependency>
+                        <weaveDependency>
+                            <groupId>io.kamon</groupId>
+                            <artifactId>kamon-akka-http-2.5_${scala.version}</artifactId>
+                        </weaveDependency>
+                    </weaveDependencies>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjtools</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
