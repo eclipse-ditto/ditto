@@ -44,8 +44,9 @@ public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
     }
 
     @Override
-    public void invalidate(final EntityId key) {
+    public boolean invalidate(final EntityId key) {
         // do nothing
+        return false;
     }
 
     @Override

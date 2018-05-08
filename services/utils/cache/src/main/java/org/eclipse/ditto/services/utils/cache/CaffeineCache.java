@@ -180,16 +180,18 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     @Override
-    public void invalidate(final K key) {
+    public boolean invalidate(final K key) {
         requireNonNull(key);
 
+        final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
         final boolean reportInvalidation =
-                (metricStatsCounter != null) && (asyncLoadingCache.getIfPresent(key) != null);
+                (metricStatsCounter != null) && currentlyExisting;
         synchronousCacheView.invalidate(key);
 
         if (reportInvalidation) {
             metricStatsCounter.recordInvalidation();
         }
+        return currentlyExisting;
     }
 
     @Override

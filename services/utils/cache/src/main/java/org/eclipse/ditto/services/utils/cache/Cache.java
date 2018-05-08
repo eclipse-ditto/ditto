@@ -47,8 +47,9 @@ public interface Cache<K, V> {
      * Invalidates the passed key from the cache if present.
      *
      * @param key the key to invalidate.
+     * @return {@code true} if the entry was cached and is now invalidated, {@code false} otherwise.
      */
-    void invalidate(K key);
+    boolean invalidate(K key);
 
     /**
      * Associates the {@code value} with the {@code key} in this cache.
