@@ -73,7 +73,7 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode());
+        return Objects.hash(super.hashCode(), serviceName, instance);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
@@ -86,7 +86,8 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
             return false;
         }
         final AbstractDevOpsCommandResponse that = (AbstractDevOpsCommandResponse) o;
-        return that.canEqual(this) && super.equals(that);
+        return that.canEqual(this) && Objects.equals(serviceName, that.serviceName) &&
+                Objects.equals(instance, that.instance) && super.equals(that);
     }
 
     protected boolean canEqual(@Nullable final Object other) {
