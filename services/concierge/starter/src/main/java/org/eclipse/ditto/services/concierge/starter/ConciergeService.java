@@ -24,12 +24,12 @@ import akka.stream.ActorMaterializer;
 /**
  * The Concierge service for Eclipse Ditto.
  */
-public final class ConciergeService extends AbstractConciergeService {
+public final class ConciergeService extends AbstractConciergeService<ConciergeConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConciergeService.class);
 
     private ConciergeService() {
-        super(LOGGER);
+        super(LOGGER, ConciergeConfigReader.from(SERVICE_NAME));
     }
 
     /**

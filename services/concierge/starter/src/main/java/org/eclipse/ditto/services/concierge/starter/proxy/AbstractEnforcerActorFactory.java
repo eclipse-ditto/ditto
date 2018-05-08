@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 import java.util.Optional;
 
 import org.eclipse.ditto.services.base.config.ClusterConfigReader;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 
@@ -28,7 +28,7 @@ import akka.cluster.sharding.ClusterShardingSettings;
 /**
  * Abstract class whose implementations create a sharded {@code EnforcerActor}.
  */
-public abstract class AbstractEnforcerActorFactory {
+public abstract class AbstractEnforcerActorFactory<C extends AbstractConciergeConfigReader> {
 
     /**
      * Start a proxy to a shard region.
@@ -80,7 +80,7 @@ public abstract class AbstractEnforcerActorFactory {
      * @param pubSubMediator Akka pub-sub mediator.
      * @return actor reference to {@code EnforcerActor} shard region.
      */
-    public abstract ActorRef startEnforcerActor(ActorContext context, ConciergeConfigReader configReader,
+    public abstract ActorRef startEnforcerActor(ActorContext context, C configReader,
             ActorRef pubSubMediator);
 
 }

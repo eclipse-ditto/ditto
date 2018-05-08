@@ -1057,23 +1057,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             final ThingCreated thingCreated;
             if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                final DittoHeaders responseHeaders;
-                final Optional<AccessControlList> acl = newThing.getAccessControlList();
-                if (acl.isPresent()) {
-                    //TODO CR-5246: remove hack (this seems to be handled in ThingCommandEnforcement now)
-                    // for newly created V1 things with default ACLs the readSubjects have to be set (cause they are not
-                    // yet known in AclEnforcerActor) - in case of already existing readSubjects, they are
-                    // overwritten which is okay because this actor should know better than any other
-                    final Collection<String> readSubjects = determineReadSubjects(acl.get());
-                    log.debug("Enriching responseHeaders with readSubjects: {}", readSubjects);
-                    responseHeaders = DittoHeaders.newBuilder(commandHeaders).readSubjects(readSubjects).build();
-                } else {
-                    log.warning("V1 command {} with {} does not contain ACL, cannot determine readSubjects.",
-                            command.getType(), newThing.getId());
-                    responseHeaders = commandHeaders;
-                }
-
-                thingCreated = ThingCreated.of(newThing, nextRevision(), eventTimestamp(), responseHeaders);
+                thingCreated = ThingCreated.of(newThing, nextRevision(), eventTimestamp(), commandHeaders);
             }
             // default case handle as v2 and upwards:
             else {

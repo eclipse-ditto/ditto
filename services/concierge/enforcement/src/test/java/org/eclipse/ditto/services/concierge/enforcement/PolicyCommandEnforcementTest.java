@@ -474,7 +474,8 @@ public class PolicyCommandEnforcementTest {
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders), ENTITY_ID.toString());
+        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10)),
+                ENTITY_ID.toString());
     }
 
     private static String createUniqueName(final String prefix) {

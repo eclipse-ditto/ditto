@@ -24,9 +24,9 @@ import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.concierge.batch.actors.BatchSupervisorActor;
 import org.eclipse.ditto.services.concierge.starter.proxy.AbstractEnforcerActorFactory;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -125,8 +125,9 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private ConciergeRootActor(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory authorizationProxyPropsFactory,
+    private <C extends AbstractConciergeConfigReader> ConciergeRootActor(final C configReader,
+            final ActorRef pubSubMediator,
+            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
 
         requireNonNull(configReader);
@@ -162,8 +163,9 @@ public final class ConciergeRootActor extends AbstractActor {
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
-            final AbstractEnforcerActorFactory authorizationProxyPropsFactory,
+    public static  <C extends AbstractConciergeConfigReader> Props props(final C configReader,
+            final ActorRef pubSubMediator,
+            final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
 
         return Props.create(ConciergeRootActor.class,
@@ -182,7 +184,7 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
     private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final ConciergeConfigReader config) {
+            final AbstractConciergeConfigReader config) {
 
         final HealthConfigReader healthConfig = config.health();
         final String mongoUri = MongoConfig.getMongoUri(config.getRawConfig());

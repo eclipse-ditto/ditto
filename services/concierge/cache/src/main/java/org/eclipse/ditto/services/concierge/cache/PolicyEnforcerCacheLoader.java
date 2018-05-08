@@ -39,7 +39,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import akka.actor.ActorRef;
 
 /**
- * Loads a policy-enforcer by asking the policies shard region.
+ * Loads a policy-enforcer by asking the policies shard-region-proxy.
  */
 @Immutable
 public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityId, Entry<Enforcer>> {
@@ -47,20 +47,21 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
     private final ActorAskCacheLoader<Enforcer> delegate;
 
     /**
-     * TODO Javadoc
-     * @param askTimeout
-     * @param policiesShardRegion
+     * Constructor.
+     *
+     * @param askTimeout the ask-timeout for communicating with the shard-region-proxy.
+     * @param policiesShardRegionProxy the shard-region-proxy.
      */
-    public PolicyEnforcerCacheLoader(final Duration askTimeout, final ActorRef policiesShardRegion) {
+    public PolicyEnforcerCacheLoader(final Duration askTimeout, final ActorRef policiesShardRegionProxy) {
         requireNonNull(askTimeout);
-        requireNonNull(policiesShardRegion);
+        requireNonNull(policiesShardRegionProxy);
 
         final Function<String, Command> commandCreator =
                 policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty());
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
-        this.delegate = new ActorAskCacheLoader<>(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegion,
+        this.delegate = new ActorAskCacheLoader<>(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
                 commandCreator, responseTransformer);
     }
 

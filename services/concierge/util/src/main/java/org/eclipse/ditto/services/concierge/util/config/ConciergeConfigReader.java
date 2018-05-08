@@ -14,18 +14,12 @@ package org.eclipse.ditto.services.concierge.util.config;
 import java.time.Duration;
 import java.util.function.Function;
 
-import org.eclipse.ditto.services.base.config.AbstractServiceConfigReader;
-
 import com.typesafe.config.Config;
 
 /**
- * Configuration reader for concierge service.
+ * The default configuration reader for the concierge service.
  */
-public final class ConciergeConfigReader extends AbstractServiceConfigReader {
-
-    private static final String PATH_CACHES = "caches";
-    private static final String PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT =
-            "things-aggregator.single-retrieve-thing-timeout";
+public final class ConciergeConfigReader extends AbstractConciergeConfigReader {
 
     private ConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
@@ -39,24 +33,6 @@ public final class ConciergeConfigReader extends AbstractServiceConfigReader {
      */
     public static Function<Config, ConciergeConfigReader> from(final String serviceName) {
         return config -> new ConciergeConfigReader(config, serviceName);
-    }
-
-    /**
-     * Retrieve configuration reader of caches.
-     *
-     * @return the configuration reader.
-     */
-    public CachesConfigReader caches() {
-        return new CachesConfigReader(getChild(PATH_CACHES));
-    }
-
-    /**
-     * Retrieve timeout how long the {@code ThingsAggregatorActor} should wait for a single retrieve thing.
-     *
-     * @return timeout how long to wait for a single retrieve thing.
-     */
-    public Duration thingsAggregatorSingleRetrieveThingTimeout() {
-        return config.getDuration(PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
     }
 
 }

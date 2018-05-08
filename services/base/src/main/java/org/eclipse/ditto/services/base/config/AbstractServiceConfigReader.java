@@ -15,7 +15,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * TODO Javadoc
+ * Abstract base implementation of {@link ServiceConfigReader}.
  */
 public class AbstractServiceConfigReader extends AbstractConfigReader implements ServiceConfigReader {
 

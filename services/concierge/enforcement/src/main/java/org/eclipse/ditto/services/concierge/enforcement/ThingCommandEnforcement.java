@@ -95,7 +95,6 @@ import akka.pattern.PatternsCS;
 /**
  * Authorize {@code ThingCommand}.
  */
-// TODO: migrate logging
 public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
 
     /**
