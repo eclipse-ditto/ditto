@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
+import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
@@ -80,7 +80,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
     private final Matcher thingIdMatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
 
-    private ThingsAggregatorActor(final ConciergeConfigReader configReader, final ActorRef targetActor) {
+    private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup("aggregator-internal-dispatcher");
         thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
@@ -94,7 +94,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
      * @param targetActor the Actor selection to delegate "asks" for the aggregation to.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ConciergeConfigReader configReader, final ActorRef targetActor) {
+    public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
         return Props.create(ThingsAggregatorActor.class, new Creator<ThingsAggregatorActor>() {
             private static final long serialVersionUID = 1L;
 

@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstant
 
 import java.util.Objects;
 
+import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommand;
@@ -78,7 +79,7 @@ public final class DispatcherActorCreator {
      * @param preEnforcer the pre-enforcer as graph.
      * @return the Props object.
      */
-    public static Props props(final ConciergeConfigReader configReader, final ActorRef pubSubMediator,
+    public static Props props(final AbstractConciergeConfigReader configReader, final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion,
             final Graph<FlowShape<WithSender, WithSender>, NotUsed> preEnforcer) {
 
@@ -102,7 +103,7 @@ public final class DispatcherActorCreator {
      */
     private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchGraph(
             final AbstractActor.ActorContext actorContext,
-            final ConciergeConfigReader configReader,
+            final AbstractConciergeConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorRef enforcerShardRegion) {
 
@@ -172,7 +173,7 @@ public final class DispatcherActorCreator {
      */
     private static Graph<FlowShape<WithSender, WithSender>, NotUsed> dispatchRetrieveThings(
             final ActorContext actorContext,
-            final ConciergeConfigReader configReader,
+            final AbstractConciergeConfigReader configReader,
             final ActorRef enforcerShardRegion) {
 
         final Props props = ThingsAggregatorActor.props(configReader, enforcerShardRegion);
