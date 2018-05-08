@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
+import java.time.Duration;
+
 import org.eclipse.ditto.services.base.config.AbstractServiceConfigReader;
 
 import com.typesafe.config.Config;
@@ -22,6 +24,9 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
 
     private static final String PATH_CACHES = "caches";
     private static final String PATH_ENFORCEMENT = "enforcement";
+
+    private static final String PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT =
+            "things-aggregator.single-retrieve-thing-timeout";
 
     protected AbstractConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
@@ -45,4 +50,12 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
         return new EnforcementConfigReader(getChild(PATH_ENFORCEMENT));
     }
 
+    /**
+     * Retrieve timeout how long the {@code ThingsAggregatorActor} should wait for a single retrieve thing.
+     *
+     * @return timeout how long to wait for a single retrieve thing.
+     */
+    public Duration thingsAggregatorSingleRetrieveThingTimeout() {
+        return config.getDuration(PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
+    }
 }
