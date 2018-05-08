@@ -26,7 +26,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * TODO Javadoc
+ * Actor which acts as a client to the concierge service. It forwards messages either to the concierge's appropriate
+ * enforcer shard region (in case of a command referring to a single entity) or to the concierge's dispatcher actor (in
+ * case of commands not referring to a single entity such as search commands.
  */
 public class ConciergeForwarderActor extends AbstractActor {
 

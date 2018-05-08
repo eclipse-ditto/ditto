@@ -209,7 +209,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * TODO Javadoc
+     * Holds context information required by implementations of {@link AbstractEnforcement}.
      */
     public static final class Context {
 
@@ -247,14 +247,15 @@ public abstract class AbstractEnforcement<T extends Signal> {
         }
 
         /**
-         * TODO Javadoc
-         * @param actorContext
-         * @param log
-         * @return
+         * Creates a new {@link Context} from this instance with the given parameters.
+         *
+         * @param actorContext the actor context.
+         * @param log the logger.
+         * @return the created instance.
          */
         public Context with(final AbstractActor.ActorContext actorContext, final LoggingAdapter log) {
-            final ActorRef self = actorContext.self();
-            return new Context(pubSubMediator, askTimeout, decodeEntityId(self), log, self);
+            final ActorRef contextSelf = actorContext.self();
+            return new Context(pubSubMediator, askTimeout, decodeEntityId(contextSelf), log, contextSelf);
         }
 
         private static EntityId decodeEntityId(final ActorRef self) {
