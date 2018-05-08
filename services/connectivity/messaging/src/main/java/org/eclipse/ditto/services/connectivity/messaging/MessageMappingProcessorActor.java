@@ -72,15 +72,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
-    private final ActorRef commandRouter;
+    private final ActorRef conciergeForwarder;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
         this.publisherActor = publisherActor;
-        this.commandRouter = commandRouter;
+        this.conciergeForwarder = conciergeForwarder;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
@@ -94,7 +94,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * Creates Akka configuration object for this actor.
      *
      * @param publisherActor actor that handles/publishes outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
+     * @param conciergeForwarder the command router used to send signals into the cluster
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
      * @param headerFilter the header filter used to apply on responses
      * @param processor the MessageMappingProcessor to use
@@ -102,7 +102,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
@@ -112,7 +112,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, commandRouter, authorizationContext,
+                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
                         headerFilter, processor,
                         connectionId);
             }
@@ -188,8 +188,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using command router", adjustedSignal.getType());
-                commandRouter.tell(adjustedSignal, getSelf());
+                log.info("Sending '{}' using conciergeForwarder", adjustedSignal.getType());
+                conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e, DittoHeaders.of(externalMessage.getHeaders()));

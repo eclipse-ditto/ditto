@@ -57,8 +57,10 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
+import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -76,8 +78,11 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -105,7 +110,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final List<String> headerBlacklist;
-    private final ActorRef commandRouter;
+    private final ActorRef conciergeForwarder;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -113,16 +118,27 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private long publishedMessageCounter = 0L;
 
     protected BaseClientActor(final Connection connection, final ConnectionStatus desiredConnectionStatus,
-            @Nullable final ActorRef commandRouter) {
+            @Nullable final ActorRef conciergeForwarder) {
         checkNotNull(connection, "connection");
-        final Config config = getContext().getSystem().settings().config();
+        final ActorSystem actorSystem = getContext().getSystem();
+        final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        final Config config = actorSystem.settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
 
-        if (commandRouter != null) {
-            this.commandRouter = commandRouter;
+        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+
+        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
+                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+
+        if (conciergeForwarder != null) {
+            this.conciergeForwarder = conciergeForwarder;
         } else {
-            this.commandRouter = getContext().actorOf(CommandRouterPropsFactory.getProps(config), "commandRouter");
+            this.conciergeForwarder = getContext().actorOf(
+                    ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy),
+                    ConciergeForwarderActor.ACTOR_NAME);
         }
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
@@ -697,7 +713,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
             final Props props =
-                    MessageMappingProcessorActor.props(getSelf(), commandRouter,
+                    MessageMappingProcessorActor.props(getSelf(), conciergeForwarder,
                             connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
                             processor, connectionId());
 
