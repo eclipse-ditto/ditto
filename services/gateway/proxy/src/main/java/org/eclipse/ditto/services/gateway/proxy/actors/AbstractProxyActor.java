@@ -40,11 +40,6 @@ public abstract class AbstractProxyActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "proxy";
 
-    /**
-     * The name of the pub sub group for this actor.
-     */
-    static final String PUB_SUB_GROUP_NAME = "proxy";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef statisticsActor;
@@ -123,10 +118,5 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return log;
     }
 
-
-    void notifySender(final Object message) {
-        final ActorRef sender = getSender();
-        sender.tell(message, getSelf());
-    }
 
 }

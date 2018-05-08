@@ -28,6 +28,8 @@ import akka.routing.ConsistentHashingGroup;
  * Creates {@link Props} for a routing actor that can be used to send {@link WithDittoHeaders}s to the gateway proxy actor.
  * It uses consistent hashing based on the correlation id i.e. corresponding signals are routed to the same gateway
  * instance.
+ *
+ * TODO TJ this should be obsolete on the branch "replace-distributed-cache"
  */
 public class CommandRouterPropsFactory {
 

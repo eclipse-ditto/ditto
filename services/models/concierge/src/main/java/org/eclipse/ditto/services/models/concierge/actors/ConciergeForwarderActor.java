@@ -40,30 +40,29 @@ public class ConciergeForwarderActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef pubSubMediator;
-    private final ActorRef enforcerShardRegion;
+    private final ActorRef conciergeShardRegion;
 
-    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ActorRef enforcerShardRegion) {
+    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion) {
         this.pubSubMediator = pubSubMediator;
-        this.enforcerShardRegion = enforcerShardRegion;
+        this.conciergeShardRegion = conciergeShardRegion;
     }
 
     /**
      * Creates Akka configuration object Props for this actor.
      *
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param enforcerShardRegion the ActorRef of the enforcerShardRegion.
+     * @param conciergeShardRegion the ActorRef of the concierge shard region.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator, final ActorRef enforcerShardRegion) {
+    public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion) {
 
-        return Props.create(ConciergeForwarderActor.class,
-                () -> new ConciergeForwarderActor(pubSubMediator, enforcerShardRegion));
+        return Props.create(ConciergeForwarderActor.class, pubSubMediator, conciergeShardRegion);
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(Signal.class, signal -> forward(signal, sender()))
+                .match(Signal.class, signal -> forward(signal, getSender()))
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())
@@ -74,7 +73,7 @@ public class ConciergeForwarderActor extends AbstractActor {
 
     /**
      * Forwards the passed {@code signal} based on whether it has an entity ID or not to the {@code pubSubMediator}
-     * or the {@code enforcerShardRegion}.
+     * or the {@code conciergeShardRegion}.
      *
      * @param signal the Signal to forward
      * @param sender the ActorRef to use as sender
@@ -90,7 +89,7 @@ public class ConciergeForwarderActor extends AbstractActor {
                     signal.getId(), signal);
             final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(signal);
             log.debug("Sending message to concierge-shard-region: <{}>.", msg);
-            enforcerShardRegion.tell(msg, sender);
+            conciergeShardRegion.tell(msg, sender);
         }
     }
 

@@ -20,16 +20,15 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
-import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
@@ -76,7 +75,7 @@ final class GatewayRootActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder //
+    private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
                 log.info(CHILD_RESTART_INFO_MSG);
@@ -149,11 +148,8 @@ final class GatewayRootActor extends AbstractActor {
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
 
-        final Props commandRouterProps = CommandRouterPropsFactory.getProps(config);
-        final ActorRef commandRouter = startChildActor("commandRouter", commandRouterProps);
-
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(pubSubMediator, commandRouter));
+                StreamingActor.props(pubSubMediator, proxyActor));
 
         final HealthConfigReader healthConfig = configReader.health();
         final ActorRef healthCheckActor = createHealthCheckActor(healthConfig);

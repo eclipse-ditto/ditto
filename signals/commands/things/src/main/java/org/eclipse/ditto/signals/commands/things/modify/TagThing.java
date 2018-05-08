@@ -79,7 +79,7 @@ public final class TagThing extends AbstractCommand<TagThing> implements ThingMo
 
     @Override
     public Category getCategory() {
-        return Category.MODIFY; // TODO TJ is that correct?
+        return Category.MODIFY;
     }
 
     @Override
