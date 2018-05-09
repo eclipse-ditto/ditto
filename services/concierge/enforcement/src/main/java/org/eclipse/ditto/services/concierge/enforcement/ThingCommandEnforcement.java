@@ -838,7 +838,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    private static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
+    static <T extends ThingCommand> Optional<T> authorizeByPolicy(final Enforcer policyEnforcer,
             final ThingCommand<T> command) {
 
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
@@ -864,7 +864,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command to authorize.
      * @return optionally the authorized command extended by read subjects.
      */
-    private static <T extends ThingCommand> Optional<T> authorizeByAcl(final Enforcer aclEnforcer,
+    static <T extends ThingCommand> Optional<T> authorizeByAcl(final Enforcer aclEnforcer,
             final ThingCommand<T> command) {
         final ResourceKey thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();

@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.concierge.cache.update.ThingCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
-import org.eclipse.ditto.services.concierge.enforcement.MessageCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
@@ -93,8 +92,6 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
                 policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
-        enforcementProviders.add(new MessageCommandEnforcement.Provider(thingIdCache, policyEnforcerCache,
-                aclEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
