@@ -137,11 +137,14 @@ entries:
           - title: Things-Search
             url: /architecture-services-things-search.html
             output: web
-          - title: Gateway
-            url: /architecture-services-gateway.html
-            output: web
           - title: Connectivity
             url: /architecture-services-connectivity.html
+            output: web
+          - title: Concierge
+            url: /architecture-services-concierge.html
+            output: web
+          - title: Gateway
+            url: /architecture-services-gateway.html
             output: web
 
   - title: HTTP API
