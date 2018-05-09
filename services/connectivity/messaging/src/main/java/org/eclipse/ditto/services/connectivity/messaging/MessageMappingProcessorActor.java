@@ -93,13 +93,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages
-     * @param conciergeForwarder the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param headerFilter the header filter used to apply on responses
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles/publishes outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param headerFilter the header filter used to apply on responses.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
@@ -113,8 +113,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             @Override
             public MessageMappingProcessorActor create() {
                 return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
-                        headerFilter, processor,
-                        connectionId);
+                        headerFilter, processor, connectionId);
             }
         });
     }
@@ -122,21 +121,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter,
+            final ActorRef conciergeForwarder,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
         return props(publisherActor,
-                commandRouter,
+                conciergeForwarder,
                 authorizationContext,
                 new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);

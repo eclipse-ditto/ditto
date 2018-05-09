@@ -19,6 +19,7 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import javax.jms.JMSRuntimeException;
@@ -31,6 +32,8 @@ import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorAct
 import org.eclipse.ditto.services.connectivity.messaging.DefaultConnectionActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -161,13 +164,25 @@ public final class ConnectivityRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor =
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
+        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+
+        final ActorSystem actorSystem = this.getContext().system();
+        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
+                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+
+        final ActorRef conciergeForwarder =  startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy));
+
         final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
         final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, propsFactory);
+                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
+                        conciergeForwarder, propsFactory);
 
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(this.getContext().system())
+                ClusterShardingSettings.create(actorSystem)
                         .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
 
         final ActorRef connectionShardRegion = ClusterSharding.get(this.getContext().system())
