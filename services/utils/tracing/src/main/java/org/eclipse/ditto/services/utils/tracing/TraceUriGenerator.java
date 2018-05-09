@@ -147,13 +147,7 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
                 if (messageMatcher.matches()) {
                     traceUri = pathToShorten + MESSAGES_PATH_SUFFIX;
                 } else {
-                    if (tags.containsKey(TracingTags.ENTITY_SUB_TYPE)) {
-                        traceUri = pathToShorten + SHORTENED_PATH_SUFFIX + "/" + tags.get(TracingTags.ENTITY_SUB_TYPE) +
-                                SHORTENED_PATH_SUFFIX;
-                    } else {
-                        traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
-                    }
-
+                    traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
                 }
             } else {
                 final String pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);

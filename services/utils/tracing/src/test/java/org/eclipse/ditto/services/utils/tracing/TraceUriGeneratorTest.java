@@ -68,7 +68,7 @@ public final class TraceUriGeneratorTest {
     @Test
     public void api1FeatureUpdate() {
         final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/features" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
@@ -83,7 +83,7 @@ public final class TraceUriGeneratorTest {
     @Test
     public void api1FeaturesUpdate() {
         final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/features" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
@@ -97,7 +97,7 @@ public final class TraceUriGeneratorTest {
     @Test
     public void api1AttributesUpdate() {
         final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/attributes";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/attributes" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
@@ -111,7 +111,7 @@ public final class TraceUriGeneratorTest {
     @Test
     public void api1AttributeUpdate() {
         final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/attributes/firmware-version";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/attributes" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
@@ -127,7 +127,7 @@ public final class TraceUriGeneratorTest {
     public void api2FeaturePropertyUpdate() {
         final String path =
                 "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/properties/Engine/max-speed";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/features" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
@@ -142,7 +142,7 @@ public final class TraceUriGeneratorTest {
     @Test
     public void api2FeatureDefinitionUpdate() {
         final String path = "/api/1/things/abc:1a4ed3df-308b-462e-9cfc-b78891f18c39/features/Vehicle/definition";
-        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX + "/features" + SHORTENED_PATH_SUFFIX;
+        final String expectedUri = "/api/1/things" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
                         .tag(TracingTags.API_VERSION, "1")
