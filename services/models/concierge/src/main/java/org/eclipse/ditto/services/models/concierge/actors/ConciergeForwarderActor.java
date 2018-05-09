@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.models.concierge.actors;
 
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
@@ -41,10 +43,13 @@ public class ConciergeForwarderActor extends AbstractActor {
 
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeShardRegion;
+    private final Function<Signal<?>, Signal<?>> signalTransformer;
 
-    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion) {
+    private ConciergeForwarderActor(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion,
+            final Function<Signal<?>, Signal<?>> signalTransformer) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeShardRegion = conciergeShardRegion;
+        this.signalTransformer = signalTransformer;
     }
 
     /**
@@ -56,7 +61,22 @@ public class ConciergeForwarderActor extends AbstractActor {
      */
     public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion) {
 
-        return Props.create(ConciergeForwarderActor.class, pubSubMediator, conciergeShardRegion);
+        return props(pubSubMediator, conciergeShardRegion, Function.identity());
+    }
+
+    /**
+     * Creates Akka configuration object Props for this actor.
+     *
+     * @param pubSubMediator the PubSub mediator Actor.
+     * @param conciergeShardRegion the ActorRef of the concierge shard region.
+     * @param signalTransformer a function which transforms signals before forwarding them to the {@code
+     * conciergeShardRegion}
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion,
+            final Function<Signal<?>, Signal<?>> signalTransformer) {
+
+        return Props.create(ConciergeForwarderActor.class, pubSubMediator, conciergeShardRegion, signalTransformer);
     }
 
     @Override
@@ -72,22 +92,25 @@ public class ConciergeForwarderActor extends AbstractActor {
     }
 
     /**
-     * Forwards the passed {@code signal} based on whether it has an entity ID or not to the {@code pubSubMediator}
-     * or the {@code conciergeShardRegion}.
+     * Forwards the passed {@code signal} based on whether it has an entity ID or not to the {@code pubSubMediator} or
+     * the {@code conciergeShardRegion}.
      *
      * @param signal the Signal to forward
      * @param sender the ActorRef to use as sender
      */
     private void forward(final Signal<?> signal, final ActorRef sender) {
-        if (signal.getId().isEmpty()) {
-            log.debug("Signal does not contain ID, forwarding to concierge-dispatcherActor: <{}>.", signal);
-            final DistributedPubSubMediator.Send msg = wrapForPubSub(signal);
+
+        final Signal<?> transformedSignal = signalTransformer.apply(signal);
+
+        if (transformedSignal.getId().isEmpty()) {
+            log.debug("Signal does not contain ID, forwarding to concierge-dispatcherActor: <{}>.", transformedSignal);
+            final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
             log.debug("Sending message to concierge-dispatcherActor: <{}>.", msg);
             pubSubMediator.tell(msg, sender);
         } else {
             log.debug("Signal has ID <{}>, forwarding to concierge-shard-region: <{}>.",
-                    signal.getId(), signal);
-            final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(signal);
+                    transformedSignal.getId(), transformedSignal);
+            final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
             log.debug("Sending message to concierge-shard-region: <{}>.", msg);
             conciergeShardRegion.tell(msg, sender);
         }

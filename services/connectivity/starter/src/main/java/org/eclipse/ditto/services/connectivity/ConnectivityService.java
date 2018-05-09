@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
@@ -58,7 +60,7 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConnectivityRootActor.props(configReader, pubSubMediator, materializer);
+        return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
     }
 
 }
