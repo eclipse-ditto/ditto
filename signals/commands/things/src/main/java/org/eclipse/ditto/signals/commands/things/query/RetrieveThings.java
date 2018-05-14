@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +42,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
+import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 
 /**
  * Command which retrieves several {@link org.eclipse.ditto.model.things.Thing}s based on the the passed in List of
@@ -79,12 +82,19 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         this(builder.thingIds, builder.selectedFields, builder.namespace, builder.dittoHeaders);
     }
 
+    /**
+     * @throws MissingThingIdsException When {@code thingIds} is empty
+     */
     private RetrieveThings(final List<String> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
             @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
+
+        if (thingIds.isEmpty()) {
+            throw MissingThingIdsException.fromDittoHeaders(dittoHeaders);
+        }
 
         this.thingIds = Collections.unmodifiableList(new ArrayList<>(thingIds));
         this.selectedFields = selectedFields;
@@ -122,10 +132,10 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      *
      * @param thingIds one or more Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
-     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
+     * @throws NullPointerException if {@code thingIds} is {@code null}.
      */
     public static Builder getBuilder(final String... thingIds) {
-        return new Builder(Arrays.asList(thingIds));
+        return new Builder(Arrays.asList(checkNotNull(thingIds, "thing ids")));
     }
 
     /**
@@ -133,10 +143,10 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      *
      * @param thingIds the Thing IDs to be retrieved.
      * @return a builder for a Thing retrieving command.
-     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
+     * @throws NullPointerException if {@code thingIds} is {@code null}.
      */
     public static Builder getBuilder(final List<String> thingIds) {
-        return new Builder(thingIds);
+        return new Builder(checkNotNull(thingIds, "thing ids"));
     }
 
     /**
@@ -145,7 +155,6 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
      *
      * @param retrieveThings a {@code RetrieveThings} object which acts as template for the new builder.
      * @return a builder for a Thing retrieving command.
-     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
      */
     public static Builder getBuilder(final RetrieveThings retrieveThings) {
         return new Builder(retrieveThings);

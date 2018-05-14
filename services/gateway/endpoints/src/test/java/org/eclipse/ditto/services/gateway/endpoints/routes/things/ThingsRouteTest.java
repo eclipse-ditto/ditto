@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,6 +39,7 @@ public class ThingsRouteTest extends EndpointTestBase {
     public void setUp() {
         thingsRoute = new ThingsRoute(createDummyResponseActor(), system(), Duration.ZERO, Duration.ZERO,
                 Duration.ZERO, Duration.ZERO);
+
         final Route route =
                 extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.newBuilder().build()));
         underTest = testRoute(route);
@@ -57,7 +59,25 @@ public class ThingsRouteTest extends EndpointTestBase {
         for (int i = 0; i < numberOfUUIDs; ++i) {
             pathBuilder.append(':').append(UUID.randomUUID());
         }
-        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
-        result.assertStatusCode(StatusCodes.NOT_FOUND);
+        underTest.run(HttpRequest.GET(pathBuilder.toString()));
+    }
+
+    @Test
+    public void getThingsWitEmptyIdsList() {
+        final TestRouteResult result = underTest.run(HttpRequest.GET("/things?ids="));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        result.assertEntity("{" +
+                "\"status\":400," +
+                "\"error\":\"things:thing.ids.missing\"," +
+                "\"message\":\"The required list of thing ids was null or empty.\"," +
+                "\"description\":\"Please provide at least one thing id and try again.\"" +
+                "}");
+    }
+
+    @Test
+    public void getThingsWithoutIds() {
+        final TestRouteResult result = underTest.run(HttpRequest.GET("/things"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        result.assertEntity("Request is missing parameter: 'ids'");
     }
 }

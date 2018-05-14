@@ -11,10 +11,12 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
+import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.delete;
 import static akka.http.javadsl.server.Directives.extractDataBytes;
 import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
 import static akka.http.javadsl.server.Directives.get;
+import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameter;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.path;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -68,6 +71,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.stream.javadsl.Source;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /things}.
@@ -144,15 +148,7 @@ public final class ThingsRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 route( //
                         get(() -> // GET /things?ids=<idsString>&fields=<fieldsString>
-                                parameter(ThingsParameter.IDS.toString(), idsString ->
-                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                                handlePerRequest(ctx, RetrieveThings
-                                                        .getBuilder(idsString.isEmpty() ? null :
-                                                                idsString.split(","))
-                                                        .selectedFields(calculateSelectedFields(fieldsString))
-                                                        .dittoHeaders(dittoHeaders).build())
-                                        )
-                                )
+                                buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
                         post(() -> // POST /things
                                 extractDataBytes(payloadSource ->
@@ -160,6 +156,20 @@ public final class ThingsRoute extends AbstractRoute {
                                                 CreateThing.of(createThingForPost(thingJson),
                                                         createInlinePolicyJson(thingJson), dittoHeaders))
                                 )
+                        )
+                )
+        );
+    }
+
+
+    private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return handleRejections(DittoRejectionHandlerFactory.createInstance(),
+                () -> parameter(ThingsParameter.IDS.toString(), idsString ->
+                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                handlePerRequest(ctx, dittoHeaders, Source.empty(), emptyRequestBody -> RetrieveThings
+                                        .getBuilder((idsString).isEmpty() ? new String[0] : idsString.split(","))
+                                        .selectedFields(calculateSelectedFields(fieldsString))
+                                        .dittoHeaders(dittoHeaders).build())
                         )
                 )
         );
@@ -244,18 +254,6 @@ public final class ThingsRoute extends AbstractRoute {
         }
 
         return outputJsonBuilder.build();
-    }
-
-    // sets policyId to be equal to thing ID if absent
-    private static void useThingIdAsDefaultPolicyId(final String thingId, final JsonObject inputJson,
-            final JsonObjectBuilder outputJsonBuilder) {
-
-        final Optional<JsonValue> policyIdOpt = inputJson.getValue(Thing.JsonFields.POLICY_ID.getPointer());
-
-        // sets policy ID only if policyId is absent from thing
-        if (!policyIdOpt.isPresent()) {
-            outputJsonBuilder.set(Thing.JsonFields.POLICY_ID, thingId);
-        }
     }
 
     /*
