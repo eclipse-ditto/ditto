@@ -169,12 +169,16 @@ public final class StatisticsActor extends AbstractActor {
                             .map(ShardRegion.ShardState::getEntityIds)
                             .flatMap(strSet -> strSet.stream()
                                     .map(str -> {
-                                        // groupKey may be either namespace or resource-type (in case of concierge)
-                                        final String groupKey = str.split(":", 2)[0];
-                                        if (groupKey.isEmpty()) {
+                                        // groupKey may be either namespace or resource-type+namespace (in case of concierge)
+                                        final String[] groupKeys = str.split(":", 3);
+                                        if (groupKeys.length == 1 && groupKeys[0].isEmpty()) {
                                             return "<empty>";
+                                        } else if (groupKeys.length == 2) {
+                                            // normal: namespace
+                                            return groupKeys[0];
                                         } else {
-                                            return groupKey;
+                                            // concierge: resource-type + namespace
+                                            return groupKeys[0] + ":" + groupKeys[1];
                                         }
                                     })
                             )
@@ -261,8 +265,8 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<Long> HOT_CONCIERGE_ENFORCERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotConciergeEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_RESOURCE_TYPES_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersResourceTypesHotness", FieldType.REGULAR);
+        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersHotness", FieldType.REGULAR);
 
         private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotSearchUpdatersCount", FieldType.REGULAR);
@@ -275,7 +279,7 @@ public final class StatisticsActor extends AbstractActor {
         private final long hotPoliciesCount;
         private final Map<String, Long> policiesNamespacesHotness;
         private final long hotConciergeEnforcersCount;
-        private final Map<String, Long> conciergeEnforcersResourceTypesHotness;
+        private final Map<String, Long> conciergeEnforcersHotness;
         private final long hotSearchUpdatersCount;
         private final Map<String, Long> searchUpdatersNamespacesHotness;
 
@@ -284,7 +288,7 @@ public final class StatisticsActor extends AbstractActor {
                 final long hotPoliciesCount,
                 final Map<String, Long> policiesNamespacesHotness,
                 final long hotConciergeEnforcersCount,
-                final Map<String, Long> conciergeEnforcersResourceTypesHotness,
+                final Map<String, Long> conciergeEnforcersHotness,
                 final long hotSearchUpdatersCount,
                 final Map<String, Long> searchUpdatersNamespacesHotness) {
 
@@ -293,7 +297,7 @@ public final class StatisticsActor extends AbstractActor {
             this.hotPoliciesCount = hotPoliciesCount;
             this.policiesNamespacesHotness = policiesNamespacesHotness;
             this.hotConciergeEnforcersCount = hotConciergeEnforcersCount;
-            this.conciergeEnforcersResourceTypesHotness = conciergeEnforcersResourceTypesHotness;
+            this.conciergeEnforcersHotness = conciergeEnforcersHotness;
             this.hotSearchUpdatersCount = hotSearchUpdatersCount;
             this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
         }
@@ -316,8 +320,7 @@ public final class StatisticsActor extends AbstractActor {
                     .set(HOT_POLICIES_COUNT, hotPoliciesCount, predicate)
                     .set(POLICIES_NAMESPACE_HOTNESS, buildHotnessMapJson(policiesNamespacesHotness), predicate)
                     .set(HOT_CONCIERGE_ENFORCERS_COUNT, hotConciergeEnforcersCount, predicate)
-                    .set(CONCIERGE_ENFORCERS_RESOURCE_TYPES_HOTNESS,
-                            buildHotnessMapJson(conciergeEnforcersResourceTypesHotness), predicate)
+                    .set(CONCIERGE_ENFORCERS_HOTNESS, buildHotnessMapJson(conciergeEnforcersHotness), predicate)
                     .set(HOT_SEARCH_UPDATERS_COUNT, hotSearchUpdatersCount, predicate)
                     .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildHotnessMapJson(searchUpdatersNamespacesHotness),
                             predicate)
@@ -347,7 +350,7 @@ public final class StatisticsActor extends AbstractActor {
                     hotSearchUpdatersCount == that.hotSearchUpdatersCount &&
                     Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
                     Objects.equals(policiesNamespacesHotness, that.policiesNamespacesHotness) &&
-                    Objects.equals(conciergeEnforcersResourceTypesHotness, that.conciergeEnforcersResourceTypesHotness) &&
+                    Objects.equals(conciergeEnforcersHotness, that.conciergeEnforcersHotness) &&
                     Objects.equals(searchUpdatersNamespacesHotness, that.searchUpdatersNamespacesHotness);
         }
 
@@ -355,7 +358,7 @@ public final class StatisticsActor extends AbstractActor {
         public int hashCode() {
             return Objects.hash(hotThingsCount, thingsNamespacesHotness, hotPoliciesCount,
                     policiesNamespacesHotness, hotConciergeEnforcersCount,
-                    conciergeEnforcersResourceTypesHotness,
+                    conciergeEnforcersHotness,
                     hotSearchUpdatersCount, searchUpdatersNamespacesHotness);
         }
 
@@ -367,7 +370,7 @@ public final class StatisticsActor extends AbstractActor {
                     ", hotPoliciesCount=" + hotPoliciesCount +
                     ", policiesNamespacesHotness=" + policiesNamespacesHotness +
                     ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
-                    ", conciergeEnforcersResourceTypesHotness=" + conciergeEnforcersResourceTypesHotness +
+                    ", conciergeEnforcersHotness=" + conciergeEnforcersHotness +
                     ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";

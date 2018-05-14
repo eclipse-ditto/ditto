@@ -142,6 +142,7 @@ public final class ConciergeRootActor extends AbstractActor {
         final ActorRef conciergeForwarder = startChildActor(context, ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegion));
 
+        pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(conciergeForwarder), getSelf());
 
         startClusterSingletonActor(context, BatchSupervisorActor.ACTOR_NAME,

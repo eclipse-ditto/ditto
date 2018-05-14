@@ -26,6 +26,8 @@ import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -127,9 +129,16 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorSystem actorSystem = context().system();
 
+        // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
+        ClusterSharding.get(actorSystem)
+                .startProxy(PoliciesMessagingConstants.SHARD_REGION, Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+        ClusterSharding.get(actorSystem)
+                .startProxy(ThingsMessagingConstants.SHARD_REGION, Optional.of(ThingsMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
         ClusterSharding.get(actorSystem)
                 .startProxy(ThingsSearchConstants.SHARD_REGION, Optional.of(ThingsSearchConstants.CLUSTER_ROLE),
-                        ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
 
         final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
