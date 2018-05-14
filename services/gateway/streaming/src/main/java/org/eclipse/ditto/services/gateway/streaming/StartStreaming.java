@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.streaming;
 import java.util.Objects;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.

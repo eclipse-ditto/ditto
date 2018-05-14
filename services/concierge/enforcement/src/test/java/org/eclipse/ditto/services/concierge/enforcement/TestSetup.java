@@ -98,6 +98,7 @@ public class TestSetup {
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
                 policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
+        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
                 preEnforcer, null);

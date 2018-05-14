@@ -274,7 +274,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 forwardToThingsShardRegion(commandWithReadSubjects, sender);
             }
         } else {
-            respondWithError(thingCommand, sender);
+            respondWithError(thingCommand, sender, self());
         }
     }
 
@@ -353,12 +353,19 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 .isPresent();
 
         if (!authorized) {
-            respondWithError(thingCommand, sender);
+            respondWithError(thingCommand, sender, self());
         }
     }
 
-    private void respondWithError(final ThingCommand thingCommand, final ActorRef sender) {
-        sender.tell(errorForThingCommand(thingCommand), self());
+    /**
+     * Responds to the passed {@code sender} with an error based on the type of the passed in {@code thingCommand}.
+     *
+     * @param thingCommand the ThingCommand to use for determining which error to send back
+     * @param sender the sender to send back the error to
+     * @param self the self reference
+     */
+    static void respondWithError(final ThingCommand thingCommand, final ActorRef sender, final ActorRef self) {
+        sender.tell(errorForThingCommand(thingCommand), self);
     }
 
     /**
@@ -807,7 +814,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (authorizedCommand.isPresent()) {
             return authorizedCommand.map(cmd -> new CreateThingWithEnforcer(cmd, enforcer));
         } else {
-            respondWithError(command, sender);
+            respondWithError(command, sender, self());
             return Optional.empty();
         }
     }

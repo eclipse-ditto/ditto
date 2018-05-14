@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.streaming;
+package org.eclipse.ditto.services.models.concierge.streaming;
 
 import java.util.Arrays;
 
@@ -17,7 +17,7 @@ import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
- * Enumeration of the different types which can be streamed in the Gateway (e.g. to an open Websocket connection). Each
+ * Enumeration of the different types which can be streamed (e.g. to an open Websocket connection). Each
  * type is also aware of the key used for distributed pub/sub in the Akka cluster.
  */
 public enum StreamingType {
