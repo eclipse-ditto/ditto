@@ -48,7 +48,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private final EnforcerRetriever enforcerRetriever;
 
-    private final Map<String, ActorRef> outstandingCommands;
+    private final Map<String, ActorRef> responseReceivers; // TODO TJ use more sophisticated cache
 
     private LiveSignalEnforcement(final Context context, final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
@@ -60,7 +60,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         requireNonNull(aclEnforcerCache);
         enforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
-        outstandingCommands = new HashMap<>();
+        responseReceivers = new HashMap<>();
     }
 
     /**
@@ -115,11 +115,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                     // claim messages require no enforcement, publish them right away:
                     publishMessageCommand((SendClaimMessage) signal, enforcer, sender);
                     if (signal.getDittoHeaders().isResponseRequired()) {
-                        outstandingCommands.put(correlationId, sender);
+                        responseReceivers.put(correlationId, sender);
                     }
                 } else if (signal instanceof CommandResponse) {
                     // no enforcement for responses required - the original sender will get the answer:
-                    final ActorRef responseReceiver = outstandingCommands.remove(correlationId);
+                    final ActorRef responseReceiver = responseReceivers.remove(correlationId);
                     if (responseReceiver != null) {
                         responseReceiver.tell(signal, sender);
                     } else {
@@ -131,11 +131,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
                         final boolean wasPublished = enforceMessageCommand((MessageCommand) signal, enforcer, sender);
                         if (wasPublished && signal.getDittoHeaders().isResponseRequired()) {
-                            outstandingCommands.put(correlationId, sender);
+                            responseReceivers.put(correlationId, sender);
                         }
                     } else if (signal instanceof ThingCommand) {
                         // enforce Live Thing Commands
-                        // TODO TJ must work with both ACL + Policies -> reuse ThingCommandEnforcement ??
+                        // TODO TJ must work with both ACL + Policies -> check if it does -> create a test!
                         final boolean authorized;
                         if (enforcer instanceof AclEnforcer) {
                             authorized = ThingCommandEnforcement.authorizeByAcl(enforcer, (ThingCommand<?>) signal)
@@ -151,7 +151,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                             publishToMediator(withReadSubjects, "things-live-commands", sender);
                             // TODO TJ common constant
                             if (signal.getDittoHeaders().isResponseRequired()) {
-                                outstandingCommands.put(correlationId, sender);
+                                responseReceivers.put(correlationId, sender);
                             }
                         }
                     } else {
