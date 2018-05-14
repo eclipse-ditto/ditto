@@ -45,6 +45,7 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.PatternsCS;
 
@@ -160,9 +161,10 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      *
      * @param signal the command to authorize.
      * @param sender sender of the command.
+     * @param log the logger to use for logging.
      */
     @Override
-    public void enforce(final PolicyCommand signal, final ActorRef sender) {
+    public void enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
         enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
@@ -244,7 +246,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             final PolicyQueryCommand command,
             final ActorRef sender,
             final AskTimeoutException askTimeoutException) {
-        log().error(askTimeoutException, "Timeout before building JsonView");
+        log(command).error(askTimeoutException, "Timeout before building JsonView");
         replyToSender(PolicyUnavailableException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), sender);
@@ -259,7 +261,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                     buildJsonViewForPolicyQueryCommandResponse(thingQueryCommandResponse, enforcer);
             replyToSender(responseWithLimitedJsonView, sender);
         } catch (final DittoRuntimeException e) {
-            log().error(e, "Error after building JsonView");
+            log(e).error(e, "Error after building JsonView");
             replyToSender(e, sender);
         }
     }

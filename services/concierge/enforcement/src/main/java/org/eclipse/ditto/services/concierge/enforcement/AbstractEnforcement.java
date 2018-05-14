@@ -20,10 +20,12 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.base.Signal;
@@ -33,16 +35,16 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
 import akka.stream.Graph;
 import akka.stream.SinkShape;
 
 /**
  * Contains self-type requirements for aspects of enforcer actor dealing with specific commands.
- * Implementations only need to implement {@link #enforce(Signal, ActorRef)} in which they check if the
- * passed in {@link Signal} is authorized and forward it accordingly or respond with an error to the passed in
- * {@code sender}.
+ * Implementations only need to implement {@link #enforce(Signal, ActorRef, DiagnosticLoggingAdapter)} in which they
+ * check if the passed in {@link Signal} is authorized and forward it accordingly or respond with an error to the passed
+ * in {@code sender}.
  * <p>
  * Do NOT call the methods outside this package.
  * </p>
@@ -62,11 +64,12 @@ public abstract class AbstractEnforcement<T extends Signal> {
      *
      * @param signal the signal to authorize.
      * @param sender sender of the signal.
+     * @param log the logger to use for logging.
      */
-    public abstract void enforce(final T signal, final ActorRef sender);
+    public abstract void enforce(T signal, ActorRef sender, DiagnosticLoggingAdapter log);
 
     Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
-        return Consume.of(this::enforce);
+        return Consume.of((signal, sender) -> enforce(signal, sender, context.log));
     }
 
     /**
@@ -102,7 +105,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error,
             final DittoHeaders dittoHeaders) {
-        log().error(error, "Unexpected error {}", hint);
+        log(error).error(error, "Unexpected error {}", hint);
 
         sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
     }
@@ -112,7 +115,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response,
             final DittoHeaders dittoHeaders) {
-        log().error("Unexpected response {}: <{}>", hint, response);
+        log(response).error("Unexpected response {}: <{}>", hint, response);
 
         sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
     }
@@ -188,9 +191,21 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
+     * @param withPotentialDittoHeaders the object which potentially contains DittoHeaders from which a
+     * {@code correlation-id} can be extracted in order to enhance the returned DiagnosticLoggingAdapter
      * @return the diagnostic logging adapter.
      */
-    protected LoggingAdapter log() {
+    protected DiagnosticLoggingAdapter log(final Object withPotentialDittoHeaders) {
+        if (context.log != null && withPotentialDittoHeaders instanceof WithDittoHeaders) {
+            LogUtil.enhanceLogWithCorrelationId(context.log, (WithDittoHeaders<?>) withPotentialDittoHeaders);
+        }
+        return context.log;
+    }
+
+    /**
+     * @return the diagnostic logging adapter.
+     */
+    protected DiagnosticLoggingAdapter log() {
         return context.log;
     }
 
@@ -220,7 +235,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
         private final EntityId entityId;
 
         @Nullable
-        private final LoggingAdapter log;
+        private final DiagnosticLoggingAdapter log;
 
         @Nullable
         private final ActorRef self;
@@ -236,7 +251,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
                 @Nullable final EntityId entityId,
-                @Nullable final LoggingAdapter log,
+                @Nullable final DiagnosticLoggingAdapter log,
                 @Nullable final ActorRef self) {
 
             this.pubSubMediator = pubSubMediator;
@@ -253,7 +268,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
          * @param log the logger.
          * @return the created instance.
          */
-        public Context with(final AbstractActor.ActorContext actorContext, final LoggingAdapter log) {
+        public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log) {
             final ActorRef contextSelf = actorContext.self();
             return new Context(pubSubMediator, askTimeout, decodeEntityId(contextSelf), log, contextSelf);
         }

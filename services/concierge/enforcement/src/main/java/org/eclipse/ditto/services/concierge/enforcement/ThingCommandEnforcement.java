@@ -89,6 +89,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 import akka.actor.ActorRef;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.PatternsCS;
 
@@ -139,9 +140,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param signal the command to authorize.
      * @param sender of the command.
+     * @param log the logger to use for logging.
      */
     @Override
-    public void enforce(final ThingCommand signal, final ActorRef sender) {
+    public void enforce(final ThingCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
         thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
@@ -496,9 +498,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
                     } else if (error != null) {
-                        log().error(error, "retrieving inlined policy after RetrieveThing");
+                        log(error).error(error, "retrieving inlined policy after RetrieveThing");
                     } else {
-                        log().info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
+                        log(response).info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
                                 retrievePolicy.getId(), retrieveThing.getThingId(), response);
                     }
                     return Optional.empty();
@@ -556,7 +558,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ThingQueryCommand command,
             final ActorRef sender,
             final AskTimeoutException askTimeoutException) {
-        log().error(askTimeoutException, "Timeout before building JsonView");
+        log(command).error(askTimeoutException, "Timeout before building JsonView");
         replyToSender(ThingUnavailableException.newBuilder(command.getThingId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), sender);
@@ -578,7 +580,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse, enforcer);
             replyToSender(responseWithLimitedJsonView, sender);
         } catch (final DittoRuntimeException e) {
-            log().error(e, "Error after building JsonView");
+            log(e).error(e, "Error after building JsonView");
             replyToSender(e, sender);
         }
     }
@@ -1026,7 +1028,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 replyToSender(error, sender);
             }
         } catch (final DittoRuntimeException error) {
-            log().error(error, "error before creating thing with initial policy");
+            log(error).error(error, "error before creating thing with initial policy");
             replyToSender(error, sender);
         }
     }
@@ -1186,7 +1188,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final CreateThing command,
             final ActorRef sender) {
 
-        log().info("The Policy with ID '{}' is already existing, the CreateThing " +
+        log(command).info("The Policy with ID '{}' is already existing, the CreateThing " +
                 "command which would have created an implicit Policy for the Thing with ID '{}' " +
                 "is therefore not handled", policyId, command.getThingId());
         final ThingNotCreatableException error =

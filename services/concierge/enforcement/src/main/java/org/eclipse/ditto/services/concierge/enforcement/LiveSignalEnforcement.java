@@ -48,6 +48,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorRef;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Enforces live commands (including message commands) and live events.
@@ -117,7 +118,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     @Override
-    public void enforce(final Signal signal, final ActorRef sender) {
+    public void enforce(final Signal signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
         enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Enforcer enforcer = enforcerEntry.getValue();
@@ -136,7 +137,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         responseReceiver.get().tell(signal, sender);
                         responseReceivers.invalidate(correlationId);
                     } else {
-                        log().warning("No outstanding responses receiver for CommandResponse <{}>", signal.getType());
+                        log(signal).warning("No outstanding responses receiver for CommandResponse <{}>",
+                                signal.getType());
                     }
                 } else if (signal instanceof Command) {
                     // enforce both Live Commands and MessageCommands
@@ -158,20 +160,20 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         }
 
                         if (authorized) {
-                            log().info("Live Command was authorized: <{}>", signal);
                             final Command<?> withReadSubjects =
                                     addReadSubjectsToThingSignal((Command<?>) signal, enforcer);
+                            log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                             publishToMediator(withReadSubjects, StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(),
                                     sender);
                             if (signal.getDittoHeaders().isResponseRequired()) {
                                 responseReceivers.put(correlationId, sender);
                             }
                         } else {
-                            log().info("Live Command was NOT authorized: <{}>", signal);
+                            log(signal).info("Live Command was NOT authorized: <{}>", signal);
                             ThingCommandEnforcement.respondWithError((ThingCommand) signal, sender, self());
                         }
                     } else {
-                        log().error("Ignoring unsupported live signal: <{}>", signal);
+                        log(signal).error("Ignoring unsupported live signal: <{}>", signal);
                     }
 
                 } else if (signal instanceof ThingEvent) {
@@ -182,7 +184,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                             signal.getDittoHeaders().getAuthorizationContext(),
                             WRITE);
                     if (authorized) {
-                        log().info("Live Event was authorized: <{}>", signal);
+                        log(signal).info("Live Event was authorized: <{}>", signal);
                         final Event<?> withReadSubjects = addReadSubjectsToThingSignal((Event<?>) signal, enforcer);
                         publishToMediator(withReadSubjects, StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(),
                                 sender);
@@ -191,13 +193,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                                 EventSendNotAllowedException.newBuilder(((ThingEvent) signal).getThingId())
                                         .dittoHeaders(signal.getDittoHeaders())
                                         .build();
-                        log().info("Live Event was NOT authorized: <{}>", signal);
+                        log(signal).info("Live Event was NOT authorized: <{}>", signal);
                         replyToSender(eventSendNotAllowedException, sender);
                     }
                 }
             } else {
                 // drop live command to nonexistent things and respond with error.
-                log().info("Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
+                log(signal).info("Command of type <{}> with ID <{}> could not be dispatched as no enforcer could be" +
                                 " looked up! Answering with ThingNotAccessibleException.", signal.getType(),
                         signal.getId());
                 final ThingNotAccessibleException error = ThingNotAccessibleException.newBuilder(entityId().getId())
@@ -256,7 +258,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 
-        log().info("The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+        log(command).info("The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
                 command.getDittoHeaders().getAuthorizationSubjects());
         replyToSender(error, sender);
@@ -264,7 +266,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
 
     private void publishToMediator(final Signal<?> command, final String pubSubTopic, final ActorRef sender) {
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
-        log().debug("Publish message to pub-sub: <{}>", pubSubTopic);
+        log(command).debug("Publish message to pub-sub: <{}>", pubSubTopic);
 
         final DistributedPubSubMediator.Publish publishMessage =
                 new DistributedPubSubMediator.Publish(pubSubTopic, command, true);

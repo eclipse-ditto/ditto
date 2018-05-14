@@ -15,7 +15,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import akka.actor.ActorRef;
-import akka.event.LoggingAdapter;
 import akka.stream.Attributes;
 import akka.stream.Inlet;
 import akka.stream.SinkShape;
@@ -28,9 +27,9 @@ import akka.stream.stage.GraphStageLogic;
 public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
 
     private final SinkShape<WithSender<T>> shape = SinkShape.of(Inlet.create("input"));
-    private final BiConsumer<WithSender<T>, LoggingAdapter> consumer;
+    private final Consumer<WithSender<T>> consumer;
 
-    private Consume(final BiConsumer<WithSender<T>, LoggingAdapter> consumer) {
+    private Consume(final Consumer<WithSender<T>> consumer) {
         this.consumer = consumer;
     }
 
@@ -42,7 +41,7 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
      * @return sink.
      */
     public static <T> Consume<T> of(final Consumer<WithSender<? super T>> consumer) {
-        return new Consume<>((withSender, log) -> consumer.accept(withSender));
+        return new Consume<>(consumer::accept);
     }
 
     /**
@@ -53,32 +52,21 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
      * @return sink.
      */
     public static <T> Consume<T> of(final BiConsumer<? super T, ActorRef> consumer) {
-        return new Consume<>((withSender, log) -> consumer.accept(withSender.getMessage(), withSender.getSender()));
-    }
-
-    /**
-     * Create sink from biconsumer of {@code WithHeader} and {@code LoggingAdapter}.
-     *
-     * @param biConsumer the consumer.
-     * @param <T> type of message.
-     * @return sink.
-     */
-    public static <T> Consume<T> withLogger(final BiConsumer<WithSender<? super T>, LoggingAdapter> biConsumer) {
-        return new Consume<>(biConsumer::accept);
+        return new Consume<>(withSender -> consumer.accept(withSender.getMessage(), withSender.getSender()));
     }
 
     /**
      * Create sink from consumer accepting all message types.
      *
-     * @param biConsumer the consumer.
+     * @param consumer the consumer.
      * @return sink.
      */
     @SuppressWarnings("unchecked")
-    public static GraphStage<SinkShape<WithSender>> untypedWithLogger(
-            final BiConsumer<WithSender, LoggingAdapter> biConsumer) {
+    public static GraphStage<SinkShape<WithSender>> untyped(
+            final Consumer<WithSender> consumer) {
 
         // Ignore complaints from Java type checker. The biConsumer can clearly handle all inputs.
-        return (GraphStage<SinkShape<WithSender>>) (Object) new Consume<>(biConsumer::accept);
+        return (GraphStage<SinkShape<WithSender>>) (Object) new Consume<>(consumer::accept);
     }
 
     @Override
@@ -87,13 +75,11 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
     }
 
     @Override
-    public GraphStageLogic createLogic(final Attributes inheritedAttributes) throws Exception {
+    public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
         return new AbstractControlFlowLogic(shape) {
             {
                 initOutlets(shape);
-                when(shape.in(), withSender -> {
-                    consumer.accept(withSender, log());
-                });
+                when(shape.in(), consumer::accept);
             }
         };
     }

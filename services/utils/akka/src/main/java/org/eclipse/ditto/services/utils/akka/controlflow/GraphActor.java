@@ -14,13 +14,15 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.FlowShape;
@@ -36,6 +38,8 @@ import akka.stream.stage.GraphStage;
  */
 public final class GraphActor extends AbstractActor {
 
+    private static final Logger FALLBACK_LOGGER = LoggerFactory.getLogger(GraphActor.class);
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorMaterializer materializer;
@@ -46,9 +50,8 @@ public final class GraphActor extends AbstractActor {
         messageHandler = MergeHub.of(WithSender.class).to(graphCreator.apply(getContext())).run(materializer);
     }
 
-    private GraphActor(
-            final BiFunction<ActorContext, LoggingAdapter, Graph<SinkShape<WithSender>, NotUsed>> graphCreator) {
-        final LoggingAdapter log = LogUtil.obtain(this);
+    private GraphActor(final BiFunction<ActorContext,
+                    DiagnosticLoggingAdapter, Graph<SinkShape<WithSender>, NotUsed>> graphCreator) {
         materializer = ActorMaterializer.create(getContext());
         messageHandler = MergeHub.of(WithSender.class).to(graphCreator.apply(getContext(), log)).run(materializer);
     }
@@ -87,22 +90,32 @@ public final class GraphActor extends AbstractActor {
      * @return Props to create this actor with.
      */
     public static Props partialWithLog(
-            final BiFunction<ActorContext, LoggingAdapter, Graph<FlowShape<WithSender, WithSender>, NotUsed>>
+            final BiFunction<ActorContext, DiagnosticLoggingAdapter, Graph<FlowShape<WithSender, WithSender>, NotUsed>>
                     partialCreator) {
 
         return Props.create(GraphActor.class,
                 () -> new GraphActor((actorContext, log) ->
-                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled())
+                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled(log))
                 )
         );
+    }
+
+    /**
+     * @param log the DiagnosticLoggingAdapter to use to log the warning
+     * @return Graph stage to log unhandled messages at level WARNING.
+     */
+    public static GraphStage<SinkShape<WithSender>> unhandled(final DiagnosticLoggingAdapter log) {
+        return Consume.untyped(wrapped -> {
+            log.warning("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
+        });
     }
 
     /**
      * @return Graph stage to log unhandled messages at level WARNING.
      */
     public static GraphStage<SinkShape<WithSender>> unhandled() {
-        return Consume.untypedWithLogger((wrapped, log) -> {
-            log.warning("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
+        return Consume.untyped(wrapped -> {
+            FALLBACK_LOGGER.warn("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
         });
     }
 
@@ -110,6 +123,9 @@ public final class GraphActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchAny(message -> {
+                    if (message instanceof WithDittoHeaders) {
+                        LogUtil.enhanceLogWithCorrelationId(log, (WithDittoHeaders<?>) message);
+                    }
                     log.debug("Received message: <{}>.", message);
                     final WithSender wrapped = WithSender.of(message, getSender());
                     Source.single(wrapped).runWith(messageHandler, materializer);
