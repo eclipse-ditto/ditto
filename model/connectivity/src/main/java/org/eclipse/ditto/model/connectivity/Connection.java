@@ -42,6 +42,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     String getId();
 
     /**
+     * returns the name of this {@code Connection}.
+     *
+     * @return the name.
+     */
+    String getName();
+
+    /**
      * Returns the connection type of this {@code Connection}.
      *
      * @return the connection type
@@ -215,6 +222,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code Connection} name.
+         */
+        public static final JsonFieldDefinition<String> NAME =
+                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code ConnectionType}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_TYPE =
@@ -239,7 +253,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the {@code Connection} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

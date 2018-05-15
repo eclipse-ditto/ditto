@@ -36,6 +36,7 @@ public final class ConnectivityModelFactory {
      * Returns a new {@code ConnectionBuilder} with the required fields set.
      *
      * @param id the connection identifier.
+     * @param name the connection name.
      * @param connectionType the connection type.
      * @param connectionStatus the connection status.
      * @param uri the connection uri.
@@ -43,10 +44,10 @@ public final class ConnectivityModelFactory {
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ConnectionBuilder newConnectionBuilder(final String id,
+    public static ConnectionBuilder newConnectionBuilder(final String id, final String name,
             final ConnectionType connectionType, final ConnectionStatus connectionStatus, final String uri,
             final AuthorizationContext authorizationContext) {
-        return ImmutableConnectionBuilder.of(id, connectionType, connectionStatus, uri, authorizationContext);
+        return ImmutableConnectionBuilder.of(id, name, connectionType, connectionStatus, uri, authorizationContext);
     }
 
     /**

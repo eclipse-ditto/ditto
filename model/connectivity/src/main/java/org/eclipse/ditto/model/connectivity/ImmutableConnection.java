@@ -50,6 +50,7 @@ final class ImmutableConnection implements Connection {
     private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
 
     private final String id;
+    private final String name;
     private final ConnectionType connectionType;
     private final ConnectionStatus connectionStatus;
     private final AuthorizationContext authorizationContext;
@@ -72,6 +73,7 @@ final class ImmutableConnection implements Connection {
 
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
+        this.name = builder.name;
         this.connectionType = builder.connectionType;
         this.connectionStatus = builder.connectionStatus;
         this.uri = builder.uri;
@@ -120,6 +122,7 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
+        final String readName = jsonObject.getValueOrThrow(JsonFields.NAME);
         final String readConnectionTypeStr = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
         final ConnectionType readConnectionType = ConnectionType.forName(readConnectionTypeStr)
                 .orElseThrow(() -> JsonParseException.newBuilder()
@@ -182,7 +185,7 @@ final class ImmutableConnection implements Connection {
                 .orElse(null);
 
         final ConnectionBuilder builder =
-                ImmutableConnectionBuilder.of(readId, readConnectionType, readConnectionStatus, readUri,
+                ImmutableConnectionBuilder.of(readId, readName, readConnectionType, readConnectionStatus, readUri,
                         readAuthorizationContext);
 
         builder.sources(readSources);
@@ -199,6 +202,11 @@ final class ImmutableConnection implements Connection {
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -298,6 +306,7 @@ final class ImmutableConnection implements Connection {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ID, id, predicate);
+        jsonObjectBuilder.set(JsonFields.NAME, name, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri, predicate);
@@ -336,6 +345,7 @@ final class ImmutableConnection implements Connection {
         return failoverEnabled == that.failoverEnabled &&
                 port == that.port &&
                 Objects.equals(id, that.id) &&
+                Objects.equals(name, that.name) &&
                 Objects.equals(connectionType, that.connectionType) &&
                 Objects.equals(connectionStatus, that.connectionStatus) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
@@ -356,15 +366,16 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, connectionType, connectionStatus, authorizationContext, sources, targets, clientCount,
-                failoverEnabled, uri, protocol, username, password, hostname, path, port, validateCertificate,
-                processorPoolSize, specificConfig, mappingContext);
+        return Objects.hash(id, name, connectionType, connectionStatus, authorizationContext, sources, targets,
+                clientCount, failoverEnabled, uri, protocol, username, password, hostname, path, port,
+                validateCertificate, processorPoolSize, specificConfig, mappingContext);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "id=" + id +
+                ", name=" + name +
                 ", connectionType=" + connectionType +
                 ", connectionStatus=" + connectionStatus +
                 ", authorizationContext=" + authorizationContext +

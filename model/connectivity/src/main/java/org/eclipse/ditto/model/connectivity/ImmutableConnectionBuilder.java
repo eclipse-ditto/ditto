@@ -30,6 +30,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     // final:
     final String id;
+    final String name;
     final ConnectionType connectionType;
 
     // changeable:
@@ -47,10 +48,11 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     final Map<String, String> specificConfig = new HashMap<>();
     @Nullable MappingContext mappingContext = null;
 
-    private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
+    private ImmutableConnectionBuilder(final String id, final String name, final ConnectionType connectionType,
             final ConnectionStatus connectionStatus, final String uri,
             final AuthorizationContext authorizationContext) {
         this.id = checkNotNull(id, "ID");
+        this.name = checkNotNull(name, "Name");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
         this.connectionStatus = checkNotNull(connectionStatus, "Connection Status");
         this.uri = checkNotNull(uri, "URI");
@@ -61,16 +63,17 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
      * Instantiates a new {@code ImmutableConnectionBuilder}.
      *
      * @param id the connection id
+     * @param name the connection name
      * @param connectionType the connection type
      * @param connectionStatus the connection status
      * @param uri the uri
      * @param authorizationContext the authorization context
      * @return new instance of {@code ImmutableConnectionBuilder}
      */
-    static ConnectionBuilder of(final String id, final ConnectionType connectionType,
+    static ConnectionBuilder of(final String id, final String name, final ConnectionType connectionType,
             final ConnectionStatus connectionStatus, final String uri,
             final AuthorizationContext authorizationContext) {
-        return new ImmutableConnectionBuilder(id, connectionType, connectionStatus, uri, authorizationContext);
+        return new ImmutableConnectionBuilder(id, name, connectionType, connectionStatus, uri, authorizationContext);
     }
 
     /**
@@ -81,7 +84,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
      */
     static ConnectionBuilder of(final Connection connection) {
         final ImmutableConnectionBuilder connectionBuilder =
-                new ImmutableConnectionBuilder(connection.getId(), connection.getConnectionType(),
+                new ImmutableConnectionBuilder(connection.getId(), connection.getName(), connection.getConnectionType(),
                         connection.getConnectionStatus(), connection.getUri(), connection.getAuthorizationContext());
         connectionBuilder.failoverEnabled(connection.isFailoverEnabled());
         connectionBuilder.validateCertificate(connection.isValidateCertificates());
