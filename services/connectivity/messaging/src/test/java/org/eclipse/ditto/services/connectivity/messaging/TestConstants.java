@@ -81,7 +81,7 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionId, TYPE, STATUS, getUri(actorSystem),
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem),
                 AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)

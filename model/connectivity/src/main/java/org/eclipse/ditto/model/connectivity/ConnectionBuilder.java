@@ -24,6 +24,14 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 public interface ConnectionBuilder {
 
     /**
+     * Sets the name to use in the {@link Connection}.
+     *
+     * @param name the name.
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder name(String name);
+
+    /**
      * Sets the AuthorizationContext to use in the {@link Connection}.
      *
      * @param authorizationContext the AuthorizationContext

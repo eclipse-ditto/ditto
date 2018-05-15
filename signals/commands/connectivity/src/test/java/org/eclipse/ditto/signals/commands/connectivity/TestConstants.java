@@ -34,7 +34,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 public final class TestConstants {
 
     public static String ID = "myConnectionId";
-    public static String NAME = "myConnection";
 
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
@@ -89,7 +88,7 @@ public final class TestConstants {
                             "}"));
 
     public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)

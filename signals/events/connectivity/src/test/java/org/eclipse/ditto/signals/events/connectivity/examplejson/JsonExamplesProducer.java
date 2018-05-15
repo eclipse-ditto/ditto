@@ -122,7 +122,8 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        .name(NAME)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .mappingContext(MAPPING_CONTEXT)

@@ -42,11 +42,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     String getId();
 
     /**
-     * returns the name of this {@code Connection}.
+     * Returns the name of this {@code Connection}.
      *
      * @return the name.
      */
-    String getName();
+    Optional<String> getName();
 
     /**
      * Returns the connection type of this {@code Connection}.

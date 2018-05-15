@@ -50,7 +50,7 @@ final class ImmutableConnection implements Connection {
     private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
 
     private final String id;
-    private final String name;
+    @Nullable private final String name;
     private final ConnectionType connectionType;
     private final ConnectionStatus connectionStatus;
     private final AuthorizationContext authorizationContext;
@@ -122,7 +122,6 @@ final class ImmutableConnection implements Connection {
      */
     public static Connection fromJson(final JsonObject jsonObject) {
         final String readId = jsonObject.getValueOrThrow(JsonFields.ID);
-        final String readName = jsonObject.getValueOrThrow(JsonFields.NAME);
         final String readConnectionTypeStr = jsonObject.getValueOrThrow(JsonFields.CONNECTION_TYPE);
         final ConnectionType readConnectionType = ConnectionType.forName(readConnectionTypeStr)
                 .orElseThrow(() -> JsonParseException.newBuilder()
@@ -165,6 +164,7 @@ final class ImmutableConnection implements Connection {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
+        final Optional<String> readName = jsonObject.getValue(JsonFields.NAME);
         final Optional<Integer> readClientCount = jsonObject.getValue(JsonFields.CLIENT_COUNT);
         final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
         final Optional<Boolean> readValidateCertificates = jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES);
@@ -184,12 +184,12 @@ final class ImmutableConnection implements Connection {
                 .map(ConnectivityModelFactory::mappingContextFromJson)
                 .orElse(null);
 
-        final ConnectionBuilder builder =
-                ImmutableConnectionBuilder.of(readId, readName, readConnectionType, readConnectionStatus, readUri,
-                        readAuthorizationContext);
+        final ConnectionBuilder builder = ImmutableConnectionBuilder.of(readId, readConnectionType,
+                readConnectionStatus, readUri, readAuthorizationContext);
 
         builder.sources(readSources);
         builder.targets(readTargets);
+        readName.ifPresent(builder::name);
         readClientCount.ifPresent(builder::clientCount);
         readFailoverEnabled.ifPresent(builder::failoverEnabled);
         readValidateCertificates.ifPresent(builder::validateCertificate);
@@ -205,8 +205,8 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public String getName() {
-        return name;
+    public Optional<String> getName() {
+        return Optional.ofNullable(name);
     }
 
     @Override

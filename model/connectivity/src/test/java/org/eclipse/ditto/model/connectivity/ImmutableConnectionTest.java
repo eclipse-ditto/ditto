@@ -142,13 +142,12 @@ public final class ImmutableConnectionTest {
     @Test
     public void createMinimalConnectionConfigurationInstance() {
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                .newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();
 
         assertThat(connection.getId()).isEqualTo(ID);
-        assertThat(connection.getName()).isEqualTo(NAME);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI);
         assertThat(connection.getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT);
@@ -158,25 +157,16 @@ public final class ImmutableConnectionTest {
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, NAME, TYPE, STATUS, URI,
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI,
                         AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "ID")
                 .withNoCause();
     }
 
     @Test
-    public void createInstanceWithNullName() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, null, TYPE, STATUS, URI,
-                        AUTHORIZATION_CONTEXT))
-                .withMessage("The %s must not be null!", "Name")
-                .withNoCause();
-    }
-
-    @Test
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, null,
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null,
                         AUTHORIZATION_CONTEXT))
                 .withMessage("The %s must not be null!", "URI")
                 .withNoCause();
@@ -185,7 +175,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void createInstanceWithNullAuthorizationSubject() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, null))
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, null))
                 .withMessage("The %s must not be null!", "Authorization Context")
                 .withNoCause();
     }
@@ -194,7 +184,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullSources() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                                 .sources((Set) null))
                 .withMessage("The %s must not be null!", "Sources")
                 .withNoCause();
@@ -204,7 +194,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
                                 .targets(null))
                 .withMessage("The %s must not be null!", "Targets")
                 .withNoCause();
@@ -214,7 +204,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithoutSourceAndEventTarget() {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT).build())
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT).build())
                 .withMessageContaining("source")
                 .withMessageContaining("target")
                 .withNoCause();
@@ -223,7 +213,8 @@ public final class ImmutableConnectionTest {
     @Test
     public void fromJsonReturnsExpected() {
         final Connection expected =
-                ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        .name(NAME)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
@@ -251,7 +242,8 @@ public final class ImmutableConnectionTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectivityModelFactory.newConnectionBuilder(ID, NAME, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        .name(NAME)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
