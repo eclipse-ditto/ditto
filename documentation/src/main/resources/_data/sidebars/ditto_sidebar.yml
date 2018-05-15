@@ -217,14 +217,11 @@ entries:
       - title: → commands/events
         output: web
         subfolderitems:
-        - title: Create
-          url: /protocol-specification-things-create.html
+        - title: Create/Modify
+          url: /protocol-specification-things-create-or-modify.html
           output: web
         - title: Retrieve
           url: /protocol-specification-things-retrieve.html
-          output: web
-        - title: Modify
-          url: /protocol-specification-things-modify.html
           output: web
         - title: Delete
           url: /protocol-specification-things-delete.html
