@@ -15,8 +15,8 @@ company_name: Eclipse Ditto
 github_editme_path:
 # if you're using Github, provide the basepath to the branch you've created for reviews, following the sample here. if not, leave this value blank.
 
-google_analytics: UA-109486227-1
-# if you have google-analytics ID, put it in. if not, edit this value to blank.
+google_analytics: GTM-5WLCZXC
+# the above one is the Google Tag Manager ID of the Eclipse Foundation
 
 host: 127.0.0.1
 # the preview server used. Leave as is.

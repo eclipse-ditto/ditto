@@ -9,7 +9,6 @@
 <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="css/modern-business.css">
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" crossorigin="anonymous">
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.6/cookieconsent.min.css" crossorigin="anonymous">
 <link rel="stylesheet" href="css/customstyles.css">
 <link rel="stylesheet" href="css/boxshadowproperties.css">
 <link rel="stylesheet" href="css/theme-ditto.css">
@@ -18,7 +17,6 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js" crossorigin="anonymous"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" crossorigin="anonymous"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/anchor-js/2.0.0/anchor.min.js" crossorigin="anonymous"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.6/cookieconsent.min.js" crossorigin="anonymous"></script>
 <script src="{{ "js/toc.js" }}"></script>
 <script src="{{ "js/customscripts.js" }}"></script>
 
@@ -37,23 +35,6 @@
 
 <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ "/feed.xml" | prepend: site.url }}">
 
-<script>
-    window.addEventListener("load", function(){
-        window.cookieconsent.initialise({
-                container: document.getElementsByClassName("topnavlinks")[0],
-                cookie: {
-                    name: "eclipse_ditto_cookieconsent_status"
-                },
-                palette: {
-                    popup: {background: "#f5f5f5", text: "#5c7291"},
-                    button: {background: "#3a8c9a"},
-                },
-                theme: "edgeless",
-                position: "top",
-                type: "opt-out",
-                content: {
-                    href: "https://www.eclipse.org/legal/privacy.php"
-                }
-            });
-    });
-</script>
+<!-- Eclipse Foundation cookie consent: -->
+<link rel="stylesheet" type="text/css" href="//www.eclipse.org/eclipse.org-common/themes/solstice/public/stylesheets/vendor/cookieconsent/cookieconsent.min.css" />
+<script src="//www.eclipse.org/eclipse.org-common/themes/solstice/public/javascript/vendor/cookieconsent/default.min.js"></script>

@@ -825,6 +825,17 @@ ol.series li {
     font-family: Open Sans, sans-serif;
 }
 
+.cc-color-override-1434350510 {
+    background-color: #f5f5f5 !important;
+    color: #5c7291 !important;
+}
+.cc-color-override-1434350510 .cc-link {
+    color: black !important;
+}
+.cc-color-override-1434350510 .cc-btn.cc-allow {
+    background-color: #3a8c9a !important;
+}
+
 /*
 a.dropdown-toggle.otherProgLangs {
     color: #f7e68f !important;
