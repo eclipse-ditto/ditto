@@ -69,6 +69,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
@@ -89,7 +90,6 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.ExceptionHandler;
 import akka.http.javadsl.server.PathMatchers;
-import akka.http.javadsl.server.RejectionHandler;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
@@ -266,7 +266,7 @@ public final class RootRoute {
                                                                do it here explicitly, we are able to log the status code for the
                                                                rejection (e.g. 404 or 405) in a wrapping directive. */
                                                                                                 handleRejections(
-                                                                                                        RejectionHandler.defaultHandler(),
+                                                                                                        DittoRejectionHandlerFactory.createInstance(),
                                                                                                         () ->
                                                                     /* the inner handleExceptions is for handling exceptions
                                                                        occurring in the route route. It makes sure that the

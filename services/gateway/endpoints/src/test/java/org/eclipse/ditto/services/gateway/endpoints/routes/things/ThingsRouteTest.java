@@ -73,11 +73,4 @@ public class ThingsRouteTest extends EndpointTestBase {
                 "\"description\":\"Please provide at least one thing id and try again.\"" +
                 "}");
     }
-
-    @Test
-    public void getThingsWithoutIds() {
-        final TestRouteResult result = underTest.run(HttpRequest.GET("/things"));
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
-        result.assertEntity("Request is missing parameter: 'ids'");
-    }
 }

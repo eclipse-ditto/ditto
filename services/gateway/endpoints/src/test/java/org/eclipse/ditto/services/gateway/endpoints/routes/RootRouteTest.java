@@ -112,7 +112,7 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingsUrlWithoutIds() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH))));
-        result.assertStatusCode(StatusCodes.NOT_FOUND);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test

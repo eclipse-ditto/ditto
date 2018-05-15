@@ -11,12 +11,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
-import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.delete;
 import static akka.http.javadsl.server.Directives.extractDataBytes;
 import static akka.http.javadsl.server.Directives.extractUnmatchedPath;
 import static akka.http.javadsl.server.Directives.get;
-import static akka.http.javadsl.server.Directives.handleRejections;
 import static akka.http.javadsl.server.Directives.parameter;
 import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.path;
@@ -43,7 +41,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -163,15 +160,14 @@ public final class ThingsRoute extends AbstractRoute {
 
 
     private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
-        return handleRejections(DittoRejectionHandlerFactory.createInstance(),
-                () -> parameter(ThingsParameter.IDS.toString(), idsString ->
-                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                handlePerRequest(ctx, dittoHeaders, Source.empty(), emptyRequestBody -> RetrieveThings
-                                        .getBuilder((idsString).isEmpty() ? new String[0] : idsString.split(","))
-                                        .selectedFields(calculateSelectedFields(fieldsString))
-                                        .dittoHeaders(dittoHeaders).build())
-                        )
+        return parameter(ThingsParameter.IDS.toString(), idsString ->
+                parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        handlePerRequest(ctx, dittoHeaders, Source.empty(), emptyRequestBody -> RetrieveThings
+                                .getBuilder((idsString).isEmpty() ? new String[0] : idsString.split(","))
+                                .selectedFields(calculateSelectedFields(fieldsString))
+                                .dittoHeaders(dittoHeaders).build())
                 )
+
         );
     }
 
