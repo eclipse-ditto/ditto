@@ -25,6 +25,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -60,7 +61,6 @@ public class ConciergeForwarderActor extends AbstractActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion) {
-
         return props(pubSubMediator, conciergeShardRegion, Function.identity());
     }
 
@@ -76,7 +76,14 @@ public class ConciergeForwarderActor extends AbstractActor {
     public static Props props(final ActorRef pubSubMediator, final ActorRef conciergeShardRegion,
             final Function<Signal<?>, Signal<?>> signalTransformer) {
 
-        return Props.create(ConciergeForwarderActor.class, pubSubMediator, conciergeShardRegion, signalTransformer);
+        return Props.create(ConciergeForwarderActor.class, new Creator<ConciergeForwarderActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ConciergeForwarderActor create() {
+                return new ConciergeForwarderActor(pubSubMediator, conciergeShardRegion, signalTransformer);
+            }
+        });
     }
 
     @Override
