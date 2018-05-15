@@ -31,7 +31,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
@@ -77,6 +76,7 @@ final class ImmutableConnection implements Connection {
         this.uri = builder.uri;
         this.authorizationContext = builder.authorizationContext;
         checkSourceAndTargetAreValid(builder);
+        checkAuthorizationContextsAreValid(builder);
         this.sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
         this.targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
         this.clientCount = builder.clientCount;
@@ -111,6 +111,39 @@ final class ImmutableConnection implements Connection {
     }
 
     /**
+     * If no context is set on connection level each target and source must have its own context.
+     */
+    private void checkAuthorizationContextsAreValid(final ImmutableConnectionBuilder builder) {
+        if (builder.authorizationContext.isEmpty()) {
+            // if the auth context on connection level is empty,
+            // an auth context is required to be set on each source/target
+            final Set<String> sourcesWithoutAuthContext = builder.sources.stream()
+                    .filter(source -> source.getAuthorizationContext().isEmpty())
+                    .flatMap(source -> source.getAddresses().stream())
+                    .collect(Collectors.toSet());
+            final Set<String> targetsWithoutAuthContext = builder.targets.stream()
+                    .filter(target -> target.getAuthorizationContext().isEmpty())
+                    .map(Target::getAddress)
+                    .collect(Collectors.toSet());
+
+            if (!sourcesWithoutAuthContext.isEmpty() || !targetsWithoutAuthContext.isEmpty()) {
+                final StringBuilder message = new StringBuilder("The ");
+                if (!sourcesWithoutAuthContext.isEmpty()) {
+                    message.append("Sources ").append(sourcesWithoutAuthContext);
+                }
+                if (!sourcesWithoutAuthContext.isEmpty() && !targetsWithoutAuthContext.isEmpty()) {
+                    message.append(" and ");
+                }
+                if (!targetsWithoutAuthContext.isEmpty()) {
+                    message.append("Targets ").append(targetsWithoutAuthContext);
+                }
+                message.append(" are missing an authorization context.");
+                throw ConnectionConfigurationInvalidException.newBuilder(message.toString()).build();
+            }
+        }
+    }
+
+    /**
      * Creates a new {@code Connection} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the Connection to be created.
@@ -131,36 +164,9 @@ final class ImmutableConnection implements Connection {
                         .message("Invalid ConnectionStatus: " + readConnectionStatusStr)
                         .build());
         final String readUri = jsonObject.getValueOrThrow(JsonFields.URI);
-        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
-                .orElseGet(() ->
-                        jsonObject.getValue(
-                                "authorizationSubject") // as a fallback use the already persisted "authorizationSubject" field
-                                .filter(JsonValue::isString)
-                                .map(JsonValue::asString)
-                                .map(str -> JsonArray.newBuilder().add(str).build())
-                                .orElseThrow(() -> new JsonMissingFieldException(JsonFields.AUTHORIZATION_CONTEXT))
-                );
-        final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toList());
-        final AuthorizationContext readAuthorizationContext =
-                AuthorizationModelFactory.newAuthContext(authorizationSubjects);
-        final Set<Source> readSources = jsonObject.getValue(JsonFields.SOURCES)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .map(ImmutableSource::fromJson)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
-        final Set<Target> readTargets = jsonObject.getValue(JsonFields.TARGETS)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .map(ImmutableTarget::fromJson)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+        final AuthorizationContext readAuthorizationContext = readAuthorizationContextFromJson(jsonObject);
+        final Set<Source> readSources = readSourcesFromJson(jsonObject);
+        final Set<Target> readTargets = readTargetsFromJson(jsonObject);
 
         final Optional<Integer> readClientCount = jsonObject.getValue(JsonFields.CLIENT_COUNT);
         final Optional<Boolean> readFailoverEnabled = jsonObject.getValue(JsonFields.FAILOVER_ENABLED);
@@ -182,9 +188,9 @@ final class ImmutableConnection implements Connection {
                 .orElse(null);
 
         final ConnectionBuilder builder =
-                ImmutableConnectionBuilder.of(readId, readConnectionType, readConnectionStatus, readUri,
-                        readAuthorizationContext);
+                ImmutableConnectionBuilder.of(readId, readConnectionType, readConnectionStatus, readUri);
 
+        builder.authorizationContext(readAuthorizationContext);
         builder.sources(readSources);
         builder.targets(readTargets);
         readClientCount.ifPresent(builder::clientCount);
@@ -194,6 +200,46 @@ final class ImmutableConnection implements Connection {
         builder.specificConfig(readConnectionTypeSpecificConfiguration);
         builder.mappingContext(readMappingContext);
         return builder.build();
+    }
+
+    private static Set<Target> readTargetsFromJson(final JsonObject jsonObject) {
+        return jsonObject.getValue(JsonFields.TARGETS)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableTarget::fromJson)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+    }
+
+    private static Set<Source> readSourcesFromJson(final JsonObject jsonObject) {
+        return jsonObject.getValue(JsonFields.SOURCES)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableSource::fromJson)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+    }
+
+    private static AuthorizationContext readAuthorizationContextFromJson(final JsonObject jsonObject) {
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
+                .orElseGet(() ->
+                        // as a fallback use the already persisted "authorizationSubject" field
+                        jsonObject.getValue("authorizationSubject")
+                                .filter(JsonValue::isString)
+                                .map(JsonValue::asString)
+                                .map(str -> JsonArray.newBuilder().add(str).build())
+                                // allow empty auth context for connection, can be defined in sources/targets
+                                .orElseGet(() -> JsonArray.newBuilder().build())
+                );
+
+        final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+        return AuthorizationModelFactory.newAuthContext(authorizationSubjects);
     }
 
     @Override

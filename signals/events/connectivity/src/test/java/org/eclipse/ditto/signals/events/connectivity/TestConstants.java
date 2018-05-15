@@ -49,7 +49,8 @@ public final class TestConstants {
     public static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
     public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                    .authorizationContext(AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .build();

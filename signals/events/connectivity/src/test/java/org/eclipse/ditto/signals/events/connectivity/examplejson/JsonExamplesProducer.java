@@ -45,7 +45,7 @@ public class JsonExamplesProducer {
     private static final String ID = "myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
-    public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
+    private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
 
     private static final String URI = "amqps://foo:bar@example.com:443";
 
@@ -59,7 +59,7 @@ public class JsonExamplesProducer {
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
 
-    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
+    private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
             Collections.singletonMap("incomingScript",
                     "function mapToDittoProtocolMsg(\n" +
@@ -121,7 +121,8 @@ public class JsonExamplesProducer {
         Files.createDirectories(eventsDir);
 
         final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .mappingContext(MAPPING_CONTEXT)

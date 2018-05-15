@@ -11,9 +11,9 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -21,12 +21,17 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -35,56 +40,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableSource implements Source {
 
-    public static final int DEFAULT_CONSUMER_COUNT = 1;
+    static final int DEFAULT_CONSUMER_COUNT = 1;
 
     private final Set<String> addresses;
     private final int consumerCount;
+    private final AuthorizationContext authorizationContext;
 
-    private ImmutableSource(final Set<String> addresses, final int consumerCount) {
+    ImmutableSource(final Set<String> addresses, final int consumerCount,
+            final AuthorizationContext authorizationContext) {
         this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
-    }
-
-    /**
-     * Creates a new {@code ImmutableSource} instance with a default consumer count of {@value #DEFAULT_CONSUMER_COUNT}.
-     *
-     * @param addresses the addresses of this source
-     * @return a new instance of ImmutableSource
-     */
-    public static ImmutableSource of(final String... addresses) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), DEFAULT_CONSUMER_COUNT);
-    }
-
-    /**
-     * Creates a new {@code ImmutableSource} instance with a default consumer count of {@value #DEFAULT_CONSUMER_COUNT}.
-     *
-     * @param addresses the addresses of this source
-     * @return a new instance of ImmutableSource
-     */
-    public static ImmutableSource of(final Set<String> addresses) {
-        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT);
-    }
-
-    /**
-     * Creates a new {@code ImmutableSource} instance.
-     *
-     * @param addresses the addresses of this source
-     * @param consumerCount number of consumers (connections) that will be opened to the remote server
-     * @return a new instance of ImmutableSource
-     */
-    public static ImmutableSource of(final Set<String> addresses, final int consumerCount) {
-        return new ImmutableSource(addresses, consumerCount);
-    }
-
-    /**
-     * Creates a new {@code ImmutableSource} instance.
-     *
-     * @param addresses the addresses of this source
-     * @param consumerCount number of consumers (connections) that will be opened to the remote server
-     * @return a new instance of ImmutableSource
-     */
-    public static ImmutableSource of(final int consumerCount, final String... addresses) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(addresses)), consumerCount);
+        this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
     }
 
     @Override
@@ -98,6 +64,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public AuthorizationContext getAuthorizationContext() {
+        return authorizationContext;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -106,6 +77,13 @@ final class ImmutableSource implements Source {
         jsonObjectBuilder.set(Source.JsonFields.ADDRESSES, addresses.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+
+        if (!authorizationContext.isEmpty()) {
+            jsonObjectBuilder.set(Target.JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
+                    .map(AuthorizationSubject::getId)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray()), predicate);
+        }
 
         jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
         return jsonObjectBuilder.build();
@@ -126,7 +104,17 @@ final class ImmutableSource implements Source {
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final int readConsumerCount =
                 jsonObject.getValue(Source.JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
-        return ImmutableSource.of(readSources, readConsumerCount);
+        final JsonArray authContext = jsonObject.getValue(Connection.JsonFields.AUTHORIZATION_CONTEXT)
+                .orElseGet(() -> JsonArray.newBuilder().build());
+        final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
+        final AuthorizationContext readAuthorizationContext =
+                AuthorizationModelFactory.newAuthContext(authorizationSubjects);
+
+        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext);
     }
 
     @Override
@@ -135,12 +123,13 @@ final class ImmutableSource implements Source {
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableSource that = (ImmutableSource) o;
         return consumerCount == that.consumerCount &&
-                Objects.equals(addresses, that.addresses);
+                Objects.equals(addresses, that.addresses) &&
+                Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(addresses, consumerCount);
+        return Objects.hash(addresses, consumerCount, authorizationContext);
     }
 
     @Override
@@ -148,6 +137,7 @@ final class ImmutableSource implements Source {
         return getClass().getSimpleName() + " [" +
                 "addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
+                ", authorizationContext=" + authorizationContext +
                 "]";
     }
 }

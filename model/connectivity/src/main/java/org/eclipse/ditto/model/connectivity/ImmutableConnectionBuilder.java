@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 
 /**
  * Builder for {@code ImmutableConnection}.
@@ -33,11 +34,11 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     final ConnectionType connectionType;
 
     // changeable:
-    AuthorizationContext authorizationContext;
     String uri;
     ConnectionStatus connectionStatus;
 
     // optional:
+    AuthorizationContext authorizationContext = AuthorizationModelFactory.emptyAuthContext();
     boolean failoverEnabled = true;
     boolean validateCertificate = true;
     final Set<Source> sources = new HashSet<>();
@@ -48,13 +49,11 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     @Nullable MappingContext mappingContext = null;
 
     private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus, final String uri,
-            final AuthorizationContext authorizationContext) {
+            final ConnectionStatus connectionStatus, final String uri) {
         this.id = checkNotNull(id, "ID");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
         this.connectionStatus = checkNotNull(connectionStatus, "Connection Status");
         this.uri = checkNotNull(uri, "URI");
-        this.authorizationContext = checkNotNull(authorizationContext, "Authorization Context");
     }
 
     /**
@@ -64,13 +63,11 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
      * @param connectionType the connection type
      * @param connectionStatus the connection status
      * @param uri the uri
-     * @param authorizationContext the authorization context
      * @return new instance of {@code ImmutableConnectionBuilder}
      */
     static ConnectionBuilder of(final String id, final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus, final String uri,
-            final AuthorizationContext authorizationContext) {
-        return new ImmutableConnectionBuilder(id, connectionType, connectionStatus, uri, authorizationContext);
+            final ConnectionStatus connectionStatus, final String uri) {
+        return new ImmutableConnectionBuilder(id, connectionType, connectionStatus, uri);
     }
 
     /**
@@ -82,7 +79,8 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     static ConnectionBuilder of(final Connection connection) {
         final ImmutableConnectionBuilder connectionBuilder =
                 new ImmutableConnectionBuilder(connection.getId(), connection.getConnectionType(),
-                        connection.getConnectionStatus(), connection.getUri(), connection.getAuthorizationContext());
+                        connection.getConnectionStatus(), connection.getUri());
+        connectionBuilder.authorizationContext(connection.getAuthorizationContext());
         connectionBuilder.failoverEnabled(connection.isFailoverEnabled());
         connectionBuilder.validateCertificate(connection.isValidateCertificates());
         connectionBuilder.processorPoolSize(connection.getProcessorPoolSize());
@@ -95,8 +93,10 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     }
 
     @Override
-    public ConnectionBuilder authorizationContext(final AuthorizationContext authorizationContext) {
-        this.authorizationContext = authorizationContext;
+    public ConnectionBuilder authorizationContext(@Nullable final AuthorizationContext authorizationContext) {
+        this.authorizationContext = authorizationContext != null
+                ? authorizationContext
+                : AuthorizationModelFactory.emptyAuthContext();
         return this;
     }
 

@@ -46,7 +46,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
-import scala.Option;
 
 public class TestConstants {
 
@@ -81,7 +80,8 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem), AUTHORIZATION_CONTEXT)
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
+                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();

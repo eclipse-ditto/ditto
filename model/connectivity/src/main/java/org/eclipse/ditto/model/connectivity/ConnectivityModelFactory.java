@@ -11,7 +11,12 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.eclipse.ditto.model.connectivity.ImmutableSource.DEFAULT_CONSUMER_COUNT;
+
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +26,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 
 /**
  * Factory to create new {@link Connection} instances.
@@ -39,18 +45,17 @@ public final class ConnectivityModelFactory {
      * @param connectionType the connection type.
      * @param connectionStatus the connection status.
      * @param uri the connection uri.
-     * @param authorizationContext the connection authorization context.
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final String id,
-            final ConnectionType connectionType, final ConnectionStatus connectionStatus, final String uri,
-            final AuthorizationContext authorizationContext) {
-        return ImmutableConnectionBuilder.of(id, connectionType, connectionStatus, uri, authorizationContext);
+            final ConnectionType connectionType, final ConnectionStatus connectionStatus, final String uri) {
+        return ImmutableConnectionBuilder.of(id, connectionType, connectionStatus, uri);
     }
 
     /**
-     * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with the
+     * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with
+     * the
      * values of the given Connection.
      *
      * @param connection the Connection which provides the initial values of the builder.
@@ -237,20 +242,125 @@ public final class ConnectivityModelFactory {
         return new MutableExternalMessageBuilder(externalMessage);
     }
 
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param addresses the source addresses where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final Set<String> addresses) {
+        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT, AuthorizationModelFactory.emptyAuthContext());
+    }
+
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param addresses the source addresses where messages are consumed from
+     * @param consumerCount how many consumer will consume of the new {@link Source}
+     * @return the created {@link Source}
+     */
     public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return ImmutableSource.of(addresses, consumerCount);
+        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext());
     }
 
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param addresses the source addresses where messages are consumed from
+     * @param consumerCount how many consumer will consume of the new {@link Source}
+     * @param authorizationContext the authorization context
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final Set<String> addresses, final int consumerCount,
+            final AuthorizationContext authorizationContext) {
+        return new ImmutableSource(addresses, consumerCount, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final String... sources) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
+                AuthorizationModelFactory.emptyAuthContext());
+    }
+
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
     public static Source newSource(final int consumerCount, final String... sources) {
-        return ImmutableSource.of(consumerCount, sources);
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount,
+                AuthorizationModelFactory.emptyAuthContext());
     }
 
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final int consumerCount, final AuthorizationContext authorizationContext,
+            final String... sources) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param topics the topics for which this target will receive signals
+     * @return the created {@link Target}
+     */
     public static Target newTarget(final String address, final Set<String> topics) {
-        return ImmutableTarget.of(address, topics);
+        return new ImmutableTarget(address, topics, AuthorizationModelFactory.emptyAuthContext());
     }
 
-    public static Target newTarget(final String address, final String requiredTopic, final String... topics) {
-        return ImmutableTarget.of(address, requiredTopic, topics);
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param topics the topics for which this target will receive signals
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final Set<String> topics,
+            final AuthorizationContext authorizationContext) {
+        return new ImmutableTarget(address, topics, authorizationContext);
     }
 
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final String requiredTopic, final String... additionalTopics) {
+        return newTarget(address, AuthorizationModelFactory.emptyAuthContext(), requiredTopic, additionalTopics);
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
+            final String requiredTopic, final String... additionalTopics) {
+        final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics, authorizationContext);
+    }
 }

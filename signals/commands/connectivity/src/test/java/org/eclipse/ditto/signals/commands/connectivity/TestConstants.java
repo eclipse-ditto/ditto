@@ -38,20 +38,19 @@ public final class TestConstants {
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
 
-    public static String URI = "amqps://username:password@my.endpoint:443";
+    private static final String URI = "amqps://username:password@my.endpoint:443";
 
-    public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    public static final Set<Source> SOURCES = new HashSet<>(
+    private static final Set<Source> SOURCES = new HashSet<>(
             Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
                     ConnectivityModelFactory.newSource(2, "amqp/source2")));
 
-    public static final Set<Target> TARGETS = new HashSet<>(
+    private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
 
-
-    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
+    private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
             Collections.singletonMap("incomingScript",
                     "function mapToDittoProtocolMsg(\n" +
@@ -88,13 +87,14 @@ public final class TestConstants {
                             "}"));
 
     public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                    .authorizationContext(AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)
                     .build();
 
-    public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
+    private static final Map<String, ConnectionStatus> CONNECTION_STATUSES;
 
     static {
         CONNECTION_STATUSES = new HashMap<>();

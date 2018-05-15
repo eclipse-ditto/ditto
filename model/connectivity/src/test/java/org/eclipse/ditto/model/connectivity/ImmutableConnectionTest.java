@@ -51,17 +51,17 @@ public final class ImmutableConnectionTest {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Source SOURCE1 = ImmutableSource.of("amqp/source1");
-    private static final Source SOURCE2 = ImmutableSource.of("amqp/source2");
+    private static final Source SOURCE1 = ConnectivityModelFactory.newSource("amqp/source1");
+    private static final Source SOURCE2 = ConnectivityModelFactory.newSource(1, AUTHORIZATION_CONTEXT, "amqp/source2");
     private static final Set<Source> SOURCES = new HashSet<>(Arrays.asList(SOURCE1, SOURCE2));
     private static final Target TARGET1 =
-            ImmutableTarget.of("amqp/target1", "_/_/things/twin/events", "_/_/things/live/events");
+            ConnectivityModelFactory.newTarget("amqp/target1", "_/_/things/twin/events", "_/_/things/live/events");
     private static final Target TARGET2 =
-            ImmutableTarget.of("amqp/target2", "_/_/things/live/messages", "_/_/things/live/messages",
+            ConnectivityModelFactory.newTarget("amqp/target2", "_/_/things/live/messages", "_/_/things/live/messages",
                     "_/_/things/live/events");
     private static final Target TARGET3 =
-            ImmutableTarget.of("amqp/target3", "_/_/things/live/messages", "_/_/things/live/messages",
-                    "_/_/things/live/commands");
+            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, "_/_/things/live/messages",
+                    "_/_/things/live/messages", "_/_/things/live/commands");
     private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
 
     private static final JsonArray KNOWN_SOURCES_JSON =
@@ -69,7 +69,7 @@ public final class ImmutableConnectionTest {
     private static final JsonArray KNOWN_TARGETS_JSON =
             TARGETS.stream().map(Target::toJson).collect(JsonCollectors.valuesToArray());
 
-    private static MappingContext KNOWN_MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
+    private static final MappingContext KNOWN_MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
             Collections.singletonMap("incomingScript",
                     "function mapToDittoProtocolMsg(\n" +
@@ -139,7 +139,8 @@ public final class ImmutableConnectionTest {
     @Test
     public void createMinimalConnectionConfigurationInstance() {
         final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                .newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();
@@ -154,7 +155,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void createInstanceWithNullId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT))
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(null, TYPE, STATUS, URI))
                 .withMessage("The %s must not be null!", "ID")
                 .withNoCause();
     }
@@ -162,16 +163,8 @@ public final class ImmutableConnectionTest {
     @Test
     public void createInstanceWithNullUri() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null, AUTHORIZATION_CONTEXT))
+                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null))
                 .withMessage("The %s must not be null!", "URI")
-                .withNoCause();
-    }
-
-    @Test
-    public void createInstanceWithNullAuthorizationSubject() {
-        assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, null))
-                .withMessage("The %s must not be null!", "Authorization Context")
                 .withNoCause();
     }
 
@@ -179,7 +172,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullSources() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI)
                                 .sources((Set) null))
                 .withMessage("The %s must not be null!", "Sources")
                 .withNoCause();
@@ -189,7 +182,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithNullEventTarget() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT).targets(null))
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI).targets(null))
                 .withMessage("The %s must not be null!", "Targets")
                 .withNoCause();
     }
@@ -198,7 +191,7 @@ public final class ImmutableConnectionTest {
     public void createInstanceWithoutSourceAndEventTarget() {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(
-                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT).build())
+                        () -> ImmutableConnectionBuilder.of(ID, TYPE, STATUS, URI).build())
                 .withMessageContaining("source")
                 .withMessageContaining("target")
                 .withNoCause();
@@ -207,7 +200,8 @@ public final class ImmutableConnectionTest {
     @Test
     public void fromJsonReturnsExpected() {
         final Connection expected =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
@@ -221,21 +215,33 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void fromInvalidJsonFails() {
-        final JsonObject INVALID_JSON = KNOWN_JSON.remove(Connection.JsonFields.SOURCES.getPointer())
+        final JsonObject invalidJson = KNOWN_JSON.remove(Connection.JsonFields.SOURCES.getPointer())
                 .remove(Connection.JsonFields.TARGETS.getPointer());
 
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(
-                        () -> ImmutableConnection.fromJson(INVALID_JSON))
+                        () -> ImmutableConnection.fromJson(invalidJson))
                 .withMessageContaining("source")
                 .withMessageContaining("target")
                 .withNoCause();
     }
 
     @Test
+    public void fromJsonWithoutValidAuthorizationContextFails() {
+        final JsonObject invalidJson = KNOWN_JSON.remove(Connection.JsonFields.AUTHORIZATION_CONTEXT.getPointer());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(
+                        () -> ImmutableConnection.fromJson(invalidJson))
+                .withMessageContaining("Sources " + SOURCE1.getAddresses())
+                .withMessageContaining("Targets " + Arrays.asList(TARGET1.getAddress(), TARGET2.getAddress()))
+                .withNoCause();
+    }
+
+    @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .clientCount(2)
