@@ -579,9 +579,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ThingQueryCommandResponse responseWithLimitedJsonView =
                     buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse, enforcer);
             replyToSender(responseWithLimitedJsonView, sender);
-        } catch (final DittoRuntimeException e) {
-            log(e).error(e, "Error after building JsonView");
-            replyToSender(e, sender);
+        } catch (final RuntimeException e) {
+            reportError("Error after building JsonView", sender, e, thingQueryCommandResponse.getDittoHeaders());
         }
     }
 
@@ -1027,9 +1026,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 .build();
                 replyToSender(error, sender);
             }
-        } catch (final DittoRuntimeException error) {
-            log(error).error(error, "error before creating thing with initial policy");
-            replyToSender(error, sender);
+        } catch (final RuntimeException error) {
+            reportError("error before creating thing with initial policy", sender, error,
+                    createThing.getDittoHeaders());
         }
     }
 

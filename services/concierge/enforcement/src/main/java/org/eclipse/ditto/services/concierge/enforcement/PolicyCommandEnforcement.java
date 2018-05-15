@@ -260,9 +260,8 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             final PolicyQueryCommandResponse responseWithLimitedJsonView =
                     buildJsonViewForPolicyQueryCommandResponse(thingQueryCommandResponse, enforcer);
             replyToSender(responseWithLimitedJsonView, sender);
-        } catch (final DittoRuntimeException e) {
-            log(e).error(e, "Error after building JsonView");
-            replyToSender(e, sender);
+        } catch (final RuntimeException e) {
+            reportError("Error after building JsonView", sender, e, thingQueryCommandResponse.getDittoHeaders());
         }
     }
 

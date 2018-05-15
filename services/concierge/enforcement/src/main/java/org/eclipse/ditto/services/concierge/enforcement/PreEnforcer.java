@@ -104,8 +104,8 @@ public final class PreEnforcer {
         try {
             return futureSupplier.get()
                     .exceptionally(error -> handleError(error, wrapped, self));
-        } catch (final Throwable error) {
-            return CompletableFuture.completedFuture(handleError(error, wrapped, self));
+        } catch (final RuntimeException ex) {
+            return CompletableFuture.completedFuture(handleError(ex, wrapped, self));
         }
     }
 

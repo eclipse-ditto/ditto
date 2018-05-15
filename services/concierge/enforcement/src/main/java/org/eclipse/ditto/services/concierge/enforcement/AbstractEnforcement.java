@@ -19,6 +19,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -101,13 +102,28 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * Report unknown error.
+     * Reports an error differently based on type of the error. If the error is of type
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is send to the {@code sender}
+     * without modification, otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
+     */
+    protected void reportError(final String hint, final ActorRef sender, final Throwable error,
+            final DittoHeaders dittoHeaders) {
+        if (error instanceof DittoRuntimeException) {
+            log(dittoHeaders).error(error, hint);
+            sender.tell(error, self());
+        } else {
+            reportUnexpectedError(hint, sender, error, dittoHeaders);
+        }
+    }
+
+    /**
+     * Report unexpected error.
      */
     protected void reportUnexpectedError(final String hint, final ActorRef sender, final Throwable error,
             final DittoHeaders dittoHeaders) {
-        log(error).error(error, "Unexpected error {}", hint);
+        log(dittoHeaders).error(error, "Unexpected error {}", hint);
 
-        sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
+        sender.tell(mapToExternalException(error, dittoHeaders), self());
     }
 
     /**
@@ -115,9 +131,20 @@ public abstract class AbstractEnforcement<T extends Signal> {
      */
     protected void reportUnknownResponse(final String hint, final ActorRef sender, final Object response,
             final DittoHeaders dittoHeaders) {
-        log(response).error("Unexpected response {}: <{}>", hint, response);
+        log(dittoHeaders).error("Unexpected response {}: <{}>", hint, response);
 
         sender.tell(GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build(), self());
+    }
+
+    private DittoRuntimeException mapToExternalException(final Throwable error,
+            final DittoHeaders dittoHeaders) {
+        if (error instanceof GatewayInternalErrorException) {
+            return (GatewayInternalErrorException) error;
+        }
+
+        return GatewayInternalErrorException.newBuilder()
+                .cause(error).dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
@@ -196,8 +223,20 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @return the diagnostic logging adapter.
      */
     protected DiagnosticLoggingAdapter log(final Object withPotentialDittoHeaders) {
-        if (context.log != null && withPotentialDittoHeaders instanceof WithDittoHeaders) {
-            LogUtil.enhanceLogWithCorrelationId(context.log, (WithDittoHeaders<?>) withPotentialDittoHeaders);
+        if (withPotentialDittoHeaders instanceof WithDittoHeaders) {
+            return log(((WithDittoHeaders<?>) withPotentialDittoHeaders).getDittoHeaders());
+        }
+        return context.log;
+    }
+
+    /**
+     * @param dittoHeaders the DittoHeaders from which a {@code correlation-id} can be extracted in order to enhance
+     * the returned DiagnosticLoggingAdapter.
+     * @return the diagnostic logging adapter.
+     */
+    protected DiagnosticLoggingAdapter log(final DittoHeaders dittoHeaders) {
+        if (context.log != null) {
+            LogUtil.enhanceLogWithCorrelationId(context.log, dittoHeaders);
         }
         return context.log;
     }
