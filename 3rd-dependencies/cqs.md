@@ -8,21 +8,20 @@
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
 |com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
 |com.eclipsesource.minimal-json|minimal-json|0.9.5| [16296](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16296) |
-|com.fasterxml.jackson.core|jackson-annotations|2.9.5| [16297](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16297) |
-|com.fasterxml.jackson.core|jackson-core|2.9.5| [16298](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16298) |
-|com.fasterxml.jackson.core|jackson-databind|2.9.5| [16299](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16299) |
+|com.fasterxml.jackson.core|jackson-annotations|2.9.5| [16309](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16309) |
+|com.fasterxml.jackson.core|jackson-core|2.9.5| [16308](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16308) |
+|com.fasterxml.jackson.core|jackson-databind|2.9.5| [16307](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16307) |
 |com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
-|com.github.jjagged|metrics-statsd|1.0.0| []() |
+|com.github.jjagged|metrics-statsd|1.0.0    | []() TODO - after switch to Kamon 1.0 |
 |com.github.jnr|jffi|1.2.16| [16301](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16301) |
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.6| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
 |com.github.jnr|jnr-x86asm|1.0.2| [16304](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16304) |
-|com.github.nscala-time|nscala-time_2.12|2.14.0| []() |
-|com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| []() |
-|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| []() |
-|com.google.code.findbugs|jsr305|3.0.1| []() |
+|com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
+|com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
+|com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| []() |
-|com.rabbitmq|amqp-client|5.1.1| []() |
+|com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
 |com.typesafe.akka|akka-actor_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-cluster_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.12| []() |
@@ -36,42 +35,42 @@
 |com.typesafe.akka|akka-remote_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-slf4j_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-stream_2.12|2.5.12| []() |
-|com.typesafe|config|1.3.1| []() |
-|com.typesafe|ssl-config-core_2.12|0.2.3| []() |
+|com.typesafe|config|1.3.1| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
+|com.typesafe|ssl-config-core_2.12|0.2.3| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.7.0| []() |
 |io.aeron|aeron-driver|1.7.0| []() |
-|io.dropwizard.metrics|metrics-core|3.1.2| []() |
-|io.dropwizard.metrics|metrics-healthchecks|3.1.2| []() |
-|io.jsonwebtoken|jjwt|0.7.0| []() |
-|io.kamon|kamon-akka-2.5_2.12|0.6.7| []() |
-|io.kamon|kamon-akka-remote-2.4_2.12|0.6.7| []() |
-|io.kamon|kamon-core_2.12|0.6.7| []() |
-|io.kamon|kamon-scala_2.12|0.6.7| []() |
-|io.kamon|kamon-statsd_2.12|0.6.7| []() |
-|io.kamon|kamon-system-metrics_2.12|0.6.7| []() |
+|io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
+|io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
+|io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
+|io.kamon|kamon-akka-2.5_2.12|0.6.7         | []() TODO - after switch to Kamon 1.0 |
+|io.kamon|kamon-akka-remote-2.4_2.12|0.6.7  | []() TODO - after switch to Kamon 1.0 |
+|io.kamon|kamon-core_2.12|0.6.7             | []() TODO - after switch to Kamon 1.0 |
+|io.kamon|kamon-scala_2.12|0.6.7            | []() TODO - after switch to Kamon 1.0 |
+|io.kamon|kamon-statsd_2.12|0.6.7           | []() TODO - after switch to Kamon 1.0 |
+|io.kamon|kamon-system-metrics_2.12|0.6.7   | []() TODO - after switch to Kamon 1.0 |
 |io.netty|netty-buffer|4.1.24.Final| []() |
 |io.netty|netty-codec-http|4.1.24.Final| []() |
 |io.netty|netty-codec|4.1.24.Final| []() |
 |io.netty|netty-common|4.1.24.Final| []() |
 |io.netty|netty-handler|4.1.24.Final| []() |
-|io.netty|netty|3.10.6.Final| []() |
+|io.netty|netty|3.10.6.Final| [16316](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16316) |
 |io.netty|netty-resolver|4.1.24.Final| []() |
 |io.netty|netty-transport|4.1.24.Final| []() |
 |io.netty|netty-transport-native-epoll|linux-x86_64| []() |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| []() |
 |io.netty|netty-transport-native-unix-common|4.1.24.Final| []() |
-|javax.jms|javax.jms-api|2.0.1| []() |
-|joda-time|joda-time|2.9.4| []() |
-|net.logstash.logback|logstash-logback-encoder|4.11| []() |
-|nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() |
-|org.agrona|agrona|0.9.12| []() |
-|org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| []() |
+|javax.jms|javax.jms-api|2.0.1| []() TODO clarify whether we need to add "javax" dependencies |
+|joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
+|net.logstash.logback|logstash-logback-encoder|4.11| [14469](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14469) |
+|nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
+|org.agrona|agrona|0.9.12| []() TODO - this is an areon transitive dependency |
+|org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.qpid|proton-j|0.27.1| []() |
 |org.apache.qpid|qpid-jms-client|0.32.0| []() |
 |org.codehaus.janino|commons-compiler|2.7.8| []() |
 |org.codehaus.janino|janino|2.7.8| []() |
-|org.hdrhistogram|HdrHistogram|2.1.9| []() |
-|org.joda|joda-convert|1.2| []() |
+|org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
+|org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| []() |
 |org.mongodb|bson|3.6.3| []() |
 |org.mongodb|casbah_2.12|3.1.1| []() |
@@ -83,60 +82,59 @@
 |org.mongodb|mongodb-driver-core|3.6.3| []() |
 |org.mongodb|mongodb-driver-reactivestreams|1.7.1| []() |
 |org.mongodb|mongo-java-driver|3.6.3| []() |
-|org.mozilla|rhino|1.7.8| []() |
-|org.ow2.asm|asm-analysis|5.2| []() |
-|org.ow2.asm|asm-commons|5.2| []() |
-|org.ow2.asm|asm|5.2| []() |
-|org.ow2.asm|asm-tree|5.2| []() |
-|org.ow2.asm|asm-util|5.2| []() |
+|org.mozilla|rhino|1.7.10| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
+|org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
+|org.ow2.asm|asm-commons|5.2| [16322](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16322) |
+|org.ow2.asm|asm|5.2| [16325](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16325) |
+|org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
+|org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
 |org.parboiled|parboiled_2.12|2.1.4| []() |
 |org.reactivestreams|reactive-streams|1.0.1| []() |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| []() |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| []() |
 |org.scala-lang|scala-library|2.12.3| []() |
-|org.slf4j|slf4j-api|1.7.25| []() |
-|org.typelevel|macro-compat_2.12|1.1.1| []() |
+|org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
+|org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
 |org.webjars.npm|bytebuffer|5.0.1| []() |
 |org.webjars.npm|long|3.2.0| []() |
 
-## Test and build dependencies
+## Works-With dependencies
 
-CQ: 
-
-| Group ID  | Artifact ID  | Version  |
-|---|---|---|
-|com.github.dnvriend|akka-persistence-inmemory_2.12|2.5.1.1|
-|commons-io|commons-io|2.4|
-|com.typesafe.akka|akka-http-testkit_2.12|10.1.1|
-|com.typesafe.akka|akka-persistence-query_2.12|2.5.12|
-|com.typesafe.akka|akka-stream-testkit_2.12|2.5.12|
-|com.typesafe.akka|akka-testkit_2.12|2.5.12|
-|de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.0.0|
-|de.flapdoodle.embed|de.flapdoodle.embed.process|2.0.1|
-|junit|junit|4.12|
-|net.bytebuddy|byte-buddy-agent|1.7.0|
-|net.bytebuddy|byte-buddy|1.7.0|
-|net.java.dev.jna|jna|4.0.0|
-|net.java.dev.jna|jna-platform|4.0.0|
-|net.sf.jopt-simple|jopt-simple|4.6|
-|nl.jqno.equalsverifier|equalsverifier|2.3|
-|org.apache.commons|commons-compress|1.10|
-|org.apache.commons|commons-lang3|3.1|
-|org.apache.commons|commons-math3|3.2|
-|org.assertj|assertj-core|3.8.0|
-|org.awaitility|awaitility|3.1.0|
-|org.hamcrest|hamcrest-core|1.3|
-|org.hamcrest|hamcrest-library|1.3|
-|org.json|json|20090211|
-|org.mockito|mockito-core|2.9.0|
-|org.mutabilitydetector|MutabilityDetector|0.9.6|
-|org.objenesis|objenesis|2.6|
-|org.openjdk.jmh|jmh-core|1.4.1|
-|org.openjdk.jmh|jmh-generator-annprocess|1.4.1|
-|org.scalactic|scalactic_2.12|3.0.0|
-|org.scala-lang.modules|scala-xml_2.12|1.0.5|
-|org.scala-lang|scala-reflect|2.12.0|
-|org.scalatest|scalatest_2.12|3.0.0|
-|org.scalaz|scalaz-core_2.12|7.2.12|
-|org.skyscreamer|jsonassert|1.2.3|
-|org.slf4j|slf4j-simple|1.7.25|
+| Group ID  | Artifact ID  | Version  | CQ |
+|---|---|---|---|
+|com.google.code.findbugs|jsr305|3.0.1| [14511](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14511) |
+|com.github.dnvriend|akka-persistence-inmemory_2.12|2.5.1.1| []() |
+|commons-io|commons-io|2.4| []() |
+|com.typesafe.akka|akka-http-testkit_2.12|10.1.1| []() |
+|com.typesafe.akka|akka-persistence-query_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-stream-testkit_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-testkit_2.12|2.5.12| []() |
+|de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.0.0| []() |
+|de.flapdoodle.embed|de.flapdoodle.embed.process|2.0.1| []() |
+|junit|junit|4.12| []() |
+|net.bytebuddy|byte-buddy-agent|1.7.0| []() |
+|net.bytebuddy|byte-buddy|1.7.0| []() |
+|net.java.dev.jna|jna|4.0.0| []() |
+|net.java.dev.jna|jna-platform|4.0.0| []() |
+|net.sf.jopt-simple|jopt-simple|4.6| []() |
+|nl.jqno.equalsverifier|equalsverifier|2.3| []() |
+|org.apache.commons|commons-compress|1.10| []() |
+|org.apache.commons|commons-lang3|3.1| []() |
+|org.apache.commons|commons-math3|3.2| []() |
+|org.assertj|assertj-core|3.8.0| []() |
+|org.awaitility|awaitility|3.1.0| []() |
+|org.hamcrest|hamcrest-core|1.3| []() |
+|org.hamcrest|hamcrest-library|1.3| []() |
+|org.json|json|20090211| []() |
+|org.mockito|mockito-core|2.9.0| []() |
+|org.mutabilitydetector|MutabilityDetector|0.9.6| []() |
+|org.objenesis|objenesis|2.6| []() |
+|org.openjdk.jmh|jmh-core|1.4.1| []() |
+|org.openjdk.jmh|jmh-generator-annprocess|1.4.1| []() |
+|org.scalactic|scalactic_2.12|3.0.0| []() |
+|org.scala-lang.modules|scala-xml_2.12|1.0.5| []() |
+|org.scala-lang|scala-reflect|2.12.0| []() |
+|org.scalatest|scalatest_2.12|3.0.0| []() |
+|org.scalaz|scalaz-core_2.12|7.2.12| []() |
+|org.skyscreamer|jsonassert|1.2.3| []() |
+|org.slf4j|slf4j-simple|1.7.25| []() |

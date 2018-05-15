@@ -48,6 +48,7 @@
         <javax-jms-api.version>2.0.1</javax-jms-api.version>
         <qpid-jms-client.version>0.32.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
+        <amqp-client.version>5.2.0</amqp-client.version>
         <reactive-streams.version>1.0.1</reactive-streams.version>
 
         <slf4j.version>1.7.25</slf4j.version>
@@ -61,7 +62,7 @@
         <metrics-statsd.version>1.0.0</metrics-statsd.version>
         <jsr302.version>3.0.1</jsr302.version>
 
-        <rhino.version>1.7.8</rhino.version>
+        <rhino.version>1.7.10</rhino.version>
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
         <caffeine.version>2.6.2</caffeine.version>
 
@@ -256,6 +257,11 @@
                 <groupId>com.newmotion</groupId>
                 <artifactId>akka-rabbitmq_${scala.version}</artifactId>
                 <version>${newmotion-akka-rabbitmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>${amqp-client.version}</version>
             </dependency>
 
             <dependency>

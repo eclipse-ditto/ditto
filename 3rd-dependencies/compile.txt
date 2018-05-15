@@ -14,9 +14,8 @@
    com.github.nscala-time:nscala-time_2.12:jar:2.14.0:compile
    com.github.scullxbones:akka-persistence-mongo-casbah_2.12:jar:2.0.9:compile
    com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.9:compile
-   com.google.code.findbugs:jsr305:jar:3.0.1:compile
    com.newmotion:akka-rabbitmq_2.12:jar:5.0.0:compile
-   com.rabbitmq:amqp-client:jar:5.1.1:compile
+   com.rabbitmq:amqp-client:jar:5.2.0:compile
    com.typesafe.akka:akka-actor_2.12:jar:2.5.12:compile
    com.typesafe.akka:akka-cluster_2.12:jar:2.5.12:compile
    com.typesafe.akka:akka-cluster-sharding_2.12:jar:2.5.12:compile
@@ -77,7 +76,7 @@
    org.mongodb:mongodb-driver-core:jar:3.6.3:compile
    org.mongodb:mongodb-driver-reactivestreams:jar:1.7.1:compile
    org.mongodb:mongo-java-driver:jar:3.6.3:compile
-   org.mozilla:rhino:jar:1.7.8:compile
+   org.mozilla:rhino:jar:1.7.10:compile
    org.ow2.asm:asm-analysis:jar:5.2:compile
    org.ow2.asm:asm-commons:jar:5.2:compile
    org.ow2.asm:asm:jar:5.2:compile
