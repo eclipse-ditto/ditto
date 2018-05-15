@@ -226,7 +226,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
             publishMessageCommand(command, enforcer, sender);
             return true;
         } else {
-            rejectCommand(command, sender);
+            rejectMessageCommand(command, sender);
             return false;
         }
     }
@@ -252,7 +252,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                 .ifPresent(response -> replyToSender(response, sender));
     }
 
-    private void rejectCommand(final MessageCommand command, final ActorRef sender) {
+    private void rejectMessageCommand(final MessageCommand command, final ActorRef sender) {
         final MessageSendNotAllowedException error =
                 MessageSendNotAllowedException.newBuilder(command.getThingId())
                         .dittoHeaders(command.getDittoHeaders())
