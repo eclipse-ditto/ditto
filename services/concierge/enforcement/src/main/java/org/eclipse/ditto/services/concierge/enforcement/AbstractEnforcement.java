@@ -203,13 +203,6 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * @return the diagnostic logging adapter.
-     */
-    protected DiagnosticLoggingAdapter log() {
-        return context.log;
-    }
-
-    /**
      * @return Akka pubsub mediator.
      */
     protected ActorRef pubSubMediator() {
