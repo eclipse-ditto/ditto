@@ -174,12 +174,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState(
             final java.time.Duration initTimeout) {
-        return matchEvent(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
-                (event, data) -> stay().using(data
-                        .setOrigin(getSender())
-                        .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
-                ).replying(new Status.Success(DISCONNECTED))
-        )
+        final List<Object> closeOrDeleteConnection = Arrays.asList(CloseConnection.class, DeleteConnection.class);
+        return matchEvent(closeOrDeleteConnection, BaseClientData.class, (event, data) -> {
+                    final BaseClientData nextStateData = data
+                            .setOrigin(getSender())
+                            .setDesiredConnectionStatus(ConnectionStatus.CLOSED);
+                    return stay().using(nextStateData)
+                            .replying(new Status.Success(DISCONNECTED));
+                })
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
                     if (data.getDesiredConnectionStatus() == ConnectionStatus.OPEN) {
                         log.info("Did not receive connect command within {}, trying to go to CONNECTING",
@@ -444,19 +446,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.info("Transition: {} -> {}", from, to);
 
-        switch (to) {
-            case CONNECTING:
-                if (from == CONNECTED) {
-                    // reconnect!
-                    log.info("Triggering reconnection");
-                    doReconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                } else {
-                    doConnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                }
-                break;
-            case DISCONNECTING:
-                doDisconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                break;
+        final Connection connection = nextStateData().getConnection();
+        final ActorRef origin = nextStateData().getOrigin().orElse(null);
+
+        if (to == BaseClientState.CONNECTING) {
+            if (from == CONNECTED) {
+                // reconnect!
+                log.info("Triggering reconnection");
+                doReconnectClient(connection, origin);
+            } else {
+                doConnectClient(connection, origin);
+            }
+        } else if (to == BaseClientState.DISCONNECTING) {
+            doDisconnectClient(connection, origin);
         }
     }
 
