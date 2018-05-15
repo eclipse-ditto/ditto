@@ -16,8 +16,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -37,8 +35,6 @@ import akka.stream.stage.GraphStage;
  * Actor whose behavior is defined entirely by an Akka stream graph.
  */
 public final class GraphActor extends AbstractActor {
-
-    private static final Logger FALLBACK_LOGGER = LoggerFactory.getLogger(GraphActor.class);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -67,35 +63,36 @@ public final class GraphActor extends AbstractActor {
     }
 
     /**
-     * Build an actor from an Akka stream graph not handling all messages. Unhandled messages are logged as warnings.
+     * Build an actor from an Akka stream graph not handling all messages. Unhandled
+     * messages are logged as warnings.
      *
-     * @param partialCreator creator of graph that handles some messages.
+     * @param partialCreator creator of graph from this actor's context.
      * @return Props to create this actor with.
+     * @see #partial(BiFunction) for accessing the created instance's logger during graph creation.
      */
     public static Props partial(
             final Function<ActorContext, Graph<FlowShape<WithSender, WithSender>, NotUsed>> partialCreator) {
 
-        return Props.create(GraphActor.class,
-                () -> new GraphActor(actorContext ->
-                        Pipe.joinSink(partialCreator.apply(actorContext), unhandled())
-                )
-        );
+        final BiFunction<ActorContext, DiagnosticLoggingAdapter, Graph<FlowShape<WithSender, WithSender>, NotUsed>>
+                partialCreatorWithLog = (actorContext, unusedLog) -> partialCreator.apply(actorContext);
+        return partial(partialCreatorWithLog);
     }
 
     /**
-     * Build an actor from an Akka stream graph not handling all messages while providing a logger. Unhandled
+     * Build an actor from an Akka stream graph not handling all messages. Unhandled
      * messages are logged as warnings.
      *
      * @param partialCreator creator of graph from this actor's context and logger.
      * @return Props to create this actor with.
+     * @see #partial(Function) when you don't need the instance's logger during graph creation.
      */
-    public static Props partialWithLog(
+    public static Props partial(
             final BiFunction<ActorContext, DiagnosticLoggingAdapter, Graph<FlowShape<WithSender, WithSender>, NotUsed>>
                     partialCreator) {
 
         return Props.create(GraphActor.class,
-                () -> new GraphActor((actorContext, log) ->
-                        Pipe.joinSink(partialCreator.apply(actorContext, log), unhandled(log))
+                () -> new GraphActor((actorContext, providedLog) ->
+                        Pipe.joinSink(partialCreator.apply(actorContext, providedLog), unhandled(providedLog))
                 )
         );
     }
@@ -105,18 +102,8 @@ public final class GraphActor extends AbstractActor {
      * @return Graph stage to log unhandled messages at level WARNING.
      */
     public static GraphStage<SinkShape<WithSender>> unhandled(final DiagnosticLoggingAdapter log) {
-        return Consume.untyped(wrapped -> {
-            log.warning("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
-        });
-    }
-
-    /**
-     * @return Graph stage to log unhandled messages at level WARNING.
-     */
-    public static GraphStage<SinkShape<WithSender>> unhandled() {
-        return Consume.untyped(wrapped -> {
-            FALLBACK_LOGGER.warn("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender());
-        });
+        return Consume.untyped(wrapped ->
+                log.warning("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender()));
     }
 
     @Override

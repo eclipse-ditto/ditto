@@ -22,11 +22,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.utils.akka.controlflow.Consume;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
-import org.eclipse.ditto.services.utils.akka.controlflow.GraphActor;
 import org.eclipse.ditto.services.utils.akka.controlflow.Pipe;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -34,9 +36,11 @@ import akka.event.Logging;
 import akka.stream.Attributes;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
+import akka.stream.SinkShape;
 import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
+import akka.stream.stage.GraphStage;
 
 /**
  * Create processing units of Akka stream graph before enforcement from an asynchronous function that may abort
@@ -49,6 +53,8 @@ public final class PreEnforcer {
 
     private static final Attributes ERROR_LEVEL =
             Attributes.createLogLevels(Logging.ErrorLevel(), Logging.DebugLevel(), Logging.ErrorLevel());
+
+    private static final Logger FALLBACK_LOGGER = LoggerFactory.getLogger(PreEnforcer.class);
 
     private PreEnforcer() {}
 
@@ -92,8 +98,7 @@ public final class PreEnforcer {
                         .flatMapConcat(PreEnforcer::keepResultAndLogErrors);
 
         return Pipe.joinUnhandledSink(
-                Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), flow),
-                GraphActor.unhandled());
+                Pipe.joinFilteredFlow(Filter.of(WithDittoHeaders.class), flow), unhandled());
     }
 
     private static CompletionStage<Object> handleErrorNowOrLater(
@@ -152,5 +157,10 @@ public final class PreEnforcer {
             return extractRootCause(t.getCause());
         }
         return t;
+    }
+
+    private static GraphStage<SinkShape<WithSender>> unhandled() {
+        return Consume.untyped(wrapped ->
+                FALLBACK_LOGGER.warn("Unexpected message <{}> from <{}>", wrapped.getMessage(), wrapped.getSender()));
     }
 }

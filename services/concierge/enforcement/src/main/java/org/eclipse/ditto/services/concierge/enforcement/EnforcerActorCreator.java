@@ -74,7 +74,7 @@ public final class EnforcerActorCreator {
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
 
-        return GraphActor.partialWithLog((actorContext, log) -> {
+        return GraphActor.partial((actorContext, log) -> {
             final AbstractEnforcement.Context enforcementContext =
                     new AbstractEnforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
 
