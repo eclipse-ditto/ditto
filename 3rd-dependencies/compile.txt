@@ -2,9 +2,9 @@
    ch.qos.logback:logback-core:jar:1.2.3:compile
    com.chuusai:shapeless_2.12:jar:2.3.2:compile
    com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
-   com.fasterxml.jackson.core:jackson-annotations:jar:2.8.0:compile
-   com.fasterxml.jackson.core:jackson-core:jar:2.8.10:compile
-   com.fasterxml.jackson.core:jackson-databind:jar:2.8.10:compile
+   com.fasterxml.jackson.core:jackson-annotations:jar:2.9.5:compile
+   com.fasterxml.jackson.core:jackson-core:jar:2.9.5:compile
+   com.fasterxml.jackson.core:jackson-databind:jar:2.9.5:compile
    com.github.ben-manes.caffeine:caffeine:jar:2.6.2:compile
    com.github.jjagged:metrics-statsd:jar:1.0.0:compile
    com.github.jnr:jffi:jar:1.2.16:compile

@@ -43,7 +43,7 @@
 
         <parboiled.version>2.1.4</parboiled.version>
         <jjwt.version>0.7.0</jjwt.version>
-        <jackson-databind.version>2.8.10</jackson-databind.version>
+        <jackson.version>2.9.5</jackson.version>
         <asm.version>5.2</asm.version>
         <javax-jms-api.version>2.0.1</javax-jms-api.version>
         <qpid-jms-client.version>0.32.0</qpid-jms-client.version>
@@ -208,7 +208,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
