@@ -32,15 +32,12 @@ import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link RetrieveThings}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class RetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
