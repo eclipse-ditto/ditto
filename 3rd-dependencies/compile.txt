@@ -83,10 +83,10 @@
    org.ow2.asm:asm-tree:jar:5.2:compile
    org.ow2.asm:asm-util:jar:5.2:compile
    org.parboiled:parboiled_2.12:jar:2.1.4:compile
-   org.reactivestreams:reactive-streams:jar:1.0.1:compile
+   org.reactivestreams:reactive-streams:jar:1.0.2:compile
    org.scala-lang.modules:scala-java8-compat_2.12:jar:0.8.0:compile
    org.scala-lang.modules:scala-parser-combinators_2.12:jar:1.1.0:compile
-   org.scala-lang:scala-library:jar:2.12.3:compile
+   org.scala-lang:scala-library:jar:2.12.6:compile
    org.slf4j:slf4j-api:jar:1.7.25:compile
    org.typelevel:macro-compat_2.12:jar:1.1.1:compile
    org.webjars.npm:bytebuffer:jar:5.0.1:compile

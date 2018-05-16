@@ -1,6 +1,6 @@
 # 3rd party dependencies
 
-## Eclipse CQs - Provided/compile
+## Eclipse CQs - Compile
 
 | Group ID  | Artifact ID  | Version  | CQ  |
 |---|---|---|---|---|
@@ -20,10 +20,10 @@
 |com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
 |com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
-|com.newmotion|akka-rabbitmq_2.12|5.0.0| []() |
+|com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
 |com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
-|com.typesafe.akka|akka-actor_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-cluster_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-actor_2.12|2.5.12| []() TODO wait for 2.5.13 |
+|com.typesafe.akka|akka-cluster_2.12|2.5.12| []() TODO clarify whether to do one "Akka CQ" or several |
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-cluster-tools_2.12|2.5.12| []() |
 |com.typesafe.akka|akka-distributed-data_2.12|2.5.12| []() |
@@ -48,7 +48,7 @@
 |io.kamon|kamon-scala_2.12|0.6.7            | []() TODO - after switch to Kamon 1.0 |
 |io.kamon|kamon-statsd_2.12|0.6.7           | []() TODO - after switch to Kamon 1.0 |
 |io.kamon|kamon-system-metrics_2.12|0.6.7   | []() TODO - after switch to Kamon 1.0 |
-|io.netty|netty-buffer|4.1.24.Final| []() |
+|io.netty|netty-buffer|4.1.24.Final| []() TODO provide netty dependencies in one CQ with netty-all sources |
 |io.netty|netty-codec-http|4.1.24.Final| []() |
 |io.netty|netty-codec|4.1.24.Final| []() |
 |io.netty|netty-common|4.1.24.Final| []() |
@@ -63,7 +63,7 @@
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |net.logstash.logback|logstash-logback-encoder|4.11| [14469](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14469) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
-|org.agrona|agrona|0.9.12| []() TODO - this is an areon transitive dependency |
+|org.agrona|agrona|0.9.12| []() TODO - this is an areon transitive dependency, wait for Akka update |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.qpid|proton-j|0.27.1| []() |
 |org.apache.qpid|qpid-jms-client|0.32.0| []() |
@@ -72,15 +72,15 @@
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| []() |
-|org.mongodb|bson|3.6.3| []() |
+|org.mongodb|bson|3.6.3| []() TODO wait for 3.8.0 ? |
 |org.mongodb|casbah_2.12|3.1.1| []() |
 |org.mongodb|casbah-commons_2.12|3.1.1| []() |
 |org.mongodb|casbah-core_2.12|3.1.1| []() |
 |org.mongodb|casbah-gridfs_2.12|3.1.1| []() |
 |org.mongodb|casbah-query_2.12|3.1.1| []() |
-|org.mongodb|mongodb-driver-async|3.6.3| []() |
-|org.mongodb|mongodb-driver-core|3.6.3| []() |
-|org.mongodb|mongodb-driver-reactivestreams|1.7.1| []() |
+|org.mongodb|mongodb-driver-async|3.6.3| []() TODO wait for 3.8.0 ? |
+|org.mongodb|mongodb-driver-core|3.6.3| []() TODO wait for 3.8.0 ?|
+|org.mongodb|mongodb-driver-reactivestreams|1.7.1| []() TODO wait for 1.9.0 ? |
 |org.mongodb|mongo-java-driver|3.6.3| []() |
 |org.mozilla|rhino|1.7.10| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
 |org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
@@ -89,10 +89,10 @@
 |org.ow2.asm|asm-tree|5.2| [16323](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16323) |
 |org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
 |org.parboiled|parboiled_2.12|2.1.4| []() |
-|org.reactivestreams|reactive-streams|1.0.1| []() |
+|org.reactivestreams|reactive-streams|1.0.2| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
 |org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| []() |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| []() |
-|org.scala-lang|scala-library|2.12.3| []() |
+|org.scala-lang|scala-library|2.12.6| []() |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
 |org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
 |org.webjars.npm|bytebuffer|5.0.1| []() |
