@@ -93,7 +93,9 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         super(TYPE, dittoHeaders);
 
         if (thingIds.isEmpty()) {
-            throw MissingThingIdsException.fromDittoHeaders(dittoHeaders);
+            throw MissingThingIdsException.newBuilder()
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
 
         this.thingIds = Collections.unmodifiableList(new ArrayList<>(thingIds));
