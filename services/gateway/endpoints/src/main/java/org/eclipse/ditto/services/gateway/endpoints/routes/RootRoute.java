@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -69,6 +70,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusR
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
+import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
@@ -92,7 +94,6 @@ import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.japi.function.Function;
 import akka.util.ByteString;
 
 /**
@@ -134,6 +135,7 @@ public final class RootRoute {
     private final StatsRoute statsRoute;
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
+    private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
 
     /**
      * Constructs the {@code /} route builder.
@@ -249,53 +251,52 @@ public final class RootRoute {
         );
     }
 
-    private Route wrapWithRootDirectives(final java.util.function.Function<String, Route> rootRoute) {
-        /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute (which
-           normally should not occur */
-        return handleExceptions(exceptionHandler, () ->
-                ensureCorrelationId(correlationId ->
-                        rewriteResponse(correlationId, () ->
-                                RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
-                                        logRequestResult(correlationId, () ->
-                                                EncodingEnsuringDirective.ensureEncoding(correlationId, () ->
-                                                        HttpsEnsuringDirective.ensureHttps(correlationId, () ->
-                                                                CorsEnablingDirective.enableCors(() ->
-                                                                                SecurityResponseHeadersDirective.addSecurityResponseHeaders(
-                                                                                        () ->
-                                                            /* handling the rejections is done by akka automatically, but if we
-                                                               do it here explicitly, we are able to log the status code for the
-                                                               rejection (e.g. 404 or 405) in a wrapping directive. */
-                                                                                                handleRejections(
-                                                                                                        RejectionHandler.defaultHandler(),
-                                                                                                        () ->
-                                                                    /* the inner handleExceptions is for handling exceptions
-                                                                       occurring in the route route. It makes sure that the
-                                                                       wrapping directives such as addSecurityResponseHeaders are
-                                                                       even called in an error case in the route route. */
-                                                                                                                handleExceptions(
-                                                                                                                        exceptionHandler,
-                                                                                                                        () -> rootRoute
-                                                                                                                                .apply(
-                                                                                                                                        correlationId))
-                                                                                                )
-                                                                                )
-                                                                )
+    private Route wrapWithRootDirectives(final Function<String, Route> rootRoute) {
+        final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->
+                /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
+                   (which normally should not occur */
+                handleExceptions(exceptionHandler, () ->
+                        ensureCorrelationId(correlationId ->
+                                rewriteResponse(correlationId, () ->
+                                        RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
+                                                logRequestResult(correlationId, () ->
+                                                        innerRouteProvider.apply(correlationId)
+                                                )
+                                        )
+                                )
+                        )
+                );
+
+        final Function<String, Route> innerRouteProvider = correlationId ->
+                EncodingEnsuringDirective.ensureEncoding(correlationId, () ->
+                        HttpsEnsuringDirective.ensureHttps(correlationId, () ->
+                                CorsEnablingDirective.enableCors(() ->
+                                        SecurityResponseHeadersDirective.addSecurityResponseHeaders(() ->
+                                                /* handling the rejections is done by akka automatically, but if we
+                                                   do it here explicitly, we are able to log the status code for the
+                                                   rejection (e.g. 404 or 405) in a wrapping directive. */
+                                                handleRejections(rejectionHandler, () ->
+                                                        /* the inner handleExceptions is for handling exceptions
+                                                           occurring in the route route. It makes sure that the
+                                                           wrapping directives such as addSecurityResponseHeaders are
+                                                           even called in an error case in the route route. */
+                                                        handleExceptions(exceptionHandler, () ->
+                                                                rootRoute.apply(correlationId)
                                                         )
                                                 )
                                         )
                                 )
                         )
-                )
-        );
+                );
+
+        return outerRouteProvider.apply(innerRouteProvider);
     }
 
-    private Route apiAuthentication(final String correlationId,
-            final java.util.function.Function<AuthorizationContext, Route> inner) {
+    private Route apiAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return apiAuthenticationDirective.authenticate(correlationId, inner);
     }
 
-    private Route wsAuthentication(final String correlationId,
-            final java.util.function.Function<AuthorizationContext, Route> inner) {
+    private Route wsAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return wsAuthenticationDirective.authenticate(correlationId, inner);
     }
 
@@ -384,7 +385,8 @@ public final class RootRoute {
 
     private static Route extractDittoHeaders(final AuthorizationContext authorizationContext,
             final Integer version, final String correlationId,
-            final java.util.function.Function<DittoHeaders, Route> inner) {
+            final Function<DittoHeaders, Route> inner) {
+
         final DittoHeaders dittoHeaders = buildDittoHeaders(authorizationContext, version, correlationId);
         return inner.apply(dittoHeaders);
     }
