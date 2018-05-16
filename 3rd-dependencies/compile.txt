@@ -53,7 +53,6 @@
    io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.24.Final:compile
    io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.24.Final:compile
    io.netty:netty-transport-native-unix-common:jar:4.1.24.Final:compile
-   javax.jms:javax.jms-api:jar:2.0.1:compile
    joda-time:joda-time:jar:2.9.4:compile
    net.logstash.logback:logstash-logback-encoder:jar:4.11:compile
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile

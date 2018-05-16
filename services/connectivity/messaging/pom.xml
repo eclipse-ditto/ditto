@@ -130,10 +130,6 @@
         </dependency>
 
         <dependency>
-            <groupId>javax.jms</groupId>
-            <artifactId>javax.jms-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.qpid</groupId>
             <artifactId>qpid-jms-client</artifactId>
         </dependency>

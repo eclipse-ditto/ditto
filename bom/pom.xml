@@ -45,7 +45,6 @@
         <jjwt.version>0.7.0</jjwt.version>
         <jackson.version>2.9.5</jackson.version>
         <asm.version>5.2</asm.version>
-        <javax-jms-api.version>2.0.1</javax-jms-api.version>
         <qpid-jms-client.version>0.32.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.2.0</amqp-client.version>
@@ -242,11 +241,6 @@
                 <version>${asm.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>javax.jms</groupId>
-                <artifactId>javax.jms-api</artifactId>
-                <version>${javax-jms-api.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.qpid</groupId>
                 <artifactId>qpid-jms-client</artifactId>
