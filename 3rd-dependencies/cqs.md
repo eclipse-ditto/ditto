@@ -48,7 +48,7 @@
 |io.kamon|kamon-scala_2.12|0.6.7            | []() TODO - wait for switch to Kamon 1.0 |
 |io.kamon|kamon-statsd_2.12|0.6.7           | []() TODO - wait for switch to Kamon 1.0 |
 |io.kamon|kamon-system-metrics_2.12|0.6.7   | []() TODO - wait for switch to Kamon 1.0 |
-|io.netty|netty-buffer|4.1.24.Final| []() TODO provide netty dependencies in one CQ with netty-all sources |
+|io.netty|netty-buffer|4.1.24.Final| []() |
 |io.netty|netty-codec-http|4.1.24.Final| []() |
 |io.netty|netty-codec|4.1.24.Final| []() |
 |io.netty|netty-common|4.1.24.Final| []() |
@@ -68,16 +68,16 @@
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
-|org.mongodb|bson|3.6.3| []() |
+|org.mongodb|bson|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
 |org.mongodb|casbah_2.12|3.1.1| not required as only "pom" packaging |
 |org.mongodb|casbah-commons_2.12|3.1.1| [16337](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16337) |
 |org.mongodb|casbah-core_2.12|3.1.1| [16338](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16338) |
 |org.mongodb|casbah-gridfs_2.12|3.1.1| [16339](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16339) |
 |org.mongodb|casbah-query_2.12|3.1.1| [16340](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16340) |
-|org.mongodb|mongodb-driver-async|3.6.3| []() |
-|org.mongodb|mongodb-driver-core|3.6.3| []() |
-|org.mongodb|mongodb-driver-reactivestreams|1.7.1| []() |
-|org.mongodb|mongo-java-driver|3.6.3| []() |
+|org.mongodb|mongodb-driver-async|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
+|org.mongodb|mongodb-driver-core|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
+|org.mongodb|mongodb-driver-reactivestreams|1.7.1| [16350](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16350) |
+|org.mongodb|mongo-java-driver|3.6.3| [16349](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16349) |
 |org.mozilla|rhino|1.7.10| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
 |org.ow2.asm|asm-analysis|5.2| [16321](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16321) |
 |org.ow2.asm|asm-commons|5.2| [16322](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16322) |
