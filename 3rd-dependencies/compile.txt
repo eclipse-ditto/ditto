@@ -54,14 +54,11 @@
    io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.24.Final:compile
    io.netty:netty-transport-native-unix-common:jar:4.1.24.Final:compile
    joda-time:joda-time:jar:2.9.4:compile
-   net.logstash.logback:logstash-logback-encoder:jar:4.11:compile
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile
    org.agrona:agrona:jar:0.9.12:compile
    org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
    org.apache.qpid:proton-j:jar:0.27.1:compile
    org.apache.qpid:qpid-jms-client:jar:0.32.0:compile
-   org.codehaus.janino:commons-compiler:jar:2.7.8:compile
-   org.codehaus.janino:janino:jar:2.7.8:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile
    org.joda:joda-convert:jar:1.2:compile
    org.lmdbjava:lmdbjava:jar:0.6.0:compile

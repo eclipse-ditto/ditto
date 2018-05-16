@@ -91,15 +91,6 @@
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
-
         <!-- ## Testing ## -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
