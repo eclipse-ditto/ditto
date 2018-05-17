@@ -133,10 +133,9 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
         final Matcher matcher = pathPattern.matcher(normalizedPath);
 
         final Map<String, String> tags = new HashMap<>();
-        tags.put(TracingTags.REQUEST_PATH, path);
         if (matcher.matches()) {
-
             final String traceUri;
+            final String sanitizedPath;
             final String pathToShorten = matcher.group(PATHS_TO_SHORTEN_GROUP);
             if (pathToShorten != null) {
                 tags.put(TracingTags.API_VERSION, matcher.group(API_VERSION_GROUP));
@@ -146,13 +145,20 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
                 addTagToMap(tags, TracingTags.ENTITY_SUB_TYPE, "subEntityType", matcher);
                 if (messageMatcher.matches()) {
                     traceUri = pathToShorten + MESSAGES_PATH_SUFFIX;
+                    sanitizedPath = traceUri;
                 } else {
                     traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
+                    if (tags.containsKey(TracingTags.ENTITY_SUB_TYPE)) {
+                        sanitizedPath = traceUri + "/" + tags.get(TracingTags.ENTITY_SUB_TYPE) + SHORTENED_PATH_SUFFIX;
+                    } else {
+                        sanitizedPath = traceUri;
+                    }
                 }
             } else {
                 final String pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);
                 if (pathFullLength != null) {
                     traceUri = pathFullLength;
+                    sanitizedPath = traceUri;
                 } else {
                     // This branch is impossible:
                     // - (pathsToShortenRegex | pathsExactRegex) matches,
@@ -163,11 +169,13 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
                     throw new IllegalStateException();
                 }
             }
+            tags.put(TracingTags.REQUEST_PATH, sanitizedPath);
             final TraceInformation info = new TraceInformation(traceUri, tags);
             LOGGER.debug("Generated traceUri for '{}': '{}'", path, info);
             return info;
         } else {
             // return fallback trace URI
+            tags.put(TracingTags.REQUEST_PATH, FALLBACK_PATH);
             final TraceInformation fallback = new TraceInformation(FALLBACK_PATH, tags);
             LOGGER.debug("Returning fallback traceUri for '{}': '{}'", path, fallback);
             return fallback;

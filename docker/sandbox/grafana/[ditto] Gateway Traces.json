@@ -566,48 +566,55 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(sum(rate(roundtrip_http_api_1_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_api_1_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by ( ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "instant": false,
+          "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "A"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_api_1_search_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_api_1_search_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "B"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_other_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_other_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "C"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_status_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_status_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by ( ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "D"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_status_health_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_status_health_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "E"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_api_2_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_api_2_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by ( ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "F"
         },
         {
-          "expr": "(sum(rate(roundtrip_http_api_2_search_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)  / sum(rate(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(rate(roundtrip_http_api_2_search_things_x_sum{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) >= 0) by (ditto_request_method, ditto_request_path, ditto_statusCode)  / sum(rate(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}[1m]) > 0) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "G"
         }
       ],
@@ -691,46 +698,55 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "A"
         },
         {
-          "expr": "(sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "B"
         },
         {
-          "expr": "(sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "C"
         },
         {
-          "expr": "(sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "D"
         },
         {
-          "expr": "(sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "E"
         },
         {
-          "expr": "(sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "F"
         },
         {
-          "expr": "(sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "G"
         }
       ],
@@ -814,45 +830,53 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "(sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_1_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "A"
         },
         {
-          "expr": "(sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_1_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "B"
         },
         {
-          "expr": "(sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_other_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "C"
         },
         {
-          "expr": "(sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_status_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "D"
         },
         {
-          "expr": "(sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_status_health_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "E"
         },
         {
-          "expr": "(sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_2_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "F"
         },
         {
-          "expr": "(sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method)) - (sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (instance, ditto_entity_type, ditto_entity_subType, ditto_request_method))",
+          "expr": "(sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\"}) by (ditto_request_method, ditto_request_path, ditto_statusCode)) - (sum(roundtrip_http_api_2_search_things_x_count{ditto_statusCode=~\"2[0-9]{2}\" } offset 1m) by (ditto_request_method, ditto_request_path, ditto_statusCode))",
           "format": "time_series",
           "intervalFactor": 1,
+          "legendFormat": "{{ditto_request_method}} - {{ditto_statusCode}} - {{ditto_request_path}}",
           "refId": "G"
         }
       ],
@@ -897,7 +921,7 @@
       }
     }
   ],
-  "refresh": "30s",
+  "refresh": "5s",
   "schemaVersion": 16,
   "style": "dark",
   "tags": [],
@@ -936,5 +960,5 @@
   "timezone": "",
   "title": "[ditto] Gateway Traces",
   "uid": "nIfEcM7iz",
-  "version": 7
+  "version": 3
 }
