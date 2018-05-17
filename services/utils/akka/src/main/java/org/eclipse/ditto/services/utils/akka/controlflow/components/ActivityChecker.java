@@ -47,7 +47,7 @@ public final class ActivityChecker {
         return GraphDSL.create(builder -> {
             final SourceShape<Tick> ticker = builder.add(Source.tick(interval, interval, new Tick()));
             final FanInShape2<A, Tick, A> killer = builder.add(PipeWithIdleRoutine.of((tick, log) -> {
-                log.info("Terminating actor after <{}> of inactivity: <{}>", interval, self);
+                log.debug("Terminating actor after <{}> of inactivity: <{}>", interval, self);
                 self.tell(PoisonPill.getInstance(), ActorRef.noSender());
             }));
             builder.from(ticker).toInlet(killer.in1());
