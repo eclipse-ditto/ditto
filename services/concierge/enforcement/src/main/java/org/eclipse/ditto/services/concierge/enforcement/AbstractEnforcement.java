@@ -140,11 +140,14 @@ public abstract class AbstractEnforcement<T extends Signal> {
             final DittoHeaders dittoHeaders) {
         if (error instanceof GatewayInternalErrorException) {
             return (GatewayInternalErrorException) error;
+        } else {
+            log(dittoHeaders).error(error,"Unexpected non-DittoRuntimeException error - responding with " +
+                    "GatewayInternalErrorException: {} {}", error.getClass().getSimpleName(), error.getMessage());
+            return GatewayInternalErrorException.newBuilder()
+                    .cause(error)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
-
-        return GatewayInternalErrorException.newBuilder()
-                .cause(error).dittoHeaders(dittoHeaders)
-                .build();
     }
 
     /**

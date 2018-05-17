@@ -141,6 +141,9 @@ public final class PreEnforcer {
         if (rootCause instanceof DittoRuntimeException) {
             sender.tell(rootCause, self);
         } else {
+            FALLBACK_LOGGER.error("Unexpected non-DittoRuntimeException error - responding with " +
+                    "GatewayInternalErrorException: {} {}", error.getClass().getSimpleName(), error.getMessage(),
+                    error);
             final GatewayInternalErrorException responseEx =
                     GatewayInternalErrorException.newBuilder()
                             .dittoHeaders(dittoHeaders)
