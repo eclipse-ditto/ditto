@@ -43,6 +43,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -61,13 +62,14 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever enforcerRetriever;
+    private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
 
     private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
 
         super(data);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
-        requireNonNull(enforcerCache);
+        this.enforcerCache = requireNonNull(enforcerCache);
         enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
     }
 
@@ -210,8 +212,22 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         }
     }
 
-    private void forwardToPoliciesShardRegion(final Object message, final ActorRef sender) {
-        policiesShardRegion.tell(message, sender);
+    private void forwardToPoliciesShardRegion(final PolicyCommand command, final ActorRef sender) {
+        policiesShardRegion.tell(command, sender);
+        if (command instanceof PolicyModifyCommand) {
+            invalidateCaches(command.getId());
+        }
+    }
+
+    /**
+     * Whenever a Command changed the authorization, the caches must be invalidated - otherwise a directly following
+     * Command targeted for the same entity will probably fail as the enforcer was not yet updated.
+     *
+     * @param policyId the ID of the Policy to invalidate caches for.
+     */
+    private void invalidateCaches(final String policyId) {
+        final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, policyId);
+        enforcerCache.invalidate(entityId);
     }
 
     private void respondWithError(final PolicyCommand policyCommand, final ActorRef sender) {

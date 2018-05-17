@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
-import org.eclipse.ditto.services.concierge.cache.update.ThingCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
@@ -105,9 +104,6 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         // start cache updaters
         final int instanceIndex = configReader.instanceIndex();
-        final Props thingCacheUpdateActorProps =
-                ThingCacheUpdateActor.props(aclEnforcerCache, thingIdCache, pubSubMediator, instanceIndex);
-        context.actorOf(thingCacheUpdateActorProps, ThingCacheUpdateActor.ACTOR_NAME);
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);

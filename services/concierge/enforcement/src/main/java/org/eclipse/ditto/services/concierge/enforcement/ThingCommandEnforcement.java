@@ -114,6 +114,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever thingEnforcerRetriever;
     private final EnforcerRetriever policyEnforcerRetriever;
+    private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+    private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
 
     private ThingCommandEnforcement(final Context data, final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
@@ -126,9 +129,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
 
-        requireNonNull(thingIdCache);
-        requireNonNull(policyEnforcerCache);
-        requireNonNull(aclEnforcerCache);
+        this.thingIdCache = requireNonNull(thingIdCache);
+        this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
+        this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         thingEnforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
@@ -247,6 +250,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final String thingId = thingCommand.getThingId();
             final String policyId = enforcerKeyEntry.getValue().getId();
             final DittoRuntimeException error = errorForExistingThingWithDeletedPolicy(thingCommand, thingId, policyId);
+            log(thingCommand).info("Enforcer was not existing for Thing <{}>, responding with: {}", thingId, error);
             replyToSender(error, sender);
         } else {
             // Without prior enforcer in cache, enforce CreateThing by self.
@@ -628,16 +632,33 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     /**
-     * Forward a message to things-shard-region.
+     * Forward a command to things-shard-region.
      * Do not call {@code Actor.forward(Object, ActorContext)} because it is not thread-safe.
      *
-     * @param message message to forward.
+     * @param command command to forward.
      * @param sender sender of the command.
      * @return true.
      */
-    private boolean forwardToThingsShardRegion(final Object message, final ActorRef sender) {
-        thingsShardRegion.tell(message, sender);
+    private boolean forwardToThingsShardRegion(final ThingCommand command, final ActorRef sender) {
+        thingsShardRegion.tell(command, sender);
+        if (command instanceof ThingModifyCommand &&
+                (affectsAcl((ThingModifyCommand) command) || affectsPolicyId((ThingModifyCommand) command))) {
+            invalidateCaches(command.getThingId());
+        }
         return true;
+    }
+
+    /**
+     * Whenever a Command changed the authorization, the caches must be invalidated - otherwise a directly following
+     * Command targeted for the same entity will probably fail as the enforcer was not yet updated.
+     *
+     * @param thingId the ID of the Thing to invalidate caches for.
+     */
+    private void invalidateCaches(final String thingId) {
+        final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
+        thingIdCache.invalidate(entityId);
+        aclEnforcerCache.invalidate(entityId);
+        policyEnforcerCache.invalidate(entityId);
     }
 
     /**
@@ -754,6 +775,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     ThingNotAccessibleException.newBuilder(thingCommand.getThingId())
                             .dittoHeaders(thingCommand.getDittoHeaders())
                             .build();
+            log(thingCommand).info("Enforcer was not existing for Thing <{}> and no auth info was inlined, " +
+                            "responding with: {}", thingCommand.getThingId(), error);
             replyToSender(error, sender);
             result = Optional.empty();
         }
@@ -908,6 +931,16 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     /**
+     * Decide whether a command affects the Policy ID (e.g. changes it).
+     *
+     * @param command the command.
+     * @return whether it affects the Policy ID.
+     */
+    private static boolean affectsPolicyId(final ThingModifyCommand command) {
+        return command instanceof DeleteThing || resourcePathIntersectsPolicyId(command) || entityIntersectsPolicyId(command);
+    }
+
+    /**
      * Decide whether a command's resource path intersects with the ACL.
      *
      * @param command the command.
@@ -916,6 +949,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private static boolean resourcePathIntersectsAcl(final ThingModifyCommand command) {
         return command.getResourcePath().getRoot()
                 .flatMap(root -> Thing.JsonFields.ACL.getPointer()
+                        .getRoot()
+                        .map(aclRoot -> Objects.equals(root, aclRoot)))
+                .orElse(true);
+    }
+
+    /**
+     * Decide whether a command's resource path intersects with the Policy ID.
+     *
+     * @param command the command.
+     * @return whether its resource path intersects with the Policy ID.
+     */
+    private static boolean resourcePathIntersectsPolicyId(final ThingModifyCommand command) {
+        return command.getResourcePath().getRoot()
+                .flatMap(root -> Thing.JsonFields.POLICY_ID.getPointer()
                         .getRoot()
                         .map(aclRoot -> Objects.equals(root, aclRoot)))
                 .orElse(true);
@@ -932,6 +979,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 command.getEntity()
                         .filter(JsonValue::isObject)
                         .map(jsonValue -> jsonValue.asObject().contains(Thing.JsonFields.ACL.getPointer()))
+                        .isPresent();
+    }
+
+    /**
+     * Decide whether a command's entity intersects with the Policy ID (e.g. changes it).
+     *
+     * @param command the command.
+     * @return whether its entity intersects with the Policy ID.
+     */
+    private static boolean entityIntersectsPolicyId(final ThingModifyCommand command) {
+        return (command instanceof ModifyThing || command instanceof CreateThing) &&
+                command.getEntity()
+                        .filter(JsonValue::isObject)
+                        .map(jsonValue -> jsonValue.asObject().contains(Thing.JsonFields.POLICY_ID.getPointer()))
                         .isPresent();
     }
 
