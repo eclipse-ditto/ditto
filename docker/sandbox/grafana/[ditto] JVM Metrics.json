@@ -14,7 +14,7 @@
       "type": "grafana",
       "id": "grafana",
       "name": "Grafana",
-      "version": "5.1.1"
+      "version": "5.1.2"
     },
     {
       "type": "panel",
@@ -178,7 +178,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "jvm_gc_seconds_sum",
+          "expr": "jvm_gc_seconds_count  - (jvm_gc_seconds_count offset 1m)",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
@@ -188,7 +188,7 @@
       "thresholds": [],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Panel Title",
+      "title": "Garbage Collection Count",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -541,8 +541,9 @@
         {
           "expr": "sum(jvm_class_loading) by (mode)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "",
+          "legendFormat": "{{mode}}",
           "refId": "A"
         }
       ],
@@ -626,5 +627,5 @@
   "timezone": "",
   "title": "[ditto] JVM Metrics",
   "uid": "OmHEz77mk",
-  "version": 6
+  "version": 7
 }
