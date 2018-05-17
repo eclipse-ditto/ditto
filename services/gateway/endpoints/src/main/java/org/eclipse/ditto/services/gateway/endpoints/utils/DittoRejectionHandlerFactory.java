@@ -25,7 +25,7 @@ import akka.http.javadsl.server.Route;
  */
 public final class DittoRejectionHandlerFactory {
 
-    private static final String MISSING_QUERY_PARAM_TEMPLATE = "Request is missing required query parameter '{0}'";
+    private static final String MISSING_QUERY_PARAM_TEMPLATE = "Request is missing required query parameter ''{0}''";
 
     private DittoRejectionHandlerFactory() {
         throw new AssertionError();
