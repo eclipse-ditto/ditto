@@ -43,6 +43,8 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
     private static final String DEFAULT_MESSAGE = "The required list of thing ids was missing.";
 
     private static final String DEFAULT_DESCRIPTION = "Please provide at least one thing id and try again.";
+    
+    private static final long serialVersionUID = -5672699009682971258L;
 
     private MissingThingIdsException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
