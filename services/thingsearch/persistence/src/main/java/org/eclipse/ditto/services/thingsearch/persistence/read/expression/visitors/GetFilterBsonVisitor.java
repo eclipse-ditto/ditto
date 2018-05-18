@@ -11,15 +11,24 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ACL;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_GLOBAL_READS;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_FEATURE_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_VALUE;
+
 import java.util.function.Function;
 
+import org.bson.BsonDocument;
+import org.bson.BsonNull;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FilterFieldExpressionVisitor;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates a Mongo Bson object for field-based search criteria.
@@ -50,29 +59,31 @@ public class GetFilterBsonVisitor implements FilterFieldExpressionVisitor<Bson> 
 
     @Override
     public Bson visitAttribute(final String key) {
-        final String attributeKeyWithPrefix = PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + key;
-        final Bson keyRestrictionBson = Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY, attributeKeyWithPrefix);
+        final String attributeKeyWithPrefix = FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + key;
+        final Bson keyRestrictionBson = Filters.eq(FIELD_INTERNAL_KEY, attributeKeyWithPrefix);
 
-        return Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL,
-                Filters.and(keyRestrictionBson, predicateFunction.apply(PersistenceConstants.FIELD_INTERNAL_VALUE)));
+        // match 'null' on 'f' field to be able to use the index
+        final Bson nullFeatureId = new BsonDocument().append(FIELD_INTERNAL_FEATURE_ID, BsonNull.VALUE);
+
+        return Filters.elemMatch(FIELD_INTERNAL,
+                Filters.and(keyRestrictionBson, nullFeatureId, predicateFunction.apply(FIELD_INTERNAL_VALUE)));
     }
 
     @Override
     public Bson visitFeatureIdProperty(final String featureId, final String property) {
         return Filters.elemMatch(
-                PersistenceConstants.FIELD_INTERNAL, Filters.and(Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY,
-                        PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
-                Filters.eq(PersistenceConstants.FIELD_INTERNAL_FEATURE_ID, featureId),
-                predicateFunction.apply(PersistenceConstants.FIELD_INTERNAL_VALUE)));
+                FIELD_INTERNAL,
+                Filters.and(
+                        Filters.eq(FIELD_INTERNAL_KEY, FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
+                        Filters.eq(FIELD_INTERNAL_FEATURE_ID, featureId),
+                        predicateFunction.apply(FIELD_INTERNAL_VALUE)));
     }
 
     @Override
     public Bson visitFeatureProperty(final String property) {
-        return Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(
-                Filters.eq(
-                        PersistenceConstants.FIELD_INTERNAL_KEY,
-                        PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
-                predicateFunction.apply(PersistenceConstants.FIELD_INTERNAL_VALUE)));
+        return Filters.elemMatch(FIELD_INTERNAL, Filters.and(
+                Filters.eq(FIELD_INTERNAL_KEY, FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + property),
+                predicateFunction.apply(FIELD_INTERNAL_VALUE)));
     }
 
     @Override
@@ -82,12 +93,12 @@ public class GetFilterBsonVisitor implements FilterFieldExpressionVisitor<Bson> 
 
     @Override
     public Bson visitAcl() {
-        return predicateFunction.apply(PersistenceConstants.FIELD_INTERNAL + "." + PersistenceConstants.FIELD_ACL);
+        return predicateFunction.apply(FIELD_INTERNAL + "." + FIELD_ACL);
     }
 
     @Override
     public Bson visitGlobalReads() {
         return predicateFunction.apply(
-                PersistenceConstants.FIELD_INTERNAL + "." + PersistenceConstants.FIELD_GLOBAL_READS);
+                FIELD_INTERNAL + "." + FIELD_GLOBAL_READS);
     }
 }
