@@ -101,6 +101,10 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                         indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all())
                                 .thenApply(nullValue -> true))
                 .runWith(Sink.ignore(), materializer)
+                .exceptionally(t -> {
+                    log.error(t, "Index-Initialization failed.");
+                    return null;
+                })
                 .thenApply(notNull -> null);
     }
 
