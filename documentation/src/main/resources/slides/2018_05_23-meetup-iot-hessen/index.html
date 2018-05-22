@@ -4,11 +4,11 @@
 <head>
     <meta charset="utf-8">
 
-    <title>Digital Twins go open source: Eclipse Ditto introduction</title>
+    <title>Digital Twins with Eclipse Ditto</title>
 
-    <meta name="description" content="Virtual IoT Meetup - Digital Twins go open source: Eclipse Ditto introduction">
+    <meta name="description" content="Meetup IoT Hessen - Digital Twins with Eclipse Ditto">
     <meta name="author" content="Thomas Jäckle">
-    <meta name="date" content="2018-02-07">
+    <meta name="date" content="2018-05-23">
     <meta http-equiv="content-language" content="en">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +20,9 @@
     <link rel="icon" type="image/png" href="../../images/favicon-32x32.png" sizes="32x32">
     <link rel="icon" type="image/png" href="../../images/favicon-96x96.png" sizes="96x96">
 
-    <link  rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=News+Cycle">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css" integrity="sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp" crossorigin="anonymous">
+
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/reveal.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/css/theme/simple.min.css" id="theme">
@@ -169,9 +171,10 @@
             <section id="title" class="new-chapter" data-background="../bg-images/background-twin-small.jpg" data-state="chapter-background">
                 <!-- background source: https://unsplash.com/collections/425779/iot -->
                 <br />
-                <h1 style="font-size: 3em;">Digital Twins go open source</h1>
+                <h1 style="font-size: 3em;">Digital Twins with Eclipse Ditto</h1>
                 <br/>
-                <h2>Eclipse Ditto introduction</h2>
+                <h2 style="font-size: 1.0em">webweek rhein-main /18 #wwrm18</h2>
+                <h2 style="font-size: 1.0em">23.05.2018</h2>
                 <!--<h3>-</h3>-->
                 <!--<h2>new project introduction</h2>-->
                 <br style="clear: both"/>
@@ -180,6 +183,23 @@
                         href="mailto:thomas.jaeckle@bosch-si.com">Thomas Jäckle</a> (<a
                         href="http://twitter.com/thjaeckle">@thjaeckle</a>)
                 </small>
+            </section>
+
+            <section id="whoami" class="new-chapter">
+                <h2>who am I?</h2>
+                <br/>
+                <div style="float:left; width: 25%;">
+                    <img src="../images/thjaeckle_400x400.jpg" style="width: 100%; border-radius: 50%" />
+                    <h4>Thomas Jäckle</h4>
+                    <h4><a href="http://twitter.com/thjaeckle">@thjaeckle</a></h4>
+                    <br style="clear: both"/>
+                </div>
+                <div style="float:right; width: 70%;">
+                    <img src="//www.brand.bosch.com/images/icons/bosch-logo.png" style="width: 30%; float: right; padding-left: 2px; margin-top: -1em"/>
+                    <h4>software developer <br/>@ Bosch Software Innovations</h4>
+                    <h4 style="padding-top:1em">project lead of Eclipse Ditto</h4>
+                    <h4 style="padding-top:1em">lead developer of commercial service<br/>"Bosch IoT Things"</h4>
+                </div>
             </section>
 
             <section id="agenda" class="new-chapter">
@@ -204,6 +224,20 @@
                 <h1>Motivation</h1>
                 <br/>
                 <h2>turn physical devices into services</h2>
+            </section>
+            <section id="motivation-0" style="clear: both;">
+                <h2>IoT</h2>
+                <br/>
+                <h3>connecting <b>things</b> from various domains to the <b>Internet</b></h3>
+                <div class="fragment">
+                    <h3>happens</h3>
+                    <ul>
+                        <li>on devices</li>
+                        <li>on the edge (e.g. gateways)</li>
+                        <li>in the back-end (a.k.a. "cloud")</li>
+                        <li>near the user (apps, uis)</li>
+                    </ul>
+                </div>
             </section>
             <section id="motivation-1" style="clear: both;">
                 <h2>IoT development needs in the back-end</h2>
@@ -260,6 +294,17 @@
                 </div>
                 <!-- img source: http://acplt.github.io/openAAS/AssetAdministrationShell.html -->
             </section>
+            <section id="twin-3" style="clear: both;">
+                <h2>our interpretation</h2>
+                <br/>
+                <ul>
+                    <li class="fragment">a pattern for working with <b>things</b> in the IoT</li>
+                    <li class="fragment" style="margin-top: 1em;">single source of truth</li>
+                    <li class="fragment" style="margin-top: 1em;">harmonization of data/state</li>
+                    <li class="fragment" style="margin-top: 1em;">orchestration+authorization of aspects</li>
+                    <li class="fragment" style="margin-top: 1em;">APIs - <b>Device as a Service</b></li>
+                </ul>
+            </section>
         </section>
 
         <!-- Section: Ditto -->
@@ -269,7 +314,7 @@
                 <!-- background source: http://wallpapercave.com/wp/WkziiJQ.jpg -->
                 <h1>Eclipse Ditto</h1>
                 <br/>
-                <h2>… where IoT devices and their digital twins get together</h2>
+                <h2>… where IoT devices and their Digital Twins get together</h2>
             </section>
             <section id="ditto-1" style="clear: both;">
                 <h2>in context</h2>
@@ -278,12 +323,12 @@
             <section id="ditto-2" style="clear: both;">
                 <h2>domain model</h2>
                 <ul style="font-size: 0.8em;">
-                    <li>how does the model of Eclipse Ditto look like?</li>
+                    <li>how does a <b>Digital Twin</b> in Eclipse Ditto look like?</li>
                     <li>KISS</li>
                 </ul>
                 <br />
                 <br />
-                <img src="../../images/pages/basic/ditto-class-diagram-v1.svg" alt="Ditto class diagram v1" class="fragment"/>
+                <img src="../../images/pages/basic/ditto-class-diagram-v2.png" alt="Ditto class diagram v2" class="fragment"/>
                 <a href="https://www.eclipse.org/ditto/basic-overview.html#domain-model">→ docs</a>
             </section>
             <section id="ditto-3" style="clear: both;">
@@ -332,7 +377,7 @@
             <section id="ditto-4" style="clear: both">
                 <h2>Ditto Protocol API</h2>
                 <ul>
-                    <li>JSON based text protocol for communicating with Digital Twins bidirectionally (commands/events)</li>
+                    <li>JSON based text protocol for communicating with <b>Digital Twins</b> bidirectionally (commands/events)</li>
                     <li>via: WebSocket, AMQP 1.0 (e.g. Hono), AMQP 0.9.1</li>
                 </ul>
                 <pre style="width: 100%; font-size: 0.5em;"><code class="hljs json">{
@@ -450,6 +495,29 @@ source.onmessage = function(msg) {
                 </div>
             </section>
             <section id="ditto-8" style="clear: both;">
+                <h2>get notified about changes</h2>
+                <br/>
+                <h3>notifications also possible via</h3>
+                <ul>
+                    <li>AMQP <b>1.0</b> endpoint (e.g. Eclipse Hono)</li>
+                    <li>AMQP <b>0.9.1</b> broker (e.g. RabbitMQ)</li>
+                </ul>
+                <h3 class="fragment" style="margin-top: 1em">Ditto manages connections to those since version 0.3.0-M1</h3>
+                <a href="https://www.eclipse.org/ditto/connectivity-overview.html" style="float: right;">→ docs</a>
+            </section>
+            <section id="ditto-9" style="clear: both;">
+                <h2>data harmonization</h2>
+                <br/>
+                <ul>
+                    <li>devices send data in various formats</li>
+                    <li class="fragment">Ditto structures data of <b>things</b> (attributes, features)</li>
+                    <li class="fragment">devices shouldn't need to be aware of Ditto</li>
+                </ul>
+                <br/>
+                <br/>
+                <h3 class="fragment">device data received via AMQP can be transformed via a custom JavaScript function</h3>
+            </section>
+            <section id="ditto-10" style="clear: both;">
                 <h2>search</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 40%">
@@ -481,7 +549,7 @@ source.onmessage = function(msg) {
                     <a href="https://www.eclipse.org/ditto/basic-search.html" style="float: right;">→ docs</a>
                 </div>
             </section>
-            <section id="ditto-9" style="clear: both;">
+            <section id="ditto-11" style="clear: both;">
                 <h2>nonfunctional</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 48%">
@@ -550,7 +618,7 @@ source.onmessage = function(msg) {
 
         <!-- Section: Wrap up + Roadmap -->
         <section style="clear: both;">
-            <section id="wrap-up">
+            <section id="wrap-up" style="clear: both;">
                 <h1>Wrap up</h1>
                 <br/>
                 <ul>
@@ -566,10 +634,30 @@ source.onmessage = function(msg) {
                 <ul>
                     <li>release (non-milestone)</li>
                     <li style="margin-top: 1em;">using <b>Eclipse Vorto</b> generator for validation</li>
-                    <li style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol</li>
+                    <li style="margin-top: 1em;">mapping raw payloads to/from Ditto Protocol &nbsp;&nbsp; <i class="fas fa-check" style="color: green"></i></li>
                     <li style="margin-top: 1em;">attracting IoT developers in using Ditto</li>
                     <li style="margin-top: 1em;">integration with other OSS projects</li>
                 </ul>
+            </section>
+
+            <section id="bosch-iot-things" style="clear: both;">
+                <h2>Bosch IoT Things</h2>
+                <br/>
+                <div style="text-align: left; float: left; width: 37%">
+                    <img src="../images/bosch-iot-things.png" style="width: 100%" alt="Bosch IoT Things" />
+                    <h4>freemium model</h4>
+                    <h4>+operated 24/7</h4>
+                    <h4>+support</h4>
+                    <h4>+some features</h4>
+                </div>
+                <div style="text-align: left; float: right; width: 63%">
+                    <ul>
+                        <li class="fragment">commercial cloud service offering of Eclipse Ditto</li>
+                        <li class="fragment" style="margin-top: 1em;">part of the <a href="https://www.bosch-iot-suite.com">Bosch IoT Suite</a></li>
+                        <li class="fragment" style="margin-top: 1em;">same team works on Ditto and commercialization</li>
+                        <li class="fragment" style="margin-top: 1em;">evaluate Ditto by using free plan</li>
+                    </ul>
+                </div>
             </section>
         </section>
 
@@ -577,12 +665,11 @@ source.onmessage = function(msg) {
         <section style="clear: both;">
             <section id="q-a" class="new-chapter" data-background="../bg-images/background-conclusion-small.jpg"
                      data-state="chapter-background">
+                <br/>
+                <h3>thanks to Diana and codecentric for hosting this meetup</h3>
+                <br/>
+                <br/>
                 <h1>Q & A</h1>
-                <br/>
-                <h3>thanks for attending</h3>
-                <br/>
-                <br/>
-                <a href="https://www.eclipse.org/ditto/feedback.html">reach out to the Ditto team</a>
             </section>
         </section>
     </div>
