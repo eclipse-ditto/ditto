@@ -18,7 +18,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_VALUE;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FILTER_NOT_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.FILTER_NOT_DELETED;
 
 import java.util.Arrays;
 import java.util.Collections;

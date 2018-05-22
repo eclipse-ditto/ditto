@@ -12,8 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 
-import org.bson.BsonDocument;
-import org.bson.BsonNull;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
 
 /**
@@ -332,16 +330,6 @@ public final class PersistenceConstants {
     public static final String REGEX_FIELD_END = "(/|\\z)";
     public static final String REGEX_FIELD_START = "^";
     public static final String REGEX_START_THING_ID = "^(?i)";
-
-    /**
-     * Filter for not-deleted entries.
-     */
-    public static final BsonDocument FILTER_NOT_DELETED;
-
-    static {
-        FILTER_NOT_DELETED = new BsonDocument();
-        FILTER_NOT_DELETED.put(PersistenceConstants.FIELD_DELETED, BsonNull.VALUE);
-    }
 
     private PersistenceConstants() {
     }
