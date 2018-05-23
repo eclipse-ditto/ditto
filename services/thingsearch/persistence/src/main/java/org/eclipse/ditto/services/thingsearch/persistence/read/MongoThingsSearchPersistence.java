@@ -23,9 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
-import org.bson.BsonInt32;
 import org.bson.BsonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -48,7 +46,6 @@ import com.mongodb.MongoExecutionTimeoutException;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.mongodb.reactivestreams.client.Success;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -56,7 +53,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.stream.ActorMaterializer;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
@@ -76,7 +72,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
     private final ActorMaterializer materializer;
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
-    private final MongoClientWrapper clientWrapper;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
@@ -85,7 +80,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      * @param actorSystem the Akka ActorSystem.
      */
     public MongoThingsSearchPersistence(final MongoClientWrapper clientWrapper, final ActorSystem actorSystem) {
-        this.clientWrapper = clientWrapper;
         collection = clientWrapper.getDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
         log = Logging.getLogger(actorSystem, getClass());
         materializer = ActorMaterializer.create(actorSystem);
@@ -95,17 +89,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     @Override
     public CompletionStage<Void> initializeIndices() {
-        // do not fail if index key too long
-        return failIndexKeyTooLong(false)
-                .mapAsync(1, success ->
-                        indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all())
-                                .thenApply(nullValue -> true))
-                .runWith(Sink.ignore(), materializer)
-                .exceptionally(t -> {
-                    log.error(t, "Index-Initialization failed.");
-                    return null;
-                })
-                .thenApply(notNull -> null);
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all());
     }
 
     @Override
@@ -252,20 +236,5 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                                 : error
                 )
                 .build();
-    }
-
-    /**
-     * Instruct MongoDB to fail index creation or not when a document's index entry exceeds size limit.
-     *
-     * @param shouldFail whether MongoDB should fail
-     * @return Akka stream source delivering a single element upon success.
-     */
-    private Source<Success, NotUsed> failIndexKeyTooLong(final boolean shouldFail) {
-        return Source.fromPublisher(clientWrapper.getMongoClient()
-                .getDatabase("admin")
-                .runCommand(new BsonDocument()
-                        .append("setParameter", new BsonInt32(1))
-                        .append("failIndexKeyTooLong", BsonBoolean.valueOf(shouldFail))))
-                .map(notUsed -> Success.SUCCESS);
     }
 }
