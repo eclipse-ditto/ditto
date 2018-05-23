@@ -45,6 +45,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -139,7 +140,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
         log.debug("Saving Thing with revision <{}> and policy revision <{}>: <{}>", revision, policyRevision, thing);
-        final Bson filter = filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
+        final Bson filter =
+                filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
         final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
                 .map(updateResult -> updateResult.getMatchedCount() > 0 || null != updateResult.getUpsertedId());
@@ -257,7 +259,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
             final T thingEvent) {
         final List<Bson> updates = persistenceStrategyFactory
                 .getStrategy(thingEvent)
-                .thingUpdates(thingEvent, indexLengthRestrictionEnforcer);
+                .thingUpdates(thingEvent, IndexLengthRestrictionEnforcer.newInstance(log, thingEvent.getThingId()));
         return updates
                 .stream()
                 .map(update -> new UpdateOneModel<Document>(filter, update, new UpdateOptions().upsert(true)))

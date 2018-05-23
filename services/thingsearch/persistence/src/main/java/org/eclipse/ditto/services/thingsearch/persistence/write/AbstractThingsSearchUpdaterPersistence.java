@@ -27,10 +27,6 @@ public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSe
      * The logger.
      */
     protected final LoggingAdapter log;
-    /**
-     * The restriction helper.
-     */
-    protected final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
     /**
      * Default contructor.
@@ -38,19 +34,7 @@ public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSe
      * @param loggingAdapter the logger to use for logging.
      */
     public AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter) {
-        this(loggingAdapter, IndexLengthRestrictionEnforcer.newInstance(loggingAdapter));
-    }
-
-    /**
-     * Default contructor.
-     *
-     * @param loggingAdapter the logger to use for logging.
-     * @param indexLengthRestrictionEnforcer the restriction helper.
-     */
-    public AbstractThingsSearchUpdaterPersistence(final LoggingAdapter loggingAdapter,
-            final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer) {
-        this.log = loggingAdapter;
-        this.indexLengthRestrictionEnforcer = indexLengthRestrictionEnforcer;
+        log = loggingAdapter;
     }
 
     /**
@@ -60,7 +44,7 @@ public abstract class AbstractThingsSearchUpdaterPersistence implements ThingsSe
     public Source<Boolean, NotUsed> insertOrUpdate(final Thing thing, final long revision, final long
             policyRevision) {
         // enforce the restrictions on the data
-        final Thing toSave = indexLengthRestrictionEnforcer.enforceRestrictions(thing);
+        final Thing toSave = IndexLengthRestrictionEnforcer.enforceRestrictions(log, thing);
         return save(toSave, revision, policyRevision)
                 .recoverWithRetries(1, errorRecovery(getThingId(toSave)));
     }

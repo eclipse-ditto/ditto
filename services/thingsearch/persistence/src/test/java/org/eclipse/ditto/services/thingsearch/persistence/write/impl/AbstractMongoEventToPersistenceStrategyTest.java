@@ -53,7 +53,8 @@ public abstract class AbstractMongoEventToPersistenceStrategyTest {
     @Before
     public void setUpMocks() {
         policyEnforcer = Mockito.mock(PolicyEnforcer.class);
-        indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class));
+        indexLengthRestrictionEnforcer =
+                IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class), "");
 
         final EffectedSubjectIds effectedSubjectIds = ImmutableEffectedSubjectIds.of(Collections.emptyList(),
                 Collections.emptyList());

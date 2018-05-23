@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SLASH;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +34,6 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.FeaturesBuilder;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import akka.event.LoggingAdapter;
 
@@ -43,42 +44,24 @@ import akka.event.LoggingAdapter;
 public final class IndexLengthRestrictionEnforcer {
 
     /**
-     * Max allowed length of feature properties.
+     * Max allowed length of index content.
      */
-    static final int MAX_FEATURE_PROPERTY_VALUE_LENGTH = 950;
-    /**
-     * Max allowed length of attributes.
-     */
-    static final int MAX_ATTRIBUTE_VALUE_LENGTH = 950;
-
-    /**
-     * The overhead caused by the json key of attribute entries. Use {@link IndexLengthRestrictionEnforcer#attributeOverhead()}
-     * ()} for calculating the concrete overhead.
-     */
-    private static final int ATTRIBUTE_KEY_OVERHEAD = ("attributes").length();
-
-    /**
-     * The overhead caused by the json key of feature properties. Use {@link IndexLengthRestrictionEnforcer#featurePropertyOverhead(String)}
-     * for calculating the concrete overhead.
-     */
-    private static final int FEATURE_PROPERTY_KEY_OVERHEAD = ("features" +
-            PersistenceConstants.SLASH
-            // feature id
-            + PersistenceConstants.SLASH
-            + "properties").length();
+    static final int MAX_INDEX_CONTENT_LENGTH = 950;
 
     /**
      * The logging adapter used to log size restriction enforcements.
      */
     private final LoggingAdapter log;
+    private final int thingIdNamespaceOverhead;
 
     /**
      * Default constructor.
      *
      * @param log the logging adapter used to log size restriction enforcements.
      */
-    private IndexLengthRestrictionEnforcer(final LoggingAdapter log) {
+    private IndexLengthRestrictionEnforcer(final LoggingAdapter log, final String thingId) {
         this.log = log;
+        this.thingIdNamespaceOverhead = calculateThingIdNamespaceOverhead(thingId);
     }
 
     /**
@@ -87,8 +70,14 @@ public final class IndexLengthRestrictionEnforcer {
      * @param loggingAdapter the logging adapter used to log size restriction enforcements.
      * @return the instance.
      */
-    public static IndexLengthRestrictionEnforcer newInstance(final LoggingAdapter loggingAdapter) {
-        return new IndexLengthRestrictionEnforcer(loggingAdapter);
+    public static IndexLengthRestrictionEnforcer newInstance(final LoggingAdapter loggingAdapter,
+            final String thingId) {
+        return new IndexLengthRestrictionEnforcer(loggingAdapter, thingId);
+    }
+
+    public static Thing enforceRestrictions(final LoggingAdapter log, final Thing thing) {
+        return new IndexLengthRestrictionEnforcer(log, thing.getId().orElse(""))
+                .enforceRestrictionsWithoutCheckingIdOverhead(thing);
     }
 
     /**
@@ -98,6 +87,10 @@ public final class IndexLengthRestrictionEnforcer {
      * @return The thing with content that satisfies the thresholds.
      */
     public Thing enforceRestrictions(final Thing thing) {
+        return IndexLengthRestrictionEnforcer.enforceRestrictions(log, thing);
+    }
+
+    private Thing enforceRestrictionsWithoutCheckingIdOverhead(final Thing thing) {
         // check if features exceed limits
         final Map<Feature, Set<JsonField>> exceededFeatures =
                 calculateThresholdViolations(thing.getFeatures().orElse(Features.newBuilder().build()));
@@ -123,7 +116,7 @@ public final class IndexLengthRestrictionEnforcer {
                             fixViolation(jsonField.getKey().asPointer(),
                                     jsonField.getValue(),
                                     featurePropertyOverhead(feature.getId()),
-                                    MAX_FEATURE_PROPERTY_VALUE_LENGTH))));
+                                    MAX_INDEX_CONTENT_LENGTH))));
             intermediateThing = builder.build();
         }
 
@@ -187,14 +180,14 @@ public final class IndexLengthRestrictionEnforcer {
         if (violatesThreshold(featurePointer,
                 propertyValue,
                 featurePropertyOverhead(featureId),
-                MAX_FEATURE_PROPERTY_VALUE_LENGTH)) {
+                MAX_INDEX_CONTENT_LENGTH)) {
             log.warning("Feature Property <{}> of Feature <{}> exceeds size restrictions.",
                     featurePointer.toString(),
                     featureId);
             return fixViolation(featurePointer,
                     propertyValue,
                     featurePropertyOverhead(featureId),
-                    MAX_FEATURE_PROPERTY_VALUE_LENGTH);
+                    MAX_INDEX_CONTENT_LENGTH);
         }
         return propertyValue;
     }
@@ -256,9 +249,9 @@ public final class IndexLengthRestrictionEnforcer {
             final JsonValue attributeValue) {
         if (violatesThreshold(attributeKey, attributeValue,
                 attributeOverhead(),
-                MAX_ATTRIBUTE_VALUE_LENGTH)) {
+                MAX_INDEX_CONTENT_LENGTH)) {
             log.warning("Attribute <{}> exceeds size restrictions", attributeKey.toString());
-            return fixViolation(attributeKey, attributeValue, attributeOverhead(), MAX_ATTRIBUTE_VALUE_LENGTH);
+            return fixViolation(attributeKey, attributeValue, attributeOverhead(), MAX_INDEX_CONTENT_LENGTH);
         }
         return attributeValue;
     }
@@ -290,7 +283,7 @@ public final class IndexLengthRestrictionEnforcer {
                 fixViolation(field.getKey().asPointer(),
                         field.getValue(),
                         attributeOverhead(),
-                        MAX_ATTRIBUTE_VALUE_LENGTH)));
+                        MAX_INDEX_CONTENT_LENGTH)));
         return builder.build();
     }
 
@@ -304,7 +297,7 @@ public final class IndexLengthRestrictionEnforcer {
                             jsonField.getKey().asPointer(),
                             jsonField.getValue(),
                             featurePropertyOverhead(featureId),
-                            MAX_FEATURE_PROPERTY_VALUE_LENGTH);
+                            MAX_INDEX_CONTENT_LENGTH);
                     featurePropertiesBuilder.set(jsonField.getKey().asPointer(), restrictedValue);
                 });
 
@@ -315,7 +308,7 @@ public final class IndexLengthRestrictionEnforcer {
             final JsonValue value,
             final int overhead,
             final int threshold) {
-        final int cutAt = threshold - totalOverhead(key, overhead);
+        final int cutAt = Math.max(0, threshold - totalOverhead(key, overhead));
         return JsonValue.of(value.asString().substring(0, cutAt));
     }
 
@@ -325,7 +318,7 @@ public final class IndexLengthRestrictionEnforcer {
                 .filter(field -> violatesThreshold(field.getKey().asPointer(),
                         field.getValue(),
                         attributeOverhead(),
-                        MAX_ATTRIBUTE_VALUE_LENGTH))
+                        MAX_INDEX_CONTENT_LENGTH))
                 .collect(Collectors.toSet());
     }
 
@@ -352,7 +345,7 @@ public final class IndexLengthRestrictionEnforcer {
                         field.getKey().asPointer(),
                         field.getValue(),
                         featurePropertyOverhead(featureId),
-                        MAX_FEATURE_PROPERTY_VALUE_LENGTH))
+                        MAX_INDEX_CONTENT_LENGTH))
                 .collect(Collectors.toSet());
     }
 
@@ -367,7 +360,7 @@ public final class IndexLengthRestrictionEnforcer {
     }
 
     private int totalOverhead(final JsonPointer key, final int additionalOverhead) {
-        return key.toString().length() + additionalOverhead;
+        return jsonPointerLengthWithoutStartingSlash(key) + additionalOverhead;
     }
 
     /**
@@ -376,7 +369,7 @@ public final class IndexLengthRestrictionEnforcer {
      * @return The overhead as a positive int.
      */
     private int attributeOverhead() {
-        return ATTRIBUTE_KEY_OVERHEAD;
+        return thingIdNamespaceOverhead;
     }
 
     /**
@@ -386,7 +379,7 @@ public final class IndexLengthRestrictionEnforcer {
      * @return The overhead as a positive int.
      */
     private int featurePropertyOverhead(final String featureKey) {
-        return FEATURE_PROPERTY_KEY_OVERHEAD + featureKey.length();
+        return thingIdNamespaceOverhead + featureKey.length();
     }
 
 
@@ -398,6 +391,18 @@ public final class IndexLengthRestrictionEnforcer {
      */
     private String getThingId(final Thing thing) {
         return thing.getId().orElseThrow(() -> new IllegalArgumentException("The thing has no ID!"));
+    }
+
+    private static int calculateThingIdNamespaceOverhead(final String thingId) {
+        final int namespaceLength = Math.max(0, thingId.indexOf(':'));
+        return thingId.length() + namespaceLength;
+    }
+
+    private static int jsonPointerLengthWithoutStartingSlash(final JsonPointer jsonPointer) {
+        final String stringRepresentation = jsonPointer.toString();
+        return stringRepresentation.startsWith(SLASH)
+                ? stringRepresentation.length() - 1
+                : stringRepresentation.length();
     }
 
 }
