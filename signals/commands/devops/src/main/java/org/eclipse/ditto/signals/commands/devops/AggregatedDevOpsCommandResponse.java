@@ -11,13 +11,10 @@
  */
 package org.eclipse.ditto.signals.commands.devops;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -50,20 +47,20 @@ public final class AggregatedDevOpsCommandResponse
      */
     public static final String TYPE = TYPE_PREFIX + "aggregatedResponse";
 
-    static final JsonFieldDefinition<String> JSON_RESPONSES_TYPE =
+    private static final JsonFieldDefinition<String> JSON_RESPONSES_TYPE =
             JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
-    static final JsonFieldDefinition<JsonObject> JSON_AGGREGATED_RESPONSES =
+    private static final JsonFieldDefinition<JsonObject> JSON_AGGREGATED_RESPONSES =
             JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final List<CommandResponse<?>> aggregatedResponses;
+    private final JsonObject aggregatedResponses;
     private final String responsesType;
 
-    private AggregatedDevOpsCommandResponse(final List<CommandResponse<?>> aggregatedResponses,
+    private AggregatedDevOpsCommandResponse(final JsonObject aggregatedResponses,
             final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
         super(TYPE, null, null, httpStatusCode, dittoHeaders);
-        this.aggregatedResponses = Collections.unmodifiableList(new ArrayList<>(aggregatedResponses));
+        this.aggregatedResponses = aggregatedResponses;
         this.responsesType = responsesType;
     }
 
@@ -78,7 +75,22 @@ public final class AggregatedDevOpsCommandResponse
      */
     public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
             final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
-        return new AggregatedDevOpsCommandResponse(commandResponses, responsesType, httpStatusCode, dittoHeaders);
+        final JsonObject jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
+        return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatusCode, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
+     *
+     * @param aggregatedResponses the aggregated {@link DevOpsCommandResponse}s as a JsonObject.
+     * @param responsesType the responses type of the responses to expect.
+     * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
+     * @param dittoHeaders the headers of the request.
+     * @return the new RetrieveLoggerConfigResponse response.
+     */
+    public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
+            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
+        return new AggregatedDevOpsCommandResponse(aggregatedResponses, responsesType, httpStatusCode, dittoHeaders);
     }
 
     /**
@@ -113,21 +125,7 @@ public final class AggregatedDevOpsCommandResponse
                 .deserialize((statusCode) -> {
                     final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);
                     final JsonObject aggregatedResponsesJsonObj = jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES);
-                    final List<CommandResponse<?>> theDevOpsCommandsResponses =
-                            aggregatedResponsesJsonObj.stream()
-                                    .flatMap(serviceField -> {
-                                        final JsonValue serviceInstances = serviceField.getValue();
-                                        return serviceInstances.asObject().stream()
-                                                .<DevOpsCommandResponse<?>>map(instanceField -> {
-                                                    final JsonValue commandResponse = instanceField.getValue();
-
-                                                    return parseStrategies.get(theResponsesType)
-                                                            .<DevOpsCommandResponse<?>>parse(commandResponse.asObject(),
-                                                                    dittoHeaders);
-                                                });
-                                    }).collect(Collectors.toList());
-
-                    return of(theDevOpsCommandsResponses, theResponsesType, statusCode, dittoHeaders);
+                    return of(aggregatedResponsesJsonObj, theResponsesType, statusCode, dittoHeaders);
                 });
     }
 
@@ -143,13 +141,6 @@ public final class AggregatedDevOpsCommandResponse
         return responsesType;
     }
 
-    /**
-     * @return the aggregated {@link CommandResponse}s.
-     */
-    public List<CommandResponse<?>> getAggregatedResponses() {
-        return aggregatedResponses;
-    }
-
     @Override
     public AggregatedDevOpsCommandResponse setEntity(final JsonValue entity) {
         throw new UnsupportedOperationException("Setting entity on AggregatedDevOpsCommandResponse is not supported");
@@ -157,7 +148,7 @@ public final class AggregatedDevOpsCommandResponse
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return buildJsonRepresentation(schemaVersion);
+        return aggregatedResponses;
     }
 
     @Override
@@ -168,15 +159,16 @@ public final class AggregatedDevOpsCommandResponse
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_RESPONSES_TYPE, responsesType, predicate);
-        jsonObjectBuilder.set(JSON_AGGREGATED_RESPONSES, buildJsonRepresentation(predicate));
+        jsonObjectBuilder.set(JSON_AGGREGATED_RESPONSES, aggregatedResponses, predicate);
     }
 
-    private JsonObject buildJsonRepresentation(final Predicate<JsonField> predicate) {
+    private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
+            final DittoHeaders dittoHeaders) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
-        aggregatedResponses.forEach(cmdR ->
+        commandResponses.forEach(cmdR ->
                 builder.set("/" + calculateServiceName(cmdR) + "/" + String.valueOf(calculateInstance(cmdR)),
-                        cmdR.toJson(predicate)));
+                        cmdR.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
 
         if (builder.isEmpty()) {
             return JsonFactory.nullObject();
@@ -204,12 +196,9 @@ public final class AggregatedDevOpsCommandResponse
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) {return true;}
+        if (o == null || getClass() != o.getClass()) {return false;}
+        if (!super.equals(o)) {return false;}
         final AggregatedDevOpsCommandResponse that = (AggregatedDevOpsCommandResponse) o;
         return that.canEqual(this) && Objects.equals(responsesType, that.responsesType) &&
                 Objects.equals(aggregatedResponses, that.aggregatedResponses) && super.equals(that);

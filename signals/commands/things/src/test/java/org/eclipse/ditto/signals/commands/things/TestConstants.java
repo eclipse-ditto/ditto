@@ -50,6 +50,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAc
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
@@ -322,6 +323,9 @@ public final class TestConstants {
         public static final ThingTooManyModifyingRequestsException THING_TOO_MANY_MODIFYING_REQUESTS_EXCEPTION =
                 ThingTooManyModifyingRequestsException.newBuilder(THING_ID).build();
 
+        public static final MissingThingIdsException MISSING_THING_IDS_EXCEPTION =
+                MissingThingIdsException.newBuilder().build();
+
         private Thing() {
             throw new AssertionError();
         }
@@ -439,7 +443,6 @@ public final class TestConstants {
         public static final FeaturePropertyNotModifiableException FEATURE_PROPERTY_NOT_MODIFIABLE_EXCEPTION =
                 FeaturePropertyNotModifiableException
                         .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
-
 
         private Feature() {
             throw new AssertionError();
