@@ -80,12 +80,8 @@ public final class IndexInitializer {
         LOGGER.info("Starting index-initialization with defined indices: {}", indices);
         return createNonExistingIndices(collectionName, indices)
                 .thenCompose(done -> dropUndefinedIndices(collectionName, indices))
-                .<Void>thenApply(unused -> {
+                .thenApply(unused -> {
                     LOGGER.info("Index-Initialization was successful.");
-                    return null;
-                })
-                .<Void>exceptionally(t -> {
-                    LOGGER.error("Index-Initialization failed.", t);
                     return null;
                 });
     }

@@ -89,7 +89,11 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     @Override
     public CompletionStage<Void> initializeIndices() {
-        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all());
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all())
+                .exceptionally(t -> {
+                    log.error("Index-Initialization failed.", t);
+                    return null;
+                });
     }
 
     @Override

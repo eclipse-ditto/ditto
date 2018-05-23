@@ -121,6 +121,8 @@ public final class SearchRootActor extends AbstractActor {
         final boolean indexInitializationEnabled = config.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
             thingsSearchPersistence.initializeIndices();
+        } else {
+            log.info("Skipping IndexInitializer because it is disabled.");
         }
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
