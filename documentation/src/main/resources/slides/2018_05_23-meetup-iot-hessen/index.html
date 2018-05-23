@@ -374,7 +374,19 @@
                     <a href="https://www.eclipse.org/ditto/httpapi-concepts.html#endpoints" style="float: right;">→ docs</a>
                 </div>
             </section>
-            <section id="ditto-4" style="clear: both">
+            <section id="ditto-4" style="clear: both;">
+                <h2>data harmonization</h2>
+                <br/>
+                <ul>
+                    <li>devices send data in various formats</li>
+                    <li class="fragment">Ditto structures data of <b>things</b> (attributes, features)</li>
+                    <li class="fragment">devices shouldn't need to be aware of Ditto</li>
+                </ul>
+                <br/>
+                <br/>
+                <h3 class="fragment">device data received via AMQP can be transformed via a custom JavaScript function</h3>
+            </section>
+            <section id="ditto-5" style="clear: both">
                 <h2>Ditto Protocol API</h2>
                 <ul>
                     <li>JSON based text protocol for communicating with <b>Digital Twins</b> bidirectionally (commands/events)</li>
@@ -391,7 +403,7 @@
 }</code></pre>
                 <a href="https://www.eclipse.org/ditto/protocol-overview.html" style="float: right;">→ docs</a>
             </section>
-            <section id="ditto-5" style="clear: both">
+            <section id="ditto-6" style="clear: both">
                 <h2>access control</h2>
                 <div style="text-align: left; float: left; width: 48%">
                     <h3>API v1: ACL</h3>
@@ -442,7 +454,7 @@
                     <a href="https://www.eclipse.org/ditto/basic-auth.html#authorization" style="float: right;">→ docs</a>
                 </div>
             </section>
-            <section id="ditto-6" style="clear: both;">
+            <section id="ditto-7" style="clear: both;">
                 <h2>twin vs. live</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 48%">
@@ -463,13 +475,13 @@
                     <a href="https://www.eclipse.org/ditto/protocol-twinlive.html" style="float: right;">→ docs</a>
                 </div>
             </section>
-            <section id="ditto-7" style="clear: both;">
+            <section id="ditto-8" style="clear: both;">
                 <h2>get notified about changes</h2>
                 <br/>
                 <div style="text-align: left; float: left; width: 48%">
                     <h3>via WebSocket</h3>
                     <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">var ws = new WebSocket(
-  "ws://u:p@ditto.eclipse.org/ws/1");
+  "ws://u:p@ditto.eclipse.org/ws/2");
 ws.onopen = function(w) {
   w.send('START-SEND-EVENTS');
 };
@@ -484,7 +496,7 @@ ws.onmessage = function(msg) {
                 <div style="text-align: left; float: right; width: 48%" class="fragment">
                     <h3>via SSEs</h3>
                     <pre style="width: 100%; font-size: 0.5em;"><code class="hljs">var source = new EventSource(
-  "/api/1/things?ids=namespace:car-1");
+  "https://ditto.eclipse.org/api/2/things?ids=namespace:car-1", { withCredentials: true });
 source.onmessage = function(msg) {
   console.log('received: ' + msg.data);
 };</code></pre>
@@ -494,7 +506,7 @@ source.onmessage = function(msg) {
                     <a href="https://www.eclipse.org/ditto/httpapi-sse.html" style="float: right;">→ docs</a>
                 </div>
             </section>
-            <section id="ditto-8" style="clear: both;">
+            <section id="ditto-9" style="clear: both;">
                 <h2>get notified about changes</h2>
                 <br/>
                 <h3>notifications also possible via</h3>
@@ -504,18 +516,6 @@ source.onmessage = function(msg) {
                 </ul>
                 <h3 class="fragment" style="margin-top: 1em">Ditto manages connections to those since version 0.3.0-M1</h3>
                 <a href="https://www.eclipse.org/ditto/connectivity-overview.html" style="float: right;">→ docs</a>
-            </section>
-            <section id="ditto-9" style="clear: both;">
-                <h2>data harmonization</h2>
-                <br/>
-                <ul>
-                    <li>devices send data in various formats</li>
-                    <li class="fragment">Ditto structures data of <b>things</b> (attributes, features)</li>
-                    <li class="fragment">devices shouldn't need to be aware of Ditto</li>
-                </ul>
-                <br/>
-                <br/>
-                <h3 class="fragment">device data received via AMQP can be transformed via a custom JavaScript function</h3>
             </section>
             <section id="ditto-10" style="clear: both;">
                 <h2>search</h2>
@@ -613,6 +613,8 @@ source.onmessage = function(msg) {
         <section style="clear: both;">
             <section id="demo" class="new-chapter" data-background="../bg-images/background-demo-small.jpg" data-state="chapter-background">
                 <h1>Demo time!</h1>
+                <br/>
+                <h3><a href="https://github.com/eclipse/ditto-examples/tree/master/octopus-via-hono">GitHub sources</a></h3>
             </section>
         </section>
 
@@ -718,11 +720,11 @@ source.onmessage = function(msg) {
                               { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/highlight/highlight.min.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
                               { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/zoom-js/zoom.min.js', async: true },
                               { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/plugin/notes/notes.min.js', async: true }
-                          ]
-//                keyboard: { // for hama remote presenter:
-//                      38: 'next',
-//                      40: 'prev'
-//                }
+                          ],
+                           keyboard: { // for hama remote presenter:
+                                 38: 'next',
+                                 40: 'prev'
+                           }
                       });
 
 </script>
