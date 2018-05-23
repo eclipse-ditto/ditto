@@ -29,9 +29,11 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRe
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
+import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -47,6 +49,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -80,6 +83,7 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -199,14 +203,21 @@ public final class RootRoute {
             authenticationChain.add(DummyAuthenticationProvider.INSTANCE);
         }
 
+
+        final Map.Entry<String, MetricRegistry> namedPublicKeysCacheMetricRegistry =
+                new AbstractMap.SimpleImmutableEntry<>("ditto.auth.jwt.publicKeys.cache", new MetricRegistry());
+        StatsdMetricsReporter.getInstance().add(namedPublicKeysCacheMetricRegistry);
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
+
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY));
+                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY),
+                namedPublicKeysCacheMetricRegistry);
         final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
+
         authenticationChain.add(
-                new JwtAuthenticationDirective(blockingDispatcher, publicKeyProvider, authorizationSubjectsProvider));
+                new JwtAuthenticationDirective(publicKeyProvider, authorizationSubjectsProvider));
 
         return new GatewayAuthenticationDirective(authenticationChain);
     }

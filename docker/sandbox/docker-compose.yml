@@ -56,23 +56,20 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
-  gateway:
-    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+  concierge:
+    image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
+    entrypoint: sh -c "sleep 30; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - ENABLE_DUMMY_AUTH=true
-      - IBM_JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
-      - DEVOPS_SECURE_STATUS=false
-      - GATEWAY_PUBLIC_HEALTH_SECURE=false
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   connectivity:
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
@@ -82,13 +79,32 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-      - gateway
-    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
+      - concierge
+    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+
+  gateway:
+    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - concierge
+    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - ENABLE_DUMMY_AUTH=true
+      - DEVOPS_SECURE_STATUS=false
+      - GATEWAY_PUBLIC_HEALTH_SECURE=false
+      - IBM_JAVA_OPTIONS=-Xms256m -Xms256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9

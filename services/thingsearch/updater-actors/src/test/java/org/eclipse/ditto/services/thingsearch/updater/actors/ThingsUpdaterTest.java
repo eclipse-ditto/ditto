@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -71,16 +71,12 @@ public class ThingsUpdaterTest {
     private ThingsSearchUpdaterPersistence persistence;
 
     private ActorSystem actorSystem;
-    private TestProbe thingCache;
-    private TestProbe policyCache;
     private TestProbe shardMessageReceiver;
     private ShardRegionFactory shardRegionFactory;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
-        thingCache = TestProbe.apply(actorSystem);
-        policyCache = TestProbe.apply(actorSystem);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = TestUtils.getMockedShardRegionFactory(
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
@@ -176,9 +172,7 @@ public class ThingsUpdaterTest {
                 circuitBreaker,
                 eventProcessingActive,
                 activityCheckInterval,
-                Integer.MAX_VALUE,
-                thingCache.ref(),
-                policyCache.ref()));
+                Integer.MAX_VALUE));
     }
 
     private ThingsSearchUpdaterPersistence waitUntil() {

@@ -25,15 +25,12 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link DeleteFeatureProperty}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class DeleteFeaturePropertyTest {
 
     private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/target_year_1");

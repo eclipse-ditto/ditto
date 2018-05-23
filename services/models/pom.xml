@@ -26,6 +26,7 @@
 
     <modules>
         <module>connectivity</module>
+        <module>concierge</module>
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>

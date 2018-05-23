@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -52,6 +53,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotModifiabl
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -267,6 +269,17 @@ public final class TestConstants {
          */
         public static final PolicyIdNotAllowedException POLICY_ID_NOT_ALLOWED_EXCEPTION =
                 PolicyIdNotAllowedException.newBuilder(THING_ID).build();
+
+        /**
+         * List of required policy permissions for a Thing.
+         */
+        public static Collection<String> REQUIRED_THING_PERMISSIONS = Arrays.asList("READ", "WRITE");
+
+        /**
+         * A known {@code PolicyInvalidException}.
+         */
+        public static final PolicyInvalidException POLICY_INVALID_EXCEPTION =
+                PolicyInvalidException.newBuilder(REQUIRED_THING_PERMISSIONS, THING_ID).build();
 
         /**
          * A known {@code PolicyNotAllowedException}.

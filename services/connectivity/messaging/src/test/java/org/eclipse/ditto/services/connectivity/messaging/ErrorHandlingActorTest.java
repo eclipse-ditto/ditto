@@ -40,12 +40,14 @@ import akka.testkit.javadsl.TestKit;
 public class ErrorHandlingActorTest {
 
     private static ActorSystem actorSystem;
+    private static ActorRef conciergeForwarder;
     private static ActorRef pubSubMediator;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
     }
 
     @AfterClass
@@ -62,8 +64,8 @@ public class ErrorHandlingActorTest {
             final String connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator,
-                    (con) -> FaultyConnectionActor.props(false));
+                    pubSubMediator, conciergeForwarder,
+                    (connection1, conciergeForwarder) -> FaultyConnectionActor.props(false));
             watch(underTest);
 
             // create connection
@@ -93,7 +95,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            faultyConnectionActorPropsFactory);
+                            conciergeForwarder, faultyConnectionActorPropsFactory);
             watch(underTest);
 
             // create connection
@@ -116,7 +118,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            faultyConnectionActorPropsFactory);
+                            conciergeForwarder, faultyConnectionActorPropsFactory);
             watch(underTest);
 
             // create connection

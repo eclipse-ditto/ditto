@@ -14,10 +14,12 @@ package org.eclipse.ditto.services.policies.persistence.testhelper;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 import org.assertj.core.api.ListAssert;
+import org.awaitility.Awaitility;
 
 /**
  * Provides assertions for testing the thing persistence.
@@ -55,38 +57,20 @@ public final class Assertions {
                 }
             }
 
-
             return 0;
         });
     }
 
     /**
      * Retries the given runnable {@code retryCount} times with a delay of {@code retryDelayMs} millis.
-     * @param retryCount defines how many times to retry
+     * @param waitAtMostMs defines how long to wait at most until the assertions are successful
      * @param retryDelayMs defines the interval between the retries in millis
      * @param r the Runnable containing the assertions to be applied
      */
-    public static void retryOnAssertionError(final Runnable r, final int retryCount, final long retryDelayMs) {
-        int retries = 0;
-        AssertionError ex = null;
-        while (retries < retryCount) {
-            if (retries != 0) {
-                try {
-                    Thread.sleep(retryDelayMs);
-                } catch (final InterruptedException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-            try {
-                r.run();
-                return;
-            } catch (final AssertionError e) {
-                ex = e;
-            }
-            retries +=1;
-        }
-        if (ex != null) {
-            throw ex;
-        }
+    public static void retryOnAssertionError(final Runnable r, final int waitAtMostMs, final long retryDelayMs) {
+        Awaitility.await()
+                .atMost(waitAtMostMs, TimeUnit.MILLISECONDS)
+                .pollInterval(retryDelayMs, TimeUnit.MILLISECONDS)
+                .untilAsserted(r::run);
     }
 }

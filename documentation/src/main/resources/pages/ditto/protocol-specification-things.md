@@ -21,10 +21,9 @@ A valid topic consists of six elements, describing the thing affected by this me
 5. `criterion`: the type of Protocol message; can either be `commands`, `events`, 
    [`search`](protocol-specification-things-search.html) or [`messages`](protocol-specification-things-messages.html).
 6. `action`: the action executed on the Thing, only required for:
-    1. Commands: [`create,`](protocol-specification-things-create.html)
-       [`modify,`](protocol-specification-things-modify.html)
+    1. Commands: [`create/modify`](protocol-specification-things-create-or-modify.html),
        [`retrieve`](protocol-specification-things-retrieve.html) or
-       [`delete.`](protocol-specification-things-delete.html).
+       [`delete`](protocol-specification-things-delete.html).
     2. Events: `created,` `modified,` `deleted.`
 
 

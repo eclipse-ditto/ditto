@@ -17,13 +17,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
@@ -51,9 +50,7 @@ final class FeatureResourcePermissions implements ResourcePermissions {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    @Nonnull
-    static FeatureResourcePermissions getInstance(@Nonnull final Feature feature,
-            @Nonnull final PolicyEnforcer policyEnforcer) {
+    static FeatureResourcePermissions getInstance(final Feature feature, final Enforcer policyEnforcer) {
         checkNotNull(feature, "feature");
         checkNotNull(policyEnforcer, "policy enforcer");
 
@@ -69,27 +66,23 @@ final class FeatureResourcePermissions implements ResourcePermissions {
         return new FeatureResourcePermissions(baseResourcePermissions, feature.getId());
     }
 
-    @Nonnull
     @Override
     public String getResource() {
         return baseResourcePermissions.getResource();
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadGrantedSubjectIds() {
         return baseResourcePermissions.getReadGrantedSubjectIds();
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadRevokedSubjectIds() {
         return baseResourcePermissions.getReadRevokedSubjectIds();
     }
 
-    @Nonnull
     @Override
-    public String createPolicyEntryId(@Nonnull final CharSequence thingId) {
+    public String createPolicyEntryId(final CharSequence thingId) {
         argumentNotEmpty(thingId, "thing ID");
         return thingId + ":" + featureId;
     }

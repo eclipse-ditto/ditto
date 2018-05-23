@@ -11,10 +11,10 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors.health;
 
-import java.time.Duration;
 import java.util.LinkedHashMap;
 
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.CompositeCachingHealthCheckingActor;
@@ -46,19 +46,22 @@ public class SearchHealthCheckingActorFactory {
     /**
      * Creates Akka configuration object Props for a health checking actor.
      *
-     * @param config the configuration settings.
+     * @param configReader the configuration settings.
      * @param mongoClientActor the actor handling mongodb calls.
      * @param thingsSyncPersistence the things sync persistence to determine time of last successful things-sync.
      * @param policiesSyncPersistence the policies sync persistence to determine time of last successful policies-sync.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final ActorRef mongoClientActor,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef mongoClientActor,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
 
         final LinkedHashMap<String, Props> childActorProps = new LinkedHashMap<>();
 
-        final boolean enablePersistenceCheck = config.getBoolean(ConfigKeys.HEALTH_CHECK_PERSISTENCE_ENABLED);
+        final Config config = configReader.getRawConfig();
+        final HealthConfigReader health = configReader.health();
+
+        final boolean enablePersistenceCheck = health.persistenceEnabled();
         if (enablePersistenceCheck) {
             childActorProps.put(PERSISTENCE_LABEL, PersistenceHealthCheckingActor.props(mongoClientActor));
         }
@@ -73,8 +76,6 @@ public class SearchHealthCheckingActorFactory {
                         LastSuccessfulStreamCheckingActorConfigurationProperties.policiesSync(config,
                                 policiesSyncPersistence)));
 
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HEALTH_CHECK_ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HEALTH_CHECK_INTERVAL);
-        return CompositeCachingHealthCheckingActor.props(childActorProps, healthCheckInterval, healthCheckEnabled);
+        return CompositeCachingHealthCheckingActor.props(childActorProps, health.getInterval(), health.enabled());
     }
 }

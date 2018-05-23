@@ -17,7 +17,6 @@ import static org.eclipse.ditto.json.JsonFactory.newPointer;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -33,9 +32,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -46,8 +42,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -56,10 +52,8 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -67,11 +61,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
-import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -95,10 +85,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.LWWRegister;
-import akka.cluster.ddata.LWWRegisterKey;
-import akka.cluster.ddata.Replicator;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -247,6 +233,7 @@ public final class ThingUpdaterTest {
 
                 final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
 
+                //This processing will cause that the mocked mongoDB operation to last for 500 ms
                 underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
 
@@ -263,64 +250,6 @@ public final class ThingUpdaterTest {
                         eq(attributeCreated0.getRevision()));
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites2), any(),
                         eq(attributeCreated3.getRevision()));
-            }
-        };
-    }
-
-    @Test
-    public void concurrentUpdatesTriggerFullSyncWhenMaxBulkSizeIsExceeded() {
-        final Thing thingWithAcl = thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
-                Permission.READ));
-        assertEquals(V_1, thingWithAcl.getImplementedSchemaVersion());
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
-
-        final long firstEventRev = 2L;
-        final ThingEvent attributeCreated0 =
-                AttributeCreated.of(THING_ID, newPointer("p1"), newValue(true), firstEventRev, dittoHeaders);
-
-        final List<ThingEvent> expectedWrites1 =
-                Collections.singletonList(attributeCreated0);
-
-        final long maxBulkSize = 2;
-        final List<ThingEvent> tooManyEventsForBulk = new ArrayList<>();
-        long lastRev = firstEventRev;
-        for (int i = 0; i < maxBulkSize + 1; i++) {
-            final long rev = lastRev + 1;
-
-            final ThingEvent attributeCreated =
-                    AttributeCreated.of(THING_ID, newPointer("p" + rev), newValue(true), rev, dittoHeaders);
-            tooManyEventsForBulk.add(attributeCreated);
-
-            lastRev = rev;
-        }
-
-        when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1),
-                any(), anyLong())).thenReturn
-                (successWithDelay());
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
-                final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe,
-                        ThingUpdater.DEFAULT_THINGS_TIMEOUT, 2);
-
-                final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
-
-                underTest.tell(thingCreated, getRef());
-                waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
-
-
-                underTest.tell(attributeCreated0, getRef());
-
-                // WHEN: the events will be added to a bulk which exceeds maxBulkSize
-                tooManyEventsForBulk.forEach(event -> underTest.tell(event, getRef()));
-
-                waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites1), any(),
-                        eq(attributeCreated0.getRevision()));
-
-                // THEN: sync is triggered
-                expectShardedSudoRetrieveThing(thingsShardProbe, THING_ID);
             }
         };
     }
@@ -607,9 +536,8 @@ public final class ThingUpdaterTest {
             {
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
-                final ActorRef dummy = TestProbe.apply(actorSystem).ref();
                 final ActorRef underTest = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
-                        policiesShardProbe.ref(), dummy, dummy);
+                        policiesShardProbe.ref());
 
                 // send a ThingCreated event and expect it to get persisted
                 underTest.tell(ThingCreated.of(thingWithAcl, 1L, dittoHeaders), getRef());
@@ -700,7 +628,7 @@ public final class ThingUpdaterTest {
                 assertEquals(THING_ID, sudoRetrievePolicy.getId());
                 underTest.tell(sudoRetrievePolicyResponse, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicyId), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicyId), any(Enforcer.class));
             }
         };
     }
@@ -755,7 +683,7 @@ public final class ThingUpdaterTest {
                 assertEquals(policy2Id, sudoRetrievePolicy2.getId());
                 underTest.tell(policyResponse2, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicy2), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicy2), any(Enforcer.class));
             }
         };
     }
@@ -798,7 +726,7 @@ public final class ThingUpdaterTest {
                 assertEquals(policyId, sudoRetrievePolicy.getId());
                 underTest.tell(policyResponse, null);
 
-                waitUntil().updatePolicy(eq(thingWithPolicy), any(PolicyEnforcer.class));
+                waitUntil().updatePolicy(eq(thingWithPolicy), any(Enforcer.class));
             }
         };
     }
@@ -808,7 +736,7 @@ public final class ThingUpdaterTest {
         new TestKit(actorSystem) {{
             final TestProbe thingsProbe = TestProbe.apply(actorSystem);
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
-            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy);
 
             // WHEN: updater receives ThingTag with a bigger sequence number during initialization
             ThingTag message = ThingTag.of(THING_ID, 1L);
@@ -824,7 +752,7 @@ public final class ThingUpdaterTest {
         new TestKit(actorSystem) {{
             final TestProbe thingsProbe = TestProbe.apply(actorSystem);
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
-            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy);
 
             // WHEN: updater receives ThingEvent not containing a Thing
             final Feature feature = Feature.newBuilder().withId("thingEventWithoutThingTriggersSyncDuringInit").build();
@@ -842,7 +770,7 @@ public final class ThingUpdaterTest {
         new TestKit(actorSystem) {{
             final TestProbe thingsProbe = TestProbe.apply(actorSystem);
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
-            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy);
 
             // WHEN: updater receives ThingEvent containing a Thing
             final Thing thingWithAcl = thing.setAclEntry(
@@ -866,7 +794,7 @@ public final class ThingUpdaterTest {
                     Source.single(new ThingMetadata(1L, POLICY_ID, 1L)));
             final TestProbe thingsProbe = TestProbe.apply(actorSystem);
             final ActorRef dummy = TestProbe.apply(actorSystem).ref();
-            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy, dummy, dummy);
+            final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy);
 
             // WHEN: updater receives ThingEvent not containing a Thing
             final Object message = PolicyDeleted.of(POLICY_ID, 2L, DittoHeaders.empty());
@@ -961,55 +889,6 @@ public final class ThingUpdaterTest {
         };
     }
 
-    @Test
-    public void registerForThingCacheUpdates() {
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final ActorRef dummy = TestProbe.apply(actorSystem).ref();
-                final ActorRef underTest = createUninitializedThingUpdaterActor(dummy, dummy, thingsCache.ref(), dummy);
-                thingsCache.expectMsg(new RegisterForCacheUpdates(THING_ID, underTest));
-            }
-        };
-    }
-
-    @Test
-    public void registerForPolicyCacheUpdates() {
-        when(persistenceMock.getThingMetadata(anyString())).thenReturn(
-                Source.single(new ThingMetadata(-1L, POLICY_ID, INITIAL_POLICY_REVISION)));
-        final DittoHeaders headers = DittoHeaders.newBuilder()
-                .schemaVersion(V_2)
-                .build();
-        final String newPolicyId = "namespace:otherPolicy";
-        final long revision = REVISION;
-        final long policyRevision = 17L;
-        final Policy policy = Policy.newBuilder(newPolicyId).setRevision(policyRevision).build();
-        final Thing thing = Thing.newBuilder().setId(THING_ID).setPolicyId(newPolicyId).setRevision(revision).build();
-        final ThingModified thingModified = ThingModified.of(thing, revision, headers);
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final TestProbe policiesCache = TestProbe.apply(actorSystem);
-                final TestProbe thingsActor = TestProbe.apply(actorSystem);
-                final TestProbe policiesActor = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-                policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
-
-                // verify thingUpdater registers for cache updates if policy of thing is changed.
-                underTest.tell(thingModified, getRef());
-
-                expectRetrievePolicyAndAnswer(policy, policiesActor, underTest, null, headers);
-
-                waitUntil().insertOrUpdate(thing, revision, policyRevision);
-                waitUntil().updatePolicy(eq(thing), any(PolicyEnforcer.class));
-
-                policiesCache.expectMsg(new RegisterForCacheUpdates(newPolicyId, underTest));
-            }
-        };
-    }
-
     private void expectRetrievePolicyAndAnswer(
             final Policy policy,
             final TestProbe policiesActor,
@@ -1026,205 +905,6 @@ public final class ThingUpdaterTest {
                 policiesActor.ref());
     }
 
-    @Test
-    public void policyCacheEntryWithNewerRevisionTriggersSync() {
-        when(persistenceMock.getThingMetadata(any())).thenReturn(
-                Source.single(new ThingMetadata(-1L, POLICY_ID, INITIAL_POLICY_REVISION)));
-        final long policyRevision = INITIAL_POLICY_REVISION + 1;
-        final Policy policy = Policy.newBuilder(POLICY_ID).setRevision(policyRevision).build();
-        final Thing thing = Thing.newBuilder().setId(THING_ID).setPolicyId(POLICY_ID).setRevision(REVISION).build();
-        final PolicyCacheEntry policyCacheEntry = PolicyCacheEntry.of(V_2, policyRevision);
-        final Replicator.Changed cacheEvent =
-                createCacheEvent(POLICY_ID, policyRevision, policyCacheEntry);
-
-        new TestKit(actorSystem) {{
-            final TestProbe thingsCache = TestProbe.apply(actorSystem);
-            final TestProbe policiesCache = TestProbe.apply(actorSystem);
-            final TestProbe thingsActor = TestProbe.apply(actorSystem);
-            final TestProbe policiesActor = TestProbe.apply(actorSystem);
-            final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                    .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-
-            // send cache update
-            underTest.tell(cacheEvent, getRef());
-
-            expectRetrieveThingAndPolicy(thing, policy,
-                    underTest,
-                    thingsActor,
-                    policiesActor);
-
-            waitUntil().insertOrUpdate(eq(thing), eq(REVISION), eq(policyRevision));
-        }};
-    }
-
-    private Replicator.Changed<LWWRegister<CacheEntry>> createCacheEvent(final String id,
-            final long revision,
-            final CacheEntry cacheEntry) {
-        final LWWRegister.Clock<CacheEntry> revisionClock = (currentTimestamp, value) -> revision;
-        return new Replicator.Changed(
-                LWWRegisterKey.create(id),
-                LWWRegister.create(Cluster.get(actorSystem), cacheEntry, revisionClock));
-    }
-
-    /**
-     * When changing the policy of a thing, the thing updater will register for cache updates on the new policy. this
-     * test verifies, that cache updates on this old policy does not affect the updater.
-     */
-    @Test
-    public void policyCacheEntryWithOldPolicyIdDoesNothing() {
-        final DittoHeaders headers = DittoHeaders.newBuilder().schemaVersion(V_2).build();
-        final String newPolicyId = "namespace:otherPolicy";
-        final long revision = REVISION;
-        final long policyRevision = 17L;
-        final Policy policy = Policy.newBuilder(newPolicyId).setRevision(policyRevision).build();
-        final Thing thing = Thing.newBuilder().setId(THING_ID).setPolicyId(newPolicyId).setRevision(revision).build();
-        final ThingModified thingModified = ThingModified.of(thing, revision, headers);
-
-        final PolicyCacheEntry
-                policyCacheEntry = PolicyCacheEntry.of(
-                V_2, policyRevision);
-        final Replicator.Changed cacheEvent =
-                createCacheEvent(POLICY_ID, policyRevision, policyCacheEntry);
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final TestProbe policiesCache = TestProbe.apply(actorSystem);
-                final TestProbe thingsActor = TestProbe.apply(actorSystem);
-                final TestProbe policiesActor = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-                policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
-
-                // update the thing to use the new policy and verify the new cache registration
-                underTest.tell(thingModified, getRef());
-                expectRetrievePolicyAndAnswer(policy, policiesActor, underTest, null, headers);
-                waitUntil().insertOrUpdate(eq(thing), eq(revision), eq(policyRevision));
-                policiesCache.expectMsg(new RegisterForCacheUpdates(newPolicyId, underTest));
-
-                // send cache update for the OLD policy
-                underTest.tell(cacheEvent, getRef());
-
-                // should not sync at all
-                thingsActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-                policiesActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-            }
-        };
-    }
-
-    @Test
-    public void policyCacheEntryWithDeletionTriggersDelete() {
-        final long policyRevision = INITIAL_POLICY_REVISION + 1;
-        final CacheEntry
-                policyCacheEntry = PolicyCacheEntry
-                .of(V_2, policyRevision)
-                .asDeleted(policyRevision);
-        final Replicator.Changed cacheEvent =
-                createCacheEvent(POLICY_ID, policyRevision, policyCacheEntry);
-        when(persistenceMock.delete(anyString())).thenReturn(Source.single(true));
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final TestProbe policiesCache = TestProbe.apply(actorSystem);
-                final TestProbe thingsActor = TestProbe.apply(actorSystem);
-                final TestProbe policiesActor = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-                policiesCache.expectMsg(new RegisterForCacheUpdates(POLICY_ID, underTest));
-
-                // send cache update
-                underTest.tell(cacheEvent, getRef());
-
-                // should not sync
-                thingsActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-                policiesActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-
-                // should delete
-                waitUntil().delete(THING_ID);
-
-                // should stop itself
-                watch(underTest);
-                expectTerminated(underTest);
-            }
-        };
-    }
-
-    @Test
-    public void thingCacheEntryWithNewerRevisionTriggersSync() {
-        when(persistenceMock.getThingMetadata(any())).thenReturn(
-                Source.single(new ThingMetadata(-1L, POLICY_ID, INITIAL_POLICY_REVISION)));
-        final long thingRevision = REVISION + 1;
-        final CacheEntry thingCacheEntry = ThingCacheEntry
-                .of(V_2, POLICY_ID, thingRevision);
-        final Replicator.Changed cacheEvent = createCacheEvent(THING_ID, thingRevision, thingCacheEntry);
-        final long policyRevision = INITIAL_POLICY_REVISION + 1;
-        final Policy policy = Policy.newBuilder(POLICY_ID).setRevision(policyRevision).build();
-        final Thing thing = Thing.newBuilder().setId(THING_ID).setPolicyId(POLICY_ID).setRevision(REVISION).build();
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final TestProbe policiesCache = TestProbe.apply(actorSystem);
-                final TestProbe thingsActor = TestProbe.apply(actorSystem);
-                final TestProbe policiesActor = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-                thingsCache.expectMsg(new RegisterForCacheUpdates(THING_ID, underTest));
-
-                // send cache update
-                underTest.tell(cacheEvent, getRef());
-
-                // expect full sync
-                expectRetrieveThingAndPolicy(thing, policy,
-                        underTest,
-                        thingsActor,
-                        policiesActor);
-
-                waitUntil().insertOrUpdate(eq(thing), eq(REVISION), eq(policyRevision));
-
-            }
-        };
-    }
-
-    @Test
-    public void thingCacheEntryWithDeletionTriggersDelete() {
-        final long thingRevision = REVISION + 1;
-        final CacheEntry thingCacheEntry = ThingCacheEntry.of(org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2,
-                POLICY_ID,
-                thingRevision)
-                .asDeleted(thingRevision);
-        final akka.cluster.ddata.Replicator.Changed cacheEvent =
-                createCacheEvent(THING_ID, thingRevision, thingCacheEntry);
-        when(persistenceMock.delete(anyString())).thenReturn(Source.single(true));
-
-        new TestKit(actorSystem) {
-            {
-                final TestProbe thingsCache = TestProbe.apply(actorSystem);
-                final TestProbe policiesCache = TestProbe.apply(actorSystem);
-                final TestProbe thingsActor = TestProbe.apply(actorSystem);
-                final TestProbe policiesActor = TestProbe.apply(actorSystem);
-                final ActorRef underTest = createInitializedThingUpdaterActor(thingsActor, policiesActor, thingsCache
-                        .ref(), policiesCache.ref(), null, ThingUpdater.UNLIMITED_MAX_BULK_SIZE, V_2);
-                thingsCache.expectMsg(new RegisterForCacheUpdates(THING_ID, underTest));
-
-                // send cache update
-                underTest.tell(cacheEvent, getRef());
-
-                // should not sync
-                thingsActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-                policiesActor.expectNoMessage(toScala(java.time.Duration.ofSeconds(1)));
-
-                // should delete
-                waitUntil().delete(THING_ID);
-
-                // should stop itself
-                watch(underTest);
-                expectTerminated(underTest);
-            }
-        };
-    }
-
     private ActorRef createInitializedThingUpdaterActor() {
         return createInitializedThingUpdaterActor(TestProbe.apply(actorSystem), TestProbe.apply(actorSystem));
     }
@@ -1232,7 +912,7 @@ public final class ThingUpdaterTest {
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
             final TestProbe policiesShardProbe) {
         return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe,
-                ThingUpdater.DEFAULT_THINGS_TIMEOUT, ThingUpdater.UNLIMITED_MAX_BULK_SIZE);
+                ThingUpdater.DEFAULT_THINGS_TIMEOUT);
     }
 
     /**
@@ -1240,16 +920,8 @@ public final class ThingUpdaterTest {
      */
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
             final TestProbe policiesShardProbe,
-            @Nullable final java.time.Duration thingsTimeout, final int maxBulkSize) {
-        final ActorRef thingCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.THING,
-                actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.THING));
-
-        final ActorRef policyCacheFacade = actorSystem.actorOf(CacheFacadeActor.props(CacheRole.POLICY,
-                actorSystem.settings().config()), CacheFacadeActor.actorNameFor(CacheRole.POLICY));
-
-        return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, thingCacheFacade,
-                policyCacheFacade,
-                thingsTimeout, maxBulkSize, V_1);
+            final java.time.Duration thingsTimeout) {
+        return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, thingsTimeout, V_1);
     }
 
     /**
@@ -1257,10 +929,7 @@ public final class ThingUpdaterTest {
      */
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
             final TestProbe policiesShardProbe,
-            final ActorRef thingsCache,
-            final ActorRef policiesCache,
-            @Nullable final java.time.Duration thingsTimeout,
-            final int maxBulkSize,
+            final java.time.Duration thingsTimeout,
             final JsonSchemaVersion schemaVersion) {
 
         // prepare persistence mock for initial synchronization
@@ -1279,7 +948,7 @@ public final class ThingUpdaterTest {
         }
 
         final ActorRef thingUpdater = createUninitializedThingUpdaterActor(thingsShardProbe.ref(),
-                policiesShardProbe.ref(), thingsCache, policiesCache, orDefaultTimeout(thingsTimeout), maxBulkSize);
+                policiesShardProbe.ref(), orDefaultTimeout(thingsTimeout));
 
         final ThingCreated thingCreated = ThingCreated.of(initialThing, 0L, DittoHeaders.empty());
         thingUpdater.tell(thingCreated, thingsShardProbe.ref());
@@ -1296,34 +965,25 @@ public final class ThingUpdaterTest {
         return thingUpdater;
     }
 
+    /**
+     * Creates an uninitialized ThingUpdater.
+     */
     private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
-            final ActorRef thingCacheFacade, final ActorRef
-            policyCacheFacade, @Nullable final java.time.Duration thingsTimeout) {
-        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, thingCacheFacade, policyCacheFacade,
-                thingsTimeout, ThingUpdater.UNLIMITED_MAX_BULK_SIZE);
-    }
+            final java.time.Duration thingsTimeout) {
 
-    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
-            final ActorRef thingCacheFacade, final ActorRef policyCacheFacade,
-            final @Nullable java.time.Duration thingsTimeout,
-            final int maxBulkSize) {
         final CircuitBreaker circuitBreaker =
-                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5,
-                        Duration.apply(30, TimeUnit.SECONDS),
-                        Duration.apply(1, TimeUnit.MINUTES));
+                new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5, Duration.create(30, "s"),
+                        Duration.create(1, "min"));
 
         final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
-                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), maxBulkSize,
-                thingCacheFacade, policyCacheFacade)
+                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100)
                 .withMailbox("akka.actor.custom-updater-mailbox");
 
         return actorSystem.actorOf(props, THING_ID);
     }
 
-    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard,
-            final ActorRef thingCacheFacade, final ActorRef policyCacheFacade) {
-        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, thingCacheFacade,
-                policyCacheFacade, ThingUpdater.DEFAULT_THINGS_TIMEOUT);
+    private ActorRef createUninitializedThingUpdaterActor(final ActorRef thingsShard, final ActorRef policiesShard) {
+        return createUninitializedThingUpdaterActor(thingsShard, policiesShard, ThingUpdater.DEFAULT_THINGS_TIMEOUT);
     }
 
     /**
@@ -1376,7 +1036,7 @@ public final class ThingUpdaterTest {
         return SudoRetrieveThingResponse.of(thingJson, headers);
     }
 
-    private java.time.Duration orDefaultTimeout(@Nullable final java.time.Duration duration) {
+    private java.time.Duration orDefaultTimeout(final java.time.Duration duration) {
         return duration != null ? duration : ThingUpdater.DEFAULT_THINGS_TIMEOUT;
     }
 

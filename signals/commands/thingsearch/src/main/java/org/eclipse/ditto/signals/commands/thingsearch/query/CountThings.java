@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -64,7 +65,7 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
     @Nullable private final Set<String> namespaces;
 
     private CountThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
-            @Nullable final Set<String> namespaces) {
+            @Nullable final Collection<String> namespaces) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
         if (namespaces != null) {
@@ -147,6 +148,11 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
     @Override
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces);
+    }
+
+    @Override
+    public CountThings setNamespaces(@Nullable final Collection<String> namespaces) {
+        return new CountThings(getDittoHeaders(), filter, namespaces);
     }
 
     @Override
