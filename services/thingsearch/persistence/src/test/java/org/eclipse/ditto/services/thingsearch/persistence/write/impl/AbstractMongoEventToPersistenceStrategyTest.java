@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.ImmutableEffectedSubjectIds;
 import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
@@ -54,7 +55,8 @@ public abstract class AbstractMongoEventToPersistenceStrategyTest {
     public void setUpMocks() {
         policyEnforcer = Mockito.mock(PolicyEnforcer.class);
         indexLengthRestrictionEnforcer =
-                IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class), "");
+                IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class),
+                        TestConstants.Thing.THING_ID);
 
         final EffectedSubjectIds effectedSubjectIds = ImmutableEffectedSubjectIds.of(Collections.emptyList(),
                 Collections.emptyList());

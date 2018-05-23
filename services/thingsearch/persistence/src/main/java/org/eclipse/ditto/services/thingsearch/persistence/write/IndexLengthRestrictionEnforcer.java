@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SLASH;
 
 import java.util.Collections;
@@ -52,6 +53,7 @@ public final class IndexLengthRestrictionEnforcer {
      * The logging adapter used to log size restriction enforcements.
      */
     private final LoggingAdapter log;
+    private final String thingId;
     private final int thingIdNamespaceOverhead;
 
     /**
@@ -61,6 +63,7 @@ public final class IndexLengthRestrictionEnforcer {
      */
     private IndexLengthRestrictionEnforcer(final LoggingAdapter log, final String thingId) {
         this.log = log;
+        this.thingId = thingId;
         this.thingIdNamespaceOverhead = calculateThingIdNamespaceOverhead(thingId);
     }
 
@@ -72,12 +75,22 @@ public final class IndexLengthRestrictionEnforcer {
      */
     public static IndexLengthRestrictionEnforcer newInstance(final LoggingAdapter loggingAdapter,
             final String thingId) {
+        checkThingId(thingId);
         return new IndexLengthRestrictionEnforcer(loggingAdapter, thingId);
     }
 
+    private static String checkThingId(final String thingId) {
+        requireNonNull(thingId);
+        if (thingId.isEmpty()) {
+            throw new IllegalArgumentException("Thing ID must not be empty!");
+        }
+
+        return thingId;
+    }
+
     public static Thing enforceRestrictions(final LoggingAdapter log, final Thing thing) {
-        return new IndexLengthRestrictionEnforcer(log, thing.getId().orElse(""))
-                .enforceRestrictionsWithoutCheckingIdOverhead(thing);
+        return new IndexLengthRestrictionEnforcer(log, checkThingId(thing.getId().orElse(null)))
+                .enforceRestrictionsOnThing(thing);
     }
 
     /**
@@ -87,10 +100,17 @@ public final class IndexLengthRestrictionEnforcer {
      * @return The thing with content that satisfies the thresholds.
      */
     public Thing enforceRestrictions(final Thing thing) {
-        return IndexLengthRestrictionEnforcer.enforceRestrictions(log, thing);
+        final String actualThingId = checkThingId(thing.getId().orElse(null));
+        if (!Objects.equals(actualThingId, thingId)) {
+            throw new IllegalArgumentException("Actual Thing ID '" + actualThingId + "' does not match this " +
+                    "enforcer's Thing ID '" + thingId + "'.");
+
+        }
+
+        return enforceRestrictionsOnThing(thing);
     }
 
-    private Thing enforceRestrictionsWithoutCheckingIdOverhead(final Thing thing) {
+    private Thing enforceRestrictionsOnThing(final Thing thing) {
         // check if features exceed limits
         final Map<Feature, Set<JsonField>> exceededFeatures =
                 calculateThresholdViolations(thing.getFeatures().orElse(Features.newBuilder().build()));
