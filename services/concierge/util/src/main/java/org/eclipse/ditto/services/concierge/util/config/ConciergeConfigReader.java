@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.concierge.util.config;
 
-import java.time.Duration;
 import java.util.function.Function;
 
 import com.typesafe.config.Config;
