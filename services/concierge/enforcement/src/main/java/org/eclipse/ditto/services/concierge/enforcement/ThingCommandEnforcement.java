@@ -924,62 +924,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     /**
-     * Decide whether a command's resource path intersects with the ACL.
-     *
-     * @param command the command.
-     * @return whether its resource path intersects with the ACL.
-     */
-    private static boolean resourcePathIntersectsAcl(final ThingModifyCommand command) {
-        return command.getResourcePath().getRoot()
-                .flatMap(root -> Thing.JsonFields.ACL.getPointer()
-                        .getRoot()
-                        .map(aclRoot -> Objects.equals(root, aclRoot)))
-                .orElse(true);
-    }
-
-    /**
-     * Decide whether a command's resource path intersects with the Policy ID.
-     *
-     * @param command the command.
-     * @return whether its resource path intersects with the Policy ID.
-     */
-    private static boolean resourcePathIntersectsPolicyId(final ThingModifyCommand command) {
-        return command.getResourcePath().getRoot()
-                .flatMap(root -> Thing.JsonFields.POLICY_ID.getPointer()
-                        .getRoot()
-                        .map(aclRoot -> Objects.equals(root, aclRoot)))
-                .orElse(true);
-    }
-
-    /**
-     * Decide whether a command's entity intersects with the ACL.
-     *
-     * @param command the command.
-     * @return whether its entity intersects with the ACL.
-     */
-    private static boolean entityIntersectsAcl(final ThingModifyCommand command) {
-        return (command instanceof ModifyThing || command instanceof CreateThing) &&
-                command.getEntity()
-                        .filter(JsonValue::isObject)
-                        .map(jsonValue -> jsonValue.asObject().contains(Thing.JsonFields.ACL.getPointer()))
-                        .isPresent();
-    }
-
-    /**
-     * Decide whether a command's entity intersects with the Policy ID (e.g. changes it).
-     *
-     * @param command the command.
-     * @return whether its entity intersects with the Policy ID.
-     */
-    private static boolean entityIntersectsPolicyId(final ThingModifyCommand command) {
-        return (command instanceof ModifyThing || command instanceof CreateThing) &&
-                command.getEntity()
-                        .filter(JsonValue::isObject)
-                        .map(jsonValue -> jsonValue.asObject().contains(Thing.JsonFields.POLICY_ID.getPointer()))
-                        .isPresent();
-    }
-
-    /**
      * Check if inlined policy should be retrieved together with the thing.
      *
      * @param command the thing query command.

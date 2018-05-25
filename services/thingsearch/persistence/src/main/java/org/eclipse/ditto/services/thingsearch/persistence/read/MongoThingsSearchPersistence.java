@@ -61,8 +61,6 @@ import scala.PartialFunction;
  */
 public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
-    public static final BsonDocument FILTER_NOT_DELETED = null;
-
     private final MongoCollection<Document> collection;
     private final LoggingAdapter log;
 
