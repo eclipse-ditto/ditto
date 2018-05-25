@@ -56,7 +56,7 @@ public class TestSetup {
     public static final String POLICY_SUDO = "policy-sudo";
 
     public static final String THING_ID = "thing:id";
-    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy-subject");
+    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
     public static final ConciergeConfigReader CONFIG =
             ConciergeConfigReader.from("concierge")
