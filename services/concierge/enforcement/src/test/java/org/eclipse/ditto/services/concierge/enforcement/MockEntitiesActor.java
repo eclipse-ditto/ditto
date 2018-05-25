@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithResource;
@@ -28,7 +29,7 @@ public final class MockEntitiesActor extends AbstractActor {
 
     public static final NoReply NO_REPLY = new NoReply();
 
-    private final Map<String, Object> replies = new ConcurrentHashMap<>();
+    private final Map<String, Function<Signal, Object>> handlers = new ConcurrentHashMap<>();
 
     public static Props props() {
         return Props.create(MockEntitiesActor.class, MockEntitiesActor::new);
@@ -47,12 +48,20 @@ public final class MockEntitiesActor extends AbstractActor {
     }
 
     public MockEntitiesActor setReply(final String resourceType, final Object reply) {
-        replies.put(resourceType, reply);
+        handlers.put(resourceType, signal -> reply);
+        return this;
+    }
+
+    public MockEntitiesActor setHandler(final String resourceType, final Function<Signal, Object> handler) {
+        handlers.put(resourceType, handler);
         return this;
     }
 
     private Object getReply(final Signal signal) {
-        return replies.getOrDefault(signal.getType(), replies.getOrDefault(signal.getResourceType(), NO_REPLY));
+        return handlers.getOrDefault(signal.getType(),
+                handlers.getOrDefault(signal.getResourceType(),
+                        sameSignal -> NO_REPLY))
+                .apply(signal);
     }
 
     public static final class NoReply {}

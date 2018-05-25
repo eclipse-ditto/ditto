@@ -80,7 +80,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableExc
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -504,7 +503,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     } else if (error != null) {
                         log(error).error(error, "retrieving inlined policy after RetrieveThing");
                     } else {
-                        log(response).info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
+                        log(response).info(
+                                "No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
                                 retrievePolicy.getId(), retrieveThing.getThingId(), response);
                     }
                     return Optional.empty();
@@ -641,9 +641,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      */
     private boolean forwardToThingsShardRegion(final ThingCommand command, final ActorRef sender) {
         thingsShardRegion.tell(command, sender);
-        if (command instanceof ThingModifyCommand &&
-                (affectsAcl((ThingModifyCommand) command) || affectsPolicyId((ThingModifyCommand) command))) {
-            invalidateCaches(command.getThingId());
+        if (command instanceof ThingModifyCommand && ((ThingModifyCommand) command).changesAuthorization()) {
+            invalidateThingCaches(command.getThingId());
         }
         return true;
     }
@@ -654,10 +653,14 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      *
      * @param thingId the ID of the Thing to invalidate caches for.
      */
-    private void invalidateCaches(final String thingId) {
+    private void invalidateThingCaches(final String thingId) {
         final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, thingId);
         thingIdCache.invalidate(entityId);
         aclEnforcerCache.invalidate(entityId);
+    }
+
+    private void invalidatePolicyCache(final String policyId) {
+        final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         policyEnforcerCache.invalidate(entityId);
     }
 
@@ -776,7 +779,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                             .dittoHeaders(thingCommand.getDittoHeaders())
                             .build();
             log(thingCommand).info("Enforcer was not existing for Thing <{}> and no auth info was inlined, " +
-                            "responding with: {}", thingCommand.getThingId(), error);
+                    "responding with: {}", thingCommand.getThingId(), error);
             replyToSender(error, sender);
             result = Optional.empty();
         }
@@ -915,29 +918,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @return permissions needed to execute the command.
      */
     private static Permissions computeAclPermissions(final ThingModifyCommand command) {
-        return affectsAcl(command)
+        return command.changesAuthorization()
                 ? Permissions.newInstance(Permission.WRITE, ADMINISTRATE.name())
                 : Permissions.newInstance(Permission.WRITE);
-    }
-
-    /**
-     * Decide whether a command affects the ACL.
-     *
-     * @param command the command.
-     * @return whether it affects the ACL.
-     */
-    private static boolean affectsAcl(final ThingModifyCommand command) {
-        return command instanceof DeleteThing || resourcePathIntersectsAcl(command) || entityIntersectsAcl(command);
-    }
-
-    /**
-     * Decide whether a command affects the Policy ID (e.g. changes it).
-     *
-     * @param command the command.
-     * @return whether it affects the Policy ID.
-     */
-    private static boolean affectsPolicyId(final ThingModifyCommand command) {
-        return command instanceof DeleteThing || resourcePathIntersectsPolicyId(command) || entityIntersectsPolicyId(command);
     }
 
     /**
@@ -1169,14 +1152,17 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 null,
                 createThingWithoutPolicyId.getDittoHeaders());
 
+        invalidatePolicyCache(createPolicy.getId());
         PatternsCS.ask(policiesShardRegion, createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
-
             final Optional<CreateThing> nextStep =
                     handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse, policyError, sender);
 
-            nextStep.ifPresent(cmd -> PatternsCS.ask(thingsShardRegion, cmd, timeout)
-                    .handleAsync((thingResponse, thingError) ->
-                            handleThingResponseForCreateThing(createThing, thingResponse, thingError, sender)));
+            nextStep.ifPresent(cmd -> {
+                invalidateThingCaches(cmd.getThingId());
+                PatternsCS.ask(thingsShardRegion, cmd, timeout)
+                        .handleAsync((thingResponse, thingError) ->
+                                handleThingResponseForCreateThing(createThing, thingResponse, thingError, sender));
+            });
 
             return null;
         });

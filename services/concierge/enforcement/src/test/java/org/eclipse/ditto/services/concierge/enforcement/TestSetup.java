@@ -56,7 +56,7 @@ public class TestSetup {
     public static final String POLICY_SUDO = "policy-sudo";
 
     public static final String THING_ID = "thing:id";
-    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy-subject");
+    public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:subject");
 
     public static final ConciergeConfigReader CONFIG =
             ConciergeConfigReader.from("concierge")
@@ -98,7 +98,8 @@ public class TestSetup {
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
                 policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
-        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
+        enforcementProviders.add(
+                new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
                 preEnforcer, null);
