@@ -85,7 +85,7 @@ public final class Filter<T> extends GraphStage<FanOutShape2<WithSender, WithSen
     }
 
     @Override
-    @SuppressWarnings("squid:S3599")
+    @SuppressWarnings({"squid:S3599","squid:S1171"})
     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
         return new AbstractControlFlowLogic(shape) {
             {

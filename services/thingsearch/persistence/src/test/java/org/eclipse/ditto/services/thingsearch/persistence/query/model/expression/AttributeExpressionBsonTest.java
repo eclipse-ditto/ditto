@@ -11,10 +11,14 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.expression;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_FEATURE_ID;
+
 import java.util.Collection;
 import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
+import org.bson.BsonDocument;
+import org.bson.BsonNull;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
@@ -57,9 +61,9 @@ public final class AttributeExpressionBsonTest {
     @Test
     public void getFieldCriteriaBson() {
         final Bson expectedBson = Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters
-                .and(Filters.eq(
-                        PersistenceConstants.FIELD_INTERNAL_KEY,
-                        PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_KEY),
+                .and(new BsonDocument().append(FIELD_INTERNAL_FEATURE_ID, BsonNull.VALUE),
+                        Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_KEY),
                         Filters.eq(PersistenceConstants.FIELD_INTERNAL_VALUE, KNOWN_VALUE)));
 
         final AttributeExpressionImpl expression = new AttributeExpressionImpl(KNOWN_KEY);
