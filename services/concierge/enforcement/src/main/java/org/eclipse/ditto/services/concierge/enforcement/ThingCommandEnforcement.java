@@ -66,7 +66,6 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibl
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -81,7 +80,6 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableExc
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -505,7 +503,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     } else if (error != null) {
                         log(error).error(error, "retrieving inlined policy after RetrieveThing");
                     } else {
-                        log(response).info("No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
+                        log(response).info(
+                                "No authorized response when retrieving inlined policy <{}> for thing <{}>: {}",
                                 retrievePolicy.getId(), retrieveThing.getThingId(), response);
                     }
                     return Optional.empty();
@@ -780,7 +779,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                             .dittoHeaders(thingCommand.getDittoHeaders())
                             .build();
             log(thingCommand).info("Enforcer was not existing for Thing <{}> and no auth info was inlined, " +
-                            "responding with: {}", thingCommand.getThingId(), error);
+                    "responding with: {}", thingCommand.getThingId(), error);
             replyToSender(error, sender);
             result = Optional.empty();
         }
@@ -1155,7 +1154,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         invalidatePolicyCache(createPolicy.getId());
         PatternsCS.ask(policiesShardRegion, createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
-
             final Optional<CreateThing> nextStep =
                     handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse, policyError, sender);
 
