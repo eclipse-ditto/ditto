@@ -49,7 +49,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICY_INDEX_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PUSH_PROJECTION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SUM_GROUPING;
-import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.FILTER_NOT_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.filterNotDeleted;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -337,7 +337,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         final Bson authorization =
                 or(CreateBsonVisitor.apply(globalPolicyGrantsCriteria), CreateBsonVisitor.apply(aclCriteria));
 
-        return match(and(authorization, FILTER_NOT_DELETED, CreateBsonVisitor.apply(filterCriteria)));
+        return match(and(authorization, filterNotDeleted(), CreateBsonVisitor.apply(filterCriteria)));
     }
 
     private static Bson createSecondProjectionStage() {

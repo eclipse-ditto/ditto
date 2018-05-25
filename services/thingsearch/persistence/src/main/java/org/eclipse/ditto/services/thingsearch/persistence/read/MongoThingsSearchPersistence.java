@@ -61,10 +61,7 @@ import scala.PartialFunction;
  */
 public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
-    /**
-     * Filter for not-deleted entries.
-     */
-    public static final BsonDocument FILTER_NOT_DELETED = new BsonDocument().append(FIELD_DELETED, BsonNull.VALUE);
+    public static final BsonDocument FILTER_NOT_DELETED = null;
 
     private final MongoCollection<Document> collection;
     private final LoggingAdapter log;
@@ -85,6 +82,15 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         materializer = ActorMaterializer.create(actorSystem);
         indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
         maxQueryTime = MongoConfig.getMaxQueryTime(actorSystem.settings().config());
+    }
+
+    /**
+     * Create a BSON filter for not-deleted entries.
+     *
+     * @return the BSON filter.
+     */
+    public static BsonDocument filterNotDeleted() {
+        return new BsonDocument().append(FIELD_DELETED, BsonNull.VALUE);
     }
 
     @Override
@@ -159,7 +165,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final BsonDocument queryFilter = getMongoFilter(query);
         log.debug("count with query filter <{}>.", queryFilter);
 
-        final Bson filter = and(FILTER_NOT_DELETED, queryFilter);
+        final Bson filter = and(filterNotDeleted(), queryFilter);
 
         final CountOptions countOptions = new CountOptions()
                 .skip(query.getSkip())
@@ -180,7 +186,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
             log.debug("findAll with query filter <{}>.", queryFilter);
         }
 
-        final Bson filter = and(FILTER_NOT_DELETED, queryFilter);
+        final Bson filter = and(filterNotDeleted(), queryFilter);
         final Optional<Bson> sortOptions = Optional.of(getMongoSort(query));
 
         final int limit = query.getLimit();

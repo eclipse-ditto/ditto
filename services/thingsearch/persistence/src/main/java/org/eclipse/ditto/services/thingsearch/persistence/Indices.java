@@ -18,7 +18,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_VALUE;
-import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.FILTER_NOT_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.filterNotDeleted;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,15 +43,15 @@ public final class Indices {
 
         private static final Index KEY_VALUE = IndexFactory.newInstance("nfkv",
                 keys(FIELD_NAMESPACE, FIELD_FEATURE_PATH_KEY, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false)
-                .withPartialFilterExpression(FILTER_NOT_DELETED);
+                .withPartialFilterExpression(filterNotDeleted());
 
         private static final Index GLOBAL_READS = IndexFactory.newInstance("ngr",
                 keys(FIELD_NAMESPACE, FIELD_INTERNAL_GLOBAL_READS, FIELD_ID), false)
-                .withPartialFilterExpression(FILTER_NOT_DELETED);
+                .withPartialFilterExpression(filterNotDeleted());
 
         private static final Index ACL = IndexFactory.newInstance("na",
                 keys(FIELD_NAMESPACE, FIELD_INTERNAL_ACL, FIELD_ID), false)
-                .withPartialFilterExpression(FILTER_NOT_DELETED);
+                .withPartialFilterExpression(filterNotDeleted());
 
         /**
          * Gets all defined indices.
