@@ -24,8 +24,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -33,7 +31,6 @@ import nl.jqno.equalsverifier.Warning;
 /**
  * Unit test for {@link ModifyAttribute}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyAttributeTest {
 
     private static final JsonPointer KNOWN_JSON_POINTER = JsonFactory.newPointer("key1");

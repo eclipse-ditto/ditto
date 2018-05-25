@@ -30,6 +30,7 @@ import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
 /**
  * A mutable builder with a fluent API for a Map containing mapping strategies. This builder mainly exists to eliminate

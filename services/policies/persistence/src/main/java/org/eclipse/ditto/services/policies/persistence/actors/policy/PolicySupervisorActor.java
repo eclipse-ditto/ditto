@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStr
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 
@@ -71,7 +70,6 @@ public class PolicySupervisorActor extends AbstractActor {
             final Duration minBackoff,
             final Duration maxBackoff,
             final double randomFactor,
-            final ActorRef policyCacheFacade,
             final SupervisorStrategy supervisorStrategy,
             final SnapshotAdapter<Policy> snapshotAdapter) {
         try {
@@ -80,7 +78,7 @@ public class PolicySupervisorActor extends AbstractActor {
             throw new IllegalStateException("Unsupported encoding", e);
         }
         this.persistenceActorProps =
-                PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
+                PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         this.minBackoff = minBackoff;
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
@@ -99,7 +97,6 @@ public class PolicySupervisorActor extends AbstractActor {
      * @param maxBackoff the exponential back-off is capped to this duration.
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
-     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing the policy cache in cluster.
      * @param snapshotAdapter the adapter to serialize snapshots.
      * @return the {@link Props} to create this actor.
      */
@@ -107,7 +104,6 @@ public class PolicySupervisorActor extends AbstractActor {
             final Duration minBackoff,
             final Duration maxBackoff,
             final double randomFactor,
-            final ActorRef policyCacheFacade,
             final SnapshotAdapter<Policy> snapshotAdapter) {
         return Props.create(PolicySupervisorActor.class, new Creator<PolicySupervisorActor>() {
             private static final long serialVersionUID = 1L;
@@ -115,7 +111,6 @@ public class PolicySupervisorActor extends AbstractActor {
             @Override
             public PolicySupervisorActor create() throws Exception {
                 return new PolicySupervisorActor(pubSubMediator, minBackoff, maxBackoff, randomFactor,
-                        policyCacheFacade,
                         new OneForOneStrategy(true, DeciderBuilder
                                 .match(NullPointerException.class, e -> SupervisorStrategy.restart())
                                 .match(ActorKilledException.class, e -> SupervisorStrategy.stop())

@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import org.eclipse.ditto.services.models.streaming.SudoStreamModifiedEntities;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.streaming.DefaultStreamSupervisor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
@@ -33,8 +34,6 @@ public final class ThingsStreamSupervisorCreator {
      * The name of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME = "thingsStreamSupervisor";
-    @SuppressWarnings("squid:S1075")
-    private static final String THINGS_STREAM_PROVIDER_ACTOR_PATH = "/user/thingsRoot/persistenceStreamingActor";
 
     private ThingsStreamSupervisorCreator() {
         throw new AssertionError();
@@ -65,6 +64,7 @@ public final class ThingsStreamSupervisorCreator {
     private static DistributedPubSubMediator.Send mapStreamTriggerCommand(
             final SudoStreamModifiedEntities sudoStreamModifiedEntities) {
 
-        return new DistributedPubSubMediator.Send(THINGS_STREAM_PROVIDER_ACTOR_PATH, sudoStreamModifiedEntities, true);
+        return new DistributedPubSubMediator.Send(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH,
+                sudoStreamModifiedEntities, true);
     }
 }

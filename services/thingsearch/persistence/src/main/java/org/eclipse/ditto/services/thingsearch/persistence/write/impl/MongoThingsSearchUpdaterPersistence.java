@@ -38,7 +38,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
@@ -221,7 +221,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
             final List<ThingEvent> thingEvents,
-            final PolicyEnforcer policyEnforcer, final long targetRevision) {
+            final Enforcer policyEnforcer, final long targetRevision) {
         log.debug("Executing <{}> combined writes for Thing <{}> with target revision <{}>",
                 thingEvents.size(), thingId, targetRevision);
         if (!thingEvents.isEmpty()) {
@@ -267,7 +267,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     private <T extends ThingEvent> List<WriteModel<Document>> createPolicyUpdates(final T thingEvent,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         final List<PolicyUpdate> updates = persistenceStrategyFactory
                 .getStrategy(thingEvent)
                 .policyUpdates(thingEvent, policyEnforcer);
@@ -310,7 +310,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      * {@inheritDoc}
      */
     @Override
-    public final Source<Boolean, NotUsed> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
+    public final Source<Boolean, NotUsed> updatePolicy(final Thing thing, final Enforcer policyEnforcer) {
         log.debug("Updating policy for Thing: <{}>", thing);
         final PolicyUpdate policyUpdate = PolicyUpdateFactory.createPolicyIndexUpdate(thing, policyEnforcer);
         return Source.fromPublisher(updatePolicy(thing, policyUpdate))

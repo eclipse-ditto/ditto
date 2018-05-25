@@ -55,20 +55,21 @@ public class PolicyIdMissingExceptionTest {
     }
 
     @Test
-    public void fromMessage() {
-        final PolicyIdMissingException exception =  PolicyIdMissingException.fromMessage(KNOWN_MESSAGE, KNOWN_HEADERS);
-        Assertions.assertThat(exception.getMessage()).isEqualTo(KNOWN_MESSAGE);
-    }
-
-    @Test
     public void fromJson() {
         final PolicyIdMissingException exception = PolicyIdMissingException.fromJson(KNOWN_JSON, KNOWN_HEADERS);
         Assertions.assertThat(exception.getMessage()).isEqualTo(KNOWN_MESSAGE);
     }
 
     @Test
-    public void fromThingId() {
-        final PolicyIdMissingException exception = PolicyIdMissingException.fromThingId(KNOWN_THING_ID, KNOWN_HEADERS);
+    public void fromThingIdOnUpdate() {
+        final PolicyIdMissingException exception = PolicyIdMissingException.fromThingIdOnUpdate(KNOWN_THING_ID, KNOWN_HEADERS);
+        Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID);
+    }
+
+    @Test
+    public void fromThingIdOnCreate() {
+        final PolicyIdMissingException exception = PolicyIdMissingException.fromThingIdOnCreate(KNOWN_THING_ID,
+                KNOWN_HEADERS);
         Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID);
     }
 }

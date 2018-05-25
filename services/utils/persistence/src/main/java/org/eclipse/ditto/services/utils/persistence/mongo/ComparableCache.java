@@ -13,15 +13,18 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.CacheBuilder;
+import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Cache implementation for {@link Comparable} values which performs updates only when a value is new or greater than
@@ -42,7 +45,20 @@ final class ComparableCache<K, V extends Comparable<V>> {
      * @param size the (maximum) size of this cache
      */
     public ComparableCache(final int size) {
-        this.internalCache = CacheBuilder.newBuilder().maximumSize(size).<K, V>build().asMap();
+        this(size, null);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param size the (maximum) size of this cache
+     * @param namedMetricRegistry the named {@link MetricRegistry} for cache statistics.
+     */
+    public ComparableCache(final int size, @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
+
+        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, namedMetricRegistry);
+        this.internalCache = caffeineCache.asMap();
     }
 
     /**
@@ -52,7 +68,8 @@ final class ComparableCache<K, V extends Comparable<V>> {
      * @return the value which is associated with the specified key or {@code null}.
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    public @Nullable V get(final K key) {
+    @Nullable
+    public V get(final K key) {
         requireNonNull(key);
 
         return internalCache.get(key);
@@ -63,9 +80,9 @@ final class ComparableCache<K, V extends Comparable<V>> {
      *
      * @param key the key to be associated with {@code newValue}.
      * @param newValue the newValue to be associated with {@code key}.
-     * @throws NullPointerException if {@code key} or {@code newValue} is {@code null}.
      * @return {@code true}, if a value for {@code key} did not yet exist or {@code newValue} is greater than the
      * existing value.
+     * @throws NullPointerException if {@code key} or {@code newValue} is {@code null}.
      */
     public boolean updateIfNewOrGreater(final K key, final V newValue) {
         requireNonNull(key);
@@ -86,5 +103,4 @@ final class ComparableCache<K, V extends Comparable<V>> {
         LOGGER.debug("Cache update with key <{}> and value <{}> returned: <{}>", key, newValue, result);
         return result;
     }
-
 }

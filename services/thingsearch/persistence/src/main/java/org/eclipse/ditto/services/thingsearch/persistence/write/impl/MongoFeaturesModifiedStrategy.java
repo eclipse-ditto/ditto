@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 
@@ -38,7 +38,7 @@ public final class MongoFeaturesModifiedStrategy extends MongoEventToPersistence
      */
     @Override
     public final List<PolicyUpdate> policyUpdates(final FeaturesModified event,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
 
         if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(PolicyUpdateFactory.createFeaturesUpdate(

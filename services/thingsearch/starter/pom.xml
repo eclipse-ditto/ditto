@@ -34,6 +34,10 @@
             <artifactId>ditto-services-base</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-concierge</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-thingsearch-query</artifactId>
             <version>${project.version}</version>
@@ -88,10 +92,6 @@
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-distributed-data_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http_${scala.version}</artifactId>
         </dependency>
         <dependency>
@@ -102,14 +102,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
         </dependency>
 
         <dependency>
@@ -242,19 +234,20 @@
                                     <HTTP_PORT>${docker.image.port}</HTTP_PORT>
                                     <HOSTING_ENVIRONMENT>Docker</HOSTING_ENVIRONMENT>
                                 </env>
-                                <cmd>
+                                <workdir>/opt/ditto</workdir>
+                                <entryPoint>
                                     <exec>
                                         <arg>java</arg>
                                         <arg>-jar</arg>
-                                        <arg>/starter.jar</arg>
+                                        <arg>/opt/ditto/starter.jar</arg>
                                     </exec>
-                                </cmd>
+                                </entryPoint>
                                 <assembly>
                                     <basedir>/</basedir>
                                     <descriptor>assembly.xml</descriptor>
                                 </assembly>
                                 <runCmds>
-                                    <runCmd>ln -s /${project.build.finalName}-allinone.jar /starter.jar</runCmd>
+                                    <runCmd>ln -s /opt/ditto/${project.build.finalName}-allinone.jar /opt/ditto/starter.jar</runCmd>
                                 </runCmds>
                             </build>
                         </image>

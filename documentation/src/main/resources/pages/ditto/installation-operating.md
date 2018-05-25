@@ -12,28 +12,12 @@ This page shows the basics for operating Ditto.
 
 ## Logging
 
-Gathering logs for a running Ditto installation can be achieved via two different ways:
+Gathering logs for a running Ditto installation can be achieved by:
 
-1. grep log output from STDOUT/STDERR via Docker's [logging drivers](https://docs.docker.com/engine/admin/logging/overview/)
+* grepping log output from STDOUT/STDERR via Docker's [logging drivers](https://docs.docker.com/engine/admin/logging/overview/)
    * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", ...)
 
-2. configure a [Logstash](https://www.elastic.co/products/logstash) endpoint for Ditto's Docker containers where
-   the logs should be published to
-   * Benefits: stack traces are preserved, metadata from logback.xml is enhanced (e.g. "instance-index")
-
-Option 2 uses the [ELK stack](https://www.elastic.co/elk-stack) for logging, option 1 may also use an ELK stack with the right 
-Docker logging driver.
-
-### Configuring Logstash endpoint
-
-The Logstash endpoint to use can simply be configured by setting the following environment variable for the Docker containers:
-
-```
-LOGSTASH_SERVER=localhost:4560
-```
-
-Once that variable is configured, Ditto will automatically publish all logs via the `LogstashTcpSocketAppender` to that
-endpoint from where Logstash can forward it to an Elasticsearch from where Kibana can access the logs.
+This option may also use an ELK stack with the right Docker logging driver.
 
 
 ## Monitoring

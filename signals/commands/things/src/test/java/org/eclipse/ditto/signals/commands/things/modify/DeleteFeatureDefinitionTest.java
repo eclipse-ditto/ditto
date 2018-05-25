@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link DeleteFeatureDefinition}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class DeleteFeatureDefinitionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

@@ -565,7 +565,7 @@ public class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("thingIdInvalidException.json")), thingIdInvalidException);
 
         final PolicyIdMissingException policyIdMissingException = PolicyIdMissingException
-                .fromThingId(THING_ID, DITTO_HEADERS);
+                .fromThingIdOnUpdate(THING_ID, DITTO_HEADERS);
         writeJson(exceptionsDir.resolve(Paths.get("policyIdMissingException.json")), policyIdMissingException);
 
         final AttributesNotAccessibleException attributesNotAccessibleException =

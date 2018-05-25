@@ -53,6 +53,7 @@ public class ConnectionActorTest {
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
+    private static ActorRef conciergeForwarder;
     private String connectionId;
     private CreateConnection createConnection;
     private DeleteConnection deleteConnection;
@@ -69,6 +70,7 @@ public class ConnectionActorTest {
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
+        conciergeForwarder = actorSystem.actorOf(TestConstants.ConciergeForwarderActorMock.props());
     }
 
     @AfterClass
@@ -98,7 +100,7 @@ public class ConnectionActorTest {
     public void tryToSendOtherCommandThanCreateDuringInitialization() {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
 
             underTest.tell(deleteConnection, getRef());
 
@@ -112,7 +114,7 @@ public class ConnectionActorTest {
     public void manageConnection() {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -134,7 +136,7 @@ public class ConnectionActorTest {
     public void recoverOpenConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -146,7 +148,7 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -158,7 +160,7 @@ public class ConnectionActorTest {
     public void recoverClosedConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -174,7 +176,7 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -186,7 +188,7 @@ public class ConnectionActorTest {
     public void recoverDeletedConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -199,7 +201,7 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator);
+            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -211,8 +213,8 @@ public class ConnectionActorTest {
     public void exceptionDuringClientActorPropsCreation() {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
-                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            (connection) -> {
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator, conciergeForwarder,
+                            (connection, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             });
@@ -249,7 +251,7 @@ public class ConnectionActorTest {
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            (connection) -> TestActor.props(probe));
+                            conciergeForwarder, (connection, conciergeForwarder) -> TestActor.props(probe));
             watch(underTest);
 
             // create connection

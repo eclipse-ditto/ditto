@@ -18,12 +18,15 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.conta
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRequestHeader;
 
 import java.security.PublicKey;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthenticationProvider;
@@ -32,10 +35,10 @@ import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -55,24 +58,21 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     private static final String AUTHORIZATION_JWT = "Bearer";
 
     private static final String TRACE_FILTER_AUTH_JWT_FAIL = "filter.auth.jwt.fail";
+    private static final String TRACE_FILTER_AUTH_JWT_ERROR = "filter.auth.jwt.error";
     private static final String TRACE_FILTER_AUTH_JWT_SUCCESS = "filter.auth.jwt.success";
 
-    private final MessageDispatcher blockingDispatcher;
     private final PublicKeyProvider publicKeyProvider;
     private final AuthorizationSubjectsProvider authorizationSubjectsProvider;
 
     /**
      * Constructs a new {@link JwtAuthenticationDirective}.
      *
-     * @param blockingDispatcher a {@link MessageDispatcher} used for blocking calls.
      * @param publicKeyProvider the provider for public keys.
      * @param authorizationSubjectsProvider a provider for authorization subjects of a jwt.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public JwtAuthenticationDirective(final MessageDispatcher blockingDispatcher,
-            final PublicKeyProvider publicKeyProvider,
+    public JwtAuthenticationDirective(final PublicKeyProvider publicKeyProvider,
             final AuthorizationSubjectsProvider authorizationSubjectsProvider) {
-        this.blockingDispatcher = checkNotNull(blockingDispatcher);
         this.publicKeyProvider = checkNotNull(publicKeyProvider);
         this.authorizationSubjectsProvider = checkNotNull(authorizationSubjectsProvider);
     }
@@ -92,38 +92,67 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     public Route authenticate(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(
                 requestContext -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId, () -> {
+                    final TraceContext traceContext = Kamon.tracer().newContext(TRACE_FILTER_AUTH_JWT_ERROR);
                     final Optional<String> authorization =
                             getRequestHeader(requestContext, HttpHeader.AUTHORIZATION.toString().toLowerCase());
 
-                    final JsonWebToken jwt = authorization.map(ImmutableJsonWebToken::fromAuthorizationString)
-                            .orElseThrow(() -> buildMissingJwtException(correlationId));
+                    if (!authorization.isPresent()) {
+                        traceContext.rename(TRACE_FILTER_AUTH_JWT_FAIL);
+                        traceContext.finish();
 
-                    final TraceContext traceContext = Kamon.tracer().newContext(TRACE_FILTER_AUTH_JWT_FAIL);
+                        throw buildMissingJwtException(correlationId);
+                    }
 
-                    return onSuccess(() -> CompletableFuture
-                            .supplyAsync(() -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
-                                    () -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
-                                            .orElseThrow(() -> buildJwtUnauthorizedException(correlationId))),
-                                    blockingDispatcher)
-                            .thenApply(publicKey -> DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
-                                    () -> {
-                                        validateToken(jwt, publicKey, correlationId);
-                                        traceContext.rename(TRACE_FILTER_AUTH_JWT_SUCCESS);
+                    final JsonWebToken jwt = ImmutableJsonWebToken.fromAuthorizationString(authorization.get());
 
-                                        final AuthorizationContext authContext =
-                                                AuthorizationModelFactory.newAuthContext(
-                                                        authorizationSubjectsProvider.getAuthorizationSubjects(jwt));
+                    return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
+                                    .thenApply(publicKeyOpt ->
+                                            DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
+                                                    () -> {
+                                                        final Supplier<DittoRuntimeException>
+                                                                missingAuthExceptionSupplier =
+                                                                () -> buildJwtUnauthorizedException(correlationId);
+                                                        final PublicKey publicKey = publicKeyOpt
+                                                                .orElseThrow(missingAuthExceptionSupplier);
 
-                                        traceContext.finish();
+                                                        validateToken(jwt, publicKey, correlationId);
 
-                                        return authContext;
-                                    })), inner);
+                                                        final List<AuthorizationSubject> authSubjects =
+                                                                authorizationSubjectsProvider
+                                                                        .getAuthorizationSubjects(jwt);
+                                                        final AuthorizationContext authContext =
+                                                                AuthorizationModelFactory.newAuthContext(authSubjects);
+
+                                                        traceContext.rename(TRACE_FILTER_AUTH_JWT_SUCCESS);
+                                                        traceContext.finish();
+
+                                                        return authContext;
+                                                    })
+                                    ).exceptionally(t -> {
+                                        final Throwable rootCause =
+                                                (t instanceof CompletionException) ? t.getCause() : t;
+                                        if (rootCause instanceof GatewayAuthenticationFailedException) {
+                                            traceContext.rename(TRACE_FILTER_AUTH_JWT_FAIL);
+                                            traceContext.finish();
+
+                                            final DittoRuntimeException e = (DittoRuntimeException) rootCause;
+                                            LOGGER.debug("JWT authentication failed.", e);
+                                            throw e;
+                                        } else {
+                                            traceContext.finish();
+
+                                            LOGGER.warn("Unexpected error during JWT authentication.", rootCause);
+                                            throw buildAuthenticationProviderUnavailableException(correlationId,
+                                                    rootCause);
+                                        }
+                                    }),
+                            inner);
                 }));
     }
 
     private static DittoRuntimeException buildMissingJwtException(final String correlationId) {
         return GatewayAuthenticationFailedException
-                .newBuilder("The UNKNOWN was missing.")
+                .newBuilder("The JWT was missing.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();
     }
@@ -135,16 +164,25 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
         try {
             defaultJwtParser.setSigningKey(publicKey).parse(authorizationToken.getToken());
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
-            LOGGER.info("Got Exception '{}' during parsing UNKNOWN: {}", e.getClass().getSimpleName(), e.getMessage(),
+            LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage(),
                     e);
             throw buildJwtUnauthorizedException(correlationId);
         }
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId) {
-        return GatewayAuthenticationFailedException.newBuilder("The UNKNOWN could not be verified")
+        return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified")
                 .description("Check if your token is not expired and set the token accordingly.")
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                .build();
+    }
+
+    private static DittoRuntimeException buildAuthenticationProviderUnavailableException(final String correlationId,
+            final Throwable cause) {
+        return GatewayAuthenticationProviderUnavailableException
+                .newBuilder()
+                .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
+                .cause(cause)
                 .build();
     }
 }

@@ -16,15 +16,14 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
@@ -49,9 +48,8 @@ final class AttributeResourcePermissions implements ResourcePermissions {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    @Nonnull
-    static AttributeResourcePermissions getInstance(@Nonnull final JsonPointer attributePointer,
-            @Nonnull final JsonValue attributeValue, @Nonnull final PolicyEnforcer policyEnforcer) {
+    static AttributeResourcePermissions getInstance(final JsonPointer attributePointer,
+            final JsonValue attributeValue, final Enforcer policyEnforcer) {
 
         checkNotNull(attributePointer, "attribute pointer");
         checkNotNull(attributeValue, "attribute value");
@@ -80,27 +78,23 @@ final class AttributeResourcePermissions implements ResourcePermissions {
         return s;
     }
 
-    @Nonnull
     @Override
     public String getResource() {
         return baseResourcePermissions.getResource();
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadGrantedSubjectIds() {
         return baseResourcePermissions.getReadGrantedSubjectIds();
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadRevokedSubjectIds() {
         return baseResourcePermissions.getReadRevokedSubjectIds();
     }
 
-    @Nonnull
     @Override
-    public String createPolicyEntryId(@Nonnull final CharSequence thingId) {
+    public String createPolicyEntryId(final CharSequence thingId) {
         return baseResourcePermissions.createPolicyEntryId(thingId);
     }
 
