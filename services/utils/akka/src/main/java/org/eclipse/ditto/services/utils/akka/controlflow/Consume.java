@@ -75,6 +75,7 @@ public class Consume<T> extends GraphStage<SinkShape<WithSender<T>>> {
     }
 
     @Override
+    @SuppressWarnings("squid:S3599")
     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
         return new AbstractControlFlowLogic(shape) {
             {
