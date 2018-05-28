@@ -100,6 +100,15 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
