@@ -37,6 +37,7 @@
         <akka.version>2.5.12</akka.version>
         <akka-http.version>10.1.1</akka-http.version>
         <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
+        <akka-management.version>0.14.0</akka-management.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
@@ -162,6 +163,22 @@
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongo-java-driver</artifactId>
                 <version>${mongo-java-driver.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-management_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.discovery</groupId>
+                <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
             </dependency>
 
             <dependency>
