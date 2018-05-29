@@ -118,29 +118,6 @@ public final class ConfigKeys {
 
     }
 
-    public static final class Metrics {
-
-        private static final String PREFIX = CONNECTIVITY_PREFIX + "metrics.";
-
-        /**
-         * Whether gathering system metrics is enabled.
-         */
-        public static final String SYSTEM_METRICS_ENABLED = PREFIX + "systemMetrics." + ENABLED_SUFFIX;
-        /**
-         * Whether reporting metrics to prometheus is enabled.
-         */
-        public static final String PROMETHEUS_ENABLED = PREFIX + "prometheus." + ENABLED_SUFFIX;
-        /**
-         * Whether reporting traces to jaeger is enabled.
-         */
-        public static final String JAEGER_ENABLED = PREFIX + "jaeger." + ENABLED_SUFFIX;
-
-        private Metrics() {
-            throw new AssertionError();
-        }
-    }
-
-
     /**
      * Configuration keys for Connection.
      */

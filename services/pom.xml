@@ -27,6 +27,7 @@
 
     <modules>
         <module>base</module>
+        <module>concierge</module>
         <module>connectivity</module>
         <module>gateway</module>
         <module>models</module>
@@ -53,6 +54,7 @@
         <things.docker.image.name>ditto-things</things.docker.image.name>
         <things-search.docker.image.name>ditto-things-search</things-search.docker.image.name>
         <gateway.docker.image.name>ditto-gateway</gateway.docker.image.name>
+        <concierge.docker.image.name>ditto-concierge</concierge.docker.image.name>
         <connectivity.docker.image.name>ditto-connectivity</connectivity.docker.image.name>
     </properties>
 

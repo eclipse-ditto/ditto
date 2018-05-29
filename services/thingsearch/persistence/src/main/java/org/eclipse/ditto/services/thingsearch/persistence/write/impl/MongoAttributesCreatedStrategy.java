@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 
@@ -38,7 +38,7 @@ public final class MongoAttributesCreatedStrategy extends MongoEventToPersistenc
      * {@inheritDoc}
      */
     @Override
-    public final List<PolicyUpdate> policyUpdates(final AttributesCreated event, final PolicyEnforcer policyEnforcer) {
+    public final List<PolicyUpdate> policyUpdates(final AttributesCreated event, final Enforcer policyEnforcer) {
         if (isPolicyRevelant(event.getImplementedSchemaVersion())) {
             return Collections.singletonList(
                     PolicyUpdateFactory.createAttributesUpdate(event.getThingId(),

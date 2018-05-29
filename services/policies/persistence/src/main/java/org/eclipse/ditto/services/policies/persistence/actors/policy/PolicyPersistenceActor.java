@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
-import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
@@ -38,7 +37,6 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
-import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
@@ -46,11 +44,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.DeleteCacheEntry;
-import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntry;
-import org.eclipse.ditto.services.utils.distributedcache.actors.WriteConsistency;
-import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
@@ -166,7 +159,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private final String policyId;
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final ActorRef pubSubMediator;
-    private final ActorRef policyCacheFacade;
     private final java.time.Duration activityCheckInterval;
     private final java.time.Duration activityCheckDeletedInterval;
     private final java.time.Duration snapshotInterval;
@@ -184,11 +176,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     private PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final ActorRef policyCacheFacade) {
+            final ActorRef pubSubMediator) {
         this.policyId = policyId;
         this.pubSubMediator = pubSubMediator;
-        this.policyCacheFacade = policyCacheFacade;
         this.snapshotAdapter = snapshotAdapter;
 
         final Config config = getContext().system().settings().config();
@@ -356,19 +346,17 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * @param policyId the ID of the Policy this Actor manages.
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
-     * @param policyCacheFacade the {@link CacheFacadeActor} for accessing the policy cache in cluster.
      * @return the Akka configuration Props object
      */
     public static Props props(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator,
-            final ActorRef policyCacheFacade) {
+            final ActorRef pubSubMediator) {
         return Props.create(PolicyPersistenceActor.class, new Creator<PolicyPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PolicyPersistenceActor create() throws Exception {
-                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
+            public PolicyPersistenceActor create() {
+                return new PolicyPersistenceActor(policyId, snapshotAdapter, pubSubMediator);
             }
         });
     }
@@ -382,6 +370,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      */
     public static ActorRef getShardRegion(final ActorSystem system) {
         return ClusterSharding.get(system).shardRegion(PoliciesMessagingConstants.SHARD_REGION);
+    }
+
+    private static Instant getEventTimestamp() {
+        return Instant.now();
     }
 
     private void scheduleCheckForPolicyActivity(final long intervalInSeconds) {
@@ -398,7 +390,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         // send a message to ourselft:
         snapshotter = getContext().system().scheduler()
                 .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
-                        new TakeSnapshotInternal(),
+                        TakeSnapshotInternal.INSTANCE,
                         getContext().dispatcher(), null);
     }
 
@@ -458,22 +450,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                     if (policy != null) {
                         log.debug("Policy '{}' was recovered.", policyId);
 
-                        final Long theRevision =
-                                policy.getRevision().map(PolicyRevision::toLong).orElse(lastSequenceNr());
-                        CacheEntry cacheEntry = PolicyCacheEntry.of(policy.getImplementedSchemaVersion(),
-                                theRevision);
                         if (isPolicyActive()) {
                             becomePolicyCreatedHandler();
                         } else if (isPolicyDeleted()) {
                             becomePolicyDeletedHandler();
-                            cacheEntry = cacheEntry.asDeleted(theRevision);
                         } else {
                             log.error("Unknown lifecycle state '{}' for Policy '{}'", policy.getLifecycle(), policyId);
                         }
 
-                        // cache update without change of actor state; WriteConsistency.LOCAL suffices.
-                        policyCacheFacade.tell(new ModifyCacheEntry(policyId, cacheEntry, WriteConsistency.LOCAL),
-                                ActorRef.noSender());
                     }
                 })
 
@@ -605,17 +589,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
                 doSaveSnapshot(null);
             }
-            modifyClusterPolicyCacheEntry(event);
             notifySubscribers(event);
         });
     }
 
     private long getNextRevision() {
         return lastSequenceNr() + 1;
-    }
-
-    private static Instant getEventTimestamp() {
-        return Instant.now();
     }
 
     private boolean isPolicyActive() {
@@ -637,21 +616,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
             saveSnapshot(snapshotToStore);
         }
-    }
-
-    private <A extends PolicyEvent> void modifyClusterPolicyCacheEntry(final A event) {
-        final Object cacheEntryMessage;
-        final CacheEntry policyCacheEntry =
-                PolicyCacheEntry.of(policy.getImplementedSchemaVersion(), lastSequenceNr());
-        if (PolicyDeleted.TYPE.equals(event.getType())) {
-            cacheEntryMessage =
-                    new DeleteCacheEntry(policyId, policyCacheEntry, lastSequenceNr(), WriteConsistency.LOCAL);
-        } else {
-            // use WriteConsistency
-            final WriteConsistency writeConsistency = WriteConsistency.LOCAL;
-            cacheEntryMessage = new ModifyCacheEntry(policyId, policyCacheEntry, writeConsistency);
-        }
-        policyCacheFacade.tell(cacheEntryMessage, null);
     }
 
     private void notifySubscribers(final PolicyEvent event) {
@@ -779,6 +743,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * Message the PolicyPersistenceActor can send to itself to take a Snapshot if the Policy was modified.
      */
     private static final class TakeSnapshotInternal {
+
+        /**
+         * The single instance of this message.
+         */
+        public static final TakeSnapshotInternal INSTANCE = new TakeSnapshotInternal();
+
+        private TakeSnapshotInternal() {}
     }
 
     /**

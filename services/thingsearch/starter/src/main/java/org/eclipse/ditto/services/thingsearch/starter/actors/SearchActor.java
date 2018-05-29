@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -93,7 +94,7 @@ public final class SearchActor extends AbstractActor {
     public static final String ACTOR_NAME = "thingsSearch";
 
     private static final String SEARCH_DISPATCHER_ID = "search-dispatcher";
-    private static final String THINGS_ACTOR_PATH = "/user/gatewayRoot/proxy";
+    private static final String THINGS_AGGREGATOR_ACTOR_PATH = ConciergeMessagingConstants.DISPATCHER_ACTOR_PATH;
 
     private static final int QUERY_ASK_TIMEOUT = 500;
     private static final int THINGS_ASK_TIMEOUT = 60 * 1000;
@@ -148,7 +149,7 @@ public final class SearchActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public SearchActor create() throws Exception {
+            public SearchActor create() {
                 return new SearchActor(pubSubMediator, aggregationQueryActor, findQueryActor, searchPersistence);
             }
         });
@@ -349,7 +350,7 @@ public final class SearchActor extends AbstractActor {
         final DittoHeaders dittoHeaders = retrieveThings.getDittoHeaders();
         return Source.fromCompletionStage(
                 PatternsCS.ask(pubSubMediator, new DistributedPubSubMediator.Send(
-                        THINGS_ACTOR_PATH, retrieveThings, true), THINGS_ASK_TIMEOUT))
+                        THINGS_AGGREGATOR_ACTOR_PATH, retrieveThings, true), THINGS_ASK_TIMEOUT))
                 .flatMapConcat(response -> {
                     LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
                     log.debug("Thing search returned: {}", response);

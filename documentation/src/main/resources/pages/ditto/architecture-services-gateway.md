@@ -6,15 +6,15 @@ permalink: architecture-services-gateway.html
 ---
 
 The "gateway" service is responsible for providing Ditto's [HTTP](httpapi-overview.html) + 
-[WebSocket](httpapi-protocol-bindings-websocket.html) API and **orchestrating** the backing persistence services.
+[WebSocket](httpapi-protocol-bindings-websocket.html) API.
 
 ## Model
 
-The gateway service has no model by its own, but uses the model of all the services it orchestrates.
+The gateway service has no model by its own, but uses the model of all the services it provides the HTTP + WebSocket API for.
 
 ## Signals
 
-The gateway service has no signals by its own, but uses the signals of all the services it orchestrates.
+The gateway service has no signals by its own, but uses the signals of all the services it provides the HTTP + WebSocket API for.
 
 ## Persistence
 

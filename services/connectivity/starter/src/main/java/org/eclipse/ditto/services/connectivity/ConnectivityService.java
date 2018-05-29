@@ -11,16 +11,15 @@
  */
 package org.eclipse.ditto.services.connectivity;
 
-import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
+import java.util.function.Function;
+
 import org.eclipse.ditto.services.base.DittoService;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -34,7 +33,7 @@ import akka.stream.ActorMaterializer;
  * </ul>
  */
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class ConnectivityService extends DittoService {
+public final class ConnectivityService extends DittoService<ServiceConfigReader> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityService.class);
 
@@ -44,13 +43,7 @@ public final class ConnectivityService extends DittoService {
     private static final String SERVICE_NAME = "connectivity";
 
     private ConnectivityService() {
-        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME, BaseConfigKeys.getBuilder()
-                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
-                .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-                .put(BaseConfigKey.Metrics.SYSTEM_METRICS_ENABLED, ConfigKeys.Metrics.SYSTEM_METRICS_ENABLED)
-                .put(BaseConfigKey.Metrics.PROMETHEUS_ENABLED, ConfigKeys.Metrics.PROMETHEUS_ENABLED)
-                .put(BaseConfigKey.Metrics.JAEGER_ENABLED, ConfigKeys.Metrics.JAEGER_ENABLED)
-                .build());
+        super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -64,10 +57,10 @@ public final class ConnectivityService extends DittoService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ConnectivityRootActor.props(config, pubSubMediator, materializer);
+        return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
     }
 
 }

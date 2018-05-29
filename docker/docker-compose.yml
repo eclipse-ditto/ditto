@@ -58,8 +58,8 @@ services:
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
-  gateway:
-    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+  concierge:
+    image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     networks:
       default:
         aliases:
@@ -67,13 +67,10 @@ services:
     depends_on:
       - policies
     entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
-    ports:
-      - "8081:8080"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 
@@ -85,12 +82,32 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-      - gateway
-    entrypoint: sh -c "sleep 40; java -jar /opt/ditto/starter.jar"
+      - concierge
+    entrypoint: sh -c "sleep 30; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
+      - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
+
+  gateway:
+    image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - concierge
+    entrypoint: sh -c "sleep 40; java -jar /opt/ditto/starter.jar"
+    ports:
+      - "8081:8080"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - ENABLE_DUMMY_AUTH=true
       - _JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
       - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError
 

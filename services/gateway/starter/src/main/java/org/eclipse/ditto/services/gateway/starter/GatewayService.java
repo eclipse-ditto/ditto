@@ -11,11 +11,11 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.KamonMongoDbMetricsStarter;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
+import org.eclipse.ditto.services.utils.metrics.MetricRegistryFactory;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,16 +40,8 @@ public final class GatewayService extends DittoService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GatewayService.class);
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.CLUSTER_MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.CLUSTER_MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.Metrics.SYSTEM_METRICS_ENABLED, ConfigKeys.SYSTEM_METRICS_ENABLED)
-            .put(BaseConfigKey.Metrics.PROMETHEUS_ENABLED, ConfigKeys.PROMETHEUS_ENABLED)
-            .put(BaseConfigKey.Metrics.JAEGER_ENABLED, ConfigKeys.JAEGER_ENABLED)
-            .build();
-
     private GatewayService() {
-        super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME, CONFIG_KEYS);
+        super(LOGGER, SERVICE_NAME, GatewayRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     /**
@@ -68,15 +60,16 @@ public final class GatewayService extends DittoService {
     }
 
     @Override
-    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        KamonMongoDbMetricsStarter.newInstance(config, actorSystem, SERVICE_NAME, LOGGER).run();
+    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        KamonMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
+        KamonMetrics.start(SERVICE_NAME);
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return GatewayRootActor.props(config, pubSubMediator, materializer);
+        return GatewayRootActor.props(configReader, pubSubMediator, materializer);
     }
 
 }

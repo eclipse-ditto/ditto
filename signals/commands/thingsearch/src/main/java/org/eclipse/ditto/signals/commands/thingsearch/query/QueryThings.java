@@ -12,6 +12,7 @@
 package org.eclipse.ditto.signals.commands.thingsearch.query;
 
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -78,7 +79,7 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
 
     private QueryThings(final DittoHeaders dittoHeaders, @Nullable final String filter,
             @Nullable final List<String> options, @Nullable final JsonFieldSelector fields,
-            @Nullable final Set<String> namespaces) {
+            @Nullable final Collection<String> namespaces) {
         super(TYPE, dittoHeaders);
         this.filter = filter;
         if (options != null) {
@@ -288,6 +289,11 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
     @Override
     public Optional<Set<String>> getNamespaces() {
         return Optional.ofNullable(namespaces);
+    }
+
+    @Override
+    public QueryThings setNamespaces(@Nullable final Collection<String> namespaces) {
+        return new QueryThings(getDittoHeaders(), filter, options, fields, namespaces);
     }
 
     @Override

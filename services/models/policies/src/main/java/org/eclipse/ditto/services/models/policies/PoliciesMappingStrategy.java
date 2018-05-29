@@ -26,7 +26,6 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry;
@@ -39,16 +38,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
  */
 public final class PoliciesMappingStrategy implements MappingStrategy {
 
-    @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        addPoliciesStrategies(builder);
-        addDevOpsStrategies(builder);
-
-        return builder.build();
-    }
-
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
         builder
                 .add(PolicyErrorRegistry.newInstance())
@@ -59,18 +48,25 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                 .add(SudoCommandResponseRegistry.newInstance())
                 .add(StreamingRegistry.newInstance())
                 .add(Policy.class, (Function<JsonObject, Jsonifiable<?>>) PoliciesModelFactory::newPolicy)
-                .add(BaseCacheEntry.class,
-                        jsonObject -> BaseCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
-                .add(PolicyCacheEntry.class,
-                        jsonObject -> PolicyCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .add(PolicyTag.class, jsonObject -> PolicyTag.fromJson(jsonObject))  // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(PolicyTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
-                .add(PolicyReferenceTag.class, jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
+                .add(PolicyReferenceTag.class,
+                        jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
         builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
+    }
+
+    @Override
+    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addPoliciesStrategies(builder);
+        addDevOpsStrategies(builder);
+
+        return builder.build();
     }
 }

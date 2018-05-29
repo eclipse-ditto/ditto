@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,16 +30,14 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link RetrieveThings}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class RetrieveThingsTest {
 
     private static final JsonArray THING_IDS = JsonFactory.newArrayBuilder()
@@ -180,4 +179,25 @@ public final class RetrieveThingsTest {
         assertThat(retrieveThings).isEqualTo(retrieveThings2);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void initializationWithNullForThingIdsArrayThrowsNullPointerException(){
+        //This cast is used to resolve the ambiguous call
+        RetrieveThings.getBuilder( (String[]) null).build();
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void initializationWithNullForThingIdsListThrowsNullPointerException(){
+        //This cast is used to resolve the ambiguous call
+        RetrieveThings.getBuilder( (List<String>) null).build();
+    }
+
+    @Test(expected = MissingThingIdsException.class)
+    public void initializationWithoutThingIdsThrowsMissingThingIdsException(){
+        RetrieveThings.getBuilder().build();
+    }
+
+    @Test(expected = MissingThingIdsException.class)
+    public void initializationWithEmptyThingIdsListThrowsMissingThingIdsException(){
+        RetrieveThings.getBuilder(new ArrayList<>()).build();
+    }
 }

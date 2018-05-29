@@ -58,7 +58,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClie
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cluster.CommandRouterPropsFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -105,7 +104,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final List<String> headerBlacklist;
-    private final ActorRef commandRouter;
+    private final ActorRef conciergeForwarder;
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
@@ -113,17 +112,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private long publishedMessageCounter = 0L;
 
     protected BaseClientActor(final Connection connection, final ConnectionStatus desiredConnectionStatus,
-            @Nullable final ActorRef commandRouter) {
+            final ActorRef conciergeForwarder) {
         checkNotNull(connection, "connection");
+
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
         headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
-
-        if (commandRouter != null) {
-            this.commandRouter = commandRouter;
-        } else {
-            this.commandRouter = getContext().actorOf(CommandRouterPropsFactory.getProps(config), "commandRouter");
-        }
+        this.conciergeForwarder = conciergeForwarder;
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
                 desiredConnectionStatus, "initialized", Instant.now(), null));
@@ -179,12 +174,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState(
             final java.time.Duration initTimeout) {
-        return matchEvent(Arrays.asList(CloseConnection.class, DeleteConnection.class), BaseClientData.class,
-                (event, data) -> stay().using(data
-                        .setOrigin(getSender())
-                        .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
-                ).replying(new Status.Success(DISCONNECTED))
-        )
+        final List<Object> closeOrDeleteConnection = Arrays.asList(CloseConnection.class, DeleteConnection.class);
+        return matchEvent(closeOrDeleteConnection, BaseClientData.class, (event, data) -> {
+                    final BaseClientData nextStateData = data
+                            .setOrigin(getSender())
+                            .setDesiredConnectionStatus(ConnectionStatus.CLOSED);
+                    return stay().using(nextStateData)
+                            .replying(new Status.Success(DISCONNECTED));
+                })
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
                     if (data.getDesiredConnectionStatus() == ConnectionStatus.OPEN) {
                         log.info("Did not receive connect command within {}, trying to go to CONNECTING",
@@ -449,19 +446,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         log.info("Transition: {} -> {}", from, to);
 
-        switch (to) {
-            case CONNECTING:
-                if (from == CONNECTED) {
-                    // reconnect!
-                    log.info("Triggering reconnection");
-                    doReconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                } else {
-                    doConnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                }
-                break;
-            case DISCONNECTING:
-                doDisconnectClient(nextStateData().getConnection(), nextStateData().getOrigin().orElse(null));
-                break;
+        final Connection connection = nextStateData().getConnection();
+        final ActorRef origin = nextStateData().getOrigin().orElse(null);
+
+        if (to == BaseClientState.CONNECTING) {
+            if (from == CONNECTED) {
+                // reconnect!
+                log.info("Triggering reconnection");
+                doReconnectClient(connection, origin);
+            } else {
+                doConnectClient(connection, origin);
+            }
+        } else if (to == BaseClientState.DISCONNECTING) {
+            doDisconnectClient(connection, origin);
         }
     }
 
@@ -697,7 +694,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.debug("Starting MessageMappingProcessorActor with pool size of <{}>.",
                     connection.getProcessorPoolSize());
             final Props props =
-                    MessageMappingProcessorActor.props(getSelf(), commandRouter,
+                    MessageMappingProcessorActor.props(getSelf(), conciergeForwarder,
                             connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
                             processor, connectionId());
 

@@ -11,11 +11,10 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -43,9 +42,10 @@ public final class PoliciesService extends AbstractPoliciesService {
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        return PoliciesRootActor.props(config, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
+
+        return PoliciesRootActor.props(configReader, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
     }
 
 }

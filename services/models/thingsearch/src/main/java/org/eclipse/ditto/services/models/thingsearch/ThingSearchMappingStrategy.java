@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSu
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandRegistry;
@@ -48,24 +47,6 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
         thingsMappingStrategy = new ThingsMappingStrategy();
     }
 
-    @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
-        combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
-        combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
-
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        builder.add(BaseCacheEntry.class,
-                jsonObject -> BaseCacheEntry.fromJson(jsonObject)); // do not replace with lambda!
-
-        addThingSearchStrategies(builder);
-        addDevOpsStrategies(builder);
-
-        combinedStrategy.putAll(builder.build());
-        return combinedStrategy;
-    }
-
     private static void addThingSearchStrategies(final MappingStrategiesBuilder builder) {
         builder.add(ThingSearchCommandRegistry.newInstance());
         builder.add(ThingSearchCommandResponseRegistry.newInstance());
@@ -78,6 +59,21 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
         builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
+    }
+
+    @Override
+    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+        final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> combinedStrategy = new HashMap<>();
+        combinedStrategy.putAll(policiesMappingStrategy.determineStrategy());
+        combinedStrategy.putAll(thingsMappingStrategy.determineStrategy());
+
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addThingSearchStrategies(builder);
+        addDevOpsStrategies(builder);
+
+        combinedStrategy.putAll(builder.build());
+        return combinedStrategy;
     }
 
 }

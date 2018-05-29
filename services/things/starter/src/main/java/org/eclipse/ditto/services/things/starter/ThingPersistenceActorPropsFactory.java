@@ -31,30 +31,27 @@ import akka.actor.Props;
 final class ThingPersistenceActorPropsFactory implements Function<String, Props> {
 
     private final ActorRef pubSubMediator;
-    private final ActorRef thingCacheFacade;
     private final ThingSnapshotter.Create thingSnapshotterCreate;
 
-    private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator, final ActorRef thingCacheFacade,
+    private ThingPersistenceActorPropsFactory(final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        this.pubSubMediator = checkNotNull(pubSubMediator, "distributed pub-sub mediator actor");
-        this.thingCacheFacade = checkNotNull(thingCacheFacade, "Thing cache facade actor");
-        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate, "creation function for ThingSnapshotter");
+        this.pubSubMediator = checkNotNull(pubSubMediator);
+        this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     /**
      * Returns an instance of {@code ThingPersistenceActorPropsFactory}.
      *
      * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
-     * @param thingCacheFacade ActorRef of the facade for accessing the thing cache in cluster.
      * @param thingSnapshotterCreate functional interface for the constructor of snapshotter classes.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ThingPersistenceActorPropsFactory getInstance(final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade, final ThingSnapshotter.Create thingSnapshotterCreate) {
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
 
-        return new ThingPersistenceActorPropsFactory(pubSubMediator, thingCacheFacade, thingSnapshotterCreate);
+        return new ThingPersistenceActorPropsFactory(pubSubMediator, thingSnapshotterCreate);
     }
 
     /**
@@ -69,7 +66,7 @@ final class ThingPersistenceActorPropsFactory implements Function<String, Props>
     public Props apply(final String thingId) {
         argumentNotEmpty(thingId, "thing ID");
 
-        return ThingPersistenceActor.props(thingId, pubSubMediator, thingCacheFacade, thingSnapshotterCreate);
+        return ThingPersistenceActor.props(thingId, pubSubMediator, thingSnapshotterCreate);
     }
 
 }

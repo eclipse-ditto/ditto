@@ -28,6 +28,8 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSear
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -112,7 +114,7 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingsUrlWithoutIds() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(THINGS_1_PATH))));
-        result.assertStatusCode(StatusCodes.NOT_FOUND);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test

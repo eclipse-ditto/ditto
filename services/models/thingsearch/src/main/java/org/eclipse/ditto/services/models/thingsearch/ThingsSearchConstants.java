@@ -29,6 +29,24 @@ public final class ThingsSearchConstants {
      */
     public static final String CLUSTER_ROLE = "things-search";
 
+    @SuppressWarnings("squid:S1075")
+    private static final String USER_PATH = "/user";
+
+    /**
+     * Path of the root actor.
+     */
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/thingsSearchRoot";
+
+    /**
+     * Path of the updater root actor.
+     */
+    public static final String UPDATER_ROOT_ACTOR_PATH = USER_PATH + "/searchUpdaterRoot";
+
+    /**
+     * Path of the search actor.
+     */
+    public static final String SEARCH_ACTOR_PATH = ROOT_ACTOR_PATH + "/thingsSearch";
+
     /*
      * Inhibit instantiation of this utility class.
      */

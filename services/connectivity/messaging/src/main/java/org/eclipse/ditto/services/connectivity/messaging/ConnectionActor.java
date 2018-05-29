@@ -115,6 +115,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private final String connectionId;
     private final ActorRef pubSubMediator;
+    private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
     private final ConnectionActorPropsFactory propsFactory;
@@ -129,9 +130,10 @@ final class ConnectionActor extends AbstractPersistentActor {
     private Set<String> uniqueTopicPaths = Collections.emptySet();
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final ConnectionActorPropsFactory propsFactory) {
+            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory) {
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
+        this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
 
         final Config config = getContext().system().settings().config();
@@ -150,13 +152,13 @@ final class ConnectionActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final ConnectionActorPropsFactory propsFactory) {
+            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory) {
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ConnectionActor create() {
-                return new ConnectionActor(connectionId, pubSubMediator, propsFactory);
+                return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory);
             }
         });
     }
@@ -373,7 +375,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private boolean isConnectionConfigurationValid(final Connection connection, final ActorRef origin) {
         try {
             // try to create actor props before persisting the connection to fail early
-            propsFactory.getActorPropsForType(connection);
+            propsFactory.getActorPropsForType(connection, conciergeForwarder);
             return true;
         } catch (final Exception e) {
             handleException("connect", origin, e);
@@ -619,7 +621,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         if (clientActor == null) {
             final int clientCount = connection.getClientCount();
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", connectionId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(connection);
+            final Props props = propsFactory.getActorPropsForType(connection, conciergeForwarder);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, 1, true,
                             Collections.singleton(CLUSTER_ROLE));

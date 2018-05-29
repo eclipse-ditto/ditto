@@ -1,0 +1,445 @@
+---- AspectJ Properties ---
+AspectJ Compiler 1.8.13 built on Wednesday Nov 15, 2017 at 19:26:44 GMT
+---- Dump Properties ---
+Dump file: ajcore.20180529.153133.669.txt
+Dump reason: java.lang.NoClassDefFoundError
+Dump on exception: true
+Dump at exit condition: abort
+---- Exception Information ---
+java.lang.NoClassDefFoundError: org/aspectj/ajdt/internal/core/builder/EclipseAdapterUtils
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager$4.acceptResult(AjBuildManager.java:1122)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.handleInternalException(Compiler.java:722)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.processCompiledUnits(Compiler.java:622)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.compile(Compiler.java:462)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.compile(Compiler.java:417)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.performCompilation(AjBuildManager.java:1036)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.performBuild(AjBuildManager.java:272)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.batchBuild(AjBuildManager.java:185)
+	at org.aspectj.ajdt.ajc.AjdtCommand.doCommand(AjdtCommand.java:114)
+	at org.aspectj.ajdt.ajc.AjdtCommand.runCommand(AjdtCommand.java:60)
+	at org.aspectj.tools.ajc.Main.run(Main.java:371)
+	at org.aspectj.tools.ajc.Main.runMain(Main.java:248)
+	at org.codehaus.mojo.aspectj.AbstractAjcCompiler.execute(AbstractAjcCompiler.java:544)
+	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:137)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:208)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:154)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:146)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:117)
+	at org.apache.maven.lifecycle.internal.builder.multithreaded.MultiThreadedBuilder$1.call(MultiThreadedBuilder.java:200)
+	at org.apache.maven.lifecycle.internal.builder.multithreaded.MultiThreadedBuilder$1.call(MultiThreadedBuilder.java:196)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.ClassNotFoundException: org.aspectj.ajdt.internal.core.builder.EclipseAdapterUtils
+	at org.codehaus.plexus.classworlds.strategy.SelfFirstStrategy.loadClass(SelfFirstStrategy.java:50)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.unsynchronizedLoadClass(ClassRealm.java:271)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass(ClassRealm.java:247)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass(ClassRealm.java:239)
+	... 26 more
+---- System Properties ---
+java.runtime.name=Java(TM) SE Runtime Environment
+sun.boot.library.path=C:\Program Files\Java\jdk1.8.0_161\jre\bin
+java.vm.version=25.161-b12
+user.country.format=DE
+maven.multiModuleProjectDirectory=C:/repositories/ditto
+java.vm.vendor=Oracle Corporation
+java.vendor.url=http://java.oracle.com/
+guice.disable.misplaced.annotation.check=true
+path.separator=;
+java.vm.name=Java HotSpot(TM) 64-Bit Server VM
+file.encoding.pkg=sun.io
+user.country=US
+user.script=
+sun.java.launcher=SUN_STANDARD
+sun.os.patch.level=
+java.vm.specification.name=Java Virtual Machine Specification
+user.dir=C:\repositories\ditto
+java.runtime.version=1.8.0_161-b12
+java.awt.graphicsenv=sun.awt.Win32GraphicsEnvironment
+java.endorsed.dirs=C:\Program Files\Java\jdk1.8.0_161\jre\lib\endorsed
+os.arch=amd64
+docker.daemon.hostname=localhost
+java.io.tmpdir=C:\Users\KLY1IMB\AppData\Local\Temp\
+line.separator=
+
+java.vm.specification.vendor=Oracle Corporation
+user.variant=
+os.name=Windows 10
+classworlds.conf=C:/Program Files/Maven/bin/m2.conf
+sun.jnu.encoding=Cp1252
+java.library.path=C:\Program Files\Java\jdk1.8.0_161\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\KLY1IMB\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\mingw64\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\local\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\mingw64\bin;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\bin;C:\Users\KLY1IMB\bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files\Docker\Docker\Resources\bin;C:\ProgramData\Oracle\Java\javapath;C:\Program Files (x86)\Intel\iCLS Client;C:\Program Files\Intel\iCLS Client;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files\Intel\Intel(R) Management Engine Components\DAL;C:\Program Files (x86)\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files\Intel\Intel(R) Management Engine Components\IPT;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\7-Zip;C:\Program Files\PuTTY;C:\Program Files\Java\jdk1.8.0_161\bin;C:\Program Files\Maven\bin;C:\Program Files\nodejs;C:\Users\KLY1IMB\AppData\Local\Programs\Git\cmd;C:\Program Files\7-Zip;C:\Users\KLY1IMB\AppData\Local\Programs\Python\Python36-32\Scripts;C:\Users\KLY1IMB\AppData\Local\Programs\Python\Python36-32;C:\Users\KLY1IMB\AppData\Local\Microsoft\WindowsApps;C:\Users\KLY1IMB\AppData\Local\Programs\Git\cmd;C:\Users\KLY1IMB\AppData\Roaming\npm;C:\Program Files\Microsoft VS Code\bin;C:\Users\KLY1IMB\AppData\Roaming\Cloud Foundry;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\bin\vendor_perl;C:\Users\KLY1IMB\AppData\Local\Programs\Git\usr\bin\core_perl;.
+maven.conf=C:/Program Files/Maven/conf
+java.specification.name=Java Platform API Specification
+java.class.version=52.0
+sun.management.compiler=HotSpot 64-Bit Tiered Compilers
+os.version=10.0
+library.jansi.path=C:/Program Files/Maven/lib/jansi-native
+user.home=C:\Users\KLY1IMB
+user.timezone=Europe/Berlin
+java.awt.printerjob=sun.awt.windows.WPrinterJob
+file.encoding=Cp1252
+java.specification.version=1.8
+java.class.path=C:/Program Files/Maven/boot/plexus-classworlds-2.5.2.jar
+user.name=KLY1IMB
+java.vm.specification.version=1.8
+sun.java.command=org.codehaus.plexus.classworlds.launcher.Launcher clean install --batch-mode --errors -T4 -Drevision=local-test -Pdocker-build-image -Ddocker.daemon.hostname=localhost
+java.home=C:\Program Files\Java\jdk1.8.0_161\jre
+sun.arch.data.model=64
+user.language=en
+java.specification.vendor=Oracle Corporation
+user.language.format=de
+awt.toolkit=sun.awt.windows.WToolkit
+java.vm.info=mixed mode
+java.version=1.8.0_161
+java.ext.dirs=C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext;C:\WINDOWS\Sun\Java\lib\ext
+sun.boot.class.path=C:\Program Files\Java\jdk1.8.0_161\jre\lib\resources.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\rt.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\sunrsasign.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\jsse.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\jce.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\charsets.jar;C:\Program Files\Java\jdk1.8.0_161\jre\lib\jfr.jar;C:\Program Files\Java\jdk1.8.0_161\jre\classes
+java.vendor=Oracle Corporation
+sun.stderr.encoding=cp437
+maven.home=C:\Program Files\Maven
+file.separator=\
+java.vendor.url.bug=http://bugreport.sun.com/bugreport/
+sun.io.unicode.encoding=UnicodeLittle
+sun.cpu.endian=little
+sun.stdout.encoding=cp437
+sun.desktop=windows
+revision=local-test
+sun.cpu.isalist=amd64
+---- Command Line ---
+-Xajruntimetarget:1.5
+-1.8
+-encoding
+UTF-8
+-source
+1.8
+-target
+1.8
+-classpath
+C:\repositories\ditto\services\base\target\ditto-services-base-local-test.jar;C:\repositories\ditto\services\policies\persistence\target\ditto-services-policies-persistence-local-test.jar;C:\repositories\ditto\services\policies\util\target\ditto-services-policies-util-local-test.jar;C:\repositories\ditto\services\utils\akka\target\ditto-services-utils-akka-local-test.jar;C:\repositories\ditto\services\utils\cluster\target\ditto-services-utils-cluster-local-test.jar;C:\repositories\ditto\services\utils\persistence\target\ditto-services-utils-persistence-local-test.jar;C:\repositories\ditto\services\utils\health\target\ditto-services-utils-health-local-test.jar;C:\repositories\ditto\services\utils\config\target\ditto-services-utils-config-local-test.jar;C:\repositories\ditto\services\utils\devops\target\ditto-services-utils-devops-local-test.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-actor_2.12\2.5.12\akka-actor_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster_2.12\2.5.12\akka-cluster_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster-tools_2.12\2.5.12\akka-cluster-tools_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-slf4j_2.12\2.5.12\akka-slf4j_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-stream_2.12\2.5.12\akka-stream_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-http_2.12\10.1.1\akka-http_2.12-10.1.1.jar;C:\Users\KLY1IMB\.m2\repository\com\github\scullxbones\akka-persistence-mongo-casbah_2.12\2.0.9\akka-persistence-mongo-casbah_2.12-2.0.9.jar;C:\Users\KLY1IMB\.m2\repository\org\aspectj\aspectjrt\1.8.13\aspectjrt-1.8.13.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar;C:\Users\KLY1IMB\.m2\repository\ch\qos\logback\logback-classic\1.2.3\logback-classic-1.2.3.jar;C:\Users\KLY1IMB\.m2\repository\com\google\code\findbugs\jsr305\3.0.1\jsr305-3.0.1.jar;C:\repositories\ditto\utils\jsr305\target\ditto-utils-jsr305-local-test.jar;C:\repositories\ditto\json\target\ditto-json-local-test-tests.jar;C:\Users\KLY1IMB\.m2\repository\junit\junit\4.12\junit-4.12.jar;C:\Users\KLY1IMB\.m2\repository\org\mockito\mockito-core\2.9.0\mockito-core-2.9.0.jar;C:\Users\KLY1IMB\.m2\repository\org\assertj\assertj-core\3.8.0\assertj-core-3.8.0.jar;C:\Users\KLY1IMB\.m2\repository\org\mutabilitydetector\MutabilityDetector\0.9.6\MutabilityDetector-0.9.6.jar;C:\Users\KLY1IMB\.m2\repository\nl\jqno\equalsverifier\equalsverifier\2.3\equalsverifier-2.3.jar;C:\Users\KLY1IMB\.m2\repository\org\skyscreamer\jsonassert\1.2.3\jsonassert-1.2.3.jar;C:\repositories\ditto\model\base\target\ditto-model-base-local-test.jar;C:\repositories\ditto\services\utils\tracing\target\ditto-services-utils-tracing-local-test.jar;C:\Users\KLY1IMB\.m2\repository\org\slf4j\slf4j-api\1.7.25\slf4j-api-1.7.25.jar;C:\Users\KLY1IMB\.m2\repository\com\github\scullxbones\akka-persistence-mongo-common_2.12\2.0.9\akka-persistence-mongo-common_2.12-2.0.9.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-core_2.12\1.1.2\kamon-core_2.12-1.1.2.jar;C:\Users\KLY1IMB\.m2\repository\org\hdrhistogram\HdrHistogram\2.1.9\HdrHistogram-2.1.9.jar;C:\Users\KLY1IMB\.m2\repository\com\lihaoyi\fansi_2.12\0.2.4\fansi_2.12-0.2.4.jar;C:\Users\KLY1IMB\.m2\repository\com\lihaoyi\sourcecode_2.12\0.1.3\sourcecode_2.12-0.1.3.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-prometheus_2.12\1.1.0\kamon-prometheus_2.12-1.1.0.jar;C:\Users\KLY1IMB\.m2\repository\org\nanohttpd\nanohttpd\2.3.1\nanohttpd-2.3.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-jaeger_2.12\1.0.2\kamon-jaeger_2.12-1.0.2.jar;C:\Users\KLY1IMB\.m2\repository\com\uber\jaeger\jaeger-core\0.21.0\jaeger-core-0.21.0.jar;C:\Users\KLY1IMB\.m2\repository\com\uber\jaeger\jaeger-thrift\0.21.0\jaeger-thrift-0.21.0.jar;C:\Users\KLY1IMB\.m2\repository\org\apache\thrift\libthrift\0.9.2\libthrift-0.9.2.jar;C:\Users\KLY1IMB\.m2\repository\org\apache\httpcomponents\httpclient\4.2.5\httpclient-4.2.5.jar;C:\Users\KLY1IMB\.m2\repository\commons-logging\commons-logging\1.1.1\commons-logging-1.1.1.jar;C:\Users\KLY1IMB\.m2\repository\commons-codec\commons-codec\1.6\commons-codec-1.6.jar;C:\Users\KLY1IMB\.m2\repository\org\apache\httpcomponents\httpcore\4.2.4\httpcore-4.2.4.jar;C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-api\0.30.0\opentracing-api-0.30.0.jar;C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-util\0.30.0\opentracing-util-0.30.0.jar;C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-noop\0.30.0\opentracing-noop-0.30.0.jar;C:\Users\KLY1IMB\.m2\repository\com\google\code\gson\gson\2.8.0\gson-2.8.0.jar;C:\Users\KLY1IMB\.m2\repository\com\squareup\okhttp3\okhttp\3.8.1\okhttp-3.8.1.jar;C:\Users\KLY1IMB\.m2\repository\com\squareup\okio\okio\1.13.0\okio-1.13.0.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-system-metrics_2.12\1.0.0\kamon-system-metrics_2.12-1.0.0.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\sigar-loader\1.6.5-rev002\sigar-loader-1.6.5-rev002.jar;C:\Users\KLY1IMB\.m2\repository\org\aspectj\aspectjweaver\1.8.13\aspectjweaver-1.8.13.jar;C:\repositories\ditto\json\target\ditto-json-local-test.jar;C:\repositories\ditto\model\policies\target\ditto-model-policies-local-test.jar;C:\repositories\ditto\signals\commands\policies\target\ditto-signals-commands-policies-local-test.jar;C:\repositories\ditto\signals\events\policies\target\ditto-signals-events-policies-local-test.jar;C:\repositories\ditto\services\models\policies\target\ditto-services-models-policies-local-test.jar;C:\repositories\ditto\model\things\target\ditto-model-things-local-test.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-persistence_2.12\2.5.12\akka-persistence_2.12-2.5.12.jar;C:\repositories\ditto\services\models\streaming\target\ditto-services-models-streaming-local-test.jar;C:\repositories\ditto\signals\base\target\ditto-signals-base-local-test.jar;C:\repositories\ditto\signals\commands\base\target\ditto-signals-commands-base-local-test.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster-sharding_2.12\2.5.12\akka-cluster-sharding_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-distributed-data_2.12\2.5.12\akka-distributed-data_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\org\lmdbjava\lmdbjava\0.6.0\lmdbjava-0.6.0.jar;C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-ffi\2.1.6\jnr-ffi-2.1.6.jar;C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jffi\1.2.16\jffi-1.2.16.jar;C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm\5.2\asm-5.2.jar;C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-commons\5.2\asm-commons-5.2.jar;C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-analysis\5.2\asm-analysis-5.2.jar;C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-tree\5.2\asm-tree-5.2.jar;C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-util\5.2\asm-util-5.2.jar;C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-x86asm\1.0.2\jnr-x86asm-1.0.2.jar;C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-constants\0.9.9\jnr-constants-0.9.9.jar;C:\repositories\ditto\signals\events\base\target\ditto-signals-events-base-local-test.jar;C:\repositories\ditto\services\models\things\target\ditto-services-models-things-local-test.jar;C:\repositories\ditto\signals\commands\things\target\ditto-signals-commands-things-local-test.jar;C:\repositories\ditto\signals\events\things\target\ditto-signals-events-things-local-test.jar;C:\repositories\ditto\services\utils\cache\target\ditto-services-utils-cache-local-test.jar;C:\repositories\ditto\services\utils\metrics\target\ditto-services-utils-metrics-local-test.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongo-java-driver\3.6.3\mongo-java-driver-3.6.3.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-reactivestreams\1.7.1\mongodb-driver-reactivestreams-1.7.1.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-async\3.6.3\mongodb-driver-async-3.6.3.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\bson\3.6.3\bson-3.6.3.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-core\3.6.3\mongodb-driver-core-3.6.3.jar;C:\Users\KLY1IMB\.m2\repository\com\github\ben-manes\caffeine\caffeine\2.6.2\caffeine-2.6.2.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\config\1.3.1\config-1.3.1.jar;C:\repositories\ditto\model\devops\target\ditto-model-devops-local-test.jar;C:\repositories\ditto\signals\commands\devops\target\ditto-signals-commands-devops-local-test.jar;C:\Users\KLY1IMB\.m2\repository\org\scala-lang\scala-library\2.12.6\scala-library-2.12.6.jar;C:\Users\KLY1IMB\.m2\repository\org\scala-lang\modules\scala-java8-compat_2.12\0.8.0\scala-java8-compat_2.12-0.8.0.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-remote_2.12\2.5.12\akka-remote_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\io\netty\netty\3.10.6.Final\netty-3.10.6.Final.jar;C:\Users\KLY1IMB\.m2\repository\io\aeron\aeron-driver\1.7.0\aeron-driver-1.7.0.jar;C:\Users\KLY1IMB\.m2\repository\io\aeron\aeron-client\1.7.0\aeron-client-1.7.0.jar;C:\Users\KLY1IMB\.m2\repository\org\agrona\agrona\0.9.12\agrona-0.9.12.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-protobuf_2.12\2.5.12\akka-protobuf_2.12-2.5.12.jar;C:\Users\KLY1IMB\.m2\repository\org\reactivestreams\reactive-streams\1.0.2\reactive-streams-1.0.2.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\ssl-config-core_2.12\0.2.3\ssl-config-core_2.12-0.2.3.jar;C:\Users\KLY1IMB\.m2\repository\org\scala-lang\modules\scala-parser-combinators_2.12\1.1.0\scala-parser-combinators_2.12-1.1.0.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-http-core_2.12\10.1.1\akka-http-core_2.12-10.1.1.jar;C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-parsing_2.12\10.1.1\akka-parsing_2.12-10.1.1.jar;C:\Users\KLY1IMB\.m2\repository\nl\grons\metrics-scala_2.12\3.5.5_a2.4\metrics-scala_2.12-3.5.5_a2.4.jar;C:\Users\KLY1IMB\.m2\repository\io\dropwizard\metrics\metrics-core\3.1.2\metrics-core-3.1.2.jar;C:\Users\KLY1IMB\.m2\repository\io\dropwizard\metrics\metrics-healthchecks\3.1.2\metrics-healthchecks-3.1.2.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-commons_2.12\3.1.1\casbah-commons_2.12-3.1.1.jar;C:\Users\KLY1IMB\.m2\repository\com\github\nscala-time\nscala-time_2.12\2.14.0\nscala-time_2.12-2.14.0.jar;C:\Users\KLY1IMB\.m2\repository\joda-time\joda-time\2.9.4\joda-time-2.9.4.jar;C:\Users\KLY1IMB\.m2\repository\org\joda\joda-convert\1.2\joda-convert-1.2.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-core_2.12\3.1.1\casbah-core_2.12-3.1.1.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-query_2.12\3.1.1\casbah-query_2.12-3.1.1.jar;C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-gridfs_2.12\3.1.1\casbah-gridfs_2.12-3.1.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-scala-future_2.12\1.0.0\kamon-scala-future_2.12-1.0.0.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-executors_2.12\1.0.1\kamon-executors_2.12-1.0.1.jar;C:\Users\KLY1IMB\.m2\repository\ch\qos\logback\logback-core\1.2.3\logback-core-1.2.3.jar;C:\Users\KLY1IMB\.m2\repository\com\eclipsesource\minimal-json\minimal-json\0.9.5\minimal-json-0.9.5.jar;C:\repositories\ditto\services\policies\starter\target\classes
+-inpath
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar;C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar
+-d
+C:\repositories\ditto\services\policies\starter\target\classes
+C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\AbstractPoliciesService.java
+C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\package-info.java
+C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\PoliciesRootActor.java
+C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\PoliciesService.java
+---- Full Classpath ---
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\resources.jar(3492577 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\rt.jar(63557968 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\sunrsasign.jar(missing)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\jsse.jar(657474 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\jce.jar(115304 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\charsets.jar(3090355 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\jfr.jar(560713 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\classes(missing)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar(141357 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar(54651 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar(39366 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\access-bridge-64.jar(196916 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\cldrdata.jar(3860502 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\dnsns.jar(8286 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\jaccess.jar(44516 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\jfxrt.jar(18221132 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\localedata.jar(2245803 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\nashorn.jar(2023990 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\sunec.jar(41672 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\sunjce_provider.jar(275635 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\sunmscapi.jar(33143 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\sunpkcs11.jar(250070 bytes)
+C:\Program Files\Java\jdk1.8.0_161\jre\lib\ext\zipfs.jar(68964 bytes)
+C:\repositories\ditto\services\base\target\ditto-services-base-local-test.jar(23307 bytes)
+C:\repositories\ditto\services\policies\persistence\target\ditto-services-policies-persistence-local-test.jar(119018 bytes)
+C:\repositories\ditto\services\policies\util\target\ditto-services-policies-util-local-test.jar(6595 bytes)
+C:\repositories\ditto\services\utils\akka\target\ditto-services-utils-akka-local-test.jar(71700 bytes)
+C:\repositories\ditto\services\utils\cluster\target\ditto-services-utils-cluster-local-test.jar(32955 bytes)
+C:\repositories\ditto\services\utils\persistence\target\ditto-services-utils-persistence-local-test.jar(73531 bytes)
+C:\repositories\ditto\services\utils\health\target\ditto-services-utils-health-local-test.jar(49997 bytes)
+C:\repositories\ditto\services\utils\config\target\ditto-services-utils-config-local-test.jar(18072 bytes)
+C:\repositories\ditto\services\utils\devops\target\ditto-services-utils-devops-local-test.jar(21704 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-actor_2.12\2.5.12\akka-actor_2.12-2.5.12.jar(3231389 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster_2.12\2.5.12\akka-cluster_2.12-2.5.12.jar(964267 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster-tools_2.12\2.5.12\akka-cluster-tools_2.12-2.5.12.jar(592283 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-slf4j_2.12\2.5.12\akka-slf4j_2.12-2.5.12.jar(15908 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-stream_2.12\2.5.12\akka-stream_2.12-2.5.12.jar(4012092 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-http_2.12\10.1.1\akka-http_2.12-10.1.1.jar(1702464 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\scullxbones\akka-persistence-mongo-casbah_2.12\2.0.9\akka-persistence-mongo-casbah_2.12-2.0.9.jar(127284 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\aspectj\aspectjrt\1.8.13\aspectjrt-1.8.13.jar(118753 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar(141357 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar(54651 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar(39366 bytes)
+C:\Users\KLY1IMB\.m2\repository\ch\qos\logback\logback-classic\1.2.3\logback-classic-1.2.3.jar(290339 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\google\code\findbugs\jsr305\3.0.1\jsr305-3.0.1.jar(19943 bytes)
+C:\repositories\ditto\utils\jsr305\target\ditto-utils-jsr305-local-test.jar(6076 bytes)
+C:\repositories\ditto\json\target\ditto-json-local-test-tests.jar(19080 bytes)
+C:\Users\KLY1IMB\.m2\repository\junit\junit\4.12\junit-4.12.jar(314932 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mockito\mockito-core\2.9.0\mockito-core-2.9.0.jar(535804 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\assertj\assertj-core\3.8.0\assertj-core-3.8.0.jar(1226101 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mutabilitydetector\MutabilityDetector\0.9.6\MutabilityDetector-0.9.6.jar(2530348 bytes)
+C:\Users\KLY1IMB\.m2\repository\nl\jqno\equalsverifier\equalsverifier\2.3\equalsverifier-2.3.jar(2152984 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\skyscreamer\jsonassert\1.2.3\jsonassert-1.2.3.jar(27665 bytes)
+C:\repositories\ditto\model\base\target\ditto-model-base-local-test.jar(65942 bytes)
+C:\repositories\ditto\services\utils\tracing\target\ditto-services-utils-tracing-local-test.jar(16731 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\slf4j\slf4j-api\1.7.25\slf4j-api-1.7.25.jar(41203 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\scullxbones\akka-persistence-mongo-common_2.12\2.0.9\akka-persistence-mongo-common_2.12-2.0.9.jar(210005 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-core_2.12\1.1.2\kamon-core_2.12-1.1.2.jar(427728 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\hdrhistogram\HdrHistogram\2.1.9\HdrHistogram-2.1.9.jar(114165 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\lihaoyi\fansi_2.12\0.2.4\fansi_2.12-0.2.4.jar(64299 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\lihaoyi\sourcecode_2.12\0.1.3\sourcecode_2.12-0.1.3.jar(110534 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-prometheus_2.12\1.1.0\kamon-prometheus_2.12-1.1.0.jar(24679 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\nanohttpd\nanohttpd\2.3.1\nanohttpd-2.3.1.jar(51211 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-jaeger_2.12\1.0.2\kamon-jaeger_2.12-1.0.2.jar(7765 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\uber\jaeger\jaeger-core\0.21.0\jaeger-core-0.21.0.jar(109576 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\uber\jaeger\jaeger-thrift\0.21.0\jaeger-thrift-0.21.0.jar(670691 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\apache\thrift\libthrift\0.9.2\libthrift-0.9.2.jar(227712 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\apache\httpcomponents\httpclient\4.2.5\httpclient-4.2.5.jar(433368 bytes)
+C:\Users\KLY1IMB\.m2\repository\commons-logging\commons-logging\1.1.1\commons-logging-1.1.1.jar(60686 bytes)
+C:\Users\KLY1IMB\.m2\repository\commons-codec\commons-codec\1.6\commons-codec-1.6.jar(232771 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\apache\httpcomponents\httpcore\4.2.4\httpcore-4.2.4.jar(227275 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-api\0.30.0\opentracing-api-0.30.0.jar(14117 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-util\0.30.0\opentracing-util-0.30.0.jar(7563 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\opentracing\opentracing-noop\0.30.0\opentracing-noop-0.30.0.jar(12355 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\google\code\gson\gson\2.8.0\gson-2.8.0.jar(231952 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\squareup\okhttp3\okhttp\3.8.1\okhttp-3.8.1.jar(398122 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\squareup\okio\okio\1.13.0\okio-1.13.0.jar(81811 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-system-metrics_2.12\1.0.0\kamon-system-metrics_2.12-1.0.0.jar(136825 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\sigar-loader\1.6.5-rev002\sigar-loader-1.6.5-rev002.jar(2542694 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\aspectj\aspectjweaver\1.8.13\aspectjweaver-1.8.13.jar(1930381 bytes)
+C:\repositories\ditto\json\target\ditto-json-local-test.jar(104872 bytes)
+C:\repositories\ditto\model\policies\target\ditto-model-policies-local-test.jar(98832 bytes)
+C:\repositories\ditto\signals\commands\policies\target\ditto-signals-commands-policies-local-test.jar(224728 bytes)
+C:\repositories\ditto\signals\events\policies\target\ditto-signals-events-policies-local-test.jar(65513 bytes)
+C:\repositories\ditto\services\models\policies\target\ditto-services-models-policies-local-test.jar(29838 bytes)
+C:\repositories\ditto\model\things\target\ditto-model-things-local-test.jar(162259 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-persistence_2.12\2.5.12\akka-persistence_2.12-2.5.12.jar(887730 bytes)
+C:\repositories\ditto\services\models\streaming\target\ditto-services-models-streaming-local-test.jar(17808 bytes)
+C:\repositories\ditto\signals\base\target\ditto-signals-base-local-test.jar(22321 bytes)
+C:\repositories\ditto\signals\commands\base\target\ditto-signals-commands-base-local-test.jar(67748 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-cluster-sharding_2.12\2.5.12\akka-cluster-sharding_2.12-2.5.12.jar(543313 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-distributed-data_2.12\2.5.12\akka-distributed-data_2.12-2.5.12.jar(1148877 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\lmdbjava\lmdbjava\0.6.0\lmdbjava-0.6.0.jar(424504 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-ffi\2.1.6\jnr-ffi-2.1.6.jar(681139 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jffi\1.2.16\jffi-1.2.16.jar(150998 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm\5.2\asm-5.2.jar(53259 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-commons\5.2\asm-commons-5.2.jar(47197 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-analysis\5.2\asm-analysis-5.2.jar(20438 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-tree\5.2\asm-tree-5.2.jar(29582 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\ow2\asm\asm-util\5.2\asm-util-5.2.jar(43354 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-x86asm\1.0.2\jnr-x86asm-1.0.2.jar(219943 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\jnr\jnr-constants\0.9.9\jnr-constants-0.9.9.jar(359323 bytes)
+C:\repositories\ditto\signals\events\base\target\ditto-signals-events-base-local-test.jar(13090 bytes)
+C:\repositories\ditto\services\models\things\target\ditto-services-models-things-local-test.jar(31129 bytes)
+C:\repositories\ditto\signals\commands\things\target\ditto-signals-commands-things-local-test.jar(384155 bytes)
+C:\repositories\ditto\signals\events\things\target\ditto-signals-events-things-local-test.jar(114613 bytes)
+C:\repositories\ditto\services\utils\cache\target\ditto-services-utils-cache-local-test.jar(14631 bytes)
+C:\repositories\ditto\services\utils\metrics\target\ditto-services-utils-metrics-local-test.jar(10795 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongo-java-driver\3.6.3\mongo-java-driver-3.6.3.jar(1897181 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-reactivestreams\1.7.1\mongodb-driver-reactivestreams-1.7.1.jar(144152 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-async\3.6.3\mongodb-driver-async-3.6.3.jar(203280 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\bson\3.6.3\bson-3.6.3.jar(393369 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\mongodb-driver-core\3.6.3\mongodb-driver-core-3.6.3.jar(1118202 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\ben-manes\caffeine\caffeine\2.6.2\caffeine-2.6.2.jar(660440 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\config\1.3.1\config-1.3.1.jar(282549 bytes)
+C:\repositories\ditto\model\devops\target\ditto-model-devops-local-test.jar(12098 bytes)
+C:\repositories\ditto\signals\commands\devops\target\ditto-signals-commands-devops-local-test.jar(47724 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\scala-lang\scala-library\2.12.6\scala-library-2.12.6.jar(5267302 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\scala-lang\modules\scala-java8-compat_2.12\0.8.0\scala-java8-compat_2.12-0.8.0.jar(1165728 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-remote_2.12\2.5.12\akka-remote_2.12-2.5.12.jar(2343486 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\netty\netty\3.10.6.Final\netty-3.10.6.Final.jar(1292696 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\aeron\aeron-driver\1.7.0\aeron-driver-1.7.0.jar(222705 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\aeron\aeron-client\1.7.0\aeron-client-1.7.0.jar(132152 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\agrona\agrona\0.9.12\agrona-0.9.12.jar(326306 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-protobuf_2.12\2.5.12\akka-protobuf_2.12-2.5.12.jar(484785 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\reactivestreams\reactive-streams\1.0.2\reactive-streams-1.0.2.jar(2097 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\ssl-config-core_2.12\0.2.3\ssl-config-core_2.12-0.2.3.jar(245592 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\scala-lang\modules\scala-parser-combinators_2.12\1.1.0\scala-parser-combinators_2.12-1.1.0.jar(225042 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-http-core_2.12\10.1.1\akka-http-core_2.12-10.1.1.jar(3426219 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\typesafe\akka\akka-parsing_2.12\10.1.1\akka-parsing_2.12-10.1.1.jar(969889 bytes)
+C:\Users\KLY1IMB\.m2\repository\nl\grons\metrics-scala_2.12\3.5.5_a2.4\metrics-scala_2.12-3.5.5_a2.4.jar(67945 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\dropwizard\metrics\metrics-core\3.1.2\metrics-core-3.1.2.jar(112558 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\dropwizard\metrics\metrics-healthchecks\3.1.2\metrics-healthchecks-3.1.2.jar(10170 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-commons_2.12\3.1.1\casbah-commons_2.12-3.1.1.jar(132016 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\github\nscala-time\nscala-time_2.12\2.14.0\nscala-time_2.12-2.14.0.jar(201401 bytes)
+C:\Users\KLY1IMB\.m2\repository\joda-time\joda-time\2.9.4\joda-time-2.9.4.jar(629506 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\joda\joda-convert\1.2\joda-convert-1.2.jar(38460 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-core_2.12\3.1.1\casbah-core_2.12-3.1.1.jar(284905 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-query_2.12\3.1.1\casbah-query_2.12-3.1.1.jar(188413 bytes)
+C:\Users\KLY1IMB\.m2\repository\org\mongodb\casbah-gridfs_2.12\3.1.1\casbah-gridfs_2.12-3.1.1.jar(72840 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-scala-future_2.12\1.0.0\kamon-scala-future_2.12-1.0.0.jar(3629 bytes)
+C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-executors_2.12\1.0.1\kamon-executors_2.12-1.0.1.jar(48760 bytes)
+C:\Users\KLY1IMB\.m2\repository\ch\qos\logback\logback-core\1.2.3\logback-core-1.2.3.jar(471901 bytes)
+C:\Users\KLY1IMB\.m2\repository\com\eclipsesource\minimal-json\minimal-json\0.9.5\minimal-json-0.9.5.jar(34221 bytes)
+C:\repositories\ditto\services\policies\starter\target\classes(4 entries)
+---- Compiler Messages ---
+info directory classpath entry does not exist: C:\Program Files\Java\jdk1.8.0_161\jre\lib\sunrsasign.jar
+info zipfile classpath entry does not exist: C:\Program Files\Java\jdk1.8.0_161\jre\classes
+info Pipelining compilation
+info compiling C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\AbstractPoliciesService.java
+info weaver operating in reweavable mode.  Need to verify any required types exist.
+info woven aspect kamon.akka.http.instrumentation.ServerRequestInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven aspect akka.http.impl.engine.client.ClientRequestInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven aspect akka.kamon.instrumentation.HasTransientContextIntoSend (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.RemotingInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.MessageBufferInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.EnvelopeContextIntoEnvelopeMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.RoutedActorCellInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.MetricsIntoRouterCellsMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.ActorSystemMessageInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.ActorCellInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.DispatcherInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.HasContextIntoRepointableActorRefMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.MetricsIntoActorCellsMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.DispatcherMetricCollectionInfoIntoDispatcherMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.ActorLoggingInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.HasContextIntoSystemMessageMixin (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.AskPatternInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven aspect akka.kamon.instrumentation.DeadLettersInstrumentation (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class org.eclipse.ditto.services.policies.starter.AbstractPoliciesService (from C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\AbstractPoliciesService.java)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1$$anon$2$$anon$7 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttp$$anon$2 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttpMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttp$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttp$OperationNameGenerator (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.KamonTraceDirectives (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttp (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttp$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1$$anon$2$$anon$6 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.AkkaHttpMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.KamonTraceDirectives$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$4 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.TracingDirectives (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1$$anon$2 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1$$anon$2$$anon$3 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class kamon.akka.http.instrumentation.ServerFlowWrapper$$anon$1$$anon$2$$anon$5 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-http-2.5_2.12\1.1.0\kamon-akka-http-2.5_2.12-1.1.0.jar)
+info woven class akka.remote.ContextAwareWireFormats$RemoteContext (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$AckAndTraceContextAwareEnvelopeContainerOrBuilder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.RemotingMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$ContextAwareRemoteEnvelope (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.KamonOptionVal (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$AckAndContextAwareEnvelopeContainer (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedMessageBufferNode (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$RemoteContext$Builder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$ContextAwareRemoteEnvelope$Builder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$ContextAwareRemoteEnvelope$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$AckAndContextAwareEnvelopeContainer$Builder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$RemoteContext$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.KamonOptionVal$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.RemotingMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$TraceContextAwareRemoteEnvelopeOrBuilder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedMessageBufferNode$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedMessageBufferNode$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$AckAndContextAwareEnvelopeContainer$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.remote.ContextAwareWireFormats$RemoteTraceContextOrBuilder (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-remote-2.5_2.12\1.0.1\kamon-akka-remote-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.HasSystem$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.context.ContextContainer (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSettings$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.context.HasTransientContext (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.CellInfo$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Akka (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.RouterInstrumentationAware$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.DispatcherInstrumentation$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSettings$Heavyweight$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$RouterMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.CellInfo (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$TrackedActor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.context.HasTransientContext$DefaultTransient (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.HasSystem$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorInstrumentationAware$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.RouterInstrumentationAware (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSettings (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorCellInstrumentation$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedEnvelope$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.TimestampedContext (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.HasSystem (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedEnvelope (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$TracedMonitor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$RouterMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorInstrumentationAware (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.RouterMonitor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.TimestampedContext$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.InstrumentedEnvelope$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorSystemAware (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Akka$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.LookupDataAware$LookupData (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.LookupDataAware (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.DispatcherInstrumentation$AkkaFJPMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorGroupMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$GroupMetricsTrackingActor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.RouterMonitor$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorInstrumentationAware$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitors$TrackedRoutee (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.NoOpRouterMonitor$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitor$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Akka$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.AskPatternInstrumentation$StackTraceCaptureException (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorSystemMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.LookupDataAware$LookupData$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.NoOpRouterMonitor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.RouterInstrumentationAware$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorSystemAware$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorSystemAware$$anon$2 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.AskPatternInstrumentation$$anonfun$ifAskTimeoutException$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorGroupMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.MetricsOnlyRouterMonitor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorMetrics (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSettings$Off$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSetting (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.LookupDataAware$$anon$1 (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.ActorMonitor (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.LookupDataAware$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.AskPatternTimeoutWarningSettings$Lightweight$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class akka.kamon.instrumentation.AskPatternInstrumentation$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.context.HasTransientContext$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info woven class kamon.akka.Metrics$ActorSystemMetrics$ (from C:\Users\KLY1IMB\.m2\repository\io\kamon\kamon-akka-2.5_2.12\1.0.1\kamon-akka-2.5_2.12-1.0.1.jar)
+info compiling C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\package-info.java
+info woven class org.eclipse.ditto.services.policies.starter.package-info (from C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\package-info.java)
+info compiling C:\repositories\ditto\services\policies\starter\src\main\java\org\eclipse\ditto\services\policies\starter\PoliciesRootActor.java
+abort ABORT -- (NoClassDefFoundError) org/aspectj/ajdt/internal/core/builder/EclipseAdapterUtils
+org/aspectj/ajdt/internal/core/builder/EclipseAdapterUtils
+java.lang.NoClassDefFoundError: org/aspectj/ajdt/internal/core/builder/EclipseAdapterUtils
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager$4.acceptResult(AjBuildManager.java:1122)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.handleInternalException(Compiler.java:722)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.processCompiledUnits(Compiler.java:622)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.compile(Compiler.java:462)
+	at org.aspectj.org.eclipse.jdt.internal.compiler.Compiler.compile(Compiler.java:417)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.performCompilation(AjBuildManager.java:1036)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.performBuild(AjBuildManager.java:272)
+	at org.aspectj.ajdt.internal.core.builder.AjBuildManager.batchBuild(AjBuildManager.java:185)
+	at org.aspectj.ajdt.ajc.AjdtCommand.doCommand(AjdtCommand.java:114)
+	at org.aspectj.ajdt.ajc.AjdtCommand.runCommand(AjdtCommand.java:60)
+	at org.aspectj.tools.ajc.Main.run(Main.java:371)
+	at org.aspectj.tools.ajc.Main.runMain(Main.java:248)
+	at org.codehaus.mojo.aspectj.AbstractAjcCompiler.execute(AbstractAjcCompiler.java:544)
+	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:137)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:208)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:154)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:146)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:117)
+	at org.apache.maven.lifecycle.internal.builder.multithreaded.MultiThreadedBuilder$1.call(MultiThreadedBuilder.java:200)
+	at org.apache.maven.lifecycle.internal.builder.multithreaded.MultiThreadedBuilder$1.call(MultiThreadedBuilder.java:196)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.ClassNotFoundException: org.aspectj.ajdt.internal.core.builder.EclipseAdapterUtils
+	at org.codehaus.plexus.classworlds.strategy.SelfFirstStrategy.loadClass(SelfFirstStrategy.java:50)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.unsynchronizedLoadClass(ClassRealm.java:271)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass(ClassRealm.java:247)
+	at org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass(ClassRealm.java:239)
+	... 26 more
+

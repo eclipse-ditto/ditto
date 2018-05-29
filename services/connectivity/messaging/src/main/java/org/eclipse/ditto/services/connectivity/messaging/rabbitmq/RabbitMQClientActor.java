@@ -86,13 +86,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final Map<String, String> consumedTagsToAddresses;
 
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        this(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
-    }
-
-    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            @Nullable final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        super(connection, connectionStatus, commandRouter);
+             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
+             final ActorRef conciergeForwarder) {
+        super(connection, connectionStatus, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
@@ -101,27 +97,28 @@ public final class RabbitMQClientActor extends BaseClientActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection the connection
-     * @return the Akka configuration Props object
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection) {
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+                ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection the connection
-     * @param connectionStatus the desired status of the
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
-     * @return the Akka configuration Props object
+     * @param connection the connection.
+     * @param connectionStatus the desired status of the.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
+     * @return the Akka configuration Props object.
      */
     public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
-                rabbitConnectionFactoryFactory);
+            final ActorRef conciergeForwarder, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
+                rabbitConnectionFactoryFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {

@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.things.persistence.actors;
 
 import static org.eclipse.ditto.signals.events.things.assertions.ThingEventAssertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -33,8 +34,6 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshot;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshotResponse;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
@@ -50,6 +49,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.TagThing;
+import org.eclipse.ditto.signals.commands.things.modify.TagThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -67,7 +68,6 @@ import com.typesafe.config.ConfigValueFactory;
 import akka.actor.ActorRef;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.PoisonPill;
-import akka.testkit.JavaTestKit;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -81,7 +81,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
     private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final int PERSISTENCE_ASSERT_RETRY_COUNT = 3;
+    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 3000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
 
     private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,
@@ -143,10 +143,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     public void deletedThingIsSnapshotWithCorrectDataAndCanBeRecreated() {
         setup(createNewDefaultTestConfig());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -154,7 +154,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing thingCreated = createThingResponse.getThingCreated().orElse(null);
+                final Thing thingCreated = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -210,8 +211,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      * the activity-check-handler, the latest snapshot was deleted.
      */
     @Test
-    public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshotAndTheActivityIntervalPassed() throws
-            Exception {
+    public void snapshotOfDeletedThingIsNotDeletedWhenAlreadySnapshotAndTheActivityIntervalPassed() {
         final int activityCheckDeletedIntervalSecs = 2;
         final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL, ConfigValueFactory.fromAnyRef(Duration
@@ -221,7 +221,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
         new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 // use a supervisor actor, otherwise we could reuse the actorSystem in this test because the
                 // thingsPersistenceActor will stop its parent, leading to the actorSystem being terminated
@@ -232,7 +232,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing thingCreated = createThingResponse.getThingCreated().orElse(null);
+                final Thing thingCreated = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -290,10 +291,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     public void thingInArbitraryStateIsSnapshotCorrectly() {
         setup(createNewDefaultTestConfig());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -358,10 +359,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -421,10 +422,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(1));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -480,17 +481,17 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void snapshotIsCreatedAfterSnapshotIntervalHasPassed() {
-        final int snapshotIntervalMillisecs = 3;
+        final int snapshotIntervalSecs = 5;
         final Config customConfig = createNewDefaultTestConfig().
                 withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(Long.MAX_VALUE)).
                 withValue(ConfigKeys.Thing.SNAPSHOT_INTERVAL,
-                        ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
+                        ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalSecs)));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -498,7 +499,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing createdThing = createThingResponse.getThingCreated().orElse(null);
+                final Thing createdThing = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(createdThing, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -507,7 +509,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshotsEmpty(thingId);
 
                 // wait until snapshot-interval has passed
-                waitSecs(snapshotIntervalMillisecs);
+                waitSecs(snapshotIntervalSecs);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
                 // snapshot has been created
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
@@ -528,7 +530,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 assertSnapshots(thingId, Collections.singletonList(createdThing));
 
                 // wait again until snapshot-interval has passed
-                waitSecs(snapshotIntervalMillisecs);
+                waitSecs(snapshotIntervalSecs);
                 // because snapshot has been created, the "old" created-event has been deleted
                 assertJournal(thingId, Collections.singletonList(expectedModifiedEvent1));
                 // snapshot has been created and old snapshot has been deleted
@@ -546,10 +548,11 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         ConfigValueFactory.fromAnyRef(Duration.ofSeconds(snapshotIntervalMillisecs)));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId()
+                        .orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -557,7 +560,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing createdThing = createThingResponse.getThingCreated().orElse(null);
+                final Thing createdThing = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(createdThing, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -593,10 +597,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -604,7 +608,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing createdThing = createThingResponse.getThingCreated().orElse(null);
+                final Thing createdThing = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(createdThing, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -621,10 +626,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
-                final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
+                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(thingId,2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
@@ -638,10 +642,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThingResponse modifyThingResponse2 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
-
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
+                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse2 = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(thingId, 3, dittoHeadersV2));
 
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
             }
@@ -654,10 +657,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ConfigValueFactory.fromAnyRef(NEVER_TAKE_SNAPSHOT_THRESHOLD));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Thing thing = createThingV2WithRandomId();
-                final String thingId = thing.getId().orElse(null);
+                final String thingId = thing.getId().orElseThrow(IllegalStateException::new);
 
                 final ActorRef underTest = createPersistenceActorFor(thingId);
 
@@ -665,7 +668,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                final Thing createdThing = createThingResponse.getThingCreated().orElse(null);
+                final Thing createdThing = createThingResponse.getThingCreated()
+                        .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(createdThing, thing, 1);
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
@@ -682,12 +686,11 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThingResponse modifyThingResponse1 = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse1).hasStatus(HttpStatusCode.NO_CONTENT);
 
-                final String persistenceId = convertDomainIdToPersistenceId(thingId);
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse).isEqualTo(TakeSnapshotResponse.of(2, dittoHeadersV2));
+                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse).isEqualTo(TagThingResponse.of(thingId, 2, dittoHeadersV2));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
-                final long revision = takeSnapshotResponse.getSnapshotRevision();
+                final long revision = tagThingResponse.getSnapshotRevision();
 
                 final Thing thingForModify2 = ThingsModelFactory.newThingBuilder(thing)
                         .setAttribute(JsonFactory.newPointer("/foo"), JsonValue.of("bar2"))
@@ -701,9 +704,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ThingCommandAssertions.assertThat(modifyThingResponse2).hasStatus(HttpStatusCode.NO_CONTENT);
 
 
-                underTest.tell(TakeSnapshot.of(persistenceId, dittoHeadersV2), getRef());
-                final TakeSnapshotResponse takeSnapshotResponse2 = expectMsgClass(TakeSnapshotResponse.class);
-                assertThat(takeSnapshotResponse2).isEqualTo(TakeSnapshotResponse.of(3, dittoHeadersV2));
+                underTest.tell(TagThing.of(thingId, dittoHeadersV2), getRef());
+                final TagThingResponse tagThingResponse2 = expectMsgClass(TagThingResponse.class);
+                assertThat(tagThingResponse2).isEqualTo(TagThingResponse.of(thingId, 3, dittoHeadersV2));
                 assertSnapshots(thingId, Arrays.asList(thingForModify, thingForModify2));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2).build();
@@ -739,7 +742,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor("fail");
                 watch(underTest);
@@ -792,6 +795,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                     assertThingInJournal(((ThingCreated) actual).getThing(), ((ThingCreated) expected).getThing());
                 } else if (actual instanceof ThingDeleted) {
                     // no special check
+                    assertTrue(true);
                 } else {
                     throw new UnsupportedOperationException("No check for: " + actual.getClass());
                 }
@@ -822,7 +826,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     }
 
     private static void retryOnAssertionError(final Runnable r) {
-        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_RETRY_COUNT, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
+        Assertions.retryOnAssertionError(r, PERSISTENCE_ASSERT_WAIT_AT_MOST_MS, PERSISTENCE_ASSERT_RETRY_DELAY_MS);
     }
 
     private ThingEvent convertJournalEntryToEvent(final DBObject dbObject, final long sequenceNumber) {

@@ -29,7 +29,7 @@ import akka.japi.Creator;
 public class MockConnectionActor extends AbstractActor {
 
     static final ConnectionActorPropsFactory mockConnectionActorPropsFactory =
-            (connection) -> MockConnectionActor.props();
+            (connection, conciergeForwarder) -> MockConnectionActor.props();
 
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);

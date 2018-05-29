@@ -44,8 +44,6 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.serializer.SnapshotTag;
-import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

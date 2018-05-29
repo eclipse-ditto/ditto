@@ -38,14 +38,21 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.missing";
 
 
-    private static final String MESSAGE_TEMPLATE =
-            "The schema version of the Thing with ID ''{0}'' does not allow an update on schema version ''{1}'' without" +
-                    " providing a policy id";
+    private static final String MESSAGE_TEMPLATE_UPDATE =
+            "The schema version of the Thing with ID ''{0}'' does not allow an update on schema version ''{1}'' " +
+                    "without providing a policy id";
 
-    private static final String DEFAULT_DESCRIPTION =
+    private static final String DEFAULT_DESCRIPTION_UPDATE =
             "When updating a schema version 1 Thing using a higher schema version API, you need to add a policyId. " +
                     "Be aware that this will convert the Thing to the higher schema version, thus removing all ACL " +
                     "information from it.";
+
+    private static final String MESSAGE_TEMPLATE_CREATE =
+            "The schema version of the Thing with ID ''{0}'' (''{1}'') does not allow creation without " +
+                    "providing a policy id";
+
+    private static final String DEFAULT_DESCRIPTION_CREATE =
+            "You need to specify a policy id.";
 
     private static final long serialVersionUID = -2640894758584381867L;
 
@@ -54,37 +61,50 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
-    /**
-     * Constructs a new {@code PolicyIdMissingException} object with the given exception message.
-     *
-     * @param message the Message.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyIdMissingException.
-     */
-    public static PolicyIdMissingException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
+    private static PolicyIdMissingException fromMessage(final String message, @Nullable final String description,
+            final DittoHeaders dittoHeaders) {
+        final DittoRuntimeExceptionBuilder<PolicyIdMissingException> exceptionBuilder = new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+                .message(message);
+        if (description != null) {
+            return exceptionBuilder.description(description).build();
+        } else {
+            return exceptionBuilder.build();
+        }
     }
 
     /**
-     * Constructs a new {@code PolicyIdMissingException} object with the given exception message.
+     * Constructs a new {@code PolicyIdMissingException} object with an exception message for a thing-update scenario.
      *
      * @param thingId the ID of the Thing.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new PolicyIdMissingException.
      */
-    public static PolicyIdMissingException fromThingId(final String thingId, final DittoHeaders dittoHeaders) {
+    public static PolicyIdMissingException fromThingIdOnUpdate(final String thingId, final DittoHeaders dittoHeaders) {
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        return new Builder(thingId, schemaVersion)
+        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_UPDATE, DEFAULT_DESCRIPTION_UPDATE)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
     /**
-     * Constructs a new {@code PolicyIdMissingException} object with the exception message extracted from the given JSON
-     * object.
+     * Constructs a new {@code PolicyIdMissingException} object with an exception message for a thing-create scenario.
+     *
+     * @param thingId the ID of the Thing.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new PolicyIdMissingException.
+     */
+    public static PolicyIdMissingException fromThingIdOnCreate(final String thingId, final DittoHeaders dittoHeaders) {
+        final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
+        return new Builder(thingId, schemaVersion, MESSAGE_TEMPLATE_CREATE, DEFAULT_DESCRIPTION_CREATE)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+
+    /**
+     * Constructs a new {@code PolicyIdMissingException} object with the exception message and description extracted
+     * from the given JSON object.
      *
      * @param jsonObject the JSON to read the
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
@@ -94,7 +114,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static PolicyIdMissingException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(null), dittoHeaders);
     }
 
     @Override
@@ -108,13 +128,14 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdMissingException> {
 
-        private Builder() {
-            description(DEFAULT_DESCRIPTION);
-        }
+        private Builder() {}
 
-        private Builder(final String thingId, final JsonSchemaVersion version) {
+        private Builder(final String thingId, final JsonSchemaVersion version, final String messageTemplate,
+                final String description) {
+
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId, version.toInt()));
+            message(MessageFormat.format(messageTemplate, thingId, version.toInt()));
+            description(description);
         }
 
         @Override

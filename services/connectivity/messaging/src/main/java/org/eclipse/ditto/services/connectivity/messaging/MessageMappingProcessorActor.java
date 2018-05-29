@@ -38,9 +38,9 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -71,39 +71,41 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
-    private final ActorRef commandRouter;
+    private final ActorRef conciergeForwarder;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
         this.publisherActor = publisherActor;
-        this.commandRouter = commandRouter;
+        this.conciergeForwarder = conciergeForwarder;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
-        timers = CacheBuilder.newBuilder()
+
+        final Caffeine<String, MutableKamonTimer> caffeine = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, MutableKamonTimer>) notification
-                        -> log.debug("Trace for {} removed.", notification.getKey()))
-                .build();
+                .removalListener((key, value, cause) ->
+                        log.debug("Trace for {} removed. Cause: {}", key, cause.toString()));
+
+        timers = caffeine.build();
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param headerFilter the header filter used to apply on responses
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles/publishes outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param headerFilter the header filter used to apply on responses.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
@@ -113,9 +115,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, commandRouter, authorizationContext,
-                        headerFilter, processor,
-                        connectionId);
+                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
+                        headerFilter, processor, connectionId);
             }
         });
     }
@@ -123,21 +124,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter,
+            final ActorRef conciergeForwarder,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
         return props(publisherActor,
-                commandRouter,
+                conciergeForwarder,
                 authorizationContext,
                 new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);
@@ -189,8 +190,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using command router", adjustedSignal.getType());
-                commandRouter.tell(adjustedSignal, getSelf());
+                log.info("Sending '{}' using conciergeForwarder", adjustedSignal.getType());
+                conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e, DittoHeaders.of(externalMessage.getHeaders()));
