@@ -20,25 +20,31 @@
 |com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
 |com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
+|com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| []() |
+|com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| []() |
+|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|0.14.0| []() |
+|com.lightbend.akka.management|akka-management_2.12|0.14.0| []() |
+|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| []() |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
 |com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
-|com.typesafe.akka|akka-actor_2.12|2.5.12| []() TODO wait for Akka update to 2.5.13 |
-|com.typesafe.akka|akka-cluster_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-cluster-sharding_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-cluster-tools_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-distributed-data_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-actor_2.12|2.5.13| []() TODO wait for Akka update to 2.5.13 |
+|com.typesafe.akka|akka-cluster_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-distributed-data_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-http_2.12|10.1.1| []() |
 |com.typesafe.akka|akka-http-core_2.12|10.1.1| []() |
+|com.typesafe.akka|akka-http-spray-json_2.12|10.1.1| []() |
 |com.typesafe.akka|akka-parsing_2.12|10.1.1| []() |
-|com.typesafe.akka|akka-persistence_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-protobuf_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-remote_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-slf4j_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-stream_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-persistence_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-protobuf_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-remote_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-slf4j_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-stream_2.12|2.5.13| []() |
 |com.typesafe|config|1.3.1| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.3| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
-|io.aeron|aeron-client|1.7.0| []() TODO wait for Akka update to 2.5.13 |
-|io.aeron|aeron-driver|1.7.0| []() TODO wait for Akka update to 2.5.13 |
+|io.aeron|aeron-client|1.9.1| []() TODO wait for Akka update to 2.5.13 |
+|io.aeron|aeron-driver|1.9.1| []() TODO wait for Akka update to 2.5.13 |
 |io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
 |io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
@@ -59,9 +65,10 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| []() |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| []() |
 |io.netty|netty-transport-native-unix-common|4.1.24.Final| []() |
+|io.spray|spray-json_2.12|1.3.3| []() |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
-|org.agrona|agrona|0.9.12| []() TODO - this is an areon transitive dependency, wait for Akka update |
+|org.agrona|agrona|0.9.17| []() TODO - this is an areon transitive dependency, wait for Akka update |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.qpid|proton-j|0.27.1| []() TODO wait for Hono to update to same version |
 |org.apache.qpid|qpid-jms-client|0.32.0| []() TODO wait for Hono to update to same version |
@@ -102,9 +109,9 @@
 |com.github.dnvriend|akka-persistence-inmemory_2.12|2.5.1.1| []() |
 |commons-io|commons-io|2.4| []() |
 |com.typesafe.akka|akka-http-testkit_2.12|10.1.1| []() |
-|com.typesafe.akka|akka-persistence-query_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-stream-testkit_2.12|2.5.12| []() |
-|com.typesafe.akka|akka-testkit_2.12|2.5.12| []() |
+|com.typesafe.akka|akka-persistence-query_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-stream-testkit_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-testkit_2.12|2.5.13| []() |
 |de.flapdoodle.embed|de.flapdoodle.embed.mongo|2.0.0| []() |
 |de.flapdoodle.embed|de.flapdoodle.embed.process|2.0.1| []() |
 |junit|junit|4.12| []() |
