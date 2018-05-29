@@ -71,6 +71,7 @@ import scala.concurrent.duration.FiniteDuration;
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
  * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
+ * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
  * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
@@ -165,6 +166,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
      * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
      */
     protected void startActorSystem() {

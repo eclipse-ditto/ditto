@@ -34,6 +34,9 @@ public final class MongoDbMetricRegistryFactory {
 
     /**
      * Gets the MongoDB-MetricRegistry, creates it if it does not exist yet.
+     *
+     * @param actorSystem the ActorSystem
+     * @param config the Config to use
      */
     @SuppressWarnings("RedundantCast")
     public static Map.Entry<String, MetricRegistry> createOrGet(final ActorSystem actorSystem, final Config config) {
