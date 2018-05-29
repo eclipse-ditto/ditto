@@ -48,6 +48,7 @@ public final class FanIn {
             }
 
             @Override
+            @SuppressWarnings({"squid:S3599","squid:S1171"})
             public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
                 return new AbstractControlFlowLogic(shape) {
                     {

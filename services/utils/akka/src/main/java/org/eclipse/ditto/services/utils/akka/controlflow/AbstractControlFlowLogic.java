@@ -22,7 +22,7 @@ import akka.stream.stage.GraphStageLogicWithLogging;
  * {@code
  * class Example extends GraphStage<SHAPE> {
  *     public GraphStageLogic createLogic(final Attributes inheritedAttributes) {
- *         return new ControlFlowLogic(shape) {
+ *         return new AbstractControlFlowLogic(shape) {
  *             {
  *                 // MANDATORY: call 'initOutlets' in initializer block
  *                 // because outlet handlers must be set before constructor of GraphStageLogic returns

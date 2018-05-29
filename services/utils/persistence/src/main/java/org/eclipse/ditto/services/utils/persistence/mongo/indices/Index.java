@@ -33,15 +33,17 @@ public final class Index {
     private final boolean unique;
     private final boolean sparse;
     private final boolean background;
+    private final BsonDocument partialFilterExpression;
 
     private Index(final BsonDocument keys, final String name, final boolean unique, final boolean sparse,
-            final boolean background) {
+            final boolean background, final BsonDocument partialFilterExpression) {
 
         this.keys = requireNonNull(keys);
         this.name = requireNonNull(name);
         this.unique = unique;
         this.sparse = sparse;
         this.background = background;
+        this.partialFilterExpression = partialFilterExpression;
     }
 
     /**
@@ -55,11 +57,12 @@ public final class Index {
      * @return the created {@link Index}.
      */
     static Index of(final BsonDocument keys, String name, boolean unique, boolean sparse, boolean background) {
-        return new Index(keys, name, unique, sparse, background);
+        return new Index(keys, name, unique, sparse, background, new BsonDocument());
     }
 
     /**
      * Creates new {@link Index} from the given {@code document}.
+     *
      * @param document the document
      * @return the created index
      */
@@ -67,17 +70,36 @@ public final class Index {
         requireNonNull(document);
         final BsonDocument keyDbObject = BsonUtil.toBsonDocument((Document) document.get("key"));
 
-        String name = document.get("name").toString();
+        final String name = document.get("name").toString();
 
-        boolean unique = document.get("unique", false);
-        boolean sparse = document.get("sparse", false);
-        boolean background = document.get("background", false);
+        final boolean unique = document.get("unique", false);
+        final boolean sparse = document.get("sparse", false);
+        final boolean background = document.get("background", false);
 
-        return new Index(keyDbObject, name, unique, sparse, background);
+        final String partialFilterExpressionName = "partialFilterExpression";
+        final BsonDocument partialFilterExpression;
+        if (document.containsKey(partialFilterExpressionName)) {
+            partialFilterExpression = BsonUtil.toBsonDocument((Document) document.get(partialFilterExpressionName));
+        } else {
+            partialFilterExpression = new BsonDocument();
+        }
+
+        return new Index(keyDbObject, name, unique, sparse, background, partialFilterExpression);
+    }
+
+    /**
+     * Create a copy of this object with a partial filter expression.
+     *
+     * @param partialFilterExpression the partial filter expression.
+     * @return a copy of this object with partial filter expression set.
+     */
+    public Index withPartialFilterExpression(final BsonDocument partialFilterExpression) {
+        return new Index(keys, name, unique, sparse, background, partialFilterExpression);
     }
 
     /**
      * Creates a new {@link IndexModel}, which can be used for creating indices using MongoDB Java drivers.
+     *
      * @return the created {@link IndexModel}
      */
     public IndexModel toIndexModel() {
@@ -86,11 +108,17 @@ public final class Index {
                 .unique(unique)
                 .sparse(sparse)
                 .background(background);
+
+        if (!partialFilterExpression.isEmpty()) {
+            options.partialFilterExpression(partialFilterExpression);
+        }
+
         return new IndexModel(keys, options);
     }
 
     /**
      * Returns the keys.
+     *
      * @return the keys
      */
     public BsonDocument getKeys() {
@@ -99,6 +127,7 @@ public final class Index {
 
     /**
      * Returns the name.
+     *
      * @return the name.
      */
     public String getName() {
@@ -107,6 +136,7 @@ public final class Index {
 
     /**
      * Returns whether this index is unique.
+     *
      * @return whether this index is unique.
      */
     public boolean isUnique() {
@@ -115,6 +145,7 @@ public final class Index {
 
     /**
      * Returns whether this index is sparse.
+     *
      * @return whether this index is sparse.
      */
     public boolean isSparse() {
@@ -123,6 +154,7 @@ public final class Index {
 
     /**
      * Returns whether this index is to be built in the background.
+     *
      * @return whether this index is to be built in the background.
      */
     public boolean isBackground() {
@@ -142,12 +174,13 @@ public final class Index {
                 sparse == indexInfo.sparse &&
                 background == indexInfo.background &&
                 Objects.equals(keys, indexInfo.keys) &&
-                Objects.equals(name, indexInfo.name);
+                Objects.equals(name, indexInfo.name) &&
+                Objects.equals(partialFilterExpression, indexInfo.partialFilterExpression);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(keys, name, unique, sparse, background);
+        return Objects.hash(keys, name, unique, sparse, background, partialFilterExpression);
     }
 
     @Override
@@ -158,6 +191,7 @@ public final class Index {
                 ", unique=" + unique +
                 ", sparse=" + sparse +
                 ", background=" + background +
+                ", partialFilterExpression=" + partialFilterExpression +
                 ']';
     }
 

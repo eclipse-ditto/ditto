@@ -24,6 +24,7 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_I
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -341,13 +342,44 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
-            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)));
-            mockEntitiesActorInstance.setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
             final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
 
+    }
+
+    @Test
+    public void acceptCreateByImplicitPolicyAndInvalidateCache() {
+        final Thing thing = newThing().build();
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID).build();
+        final AtomicInteger sudoRetrieveThingCounter = new AtomicInteger(0);
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)))
+                    .setHandler(THING_SUDO, sudo -> {
+                        sudoRetrieveThingCounter.getAndIncrement();
+                        return ThingNotAccessibleException.newBuilder(THING_ID).build();
+                    });
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final CreateThing createThing = CreateThing.of(thing, null, headers(V_2));
+
+            // first Thing command triggers cache load
+            underTest.tell(createThing, getRef());
+
+            // cache should be invalidated before response is sent
+            expectMsgClass(CreateThingResponse.class);
+
+            // second Thing command should trigger cache load again
+            underTest.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // verify cache is loaded twice
+            assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
+        }};
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
