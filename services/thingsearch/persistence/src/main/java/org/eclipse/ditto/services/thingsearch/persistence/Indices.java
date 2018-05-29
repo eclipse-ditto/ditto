@@ -45,12 +45,12 @@ public final class Indices {
                 keys(FIELD_NAMESPACE, FIELD_FEATURE_PATH_KEY, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
-        private static final Index GLOBAL_READS = IndexFactory.newInstance("ngr",
-                keys(FIELD_NAMESPACE, FIELD_INTERNAL_GLOBAL_READS, FIELD_ID), false)
+        private static final Index ACL = IndexFactory.newInstance("acl",
+                keys(FIELD_INTERNAL_ACL, FIELD_ID), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
-        private static final Index ACL = IndexFactory.newInstance("na",
-                keys(FIELD_NAMESPACE, FIELD_INTERNAL_ACL, FIELD_ID), false)
+        private static final Index GLOBAL_READS = IndexFactory.newInstance("gr",
+                keys(FIELD_INTERNAL_GLOBAL_READS), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
         /**
