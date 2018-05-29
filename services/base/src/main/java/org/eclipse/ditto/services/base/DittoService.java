@@ -176,20 +176,19 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
         final ActorSystem actorSystem = createActorSystem(config);
 
+        AkkaManagement.get(actorSystem).start();
+        ClusterBootstrap.get(actorSystem).start();
+
         startStatusSupplierActor(actorSystem, config);
         startDevOpsCommandsActor(actorSystem, config);
         startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
-
-        AkkaManagement.get(actorSystem).start();
 
         final AtomicBoolean gracefulShutdown = new AtomicBoolean(false);
         final CompletableFuture<Terminated> systemTermination = new CompletableFuture<>();
         final Cluster cluster = Cluster.get(actorSystem);
         Runtime.getRuntime().addShutdownHook(gracefullyLeaveClusterShutdownHook(logger, cluster,
                 gracefulShutdown, systemTermination));
-
-        ClusterBootstrap.get(actorSystem).start();
 
         actorSystem.registerOnTermination(() -> {
             if (!gracefulShutdown.get()) {
