@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_ACL;
@@ -53,13 +54,16 @@ public final class Indices {
                 keys(FIELD_INTERNAL_GLOBAL_READS), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
+        private static final Index DELETED = IndexFactory.newInstance("deleted",
+                keys(FIELD_DELETED), false);
+
         /**
          * Gets all defined indices.
          *
          * @return the indices
          */
         public static List<Index> all() {
-            return Collections.unmodifiableList(Arrays.asList(KEY_VALUE, ACL, GLOBAL_READS));
+            return Collections.unmodifiableList(Arrays.asList(KEY_VALUE, ACL, GLOBAL_READS, DELETED));
         }
 
         private static List<String> keys(final String... keyNames) {
