@@ -101,7 +101,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                             requestContext.getRequest().getUri().toRelative().path());
 
                     final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_FILTER_AUTH_JWT,
-                            traceInformation.getTags());
+                            traceInformation.getTags()).start();
 
                     return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
                             .thenApply(publicKeyOpt ->
