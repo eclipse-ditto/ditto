@@ -43,9 +43,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.actor.Scheduler;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
@@ -53,7 +51,6 @@ import akka.management.AkkaManagement;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.
@@ -86,11 +83,6 @@ import scala.concurrent.duration.FiniteDuration;
  */
 @NotThreadSafe
 public abstract class DittoService<C extends ServiceConfigReader> {
-
-    /**
-     * Amount of seconds this service waits to join the Akka cluster.
-     */
-    public static final short JOIN_CLUSTER_TIMEOUT = 30; // seconds
 
     /**
      * Name of the cluster of this service.
@@ -264,25 +256,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 ConfigUtil.instanceIndex()), DevOpsCommandsActor.ACTOR_NAME);
-    }
-
-    /**
-     * Schedules termination of the Akka actor system if this service fails to join the Akka cluster within
-     * {@link #JOIN_CLUSTER_TIMEOUT} seconds.
-     * <p>
-     * May be overridden to change the behaviour if this service fails to join the Akka cluster.
-     * </p>
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @return a Cancellable to abort the scheduled termination of the Akka actor system if the cluster was joined
-     * successfully.
-     */
-    protected Cancellable scheduleShutdownIfJoinFails(final ActorSystem actorSystem) {
-        final Scheduler scheduler = actorSystem.scheduler();
-        return scheduler.scheduleOnce(FiniteDuration.apply(JOIN_CLUSTER_TIMEOUT, TimeUnit.SECONDS), () -> {
-            logger.error("Member was not able to join the cluster, going to shutdown actor system now.");
-            actorSystem.terminate();
-        }, actorSystem.dispatcher());
     }
 
     /**
