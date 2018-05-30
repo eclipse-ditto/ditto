@@ -32,10 +32,10 @@
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-distributed-data_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-http_2.12|10.1.1| []() |
-|com.typesafe.akka|akka-http-core_2.12|10.1.1| []() |
-|com.typesafe.akka|akka-http-spray-json_2.12|10.1.1| []() |
-|com.typesafe.akka|akka-parsing_2.12|10.1.1| []() |
+|com.typesafe.akka|akka-http_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
+|com.typesafe.akka|akka-http-core_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
+|com.typesafe.akka|akka-http-spray-json_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
+|com.typesafe.akka|akka-parsing_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-persistence_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-protobuf_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-remote_2.12|2.5.13| []() |
@@ -43,8 +43,8 @@
 |com.typesafe.akka|akka-stream_2.12|2.5.13| []() |
 |com.typesafe|config|1.3.1| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.3| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
-|io.aeron|aeron-client|1.9.1| []() |
-|io.aeron|aeron-driver|1.9.1| []() |
+|io.aeron|aeron-client|1.9.1| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
+|io.aeron|aeron-driver|1.9.1| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
 |io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
 |io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
@@ -54,24 +54,24 @@
 |io.kamon|kamon-scala_2.12|0.6.7            | []() TODO - wait for switch to Kamon 1.0 |
 |io.kamon|kamon-statsd_2.12|0.6.7           | []() TODO - wait for switch to Kamon 1.0 |
 |io.kamon|kamon-system-metrics_2.12|0.6.7   | []() TODO - wait for switch to Kamon 1.0 |
-|io.netty|netty-buffer|4.1.24.Final| []() |
-|io.netty|netty-codec-http|4.1.24.Final| []() |
-|io.netty|netty-codec|4.1.24.Final| []() |
-|io.netty|netty-common|4.1.24.Final| []() |
-|io.netty|netty-handler|4.1.24.Final| []() |
+|io.netty|netty-buffer|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-codec-http|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-codec|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-common|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-handler|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty|3.10.6.Final| [16316](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16316) |
-|io.netty|netty-resolver|4.1.24.Final| []() |
-|io.netty|netty-transport|4.1.24.Final| []() |
-|io.netty|netty-transport-native-epoll|linux-x86_64| []() |
-|io.netty|netty-transport-native-kqueue|osx-x86_64| []() |
-|io.netty|netty-transport-native-unix-common|4.1.24.Final| []() |
-|io.spray|spray-json_2.12|1.3.3| []() |
+|io.netty|netty-resolver|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-transport|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-transport-native-unix-common|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
-|org.agrona|agrona|0.9.17| []() |
+|org.agrona|agrona|0.9.17| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
-|org.apache.qpid|proton-j|0.27.1| []() |
-|org.apache.qpid|qpid-jms-client|0.32.0| []() |
+|org.apache.qpid|proton-j|0.27.1| [16557](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16557) |
+|org.apache.qpid|qpid-jms-client|0.32.0| [16556](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16556) |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
