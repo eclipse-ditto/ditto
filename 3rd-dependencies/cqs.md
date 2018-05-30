@@ -27,7 +27,7 @@
 |com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| []() |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
 |com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
-|com.typesafe.akka|akka-actor_2.12|2.5.13| []() TODO wait for Akka update to 2.5.13 |
+|com.typesafe.akka|akka-actor_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-cluster_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| []() |
 |com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| []() |
@@ -43,8 +43,8 @@
 |com.typesafe.akka|akka-stream_2.12|2.5.13| []() |
 |com.typesafe|config|1.3.1| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.3| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
-|io.aeron|aeron-client|1.9.1| []() TODO wait for Akka update to 2.5.13 |
-|io.aeron|aeron-driver|1.9.1| []() TODO wait for Akka update to 2.5.13 |
+|io.aeron|aeron-client|1.9.1| []() |
+|io.aeron|aeron-driver|1.9.1| []() |
 |io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
 |io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
@@ -68,10 +68,10 @@
 |io.spray|spray-json_2.12|1.3.3| []() |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
-|org.agrona|agrona|0.9.17| []() TODO - this is an areon transitive dependency, wait for Akka update |
+|org.agrona|agrona|0.9.17| []() |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
-|org.apache.qpid|proton-j|0.27.1| []() TODO wait for Hono to update to same version |
-|org.apache.qpid|qpid-jms-client|0.32.0| []() TODO wait for Hono to update to same version |
+|org.apache.qpid|proton-j|0.27.1| []() |
+|org.apache.qpid|qpid-jms-client|0.32.0| []() |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
@@ -93,7 +93,7 @@
 |org.ow2.asm|asm-util|5.2| [16324](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16324) |
 |org.parboiled|parboiled_2.12|2.1.4| [16334](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16334) |
 |org.reactivestreams|reactive-streams|1.0.2| [16332](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16332) |
-|org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) TODO not yet Type B |
+|org.scala-lang.modules|scala-java8-compat_2.12|0.8.0| [14402](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14402) |
 |org.scala-lang.modules|scala-parser-combinators_2.12|1.1.0| [16341](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16341) |
 |org.scala-lang|scala-library|2.12.6| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
