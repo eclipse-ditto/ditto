@@ -19,7 +19,6 @@ services:
       default:
         aliases:
           - ditto-cluster
-    entrypoint: sh -c "java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -34,7 +33,6 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 10; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -49,7 +47,6 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -64,7 +61,6 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 30; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -80,7 +76,6 @@ services:
     depends_on:
       - policies
       - concierge
-    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -96,7 +91,6 @@ services:
     depends_on:
       - policies
       - concierge
-    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
