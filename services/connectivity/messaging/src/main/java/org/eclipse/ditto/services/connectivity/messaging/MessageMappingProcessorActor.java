@@ -287,7 +287,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        timers.invalidate(timer);
+        timers.invalidate(correlationId);
         if (Objects.isNull(cause)) {
             timer.tag(TracingTags.MAPPING_SUCCESS, true)
                     .stop();
