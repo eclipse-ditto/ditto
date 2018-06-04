@@ -332,8 +332,25 @@ public final class StatisticsActor extends AbstractActor {
             // sort it:
             hotnessMap.entrySet().stream()
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                    .forEachOrdered(e -> objectBuilder.set(e.getKey(), e.getValue()));
+                    .forEachOrdered(e -> {
+                        final String nonemptyKey = ensureNonemptyKey(e.getKey(), hotnessMap);
+                        objectBuilder.set(nonemptyKey, e.getValue());
+                    });
             return objectBuilder.build();
+        }
+
+        private static String ensureNonemptyKey(final String key, final Map<String, ?> hotnessMap) {
+            if (key.isEmpty()) {
+                String candidate = "<empty>";
+                for (int i = 0; ; ++i) {
+                    if (!hotnessMap.containsKey(candidate)) {
+                        return candidate;
+                    }
+                    candidate = String.format("<empty%d>", i);
+                }
+            } else {
+                return key;
+            }
         }
 
         @SuppressWarnings("OverlyComplexMethod")
