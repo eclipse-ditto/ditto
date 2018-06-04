@@ -40,11 +40,11 @@ public final class MutableKamonTimer {
         this.running = false;
     }
 
-    public static MutableKamonTimer build(final String name) {
+    static MutableKamonTimer build(final String name) {
         return new MutableKamonTimer(name, new HashMap<>());
     }
 
-    public static MutableKamonTimer build(final String name, final Map<String, String> tags) {
+    static MutableKamonTimer build(final String name, final Map<String, String> tags) {
         return new MutableKamonTimer(name, tags);
     }
 

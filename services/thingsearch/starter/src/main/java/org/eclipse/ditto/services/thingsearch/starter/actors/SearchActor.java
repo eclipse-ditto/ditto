@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
@@ -183,7 +184,7 @@ public final class SearchActor extends AbstractActor {
         final JsonSchemaVersion version = countThings.getImplementedSchemaVersion();
 
 
-        final MutableKamonTimer querySegment = MutableKamonTimer.build(TRACING_QUERY_PARSING).start();
+        final MutableKamonTimer querySegment = KamonTracing.newTimer(TRACING_QUERY_PARSING).start();
 
         final ActorRef sender = getSender();
 
@@ -228,7 +229,7 @@ public final class SearchActor extends AbstractActor {
         log.info("Processing QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
-        final MutableKamonTimer querySegment = MutableKamonTimer.build(TRACING_QUERY_PARSING).start();
+        final MutableKamonTimer querySegment = KamonTracing.newTimer(TRACING_QUERY_PARSING).start();
 
         final ActorRef sender = getSender();
 
@@ -269,7 +270,7 @@ public final class SearchActor extends AbstractActor {
     private <T> Source<T, NotUsed> processSearchPersistenceResult(final Supplier<Source<T, NotUsed>> resultSupplier,
             final DittoHeaders dittoHeaders) {
 
-        final MutableKamonTimer persistenceSegment = MutableKamonTimer.build(TRACING_DATABASE_ACCESS).start();
+        final MutableKamonTimer persistenceSegment = KamonTracing.newTimer(TRACING_DATABASE_ACCESS).start();
 
         final Source<T, NotUsed> source = resultSupplier.get();
 
@@ -318,7 +319,7 @@ public final class SearchActor extends AbstractActor {
                     .build();
 
             log.debug("About to send command to Things: {}", retrieveThings);
-            final MutableKamonTimer thingsSegment = MutableKamonTimer.build(TRACING_THINGS_SERVICE_ACCESS).start();
+            final MutableKamonTimer thingsSegment = KamonTracing.newTimer(TRACING_THINGS_SERVICE_ACCESS).start();
 
             result = retrieveFromThings(thingIds, retrieveThings, thingsSegment);
         }

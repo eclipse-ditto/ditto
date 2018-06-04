@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -32,14 +34,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -65,7 +65,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
-    private final Cache<String, MutableKamonTimer> timers;
+    private final Map<String, MutableKamonTimer> timers;
 
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
@@ -84,20 +84,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
 
-        final Caffeine<String, MutableKamonTimer> caffeine = Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((key, value, cause) -> {
-                    if (value != null) {
-                        if (value.getTag(TracingTags.MAPPING_SUCCESS) == null) {
-                            value.tag(TracingTags.MAPPING_SUCCESS, false);
-                        }
-                        value.stop();
-                    }
-
-                    log.debug("Trace for {} removed. Cause: {}", key, cause.toString());
-                });
-
-        timers = caffeine.build();
+        timers = new HashMap<>();
     }
 
     /**
@@ -266,9 +253,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void startTrace(final Signal<?> command) {
-        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
-                timers.put(correlationId, createStartedTimer(connectionId, command.getType()))
-        );
+        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
+            final HashMap<String, String> additionalTags = new HashMap<>();
+            final String commandType = command.getType();
+            additionalTags.put(TracingTags.COMMAND_TYPE, commandType);
+            KamonTracing
+                    .newTimer("roundtrip_" + connectionId + "_" + commandType)
+                    .maximumDuration(5, TimeUnit.MINUTES)
+                    .tags(additionalTags)
+                    .start();
+        });
     }
 
     private void finishTrace(final Signal<?> response) {
@@ -290,23 +284,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final MutableKamonTimer timer = timers.getIfPresent(correlationId);
+        final MutableKamonTimer timer = timers.get(correlationId);
         if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        timers.invalidate(correlationId);
-        if (Objects.isNull(cause)) {
-            timer.tag(TracingTags.MAPPING_SUCCESS, true)
-                    .stop();
-        } else {
-            timer.tag(TracingTags.MAPPING_SUCCESS, false)
-                    .stop();
-        }
-    }
 
-    private static MutableKamonTimer createStartedTimer(final String connectionId, final String type) {
-        return MutableKamonTimer.build("roundtrip_" + connectionId + "_" + type)
-                .tag(TracingTags.COMMAND_TYPE, type)
-                .start();
+        if (Objects.isNull(cause)) {
+            timer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
+        } else {
+            timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
+        }
     }
 }

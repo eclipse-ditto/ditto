@@ -36,8 +36,9 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -149,7 +150,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
             final Command command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_AGGREGATOR_RETRIEVE_THINGS).start();
+        final MutableKamonTimer timer = KamonTracing.newTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS).start();
 
         final List<Future<Object>> futures = thingIds.stream()
                 .filter(thingId -> thingIdMatcher.reset(thingId).matches())

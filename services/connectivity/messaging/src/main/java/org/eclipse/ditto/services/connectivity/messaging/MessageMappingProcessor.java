@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
@@ -214,7 +216,11 @@ public final class MessageMappingProcessor {
     }
 
     private static <T> T withTimer(final String timerName, final Supplier<T> supplier) {
-        final MutableKamonTimer timer = MutableKamonTimer.build(timerName);
+        final MutableKamonTimer timer = KamonTracing
+                .newTimer(timerName)
+                .maximumDuration(5, TimeUnit.MINUTES)
+                .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
+                .start();
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)

@@ -21,6 +21,7 @@ import java.security.PublicKey;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
+import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceInformation;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -100,8 +102,13 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                     final TraceInformation traceInformation = TraceUtils.determineTraceInformation(
                             requestContext.getRequest().getUri().toRelative().path());
 
-                    final MutableKamonTimer timer = MutableKamonTimer.build(TRACE_FILTER_AUTH_JWT,
-                            traceInformation.getTags()).start();
+                    final MutableKamonTimer timer = KamonTracing
+                            .newTimer(TRACE_FILTER_AUTH_JWT)
+                            .maximumDuration(5, TimeUnit.MINUTES)
+                            .tags(traceInformation.getTags())
+                            .expirationHandling(expiredTimer ->
+                                    expiredTimer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false)))
+                            .start();
 
                     return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
                             .thenApply(publicKeyOpt ->
