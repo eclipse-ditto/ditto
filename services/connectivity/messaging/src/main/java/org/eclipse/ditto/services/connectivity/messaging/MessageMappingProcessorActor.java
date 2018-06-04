@@ -40,7 +40,6 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -87,8 +86,16 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         final Caffeine<String, MutableKamonTimer> caffeine = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((key, value, cause) ->
-                        log.debug("Trace for {} removed. Cause: {}", key, cause.toString()));
+                .removalListener((key, value, cause) -> {
+                    if (value != null) {
+                        if (value.getTag(TracingTags.MAPPING_SUCCESS) == null) {
+                            value.tag(TracingTags.MAPPING_SUCCESS, false);
+                        }
+                        value.stop();
+                    }
+
+                    log.debug("Trace for {} removed. Cause: {}", key, cause.toString());
+                });
 
         timers = caffeine.build();
     }
