@@ -17,13 +17,9 @@ package org.eclipse.ditto.services.utils.tracing;
 public final class TracingTags {
 
     private static final String PREFIX = "ditto.";
-    public static final String CORRELATION_ID = PREFIX + "correlationId";
     public static final String COMMAND_TYPE = PREFIX + "command.type";
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
-    public static final String MESSAGE_TYPE = PREFIX + "message.type";
-    public static final String MESSAGE_DIRECTION = PREFIX + "message.direction";
-    public static final String MESSAGE_SUBJECT = PREFIX + "message.subject";
     public static final String SERVICE_NAME = PREFIX + "service.name";
     public static final String SERVICE_INSTANCE = PREFIX + "service.instance";
     public static final String METRICS_NAME = PREFIX + "metrics.name";
