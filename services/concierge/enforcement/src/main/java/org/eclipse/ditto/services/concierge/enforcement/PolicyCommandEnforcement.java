@@ -226,7 +226,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      * @param policyId the ID of the Policy to invalidate caches for.
      */
     private void invalidateCaches(final String policyId) {
-        final EntityId entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, policyId);
+        final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
         enforcerCache.invalidate(entityId);
     }
 
