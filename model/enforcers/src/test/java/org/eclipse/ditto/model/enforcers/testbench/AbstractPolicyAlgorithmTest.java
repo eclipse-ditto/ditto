@@ -503,7 +503,7 @@ public abstract class AbstractPolicyAlgorithmTest {
                 .isEqualTo(setup.getExpectedResult());
 
         setup.getExpectedJsonView().ifPresent(expectedJsonView -> {
-            final String actualJsonView = setup.getFullJsonifiable()
+            final JsonObject actualJsonView = setup.getFullJsonifiable()
                     .map(jsonifiable -> {
                         final JsonPointer resourcePointer = setup.getResource();
                         final JsonObject inputJson = jsonifiable.toJson()
@@ -512,10 +512,9 @@ public abstract class AbstractPolicyAlgorithmTest {
                                 .orElse(JsonFactory.newObject());
                         return algorithm.buildJsonView(inputJson, setup);
                     })
-                    .map(JsonObject::toString)
                     .orElseThrow(() -> new AssertionError("jsonView was empty"));
 
-            assertThat(actualJsonView).isEqualTo(expectedJsonView.toString());
+            assertThat(actualJsonView).isEqualToIgnoringFieldDefinitions(expectedJsonView);
         });
 
         setup.getExpectedSubjectIds().ifPresent(expectedSubjectIds -> {
