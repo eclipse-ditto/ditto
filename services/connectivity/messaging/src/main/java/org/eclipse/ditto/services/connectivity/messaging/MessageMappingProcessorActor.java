@@ -257,11 +257,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final HashMap<String, String> additionalTags = new HashMap<>();
             final String commandType = command.getType();
             additionalTags.put(TracingTags.COMMAND_TYPE, commandType);
-            KamonTracing
+            final MutableKamonTimer timer = KamonTracing
                     .newTimer("roundtrip_" + connectionId + "_" + commandType)
                     .maximumDuration(5, TimeUnit.MINUTES)
                     .tags(additionalTags)
                     .start();
+            this.timers.put(correlationId, timer);
         });
     }
 
