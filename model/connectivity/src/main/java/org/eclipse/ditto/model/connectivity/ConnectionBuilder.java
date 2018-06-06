@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 public interface ConnectionBuilder {
 
     /**
-     * Sets the identifier to use in the {@link Connection}.
+     * Sets the identifier to use in the {@code Connection}.
      *
      * @param id the identifier.
      * @return this builder to allow method chaining.
@@ -32,7 +32,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder id(String id);
 
     /**
-     * Sets the name to use in the {@link Connection}.
+     * Sets the name to use in the {@code Connection}.
      *
      * @param name the name.
      * @return this builder to allow method chaining.
@@ -40,7 +40,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder name(String name);
 
     /**
-     * Sets the AuthorizationContext to use in the {@link Connection}.
+     * Sets the AuthorizationContext to use in the {@code Connection}.
      *
      * @param authorizationContext the AuthorizationContext
      * @return this builder to allow method chaining.
@@ -48,7 +48,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder authorizationContext(AuthorizationContext authorizationContext);
 
     /**
-     * Sets the URI to use in the {@link Connection}.
+     * Sets the URI to use in the {@code Connection}.
      *
      * @param uri the URI
      * @return this builder to allow method chaining.
@@ -56,7 +56,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder uri(String uri);
 
     /**
-     * Sets the ConnectionStatus to use in the {@link Connection}.
+     * Sets the ConnectionStatus to use in the {@code Connection}.
      *
      * @param connectionStatus the ConnectionStatus
      * @return this builder to allow method chaining.
@@ -64,7 +64,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder connectionStatus(ConnectionStatus connectionStatus);
 
     /**
-     * Enable/disable failover for the {@link Connection}.
+     * Enable/disable failover for the {@code Connection}.
      *
      * @param failoverEnabled if failover is enabled for this connection (default {@code true})
      * @return this builder to allow method chaining.
@@ -72,7 +72,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder failoverEnabled(boolean failoverEnabled);
 
     /**
-     * Enable/disable validtion of certificates for the {@link Connection}.
+     * Enable/disable validtion of certificates for the {@code Connection}.
      *
      * @param validateCertificate if server certificates are validated (default {@code true})
      * @return this builder to allow method chaining.
@@ -80,7 +80,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder validateCertificate(boolean validateCertificate);
 
     /**
-     * Set the command processor pool size for the {@link Connection}.
+     * Set the command processor pool size for the {@code Connection}.
      *
      * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5})
      * @return this builder to allow method chaining.
@@ -104,7 +104,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder targets(Set<Target> targets);
 
     /**
-     * Sets how many clients on different cluster nodes should establish the {@link Connection}.
+     * Sets how many clients on different cluster nodes should establish the {@code Connection}.
      * <p>
      * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
      * </p>
@@ -115,7 +115,7 @@ public interface ConnectionBuilder {
     ConnectionBuilder clientCount(int clientCount);
 
     /**
-     * Adds configuration which is only applicable for a specific {@link ConnectionType}.
+     * Adds configuration which is only applicable for a specific {@code ConnectionType}.
      *
      * @param specificConfig the ConnectionType specific configuration to set
      * @return this builder to allow method chaining.
@@ -130,6 +130,22 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder mappingContext(@Nullable MappingContext mappingContext);
+
+    /**
+     * Sets the tags of the {@code Connection}.
+     *
+     * @param tags the tags to set.
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder tags(Set<String> tags);
+
+    /**
+     * Sets a tag of the {@code Connection}.
+     *
+     * @param tag the tag to set.
+     * @return this builder to allow method chaining.
+     */
+    ConnectionBuilder tag(String tag);
 
     /**
      * Builds a new {@link Connection}.

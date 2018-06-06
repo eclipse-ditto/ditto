@@ -106,6 +106,8 @@ public final class ImmutableConnectionTest {
                             "    );\n" +
                             "}"));
 
+    private static final Set<String> KNOWN_TAGS = Collections.singleton("HONO");
+
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(Connection.JsonFields.ID, ID)
             .set(Connection.JsonFields.NAME, NAME)
@@ -123,6 +125,8 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.VALIDATE_CERTIFICATES, true)
             .set(Connection.JsonFields.PROCESSOR_POOL_SIZE, 5)
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson())
+            .set(Connection.JsonFields.TAGS, KNOWN_TAGS.stream()
+                    .map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray()))
             .build();
 
     @Test
@@ -219,6 +223,7 @@ public final class ImmutableConnectionTest {
                         .targets(TARGETS)
                         .clientCount(2)
                         .mappingContext(KNOWN_MAPPING_CONTEXT)
+                        .tags(KNOWN_TAGS)
                         .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
@@ -248,6 +253,7 @@ public final class ImmutableConnectionTest {
                         .targets(TARGETS)
                         .clientCount(2)
                         .mappingContext(KNOWN_MAPPING_CONTEXT)
+                        .tags(KNOWN_TAGS)
                         .build()
                         .toJson();
 

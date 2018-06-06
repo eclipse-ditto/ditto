@@ -70,6 +70,7 @@ final class ImmutableConnection implements Connection {
     private final int processorPoolSize;
     private final Map<String, String> specificConfig;
     @Nullable private final MappingContext mappingContext;
+    private final Set<String> tags;
 
     ImmutableConnection(final ImmutableConnectionBuilder builder) {
         this.id = builder.id;
@@ -85,9 +86,9 @@ final class ImmutableConnection implements Connection {
         this.failoverEnabled = builder.failoverEnabled;
         this.validateCertificate = builder.validateCertificate;
         this.processorPoolSize = builder.processorPoolSize;
-        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(
-                builder.specificConfig));
+        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(builder.specificConfig));
         this.mappingContext = builder.mappingContext;
+        this.tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
 
         final Matcher matcher = URI_REGEX_PATTERN.matcher(uri);
 
@@ -184,6 +185,13 @@ final class ImmutableConnection implements Connection {
                 .map(ConnectivityModelFactory::mappingContextFromJson)
                 .orElse(null);
 
+        final Set<String> readTags = jsonObject.getValue(JsonFields.TAGS)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isString)
+                        .map(JsonValue::asString)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+
         final ConnectionBuilder builder = ImmutableConnectionBuilder.of(readId, readConnectionType,
                 readConnectionStatus, readUri, readAuthorizationContext);
 
@@ -196,6 +204,7 @@ final class ImmutableConnection implements Connection {
         readProcessorPoolSize.ifPresent(builder::processorPoolSize);
         builder.specificConfig(readConnectionTypeSpecificConfiguration);
         builder.mappingContext(readMappingContext);
+        builder.tags(readTags);
         return builder.build();
     }
 
@@ -300,6 +309,11 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -333,6 +347,9 @@ final class ImmutableConnection implements Connection {
             jsonObjectBuilder.set(JsonFields.MAPPING_CONTEXT, mappingContext.toJson(schemaVersion, thePredicate),
                     predicate);
         }
+        jsonObjectBuilder.set(JsonFields.TAGS, tags.stream()
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray()), predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -361,14 +378,15 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate) &&
                 Objects.equals(specificConfig, that.specificConfig) &&
-                Objects.equals(mappingContext, that.mappingContext);
+                Objects.equals(mappingContext, that.mappingContext) &&
+                Objects.equals(tags, that.tags);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, name, connectionType, connectionStatus, authorizationContext, sources, targets,
                 clientCount, failoverEnabled, uri, protocol, username, password, hostname, path, port,
-                validateCertificate, processorPoolSize, specificConfig, mappingContext);
+                validateCertificate, processorPoolSize, specificConfig, mappingContext, tags);
     }
 
     @Override
@@ -394,6 +412,7 @@ final class ImmutableConnection implements Connection {
                 ", processorPoolSize=" + processorPoolSize +
                 ", specificConfig=" + specificConfig +
                 ", mappingContext=" + mappingContext +
+                ", tags=" + tags +
                 "]";
     }
 }

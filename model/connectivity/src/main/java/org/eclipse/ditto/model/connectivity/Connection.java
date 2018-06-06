@@ -177,6 +177,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Optional<MappingContext> getMappingContext();
 
     /**
+     * Returns the tags of this {@code Connection}.
+     *
+     * @return the tags.
+     */
+    Set<String> getTags();
+
+    /**
      * Returns a mutable builder with a fluent API for immutable {@code Connection}. The builder is initialised with the
      * entries of this instance.
      *
@@ -310,6 +317,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Connection} tags configuration.
+         */
+        public static final JsonFieldDefinition<JsonArray> TAGS =
+                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -34,8 +34,9 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     // changeable:
     String id;
     AuthorizationContext authorizationContext;
-    String uri;
     ConnectionStatus connectionStatus;
+    Set<String> tags = new HashSet<>();
+    String uri;
 
     // optional:
     boolean failoverEnabled = true;
@@ -48,14 +49,17 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     @Nullable MappingContext mappingContext = null;
     @Nullable String name = null;
 
-    private ImmutableConnectionBuilder(final String id, final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus, final String uri,
+    private ImmutableConnectionBuilder(final String id,
+            final ConnectionType connectionType,
+            final ConnectionStatus connectionStatus,
+            final String uri,
             final AuthorizationContext authorizationContext) {
-        this.id = checkNotNull(id, "ID");
         this.connectionType = checkNotNull(connectionType, "Connection Type");
+
+        this.id = checkNotNull(id, "ID");
+        this.authorizationContext = checkNotNull(authorizationContext, "Authorization Context");
         this.connectionStatus = checkNotNull(connectionStatus, "Connection Status");
         this.uri = checkNotNull(uri, "URI");
-        this.authorizationContext = checkNotNull(authorizationContext, "Authorization Context");
     }
 
     /**
@@ -68,8 +72,10 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
      * @param authorizationContext the authorization context
      * @return new instance of {@code ImmutableConnectionBuilder}
      */
-    static ConnectionBuilder of(final String id, final ConnectionType connectionType,
-            final ConnectionStatus connectionStatus, final String uri,
+    static ConnectionBuilder of(final String id,
+            final ConnectionType connectionType,
+            final ConnectionStatus connectionStatus,
+            final String uri,
             final AuthorizationContext authorizationContext) {
         return new ImmutableConnectionBuilder(id, connectionType, connectionStatus, uri, authorizationContext);
     }
@@ -93,6 +99,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
         connectionBuilder.specificConfig(connection.getSpecificConfig());
         connectionBuilder.mappingContext(connection.getMappingContext().orElse(null));
         connectionBuilder.name(connection.getName().orElse(null));
+        connectionBuilder.tags(connection.getTags());
         return connectionBuilder;
     }
 
@@ -174,6 +181,18 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     @Override
     public ConnectionBuilder mappingContext(@Nullable final MappingContext mappingContext) {
         this.mappingContext = mappingContext;
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder tags(final Set<String> tags) {
+        this.tags = tags;
+        return this;
+    }
+
+    @Override
+    public ConnectionBuilder tag(final String tag) {
+        this.tags.add(tag);
         return this;
     }
 
