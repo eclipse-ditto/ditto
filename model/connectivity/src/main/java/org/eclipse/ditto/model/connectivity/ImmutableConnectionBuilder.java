@@ -29,10 +29,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     // final:
-    final String id;
     final ConnectionType connectionType;
 
     // changeable:
+    String id;
     AuthorizationContext authorizationContext;
     String uri;
     ConnectionStatus connectionStatus;
@@ -94,6 +94,12 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
         connectionBuilder.mappingContext(connection.getMappingContext().orElse(null));
         connectionBuilder.name(connection.getName().orElse(null));
         return connectionBuilder;
+    }
+
+    @Override
+    public ConnectionBuilder id(final String id) {
+        this.id = id;
+        return this;
     }
 
     @Override
