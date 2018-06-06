@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -137,7 +138,7 @@ public interface ConnectionBuilder {
      * @param tags the tags to set.
      * @return this builder to allow method chaining.
      */
-    ConnectionBuilder tags(Set<String> tags);
+    ConnectionBuilder tags(Collection<String> tags);
 
     /**
      * Sets a tag of the {@code Connection}.
@@ -153,4 +154,5 @@ public interface ConnectionBuilder {
      * @return the new {@link Connection}
      */
     Connection build();
+
 }

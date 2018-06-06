@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,7 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 /**
  * Builder for {@code ImmutableConnection}.
  */
-class ImmutableConnectionBuilder implements ConnectionBuilder {
+final class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     // final:
     final ConnectionType connectionType;
@@ -54,8 +55,8 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
             final ConnectionStatus connectionStatus,
             final String uri,
             final AuthorizationContext authorizationContext) {
-        this.connectionType = checkNotNull(connectionType, "Connection Type");
 
+        this.connectionType = checkNotNull(connectionType, "Connection Type");
         this.id = checkNotNull(id, "ID");
         this.authorizationContext = checkNotNull(authorizationContext, "Authorization Context");
         this.connectionStatus = checkNotNull(connectionStatus, "Connection Status");
@@ -77,6 +78,7 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
             final ConnectionStatus connectionStatus,
             final String uri,
             final AuthorizationContext authorizationContext) {
+
         return new ImmutableConnectionBuilder(id, connectionType, connectionStatus, uri, authorizationContext);
     }
 
@@ -147,7 +149,8 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     @Override
     public ConnectionBuilder processorPoolSize(final int processorPoolSize) {
-        this.processorPoolSize = checkArgument(processorPoolSize, ps -> ps > 0, () -> "consumerCount must be positive");
+        checkArgument(processorPoolSize, ps -> ps > 0, () -> "The consumer count must be positive!");
+        this.processorPoolSize = processorPoolSize;
         return this;
     }
 
@@ -167,7 +170,8 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
 
     @Override
     public ConnectionBuilder clientCount(final int clientCount) {
-        this.clientCount = checkArgument(clientCount, ps -> ps > 0, () -> "clientCount must > 0");
+        checkArgument(clientCount, ps -> ps > 0, () -> "The client count must be > 0!");
+        this.clientCount = clientCount;
         return this;
     }
 
@@ -185,14 +189,14 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     }
 
     @Override
-    public ConnectionBuilder tags(final Set<String> tags) {
-        this.tags = tags;
+    public ConnectionBuilder tags(final Collection<String> tags) {
+        this.tags = new HashSet<>(tags);
         return this;
     }
 
     @Override
     public ConnectionBuilder tag(final String tag) {
-        this.tags.add(tag);
+        tags.add(tag);
         return this;
     }
 
@@ -200,4 +204,5 @@ class ImmutableConnectionBuilder implements ConnectionBuilder {
     public Connection build() {
         return new ImmutableConnection(this);
     }
+
 }
