@@ -48,6 +48,7 @@
                         </goals>
                         <configuration>
                             <includes>
+                                <include>org/eclipse/ditto/services/utils/test/*</include>
                                 <include>org/eclipse/ditto/services/utils/test/mongo/*</include>
                             </includes>
                         </configuration>
