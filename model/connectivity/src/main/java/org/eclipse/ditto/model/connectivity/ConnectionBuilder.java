@@ -29,6 +29,7 @@ public interface ConnectionBuilder {
      *
      * @param id the identifier.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code id} is {@code null}.
      */
     ConnectionBuilder id(String id);
 
@@ -38,44 +39,47 @@ public interface ConnectionBuilder {
      * @param name the name.
      * @return this builder to allow method chaining.
      */
-    ConnectionBuilder name(String name);
+    ConnectionBuilder name(@Nullable String name);
 
     /**
      * Sets the AuthorizationContext to use in the {@code Connection}.
      *
-     * @param authorizationContext the AuthorizationContext
+     * @param authorizationContext the AuthorizationContext.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
      */
     ConnectionBuilder authorizationContext(AuthorizationContext authorizationContext);
 
     /**
      * Sets the URI to use in the {@code Connection}.
      *
-     * @param uri the URI
+     * @param uri the URI.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code uri} is {@code null}.
      */
     ConnectionBuilder uri(String uri);
 
     /**
      * Sets the ConnectionStatus to use in the {@code Connection}.
      *
-     * @param connectionStatus the ConnectionStatus
+     * @param connectionStatus the ConnectionStatus.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
     ConnectionBuilder connectionStatus(ConnectionStatus connectionStatus);
 
     /**
-     * Enable/disable failover for the {@code Connection}.
+     * Enable/disable fail-over for the {@code Connection}.
      *
-     * @param failoverEnabled if failover is enabled for this connection (default {@code true})
+     * @param failoverEnabled if fail-over is enabled for this connection (default {@code true}).
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder failoverEnabled(boolean failoverEnabled);
 
     /**
-     * Enable/disable validtion of certificates for the {@code Connection}.
+     * Enable/disable validation of certificates for the {@code Connection}.
      *
-     * @param validateCertificate if server certificates are validated (default {@code true})
+     * @param validateCertificate if server certificates are validated (default {@code true}).
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder validateCertificate(boolean validateCertificate);
@@ -83,8 +87,9 @@ public interface ConnectionBuilder {
     /**
      * Set the command processor pool size for the {@code Connection}.
      *
-     * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5})
+     * @param processorPoolSize number of command processor actors that will be used at max (default {@code 5}).
      * @return this builder to allow method chaining.
+     * @throws IllegalArgumentException if {@code processorPoolSize} is not positive.
      */
     ConnectionBuilder processorPoolSize(int processorPoolSize);
 
@@ -93,14 +98,16 @@ public interface ConnectionBuilder {
      *
      * @param sources the sources that are added.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code sources} is {@code null}.
      */
     ConnectionBuilder sources(Set<Source> sources);
 
     /**
      * Adds additional targets to the connection.
      *
-     * @param targets the targets that are added
+     * @param targets the targets that are added.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code targets} is {@code null}.
      */
     ConnectionBuilder targets(Set<Target> targets);
 
@@ -110,16 +117,18 @@ public interface ConnectionBuilder {
      * If greater than 1, the connection is created in a HA mode, running on at least 2 cluster nodes.
      * </p>
      *
-     * @param clientCount the client count to set
+     * @param clientCount the client count to set.
      * @return this builder to allow method chaining.
+     * @throws IllegalArgumentException if {@code clientCount} is not positive.
      */
     ConnectionBuilder clientCount(int clientCount);
 
     /**
      * Adds configuration which is only applicable for a specific {@code ConnectionType}.
      *
-     * @param specificConfig the ConnectionType specific configuration to set
+     * @param specificConfig the ConnectionType specific configuration to set.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code specificConfig} is {@code null}.
      */
     ConnectionBuilder specificConfig(Map<String, String> specificConfig);
 
@@ -127,7 +136,7 @@ public interface ConnectionBuilder {
      * Sets the MappingContext to apply for the connection containing either JavaScript scripts or a custom
      * implementation in Java mapping from external messages to internal Ditto Protocol messages.
      *
-     * @param mappingContext the MappingContext to apply for the connection
+     * @param mappingContext the MappingContext to apply for the connection.
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder mappingContext(@Nullable MappingContext mappingContext);
@@ -137,6 +146,7 @@ public interface ConnectionBuilder {
      *
      * @param tags the tags to set.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code tags} is {@code null}.
      */
     ConnectionBuilder tags(Collection<String> tags);
 
@@ -145,6 +155,7 @@ public interface ConnectionBuilder {
      *
      * @param tag the tag to set.
      * @return this builder to allow method chaining.
+     * @throws NullPointerException if {@code tag} is {@code null}.
      */
     ConnectionBuilder tag(String tag);
 
