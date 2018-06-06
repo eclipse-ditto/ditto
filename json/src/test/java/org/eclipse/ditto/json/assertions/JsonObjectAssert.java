@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.AbstractIterableAssert;
@@ -27,6 +28,7 @@ import org.assertj.core.api.AssertFactory;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ObjectAssert;
 import org.assertj.core.api.ObjectAssertFactory;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -287,10 +289,29 @@ public final class JsonObjectAssert
         if (expectedFieldValue.isObject() && actualFieldValue.isObject() && !compareFieldDefinitions) {
             DittoJsonAssertions.assertThat(actualFieldValue.asObject())
                     .isEqualToIgnoringFieldDefinitions(expectedFieldValue.asObject());
+        } else if (areArraysOfEqualNumberOfObjects(expectedFieldValue, actualFieldValue) && !compareFieldDefinitions) {
+            final JsonArray expectedArray = expectedFieldValue.asArray();
+            final JsonArray actualArray = actualFieldValue.asArray();
+            IntStream.range(0, expectedArray.getSize()).forEach(i -> {
+                DittoJsonAssertions.assertThat(actualArray.get(i).get().asObject())
+                        .isEqualToIgnoringFieldDefinitions(expectedArray.get(i).get().asObject());
+            });
         } else {
             Assertions.assertThat(actualFieldValue)
                     .as("Values of JsonField <%s> are equal", expectedField.getKey())
                     .isEqualTo(expectedFieldValue);
+        }
+    }
+
+    private static boolean areArraysOfEqualNumberOfObjects(final JsonValue expected, final JsonValue actual) {
+        if (expected.isArray() && actual.isArray()) {
+            final JsonArray expectedArray = expected.asArray();
+            final JsonArray actualArray = actual.asArray();
+            return expectedArray.getSize() == actualArray.getSize() &&
+                    expectedArray.stream().map(JsonValue::isObject).reduce(true, (x, y) -> x & y) &&
+                    actualArray.stream().map(JsonValue::isObject).reduce(true, (x, y) -> x & y);
+        } else {
+            return false;
         }
     }
 

@@ -1302,6 +1302,21 @@ public final class ImmutableJsonObjectTest {
         assertThat(actual).isEqualTo(underTest.remove("x"));
     }
 
+    @Test
+    public void jsonObjectsNestedInArraysShouldCompareWithoutFieldDefinitions() {
+        final JsonObject objectWithoutDefinition = JsonFactory.newObject("{\"x\":[{\"y\":5}]}");
+        final JsonObject objectWithDefinition = JsonFactory.newObjectBuilder()
+                .set(JsonFieldDefinition.ofJsonArray("x"), JsonFactory.newArrayBuilder()
+                        .add(JsonFactory.newObjectBuilder()
+                                .set(JsonFieldDefinition.ofInt("y"), 5)
+                                .build())
+                        .build())
+                .build();
+
+        assertThat(objectWithoutDefinition).isEqualToIgnoringFieldDefinitions(objectWithDefinition);
+        assertThat(objectWithoutDefinition).isNotEqualTo(objectWithDefinition);
+    }
+
     private static Map<String, JsonField> toMap(final CharSequence key, final JsonValue value) {
         final Map<String, JsonField> result = new HashMap<>();
         result.put(key.toString(), JsonFactory.newField(JsonFactory.newKey(key), value));
