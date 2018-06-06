@@ -602,7 +602,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     private boolean isPolicyDeleted() {
-        return policy.hasLifecycle(PolicyLifecycle.DELETED);
+        return null == policy || policy.hasLifecycle(PolicyLifecycle.DELETED);
     }
 
     private void doSaveSnapshot(final Runnable invokeAfterSnapshotRunnable) {
