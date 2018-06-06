@@ -20,10 +20,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -40,11 +36,12 @@ import org.slf4j.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.management.AkkaManagement;
@@ -176,37 +173,19 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
 
-        final AtomicBoolean gracefulShutdown = new AtomicBoolean(false);
-        final CompletableFuture<Terminated> systemTermination = new CompletableFuture<>();
-        final Cluster cluster = Cluster.get(actorSystem);
-        Runtime.getRuntime().addShutdownHook(gracefullyLeaveClusterShutdownHook(logger, cluster,
-                gracefulShutdown, systemTermination));
+        CoordinatedShutdown.get(actorSystem).addTask(
+                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
+                () -> {
+                    logger.info("Shutdown issued from outside (e.g. SIGTERM) - gracefully shutting down..");
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
 
-        actorSystem.registerOnTermination(() -> {
-            if (!gracefulShutdown.get()) {
-                logger.warn("ActorSystem was shutdown NOT gracefully - exiting JVM with status code '-1'");
-                System.exit(-1);
-            } else {
-                logger.info("ActorSystem has shutdown gracefully");
-            }
-        });
-    }
-
-    private static Thread gracefullyLeaveClusterShutdownHook(final Logger logger, final Cluster cluster,
-            final AtomicBoolean gracefulShutdown, final CompletableFuture<Terminated> systemTermination) {
-        return new Thread(() -> {
-            gracefulShutdown.set(true);
-            logger.info("Shutdown issued from outside (e.g. SIGTERM) - gracefully shutting down..");
-            logger.info("Leaving the cluster - my address: {}", cluster.selfAddress());
-            cluster.leave(cluster.selfAddress());
-            // after leaving the cluster, don't just end this Thread as this would end the process - wait for the
-            // system termination by waiting for the passed future:
-            try {
-                systemTermination.get(8, TimeUnit.SECONDS);
-            } catch (final InterruptedException | ExecutionException | TimeoutException e) {
-                logger.error("System termination was interrupted: {}", e.getMessage(), e);
-            }
-        });
+        CoordinatedShutdown.get(actorSystem).addTask(
+                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "Log successful graceful shutdown",
+                () -> {
+                    logger.info("Graceful shutdown completed.");
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
     }
 
     /**
