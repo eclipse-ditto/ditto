@@ -15,6 +15,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 
 import akka.actor.AbstractActor;
@@ -46,6 +47,10 @@ public class MockConnectionActor extends AbstractActor {
         return receiveBuilder()
                 .match(CreateConnection.class, cc -> {
                     log.info("Creating connection...");
+                    sender().tell(new Status.Success("mock"), getSelf());
+                })
+                .match(ModifyConnection.class, mc -> {
+                    log.info("Modifying connection...");
                     sender().tell(new Status.Success("mock"), getSelf());
                 })
                 .match(OpenConnection.class, oc -> {

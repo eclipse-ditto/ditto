@@ -28,6 +28,10 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
@@ -56,12 +60,16 @@ public class ConnectionActorTest {
     private static ActorRef conciergeForwarder;
     private String connectionId;
     private CreateConnection createConnection;
+    private ModifyConnection modifyConnection;
     private DeleteConnection deleteConnection;
     private CreateConnectionResponse createConnectionResponse;
+    private ModifyConnectionResponse modifyConnectionResponse;
     private CloseConnection closeConnection;
     private CloseConnectionResponse closeConnectionResponse;
     private DeleteConnectionResponse deleteConnectionResponse;
+    private RetrieveConnection retrieveConnection;
     private RetrieveConnectionStatus retrieveConnectionStatus;
+    private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusClosedResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
@@ -83,12 +91,18 @@ public class ConnectionActorTest {
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
+        final Connection modifiedConnection = connection.toBuilder().failoverEnabled(false).build();
+        modifyConnection = ModifyConnection.of(modifiedConnection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse = CreateConnectionResponse.of(connection, DittoHeaders.empty());
+        modifyConnectionResponse = ModifyConnectionResponse.modified(connectionId, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
         deleteConnectionResponse = DeleteConnectionResponse.of(connectionId, DittoHeaders.empty());
+        retrieveConnection = RetrieveConnection.of(connectionId, DittoHeaders.empty());
         retrieveConnectionStatus = RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty());
+        retrieveModifiedConnectionResponse =
+                RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
                 RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
         retrieveConnectionStatusClosedResponse =
@@ -153,6 +167,35 @@ public class ConnectionActorTest {
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
             expectMsg(retrieveConnectionStatusOpenResponse);
+        }};
+    }
+
+    @Test
+    public void recoverModifiedConnection() {
+        new TestKit(actorSystem) {{
+            ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            expectMsg(createConnectionResponse);
+            // modify connection
+            underTest.tell(modifyConnection, getRef());
+            expectMsg(modifyConnectionResponse);
+
+            // stop actor
+            getSystem().stop(underTest);
+            expectTerminated(underTest);
+
+            // recover actor
+            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                    conciergeForwarder);
+
+            // retrieve connection status
+            underTest.tell(retrieveConnection, getRef());
+            expectMsg(retrieveModifiedConnectionResponse);
         }};
     }
 
