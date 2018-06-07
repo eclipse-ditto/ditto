@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
  * <p>
  * The following example shows how a JSON document would be described with the help of JsonFieldDefinition.
  * </p>
- * <p>
  * <pre>
  *      {
  *         "thingId": "myThing",
@@ -38,7 +37,6 @@ import javax.annotation.Nullable;
  * <p>
  * Within an according class the structure of this JSON document could be described as follows:
  * </p>
- * <p>
  * <pre>
  *    import static JsonFactory.newIntFieldDefinition;
  *    import static JsonFactory.newStringFieldDefinition;
@@ -54,7 +52,6 @@ import javax.annotation.Nullable;
  *
  *    }
  * </pre>
- * </p>
  * <p>
  * In this case {@code attributes} and {@code someAttr} are implicitly defined with the value type {@link JsonObject}.
  * </p>

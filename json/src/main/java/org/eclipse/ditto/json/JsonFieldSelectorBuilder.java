@@ -94,11 +94,10 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * effectively does nothing.
      * <p>
      * For example, the field selector string
-     * <p>
+     * </p>
      * <pre>
      * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
      * </pre>
-     * <p>
      * would lead to a JSON field selector which consists of the following JSON pointers:
      * <ul>
      *     <li>{@code "thingId"},</li>
@@ -117,8 +116,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * ({@code )}) for each opening parenthesis ({@code (}).
      * @throws IllegalStateException if {@code fieldSelectorString} cannot be decoded as UTF-8.
      */
-    JsonFieldSelectorBuilder addFieldSelectorString(@Nullable String fieldSelectorString,
-            JsonParseOptions options);
+    JsonFieldSelectorBuilder addFieldSelectorString(@Nullable String fieldSelectorString, JsonParseOptions options);
 
     /**
      * Adds the JSON pointers contained in the new JSON field selector retrieved by parsing the given string. If the
@@ -126,7 +124,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * effectively does nothing. <em>This method does no URL-encoding!</em>
      * <p>
      * For example, the field selector string
-     * <p>
+     * </p>
      * <pre>
      * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
      * </pre>

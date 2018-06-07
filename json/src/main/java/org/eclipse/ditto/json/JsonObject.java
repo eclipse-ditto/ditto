@@ -176,7 +176,6 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     /**
      * Returns a new JSON object containing the whole object hierarchy of the value which is defined by the given
      * pointer. If, for example, on the following JSON object
-     * <p>
      * <pre>
      *    {
      *       "thingId": "myThing",
@@ -190,7 +189,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * </pre>
      * <p>
      * this method with the pointer {@code "attributes/someAttr/subsel"} is called the returned JSON object is
-     * <p>
+     * </p>
      * <pre>
      *    {
      *       "attributes": {
@@ -224,7 +223,6 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * Returns a new JSON object which is composed from parts of this object. The parts to use are defined by the given
      * {@link JsonFieldSelector}. The order of the fields defined in the field selector is maintained in the result. For
      * example, if on the following JSON object
-     * <p>
      * <pre>
      *    {
      *       "thingId": "0x1337",
@@ -240,7 +238,7 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      * </pre>
      * <p>
      * this method is called with the field selector {@code "foo(bar/baz,yo),thingId"} the returned JSON object is
-     * <p>
+     * </p>
      * <pre>
      *    {
      *    "foo": {
@@ -252,7 +250,6 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
      *    "thingId": "0x1337"
      *    }
      * </pre>
-     * <p>
      * This also works with arbitrarily nested levels.
      *
      * @param fieldSelector the JSON field selector which defines what the returned object should contain.
