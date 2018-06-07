@@ -106,7 +106,8 @@ public class RabbitMQClientActorTest {
         final ThrowableAssert.ThrowingCallable props1 =
                 () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null,
+                        rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
