@@ -23,7 +23,7 @@ import org.junit.Test;
 /**
  * Unit test for {@link JsonFieldSelectorTrie}.
  */
-public class JsonFieldSelectorTrieTest {
+public final class JsonFieldSelectorTrieTest {
 
     @Test
     public void trieWithEmptyPathIsEmpty() {
@@ -59,4 +59,5 @@ public class JsonFieldSelectorTrieTest {
             return trie.getKeys();
         }
     }
+
 }

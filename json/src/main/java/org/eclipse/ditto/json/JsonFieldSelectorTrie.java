@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.json;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -23,11 +25,11 @@ import javax.annotation.concurrent.NotThreadSafe;
  * a {@code JsonObject} by, since it requires no merging of sub-objects.
  * <p>
  * A normal {@code JsonFieldSelector} is a list of {@code JsonPointer}s, for example:
- * <pre>{@code
- * JsonPointer_1: a -> b -> c -> d
- * JsonPoniter_2: a -> b -> e
- * JsonPointer_3: b -> b -> c
- * }</pre>
+ * <pre>
+ * JsonPointer 1: a -> b -> c -> d
+ * JsonPointer 2: a -> b -> e
+ * JsonPointer 3: b -> b -> c
+ * </pre>
  * {@code JsonFieldSelectorTrie} represents the list as trie by collecting lists with the same prefix:
  * <pre>{@code
  *
@@ -53,54 +55,37 @@ final class JsonFieldSelectorTrie {
     /**
      * Children of the trie.
      */
-    private final Map<JsonKey, JsonFieldSelectorTrie> children = new HashMap<>();
+    private final Map<JsonKey, JsonFieldSelectorTrie> children;
 
-    /**
-     * @return whether this trie has any child.
-     */
-    boolean isEmpty() {
-        return children.isEmpty();
+    private JsonFieldSelectorTrie() {
+        children = new HashMap<>();
     }
 
     /**
-     * @return set of labels of children.
-     */
-    Set<JsonKey> getKeys() {
-        return children.keySet();
-    }
-
-    /**
-     * retrieve a child.
+     * Creates a trie from the specified JsonPointers.
      *
-     * @param key label of the child.
-     * @return the child if it exists; an empty trie if it does not.
-     */
-    JsonFieldSelectorTrie descend(final JsonKey key) {
-        final JsonFieldSelectorTrie child = children.get(key);
-        return child != null ? child : new JsonFieldSelectorTrie();
-    }
-
-    /**
-     * Mutate the trie minimally so that the path of JsonKeys in the JsonPointer exists in the trie.
-     *
-     * @param jsonPointer the path to expand.
-     * @return this trie after adding the path in json pointer.
-     */
-    JsonFieldSelectorTrie add(final JsonPointer jsonPointer) {
-        final Iterator<JsonKey> iterator = jsonPointer.iterator();
-        return addJsonKeyIterator(iterator);
-    }
-
-    /**
-     * Create a trie from a collection of JsonPointers.
-     *
-     * @param jsonPointers collection of json pointers.
+     * @param jsonPointers collection of JSON pointers which form the returned trie.
      * @return trie representation of the collection.
+     * @throws NullPointerException if {@code jsonPointers} is {@code null}.
      */
     static JsonFieldSelectorTrie of(final Iterable<JsonPointer> jsonPointers) {
+        requireNonNull(jsonPointers, "The JSON pointers must not be null!");
+
         final JsonFieldSelectorTrie trie = new JsonFieldSelectorTrie();
         jsonPointers.forEach(trie::add);
         return trie;
+    }
+
+    /**
+     * Mutates the trie minimally so that the path of JsonKeys in the JsonPointer exists in the trie.
+     *
+     * @param jsonPointer the path to expand.
+     * @return this trie after adding the path in JSON pointer.
+     * @throws NullPointerException if {@code jsonPointer} is {@code null}.
+     */
+    JsonFieldSelectorTrie add(final JsonPointer jsonPointer) {
+        requireNonNull(jsonPointer, "The JSON pointer to be added must not be null!");
+        return addJsonKeyIterator(jsonPointer.iterator());
     }
 
     /**
@@ -120,4 +105,34 @@ final class JsonFieldSelectorTrie {
         }
         return this;
     }
+
+    /**
+     * Indicates whether this trie has any child.
+     *
+     * @return {@code true} if this trie has a child, {@code false} else.
+     */
+    boolean isEmpty() {
+        return children.isEmpty();
+    }
+
+    /**
+     * Returns the keys of the children.
+     *
+     * @return the keys.
+     */
+    Set<JsonKey> getKeys() {
+        return children.keySet();
+    }
+
+    /**
+     * Retrieves a child.
+     *
+     * @param key label of the child.
+     * @return the child if it exists; an empty trie if it does not.
+     */
+    JsonFieldSelectorTrie descend(final JsonKey key) {
+        final JsonFieldSelectorTrie child = children.get(key);
+        return child != null ? child : new JsonFieldSelectorTrie();
+    }
+
 }

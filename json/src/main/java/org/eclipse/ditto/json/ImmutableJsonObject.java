@@ -315,53 +315,44 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
 
         if (isEmpty()) {
             return this;
-        } else {
-            final List<JsonPointer> pointersContainedInThis = fieldSelector.getPointers()
-                    .stream()
-                    .filter(this::contains)
-                    .collect(Collectors.toList());
-            if (pointersContainedInThis.isEmpty()) {
-                return JsonFactory.newObject();
-            } else {
-                return filterByTree(this, JsonFieldSelectorTrie.of(pointersContainedInThis));
-            }
         }
-    }
 
-    /*
-     * Build a JsonFieldSelectorTrie ignoring all pointers not contained in this object.
-     */
-    private JsonFieldSelectorTrie trieOfPointersContainedInThis(final Iterable<JsonPointer> jsonPointers) {
-        final JsonFieldSelectorTrie trie = new JsonFieldSelectorTrie();
-        jsonPointers.forEach(jsonPointer -> {
-            if (contains(jsonPointer)) {
-                trie.add(jsonPointer);
-            }
-        });
-        return trie;
+        final List<JsonPointer> pointersContainedInThis = fieldSelector.getPointers()
+                .stream()
+                .filter(this::contains)
+                .collect(Collectors.toList());
+
+        if (pointersContainedInThis.isEmpty()) {
+            return JsonFactory.newObject();
+        } else {
+            return filterByTrie(this, JsonFieldSelectorTrie.of(pointersContainedInThis));
+        }
     }
 
     @SuppressWarnings("unchecked")
-    private static JsonObject filterByTree(final JsonObject me, final JsonFieldSelectorTrie trie) {
+    private static JsonObject filterByTrie(final JsonObject self, final JsonFieldSelectorTrie trie) {
         if (trie.isEmpty()) {
-            return me;
-        } else {
-            final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-            trie.getKeys().forEach(key -> {
-                me.getField(key).ifPresent(child -> {
-                    final JsonValue filteredChild = child.getValue().isObject()
-                            ? filterByTree(child.getValue().asObject(), trie.descend(key))
-                            : child.getValue();
-                    final Optional<JsonFieldDefinition> childFieldDefinition = child.getDefinition();
-                    if (childFieldDefinition.isPresent()) {
-                        builder.set(childFieldDefinition.get(), filteredChild);
-                    } else {
-                        builder.set(key, filteredChild);
-                    }
-                });
-            });
-            return builder.build();
+            return self;
         }
+
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+
+        for (final JsonKey key : trie.getKeys()) {
+            self.getField(key).ifPresent(child -> {
+                final JsonValue childValue = child.getValue();
+                final JsonValue filteredChildValue = childValue.isObject()
+                        ? filterByTrie(childValue.asObject(), trie.descend(key))
+                        : childValue;
+                final Optional<JsonFieldDefinition> childFieldDefinition = child.getDefinition();
+                if (childFieldDefinition.isPresent()) {
+                    builder.set(childFieldDefinition.get(), filteredChildValue);
+                } else {
+                    builder.set(key, filteredChildValue);
+                }
+            });
+        }
+
+        return builder.build();
     }
 
     @Override

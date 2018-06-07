@@ -288,8 +288,8 @@ public final class JsonObjectAssert
     }
 
     /*
-     * Recursively compare complex json values. The flag 'compareFieldDefinitions' is applied recursively to all
-     * parts of the json values.
+     * Recursively compare complex JSON values. The flag 'compareFieldDefinitions' is applied recursively to all
+     * parts of the JSON values.
      */
     private static void compareValuesWithFieldKey(final JsonKey key,
             final JsonValue expectedFieldValue,
@@ -306,9 +306,7 @@ public final class JsonObjectAssert
                     .forEach(i ->
                             expectedArray.get(i).ifPresent(expectedElement ->
                                     actualArray.get(i).ifPresent(actualElement ->
-                                            compareValuesWithFieldKey(key, expectedElement, actualElement,
-                                                    compareFieldDefinitions)))
-                    );
+                                            compareValuesWithFieldKey(key, expectedElement, actualElement, false))));
         } else {
             Assertions.assertThat(actualFieldValue)
                     .as("Values of JsonField <%s> are equal", key)

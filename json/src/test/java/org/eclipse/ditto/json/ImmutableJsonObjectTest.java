@@ -114,7 +114,7 @@ public final class ImmutableJsonObjectTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToGetInstanceFromNullJsonObject() {
-        ImmutableJsonObject.of((Map<String, JsonField>) null);
+        ImmutableJsonObject.of(null);
     }
 
     @Test
@@ -193,7 +193,7 @@ public final class ImmutableJsonObjectTest {
     @Test(expected = NullPointerException.class)
     public void tryToSetIntValueWithNullKey() {
         final JsonObject underTest = ImmutableJsonObject.empty();
-        underTest.setValue((String) null, KNOWN_INT_23);
+        underTest.setValue(null, KNOWN_INT_23);
     }
 
     @Test
@@ -409,8 +409,10 @@ public final class ImmutableJsonObjectTest {
         final JsonObject bazJsonObject = ImmutableJsonObject.of(toMap("baz", KNOWN_INT_23));
 
         final int intValue10 = 10;
-        final JsonObject barJsonObject =
-                JsonFactory.newObjectBuilder().set("bar", bazJsonObject).set("yo", intValue10).build();
+        final JsonObject barJsonObject = JsonFactory.newObjectBuilder()
+                .set("bar", bazJsonObject)
+                .set("yo", intValue10)
+                .build();
 
         final JsonObject underTest = ImmutableJsonObject.of(toMap("foo", barJsonObject));
 
@@ -537,7 +539,7 @@ public final class ImmutableJsonObjectTest {
     @Test(expected = NullPointerException.class)
     public void tryToRemoveJsonFieldByNullName() {
         final JsonObject underTest = ImmutableJsonObject.of(KNOWN_FIELDS);
-        underTest.remove((String) null);
+        underTest.remove(null);
     }
 
     @Test
@@ -570,9 +572,9 @@ public final class ImmutableJsonObjectTest {
         underTest.remove(KNOWN_KEY_BAZ);
 
         assertThat(afterRemoval)
-                .contains(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ)
                 .as("Another removal on original"
-                        + " JSON object has no influence on the JSON object which was created after first removal.");
+                        + " JSON object has no influence on the JSON object which was created after first removal.")
+                .contains(KNOWN_KEY_BAZ, KNOWN_VALUE_BAZ);
     }
 
     @Test
@@ -1272,8 +1274,7 @@ public final class ImmutableJsonObjectTest {
         final JsonObject underTest = JsonFactory.newObject(jsonString);
 
         // a field selector is overlapping if one pointer is a prefix of another.
-        final JsonFieldSelector overlappingSelector =
-                JsonFieldSelector.newInstance("x/y", "x/z", "x");
+        final JsonFieldSelector overlappingSelector = JsonFieldSelector.newInstance("x/y", "x/z", "x");
         final JsonObject actual = underTest.get(overlappingSelector);
 
         assertThat(actual).isEqualTo(underTest.remove("w"));
