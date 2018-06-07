@@ -283,36 +283,42 @@ public final class JsonObjectAssert
     private static void compareFieldValues(final JsonField expectedField, final JsonField actualField,
             final boolean compareFieldDefinitions) {
 
-        final JsonValue expectedFieldValue = expectedField.getValue();
-        final JsonValue actualFieldValue = actualField.getValue();
+        compareValuesWithFieldKey(expectedField.getKey(), expectedField.getValue(),
+                actualField.getValue(), compareFieldDefinitions);
+    }
+
+    /*
+     * Recursively compare complex json values. The flag 'compareFieldDefinitions' is applied recursively to all
+     * parts of the json values.
+     */
+    private static void compareValuesWithFieldKey(final JsonKey key,
+            final JsonValue expectedFieldValue,
+            final JsonValue actualFieldValue,
+            final boolean compareFieldDefinitions) {
 
         if (expectedFieldValue.isObject() && actualFieldValue.isObject() && !compareFieldDefinitions) {
             DittoJsonAssertions.assertThat(actualFieldValue.asObject())
                     .isEqualToIgnoringFieldDefinitions(expectedFieldValue.asObject());
-        } else if (areArraysOfEqualNumberOfObjects(expectedFieldValue, actualFieldValue) && !compareFieldDefinitions) {
+        } else if (areArraysOfEqualSize(expectedFieldValue, actualFieldValue) && !compareFieldDefinitions) {
             final JsonArray expectedArray = expectedFieldValue.asArray();
             final JsonArray actualArray = actualFieldValue.asArray();
-            IntStream.range(0, expectedArray.getSize()).forEach(i -> {
-                DittoJsonAssertions.assertThat(actualArray.get(i).get().asObject())
-                        .isEqualToIgnoringFieldDefinitions(expectedArray.get(i).get().asObject());
-            });
+            IntStream.range(0, expectedArray.getSize())
+                    .forEach(i ->
+                            expectedArray.get(i).ifPresent(expectedElement ->
+                                    actualArray.get(i).ifPresent(actualElement ->
+                                            compareValuesWithFieldKey(key, expectedElement, actualElement,
+                                                    compareFieldDefinitions)))
+                    );
         } else {
             Assertions.assertThat(actualFieldValue)
-                    .as("Values of JsonField <%s> are equal", expectedField.getKey())
+                    .as("Values of JsonField <%s> are equal", key)
                     .isEqualTo(expectedFieldValue);
         }
     }
 
-    private static boolean areArraysOfEqualNumberOfObjects(final JsonValue expected, final JsonValue actual) {
-        if (expected.isArray() && actual.isArray()) {
-            final JsonArray expectedArray = expected.asArray();
-            final JsonArray actualArray = actual.asArray();
-            return expectedArray.getSize() == actualArray.getSize() &&
-                    expectedArray.stream().map(JsonValue::isObject).reduce(true, (x, y) -> x & y) &&
-                    actualArray.stream().map(JsonValue::isObject).reduce(true, (x, y) -> x & y);
-        } else {
-            return false;
-        }
+    private static boolean areArraysOfEqualSize(final JsonValue expected, final JsonValue actual) {
+        return expected.isArray() && actual.isArray() &&
+                expected.asArray().getSize() == actual.asArray().getSize();
     }
 
     private static void compareFieldDefinitions(final JsonField expectedField, final JsonField actualField) {
