@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.test;
 
-
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -21,7 +20,7 @@ import org.awaitility.core.ConditionFactory;
 /**
  * Retry mechanism based on Awaitility.
  */
-public class Retry {
+public final class Retry {
 
     /**
      * Retry a supplier until it provides a value.
@@ -33,7 +32,6 @@ public class Retry {
     public static <T> T untilSuccess(final ThrowingSupplier<T> throwingSupplier) {
         return untilSuccess(throwingSupplier, Function.identity());
     }
-
 
     /**
      * Retry a supplier until it provides a value.
@@ -53,7 +51,6 @@ public class Retry {
         return box.get();
     }
 
-
     /**
      * Supplier that may throw any exception.
      *
@@ -70,4 +67,5 @@ public class Retry {
          */
         T get() throws Throwable;
     }
+
 }
