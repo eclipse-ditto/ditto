@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategy;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
-import org.eclipse.ditto.services.utils.distributedcache.model.BaseCacheEntry;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
@@ -72,11 +71,6 @@ public final class GatewayMappingStrategyTest {
     @Test
     public void allThingsMappingStrategiesAreKnown() {
         assertThatStrategy().knowsAllOf(new ThingsMappingStrategy());
-    }
-
-    @Test
-    public void baseCacheEntryIsKnown() {
-        assertThatStrategy().knows(BaseCacheEntry.class.getSimpleName());
     }
 
     @Test

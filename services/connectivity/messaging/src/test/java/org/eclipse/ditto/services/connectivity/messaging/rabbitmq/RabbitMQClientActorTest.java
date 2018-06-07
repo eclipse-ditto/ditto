@@ -175,7 +175,7 @@ public class RabbitMQClientActorTest {
 
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-            verify(mockConnection, Mockito.atLeast(2)).createChannel();
+            verify(mockConnection, Mockito.atLeast(1)).createChannel();
         }};
     }
 

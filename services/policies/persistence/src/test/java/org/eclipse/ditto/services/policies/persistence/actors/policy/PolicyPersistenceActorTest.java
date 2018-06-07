@@ -72,8 +72,8 @@ import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.testkit.JavaTestKit;
 import akka.testkit.TestActorRef;
+import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
@@ -83,17 +83,17 @@ import scala.runtime.BoxedUnit;
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     @Before
-    public void setup()
-    {
+    public void setup() {
         setUpBase();
     }
+
     /** */
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
         final String policyId = "test.ns:23420815";
         final PolicyCommand retrievePolicyCommand = RetrievePolicy.of(policyId, dittoHeadersMockV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policyId);
                 policyPersistenceActor.tell(retrievePolicyCommand, getRef());
@@ -113,8 +113,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersMockV2);
 
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator,
-                policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyIdOfActor, snapshotAdapter, pubSubMediator);
         final TestActorRef<PolicyPersistenceActor> underTest = TestActorRef.create(actorSystem, props);
         final PolicyPersistenceActor policyPersistenceActor = underTest.underlyingActor();
         final PartialFunction<Object, BoxedUnit> receiveCommand = policyPersistenceActor.receiveCommand();
@@ -130,7 +129,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void createPolicy() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -156,7 +155,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final ModifyPolicy modifyPolicyCommand =
                 ModifyPolicy.of(policy.getId().get(), modifiedPolicy, dittoHeadersMockV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(policy);
                 underTest.tell(createPolicyCommand, getRef());
@@ -180,7 +179,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final PolicyQueryCommandResponse expectedResponse =
                 RetrievePolicyResponse.of(policy.getId().orElse(null), policy, retrievePolicyCommand.getDittoHeaders());
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(policy);
                 underTest.tell(createPolicyCommand, getRef());
@@ -203,7 +202,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final SudoRetrievePolicy sudoRetrievePolicyCommand =
                 SudoRetrievePolicy.of(policy.getId().orElse(null), dittoHeadersMockV2);
 
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor(policy);
                 underTest.tell(createPolicyCommand, getRef());
@@ -220,7 +219,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void deletePolicy() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -241,7 +240,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void createPolicyEntry() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyEntry policyEntryToAdd =
@@ -279,7 +278,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void modifyPolicyEntry() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
@@ -317,7 +316,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void tryToModifyPolicyEntryWithInvalidPermissions() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject newSubject =
@@ -349,7 +348,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void removePolicyEntry() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
 
@@ -385,7 +384,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void tryToRemoveLastPolicyEntry() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
 
@@ -412,7 +411,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void createResource() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToAdd = Resource.newInstance(PoliciesResourceType.policyResource(
@@ -451,7 +450,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void modifyResource() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToModify = Resource.newInstance(PoliciesResourceType.policyResource(
@@ -490,7 +489,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void tryToModifyResource() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Resource resourceToModify = Resource.newInstance(
@@ -521,7 +520,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void removeResource() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
 
@@ -561,7 +560,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void createSubject() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToAdd =
@@ -598,7 +597,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void modifySubject() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final Subject subjectToModify =
@@ -634,7 +633,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void removeSubject() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
 
@@ -671,7 +670,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverPolicyCreated() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -700,7 +699,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverPolicyDeleted() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -732,7 +731,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverPolicyEntryModified() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -778,7 +777,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void recoverPolicyEntryDeleted() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -814,7 +813,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureSequenceNumberCorrectness() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -851,7 +850,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     /** */
     @Test
     public void ensureSequenceNumberCorrectnessAfterRecovery() {
-        new JavaTestKit(actorSystem) {
+        new TestKit(actorSystem) {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final ActorRef policyPersistenceActor = createPersistenceActorFor(policy);
@@ -895,7 +894,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final String policyId) {
         final PolicyMongoSnapshotAdapter snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator, policyCacheFacade);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
         return actorSystem.actorOf(props);
     }
 }

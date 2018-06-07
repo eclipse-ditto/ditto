@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -27,7 +26,6 @@ interface ResourcePermissions {
      *
      * @return the resource.
      */
-    @Nonnull
     String getResource();
 
     /**
@@ -35,7 +33,6 @@ interface ResourcePermissions {
      *
      * @return an unmodifiable unsorted set containing the IDs or an empty set.
      */
-    @Nonnull
     Set<String> getReadGrantedSubjectIds();
 
     /**
@@ -43,7 +40,6 @@ interface ResourcePermissions {
      *
      * @return an unmodifiable unsorted set containing the IDs or an empty set.
      */
-    @Nonnull
     Set<String> getReadRevokedSubjectIds();
 
     /**
@@ -54,7 +50,6 @@ interface ResourcePermissions {
      * @throws NullPointerException if {@code thingId} is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} is empty.
      */
-    @Nonnull
-    String createPolicyEntryId(@Nonnull CharSequence thingId);
+    String createPolicyEntryId(CharSequence thingId);
 
 }

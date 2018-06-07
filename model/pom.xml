@@ -31,7 +31,7 @@
         <module>devops</module>
         <module>messages</module>
         <module>policies</module>
-        <module>policies-enforcers</module>
+        <module>enforcers</module>
         <module>things</module>
         <module>thingsearch</module>
         <module>thingsearch-parser</module>

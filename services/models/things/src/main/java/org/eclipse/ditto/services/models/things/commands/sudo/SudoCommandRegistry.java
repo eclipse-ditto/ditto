@@ -42,7 +42,6 @@ public class SudoCommandRegistry extends AbstractCommandRegistry<SudoCommand> {
     public static SudoCommandRegistry newInstance() {
         final Map<String, JsonParsable<SudoCommand>> parseStrategies = new HashMap<>();
 
-        parseStrategies.put(TakeSnapshot.TYPE, TakeSnapshot::fromJson);
         parseStrategies.put(SudoRetrieveThing.TYPE, SudoRetrieveThing::fromJson);
         parseStrategies.put(SudoRetrieveThings.TYPE, SudoRetrieveThings::fromJson);
 

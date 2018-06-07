@@ -12,8 +12,8 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.exists;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.bson.BsonDocument;
+import org.bson.BsonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
@@ -81,9 +82,22 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         maxQueryTime = MongoConfig.getMaxQueryTime(actorSystem.settings().config());
     }
 
+    /**
+     * Create a BSON filter for not-deleted entries.
+     *
+     * @return the BSON filter.
+     */
+    public static BsonDocument filterNotDeleted() {
+        return new BsonDocument().append(FIELD_DELETED, BsonNull.VALUE);
+    }
+
     @Override
     public CompletionStage<Void> initializeIndices() {
-        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all());
+        return indexInitializer.initialize(PersistenceConstants.THINGS_COLLECTION_NAME, Indices.Things.all())
+                .exceptionally(t -> {
+                    log.error("Index-Initialization failed.", t);
+                    return null;
+                });
     }
 
     @Override
@@ -149,7 +163,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final BsonDocument queryFilter = getMongoFilter(query);
         log.debug("count with query filter <{}>.", queryFilter);
 
-        final Bson filter = and(exists(PersistenceConstants.FIELD_DELETED, false), queryFilter);
+        final Bson filter = and(filterNotDeleted(), queryFilter);
 
         final CountOptions countOptions = new CountOptions()
                 .skip(query.getSkip())
@@ -170,7 +184,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
             log.debug("findAll with query filter <{}>.", queryFilter);
         }
 
-        final Bson filter = and(exists(PersistenceConstants.FIELD_DELETED, false), queryFilter);
+        final Bson filter = and(filterNotDeleted(), queryFilter);
         final Optional<Bson> sortOptions = Optional.of(getMongoSort(query));
 
         final int limit = query.getLimit();

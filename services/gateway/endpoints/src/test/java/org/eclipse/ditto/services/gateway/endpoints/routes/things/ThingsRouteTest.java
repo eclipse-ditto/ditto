@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,8 +39,9 @@ public class ThingsRouteTest extends EndpointTestBase {
     public void setUp() {
         thingsRoute = new ThingsRoute(createDummyResponseActor(), system(), Duration.ZERO, Duration.ZERO,
                 Duration.ZERO, Duration.ZERO);
+
         final Route route =
-                extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.newBuilder().build()));
+                extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, DittoHeaders.empty()));
         underTest = testRoute(route);
     }
 
@@ -57,7 +59,16 @@ public class ThingsRouteTest extends EndpointTestBase {
         for (int i = 0; i < numberOfUUIDs; ++i) {
             pathBuilder.append(':').append(UUID.randomUUID());
         }
-        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
-        result.assertStatusCode(StatusCodes.NOT_FOUND);
+        underTest.run(HttpRequest.GET(pathBuilder.toString()));
+    }
+
+    @Test
+    public void getThingsWithEmptyIdsList() {
+        final TestRouteResult result = underTest.run(HttpRequest.GET("/things?ids="));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        final MissingThingIdsException expectedEx = MissingThingIdsException.newBuilder()
+                .dittoHeaders(DittoHeaders.empty())
+                .build();
+        result.assertEntity(expectedEx.toJsonString());
     }
 }

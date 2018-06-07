@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -30,8 +31,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
@@ -79,8 +79,8 @@ public final class AggregationPolicyAuthIT extends AbstractReadPersistenceITBase
     private static final List<String> SUBJECTS_USER_1 = Collections.singletonList("eclipse:user1");
     private static final List<String> SUBJECTS_USER_2 = Collections.singletonList("eclipse:user2");
 
-    private final PolicyEnforcer policyEnforcerThing1_5 = PolicyEnforcers.defaultEvaluator(createPolicy1_5());
-    private final PolicyEnforcer policyEnforcerThing2_3_4 = PolicyEnforcers.defaultEvaluator(createPolicy2_3_4());
+    private final Enforcer policyEnforcerThing1_5 = PolicyEnforcers.defaultEvaluator(createPolicy1_5());
+    private final Enforcer policyEnforcerThing2_3_4 = PolicyEnforcers.defaultEvaluator(createPolicy2_3_4());
 
     @Before
     @Override
@@ -238,7 +238,7 @@ public final class AggregationPolicyAuthIT extends AbstractReadPersistenceITBase
      * Overriden to get different policyEnforcer for the different Things.
      */
     @Override
-    protected PolicyEnforcer getPolicyEnforcer(final String thingId) {
+    protected Enforcer getPolicyEnforcer(final String thingId) {
         if (thingId.equals(THING1_ID) || thingId.equals(THING5_ID)) {
             return policyEnforcerThing1_5;
         }

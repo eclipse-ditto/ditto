@@ -70,15 +70,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-actors</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
@@ -89,10 +80,6 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-tools_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-distributed-data_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
@@ -108,6 +95,19 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
         </dependency>
@@ -120,14 +120,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
         </dependency>
 
         <dependency>

@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -24,8 +25,9 @@ public interface ConnectionActorPropsFactory {
      * Create actor {@link Props} for a connection.
      *
      * @param connection the connection
+     * @param conciergeForwarder the actor used to send signals to the concierge service
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection);
+    Props getActorPropsForType(Connection connection, ActorRef conciergeForwarder);
 
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
@@ -21,12 +22,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventT
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -67,10 +65,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private final ActorRef thingsUpdaterActor;
 
-    private SearchUpdaterRootActor(final Config config, final ActorRef pubSubMediator,
+    private SearchUpdaterRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer, final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
-        final int numberOfShards = config.getInt(ConfigKeys.CLUSTER_NUMBER_OF_SHARDS);
+        final int numberOfShards = configReader.cluster().numberOfShards();
+
+        final Config config = configReader.getRawConfig();
 
         final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
                 new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
@@ -105,18 +105,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled.");
         }
 
-        final boolean cacheUpdatesActive = config.getBoolean(ConfigKeys.CACHE_UPDATES_ACTIVE);
-        if (!cacheUpdatesActive) {
-            log.warning("Cache-updates are disabled.");
-        }
-
-        final ActorRef thingCacheFacade = cacheUpdatesActive ?
-                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.THING),
-                        CacheFacadeActor.props(CacheRole.THING, config)) : null;
-        final ActorRef policyCacheFacade = cacheUpdatesActive ?
-                startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                        CacheFacadeActor.props(CacheRole.POLICY, config)) : null;
-
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
@@ -125,8 +113,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
                 .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize,
-                        thingCacheFacade, policyCacheFacade));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
@@ -180,11 +167,15 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this SearchUpdaterRootActor.
      *
-     * @param config the configuration settings of the Search Updater Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
+     * @param materializer TODO Javadoc
+     * @param thingsSyncPersistence TODO Javadoc
+     * @param policiesSyncPersistence TODO Javadoc
      * @return a Props object to create this actor.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator, final ActorMaterializer materializer,
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
@@ -192,15 +183,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
             @Override
             public SearchUpdaterRootActor create() {
-                return new SearchUpdaterRootActor(config, pubSubMediator, materializer, thingsSyncPersistence,
+                return new SearchUpdaterRootActor(configReader, pubSubMediator, materializer, thingsSyncPersistence,
                         policiesSyncPersistence);
             }
         });
-    }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return supervisorStrategy;
     }
 
     @Override
@@ -214,6 +200,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                     unhandled(m);
                 })
                 .build();
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return supervisorStrategy;
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {

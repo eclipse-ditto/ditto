@@ -29,9 +29,7 @@ public final class ConfigKeys {
     private static final String DITTO_PREFIX = "ditto.";
     private static final String SEARCH_PREFIX = DITTO_PREFIX + SEARCH_ROLE + ".";
     private static final String SEARCH_UPDATER_PREFIX = SEARCH_PREFIX + "updater.";
-    private static final String CLUSTER_PREFIX = SEARCH_PREFIX + "cluster.";
-    private static final String CLUSTER_MAJORITY_CHECK_PREFIX = CLUSTER_PREFIX + "majority-check.";
-    private static final String STATSD_PREFIX = SEARCH_PREFIX + "statsd.";
+
     /**
      * Prefix for mongoDB config
      */
@@ -93,19 +91,7 @@ public final class ConfigKeys {
      */
     public static final String THINGS_ACTIVITY_CHECK_INTERVAL = SEARCH_UPDATER_PREFIX +
             "activity-check-interval";
-    /**
-     * Key of the how many shards should be used in the cluster.
-     */
-    public static final String CLUSTER_NUMBER_OF_SHARDS = CLUSTER_PREFIX + "number-of-shards";
 
-    /**
-     * Key of the majority check enabled configuration.
-     */
-    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
-    /**
-     * Key of the majority check delay.
-     */
-    public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
     private static final String SYNC_PREFIX = SEARCH_UPDATER_PREFIX + "sync.";
 
     private static final String SYNC_THINGS_PREFIX = SYNC_PREFIX + "things.";
@@ -216,43 +202,6 @@ public final class ConfigKeys {
      */
     public static final String POLICIES_SYNCER_ELEMENTS_STREAMED_PER_BATCH = SYNC_POLICIES_PREFIX +
             "elements-streamed-per-batch";
-
-    private static final String HTTP_PREFIX = SEARCH_PREFIX + "http.";
-    /**
-     * Key of the hostname value of a HTTP service.
-     */
-    public static final String HTTP_HOSTNAME = HTTP_PREFIX + "hostname";
-    /**
-     * Key of the port number value of a HTTP service.
-     */
-    public static final String HTTP_PORT = HTTP_PREFIX + "port";
-    private static final String HEALTH_CHECK_PREFIX = SEARCH_PREFIX + "health-check.";
-    /**
-     * Whether the health check should be enabled (globally) or not.
-     */
-    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED_SUFFIX;
-    /**
-     * The interval of the health check.
-     */
-    public static final String HEALTH_CHECK_INTERVAL = HEALTH_CHECK_PREFIX + "interval";
-    private static final String HEALTH_CHECK_PERSISTENCE_PREFIX = HEALTH_CHECK_PREFIX + "persistence.";
-    /**
-     * Whether the health check for persistence should be enabled or not.
-     */
-    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + ENABLED_SUFFIX;
-    /**
-     * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
-     * considered "DOWN".
-     */
-    public static final String HEALTH_CHECK_PERSISTENCE_TIMEOUT = HEALTH_CHECK_PERSISTENCE_PREFIX + "timeout";
-    /**
-     * The StatsD hostname used for sending metrics to.
-     */
-    public static final String STATSD_HOSTNAME = STATSD_PREFIX + "hostname";
-    /**
-     * The StatsD port used for sending metrics to.
-     */
-    public static final String STATSD_PORT = STATSD_PREFIX + "port";
 
     /*
      * This class is not designed for instantiation.

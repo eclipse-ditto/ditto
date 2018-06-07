@@ -359,7 +359,6 @@ a.accordion-toggle, a.accordion-collapsed {
     text-decoration: none;
 }
 
-/* navgoco sidebar styles (customized) */
 .nav, .nav ul, .nav li {
     list-style: none;
 }
@@ -787,10 +786,19 @@ ol.series li {
     border-color: #248ec2 !important;
 }
 
-#mysidebar .nav ul {
+#mysidebar.nav ul {
     background-color: #FAFAFA;
 }
-.nav ul.series li {
+#mysidebar.nav ul {
+    display: none;
+}
+#mysidebar.nav li.active > ul {
+    display: block;
+}
+#mysidebar.nav li.open > ul {
+    display: block;
+}
+#mysidebar.nav ul.series li {
     list-style: decimal;
     font-size:12px;
 }
@@ -810,6 +818,22 @@ ol.series li {
 
 .nav ul.series {
     background-color: #FAFAFA;
+}
+
+.topnavlinks .cc-top {
+    font-size: 15px;
+    font-family: Open Sans, sans-serif;
+}
+
+.cc-color-override-1434350510 {
+    background-color: #f5f5f5 !important;
+    color: #5c7291 !important;
+}
+.cc-color-override-1434350510 .cc-link {
+    color: black !important;
+}
+.cc-color-override-1434350510 .cc-btn.cc-allow {
+    background-color: #3a8c9a !important;
 }
 
 /*

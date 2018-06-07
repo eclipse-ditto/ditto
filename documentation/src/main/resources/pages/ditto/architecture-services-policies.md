@@ -27,6 +27,6 @@ Other services can communicate with the policies service via:
 ## Persistence
 
 The policies service uses [Akka persistence](https://doc.akka.io/docs/akka/current/persistence.html?language=java) and 
-with that [Event sourcing](http://localhost:4000/basic-signals.html#architectural-style) in order to persist changes 
-and restore persisted entities.
+with that [Event sourcing](basic-signals.html#architectural-style) in order to persist changes to  
+and restore persisted [policies](basic-policy.html).
 

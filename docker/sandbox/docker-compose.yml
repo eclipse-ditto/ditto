@@ -19,7 +19,6 @@ services:
       default:
         aliases:
           - ditto-cluster
-    entrypoint: sh -c "java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -34,7 +33,6 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 10; java -jar /opt/ditto/starter.jar"
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -49,7 +47,35 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 20; java -jar /opt/ditto/starter.jar"
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+
+  concierge:
+    image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+    environment:
+      - TZ=Europe/Berlin
+      - INSTANCE_INDEX=1
+      - BIND_HOSTNAME=0.0.0.0
+      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+
+  connectivity:
+    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    networks:
+      default:
+        aliases:
+          - ditto-cluster
+    depends_on:
+      - policies
+      - concierge
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
@@ -64,31 +90,15 @@ services:
           - ditto-cluster
     depends_on:
       - policies
-    entrypoint: sh -c "sleep 45; java -jar /opt/ditto/starter.jar"
+      - concierge
     environment:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
-      - IBM_JAVA_OPTIONS=-Xms512m -Xmx512m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
       - DEVOPS_SECURE_STATUS=false
       - GATEWAY_PUBLIC_HEALTH_SECURE=false
-
-  connectivity:
-    image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
-    networks:
-      default:
-        aliases:
-          - ditto-cluster
-    depends_on:
-      - policies
-      - gateway
-    entrypoint: sh -c "sleep 60; java -jar /opt/ditto/starter.jar"
-    environment:
-      - TZ=Europe/Berlin
-      - INSTANCE_INDEX=1
-      - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-Xms256m -Xms256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9

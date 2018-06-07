@@ -51,9 +51,7 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
-import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -61,9 +59,6 @@ import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnap
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.ModifyCacheEntry;
-import org.eclipse.ditto.services.utils.distributedcache.actors.WriteConsistency;
-import org.eclipse.ditto.services.utils.distributedcache.model.CacheEntry;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -224,26 +219,21 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private final String thingId;
     private final ActorRef pubSubMediator;
-    private final ActorRef thingCacheFacade;
     private final java.time.Duration activityCheckInterval;
     private final java.time.Duration activityCheckDeletedInterval;
     private final Receive handleThingEvents;
-
+    private final ThingSnapshotter<?, ?> thingSnapshotter;
+    private final long snapshotThreshold;
     private long accessCounter;
     private Cancellable activityChecker;
     private Thing thing;
 
-    private final ThingSnapshotter<?, ?> thingSnapshotter;
-    private final long snapshotThreshold;
-
     private ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
-        this.thingCacheFacade = thingCacheFacade;
 
         final Config config = getContext().system().settings().config();
         activityCheckInterval = config.getDuration(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL);
@@ -276,13 +266,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 // # Thing Modification
                 .match(ThingModified.class, tm -> {
                     // we need to use the current thing as base otherwise we would loose its state
-                    final ThingBuilder.FromCopy copyBuilder = thing.toBuilder().setLifecycle(ThingLifecycle.ACTIVE);
-                    tm.getThing().getPolicyId().ifPresent(copyBuilder::setPolicyId);
-                    tm.getThing().getAccessControlList().ifPresent(copyBuilder::setPermissions);
-                    tm.getThing().getAttributes().ifPresent(copyBuilder::setAttributes);
-                    tm.getThing().getFeatures().ifPresent(copyBuilder::setFeatures);
-                    tm.getTimestamp().ifPresent(copyBuilder::setModified);
-                    thing = copyBuilder.setRevision(getRevisionNumber()).build();
+                    final ThingBuilder.FromCopy copyBuilder = thing.toBuilder().setLifecycle(ThingLifecycle.ACTIVE)
+                            .setRevision(getRevisionNumber())
+                            .setModified(tm.getTimestamp().orElse(null));
+
+                    mergeThingModifications(tm.getThing(), copyBuilder);
+
+                    this.thing = copyBuilder.build();
                 })
 
                 // # Thing Deletion
@@ -496,6 +486,86 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .build();
     }
 
+    /**
+     * Merges the modifications from {@code thingWithModifications} to {@code builder}. Merge is implemented very
+     * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
+     * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code
+     * builder} remains unchanged.
+     * @param thingWithModifications the thing containing the modifications.
+     * @param builder the builder to be modified.
+     */
+    private void mergeThingModifications(final Thing thingWithModifications, final ThingBuilder.FromCopy builder) {
+        thingWithModifications.getPolicyId().ifPresent(builder::setPolicyId);
+        thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
+        thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
+        thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
+    }
+
+    /**
+     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
+     *
+     * @param thingId the Thing ID this Actor manages.
+     * @param pubSubMediator the PubSub mediator actor.
+     * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final String thingId,
+            final ActorRef pubSubMediator,
+            final ThingSnapshotter.Create thingSnapshotterCreate) {
+
+        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ThingPersistenceActor create() {
+                return new ThingPersistenceActor(thingId, pubSubMediator, thingSnapshotterCreate);
+            }
+        });
+    }
+
+    /**
+     * Creates a default Akka configuration object {@link Props} for this ThingPersistenceActor using sudo commands
+     * for external snapshot requests.
+     *
+     * @param thingId the Thing ID this Actor manages.
+     * @param pubSubMediator the PubSub mediator actor.
+     * @return the Akka configuration Props object
+     */
+    public static Props props(final String thingId, final ActorRef pubSubMediator) {
+        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ThingPersistenceActor create() {
+                return new ThingPersistenceActor(thingId, pubSubMediator, DittoThingSnapshotter::getInstance);
+            }
+        });
+    }
+
+    /**
+     * Retrieves the ShardRegion of "Things". ThingCommands can be sent to this region which handles dispatching them
+     * in the cluster (onto the cluster node containing the shard).
+     *
+     * @param system the ActorSystem in which to lookup the ShardRegion.
+     * @return the ActorRef to the ShardRegion.
+     */
+    public static ActorRef getShardRegion(final ActorSystem system) {
+        return ClusterSharding.get(system).shardRegion(ThingsMessagingConstants.SHARD_REGION);
+    }
+
+    private static Instant eventTimestamp() {
+        return Instant.now();
+    }
+
+    private static Thing enhanceThingWithLifecycle(final Thing thing) {
+        final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
+        if (!thing.getLifecycle().isPresent()) {
+            thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
+        }
+
+        return thingBuilder.build();
+    }
+
     private long getRevisionNumber() {
         return lastSequenceNr();
     }
@@ -510,62 +580,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @Override
     public String getThingId() {
         return thingId;
-    }
-
-    /**
-     * Creates Akka configuration object {@link Props} for this ThingPersistenceActor.
-     *
-     * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
-     * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
-     * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
-     * @return the Akka configuration Props object
-     */
-    public static Props props(final String thingId,
-            final ActorRef pubSubMediator,
-            final ActorRef thingCacheFacade,
-            final ThingSnapshotter.Create thingSnapshotterCreate) {
-
-        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingPersistenceActor create() {
-                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade, thingSnapshotterCreate);
-            }
-        });
-    }
-
-    /**
-     * Creates a default Akka configuration object {@link Props} for this ThingPersistenceActor using sudo commands
-     * for external snapshot requests.
-     *
-     * @param thingId the Thing ID this Actor manages.
-     * @param pubSubMediator the PubSub mediator actor.
-     * @param thingCacheFacade the cache facade for accessing the thing cache in cluster.
-     * @return the Akka configuration Props object
-     */
-    public static Props props(final String thingId, final ActorRef pubSubMediator, final ActorRef thingCacheFacade) {
-        return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public ThingPersistenceActor create() {
-                return new ThingPersistenceActor(thingId, pubSubMediator, thingCacheFacade,
-                        DittoThingSnapshotter::getInstance);
-            }
-        });
-    }
-
-    /**
-     * Retrieves the ShardRegion of "Things". ThingCommands can be sent to this region which handles dispatching them
-     * in the cluster (onto the cluster node containing the shard).
-     *
-     * @param system the ActorSystem in which to lookup the ShardRegion.
-     * @return the ActorRef to the ShardRegion.
-     */
-    public static ActorRef getShardRegion(final ActorSystem system) {
-        return ClusterSharding.get(system).shardRegion(ThingsMessagingConstants.SHARD_REGION);
     }
 
     private void scheduleCheckForThingActivity(final long intervalInSeconds) {
@@ -636,17 +650,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         thing = enhanceThingWithLifecycle(thing);
                         log.debug("Thing '{}' was recovered.", thingId);
 
-                        final Long theRevision = thing.getRevision()
-                                .map(ThingRevision::toLong)
-                                .orElse(lastSequenceNr());
-                        CacheEntry cacheEntry = ThingCacheEntry.of(thing.getImplementedSchemaVersion(),
-                                thing.getPolicyId().orElse(null), theRevision);
-
-                        final WriteConsistency writeConsistency;
                         if (isThingActive()) {
-                            // use MAJORITY write-consistency so that gateway can find enforcer for this thing
-                            // even if the very next command is DeleteThing.
-                            writeConsistency = WriteConsistency.MAJORITY;
                             becomeThingCreatedHandler();
                         } else {
                             // expect life cycle to be DELETED. if it's not, then act as if this thing is deleted.
@@ -654,18 +658,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                                 // life cycle isn't known, act as
                                 log.error("Unknown lifecycle state '{}' for Thing '{}'", thing.getLifecycle(), thingId);
                             }
-
-                            // use LOCAL write-consistency for deleted things because deleted things have no enforcer
-                            // anyway
-                            writeConsistency = WriteConsistency.LOCAL;
                             becomeThingDeletedHandler();
-                            cacheEntry = cacheEntry.asDeleted(theRevision);
                         }
 
-                        // cache update without change of actor state.
-
-                        thingCacheFacade.tell(new ModifyCacheEntry(thingId, cacheEntry, writeConsistency),
-                                ActorRef.noSender());
                     }
                 })
 
@@ -842,45 +837,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private <A extends ThingModifiedEvent> void applyEvent(final A event) {
         handleThingEvents.onMessage().apply(event);
-        modifyCacheEntry(event);
         notifySubscribers(event);
-    }
-
-    private <A extends ThingModifiedEvent> void modifyCacheEntry(final A event) {
-        // don't modify cache entry for "ThingDeleted" event as in gateway we still need to dispatch the event on the
-        // ACL of the deleted Thing
-        if (event instanceof ThingDeleted) {
-            return;
-        }
-
-        final ThingCacheEntry cacheEntry =
-                ThingCacheEntry.of(thing.getImplementedSchemaVersion(), thing.getPolicyId().orElse(null),
-                        getRevisionNumber());
-
-        // Use MAJORITY write-consistency for ThingCreated events only
-        // so that a fallback enforcer exists always
-        final WriteConsistency writeConsistency = (event instanceof ThingCreated)
-                ? WriteConsistency.MAJORITY
-                : WriteConsistency.LOCAL;
-
-        thingCacheFacade.tell(new ModifyCacheEntry(thingId, cacheEntry, writeConsistency), ActorRef.noSender());
     }
 
     private long nextRevision() {
         return getRevisionNumber() + 1;
-    }
-
-    private static Instant eventTimestamp() {
-        return Instant.now();
-    }
-
-    private static Thing enhanceThingWithLifecycle(final Thing thing) {
-        final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
-        if (!thing.getLifecycle().isPresent()) {
-            thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
-        }
-
-        return thingBuilder.build();
     }
 
     /**
@@ -970,6 +931,26 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         notifySender(getSender(), FeaturePropertyNotAccessibleException.newBuilder(thingId, featureId, jsonPointer)
                 .dittoHeaders(dittoHeaders)
                 .build());
+    }
+
+    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
+        if (isLogIncomingMessages()) {
+            return new LogIncomingMessagesConsumer();
+        }
+        return null;
+    }
+
+    /**
+     * Indicates whether the logging of incoming messages is enabled by config or not.
+     *
+     * @return {@code true} if information about incoming messages should be logged, {@code false} else.
+     */
+    private boolean isLogIncomingMessages() {
+        final ActorSystem actorSystem = getContext().getSystem();
+        final Config config = actorSystem.settings().config();
+
+        return config.hasPath(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES) &&
+                config.getBoolean(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES);
     }
 
     /**
@@ -1076,22 +1057,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             final ThingCreated thingCreated;
             if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                final DittoHeaders responseHeaders;
-                final Optional<AccessControlList> acl = newThing.getAccessControlList();
-                if (acl.isPresent()) {
-                    // for newly created V1 things with default ACLs the readSubjects have to be set (cause they are not
-                    // yet known in AclEnforcerActor) - in case of already existing readSubjects, they are
-                    // overwritten which is okay because this actor should know better than any other
-                    final Collection<String> readSubjects = determineReadSubjects(acl.get());
-                    log.debug("Enriching responseHeaders with readSubjects: {}", readSubjects);
-                    responseHeaders = DittoHeaders.newBuilder(commandHeaders).readSubjects(readSubjects).build();
-                } else {
-                    log.warning("V1 command {} with {} does not contain ACL, cannot determine readSubjects.",
-                            command.getType(), newThing.getId());
-                    responseHeaders = commandHeaders;
-                }
-
-                thingCreated = ThingCreated.of(newThing, nextRevision(), eventTimestamp(), responseHeaders);
+                thingCreated = ThingCreated.of(newThing, nextRevision(), eventTimestamp(), commandHeaders);
             }
             // default case handle as v2 and upwards:
             else {
@@ -1119,6 +1085,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 //acl is not allowed to be set in v2
                 if (thing.getAccessControlList().isPresent()) {
                     throw AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+                }
+
+                // policyId is required for v2
+                if (!thing.getPolicyId().isPresent()) {
+                    throw PolicyIdMissingException.fromThingIdOnCreate(thingId, dittoHeaders);
                 }
 
                 return enhanceThingWithLifecycle(thing);
@@ -1234,24 +1205,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         @Override
-        public FI.UnitApply<ModifyThing> getApplyFunction() {
-            return command -> {
-                if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                    handleModifyExistingWithV1Command(command);
-                } else {
-                    // from V2 upwards, use this logic:
-                    handleModifyExistingWithV2Command(command);
-                }
-            };
-        }
-
-        @Override
         protected void doApply(final ModifyThing command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final ThingModified thingModified = ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(),
-                    dittoHeaders);
-            persistAndApplyEvent(thingModified,
-                    event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
+            if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
+                handleModifyExistingWithV1Command(command);
+            } else {
+                // from V2 upwards, use this logic:
+                handleModifyExistingWithV2Command(command);
+            }
         }
 
         private void handleModifyExistingWithV1Command(final ModifyThing command) {
@@ -1269,7 +1229,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     .map(AccessControlList::isEmpty)
                     .orElse(true);
             if (!isCommandAclEmpty) {
-                doApply(command);
+                applyModifyCommand(command);
             } else {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
                 final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
@@ -1318,9 +1278,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          */
         private void handleModifyExistingV1WithV2Command(final ModifyThing command) {
             if (containsPolicy(command)) {
-                doApply(command);
+                applyModifyCommand(command);
             } else {
-                notifySender(getSender(), PolicyIdMissingException.fromThingId(thingId, command.getDittoHeaders()));
+                notifySender(getSender(), PolicyIdMissingException.fromThingIdOnUpdate(thingId, command.getDittoHeaders()));
             }
         }
 
@@ -1332,10 +1292,27 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             // ensure the Thing contains a policy ID
             final Thing thingWithPolicyId =
                     containsPolicyId(command) ? command.getThing() : copyPolicyId(thing, command.getThing());
-            doApply(ModifyThing.of(command.getThingId(),
+            applyModifyCommand(ModifyThing.of(command.getThingId(),
                     thingWithPolicyId,
                     null,
                     command.getDittoHeaders()));
+        }
+
+        private void applyModifyCommand(final ModifyThing command) {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+            // make sure that the ThingModified-Event contains all data contained in the resulting thing (this is
+            // required e.g. for updating the search-index)
+            final long nextRevision = nextRevision();
+            final ThingBuilder.FromCopy modifiedThingBuilder = thing.toBuilder()
+                    .setRevision(nextRevision)
+                    .setModified(null);
+            mergeThingModifications(command.getThing(), modifiedThingBuilder);
+            final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(), nextRevision,
+                    eventTimestamp(), dittoHeaders);
+
+            persistAndApplyEvent(thingModified,
+                    event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
         }
 
         private boolean containsPolicy(final ModifyThing command) {
@@ -2603,7 +2580,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     }
 
-
     /**
      * This strategy handles the {@link CheckForActivity} message which checks for activity of the Actor and
      * terminates itself if there was no activity since the last check.
@@ -2682,26 +2658,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             };
         }
 
-    }
-
-    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
-        if (isLogIncomingMessages()) {
-            return new LogIncomingMessagesConsumer();
-        }
-        return null;
-    }
-
-    /**
-     * Indicates whether the logging of incoming messages is enabled by config or not.
-     *
-     * @return {@code true} if information about incoming messages should be logged, {@code false} else.
-     */
-    private boolean isLogIncomingMessages() {
-        final ActorSystem actorSystem = getContext().getSystem();
-        final Config config = actorSystem.settings().config();
-
-        return config.hasPath(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES) &&
-                config.getBoolean(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES);
     }
 
     /**

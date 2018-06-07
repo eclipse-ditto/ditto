@@ -56,10 +56,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cluster</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

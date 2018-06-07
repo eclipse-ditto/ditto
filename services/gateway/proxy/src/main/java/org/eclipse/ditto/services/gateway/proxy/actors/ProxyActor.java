@@ -24,12 +24,8 @@ public final class ProxyActor extends AbstractThingProxyActor {
 
     private ProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef aclEnforcerShardRegion,
-            final ActorRef policyEnforcerShardRegion,
-            final ActorRef thingEnforcerLookup,
-            final ActorRef thingCacheFacade) {
-        super(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion, policyEnforcerShardRegion,
-                thingEnforcerLookup, thingCacheFacade);
+            final ActorRef conciergeForwarder) {
+        super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
     }
 
     /**
@@ -37,25 +33,17 @@ public final class ProxyActor extends AbstractThingProxyActor {
      *
      * @param pubSubMediator the Pub/Sub mediator to use for subscribing for events.
      * @param devOpsCommandsActor the Actor ref to the local DevOpsCommandsActor.
-     * @param aclEnforcerShardRegion the Actor ref of the acl enforcer shard region.
-     * @param policyEnforcerShardRegion the Actor ref of the policy enforcer shard region.
-     * @param thingEnforcerLookup the Actor ref to the thing enforcer lookup actor.
-     * @param thingCacheFacade the Actor ref to the thing cache facade actor.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
-            final ActorRef aclEnforcerShardRegion,
-            final ActorRef policyEnforcerShardRegion,
-            final ActorRef thingEnforcerLookup,
-            final ActorRef thingCacheFacade) {
+            final ActorRef conciergeForwarder) {
         return Props.create(ProxyActor.class, new Creator<ProxyActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ProxyActor create() throws Exception {
-                return new ProxyActor(pubSubMediator, devOpsCommandsActor, aclEnforcerShardRegion,
-                        policyEnforcerShardRegion, thingEnforcerLookup, thingCacheFacade);
+            public ProxyActor create() {
+                return new ProxyActor(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
             }
         });
     }

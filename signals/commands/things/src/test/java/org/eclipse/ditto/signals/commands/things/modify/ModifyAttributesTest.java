@@ -25,15 +25,12 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ModifyAttributes}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyAttributesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.gateway.endpoints.directives.auth.jwt;
 
 import java.security.PublicKey;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A provider for {@link PublicKey}s.
@@ -27,5 +28,5 @@ public interface PublicKeyProvider {
      * @return the PublicKey.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    Optional<PublicKey> getPublicKey(String issuer, String keyId);
+    CompletableFuture<Optional<PublicKey>> getPublicKey(String issuer, String keyId);
 }

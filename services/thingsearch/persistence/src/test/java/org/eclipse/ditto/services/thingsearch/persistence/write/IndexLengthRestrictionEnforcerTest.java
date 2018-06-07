@@ -22,7 +22,6 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,6 +36,15 @@ import akka.event.LoggingAdapter;
 @RunWith(MockitoJUnitRunner.class)
 public final class IndexLengthRestrictionEnforcerTest {
 
+    private static final String NAMESPACE = "com.bosch.iot.test";
+    private static final String THING_ID = NAMESPACE + ":" + "myThingId";
+
+    /**
+     * Overhead of thingId and namespace.
+     *
+     */
+    private static final int THING_ID_NAMESPACE_OVERHEAD = THING_ID.length() + NAMESPACE.length();
+
     @Mock
     private LoggingAdapter log;
 
@@ -44,20 +52,21 @@ public final class IndexLengthRestrictionEnforcerTest {
 
     @Before
     public void setUp() {
-        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log);
+        this.indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log, THING_ID);
     }
 
-    @Test
-    public void newInstance() {
-        final IndexLengthRestrictionEnforcer
-                indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(log);
-        assertThat(indexLengthRestrictionEnforcer).isNotNull();
+    @Test(expected = NullPointerException.class)
+    public void newInstanceWithNullThingIdFails() {
+        IndexLengthRestrictionEnforcer.newInstance(log, null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void newInstanceWithEmptyThingIdFails() {
+        IndexLengthRestrictionEnforcer.newInstance(log, "");
     }
 
     @Test
     public void enforceRestrictionsOnThing() {
-        final String thingId = ":home-box";
-
         final String featureId1 = "text-too-speech-feature";
         final String featureId2 = "illuminance-sensor";
         final Feature feature1 = Feature.newBuilder()
@@ -77,7 +86,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId(thingId)
+                .setId(THING_ID)
                 .setFeature(feature1)
                 .setFeature(feature2)
                 .setAttributes(attributes)
@@ -87,13 +96,22 @@ public final class IndexLengthRestrictionEnforcerTest {
                 .isEqualTo(thing);
     }
 
+
+    @Test(expected = IllegalArgumentException.class)
+    public void enforceRestrictionsOnThingWithThingIdMismatch() {
+        final Thing thing = Thing.newBuilder()
+                .setId(THING_ID + "mismatch")
+                .build();
+
+        indexLengthRestrictionEnforcer.enforceRestrictions(thing);
+    }
+
     @Test
     public void enforceRestrictionsOnThingAttributeViolation() {
-        final String thingId = ":home-box";
         final String key = "version";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH -
-                        ("attributes".length() + PersistenceConstants.SLASH.length() + key.length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (key.length());
         final String value = createString(maxAllowedValueForKey + 1);
 
         final String featureId1 = "text-too-speech-feature";
@@ -115,7 +133,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId(thingId)
+                .setId(THING_ID)
                 .setFeature(feature1)
                 .setFeature(feature2)
                 .setAttributes(attributes)
@@ -130,19 +148,11 @@ public final class IndexLengthRestrictionEnforcerTest {
 
     @Test
     public void enforceRestrictionsOnThingFeatureViolation() {
-        final String thingId = ":home-box";
-
         final String featureId1 = "text-too-speech-feature";
         final String featureId2 = "illuminance-sensor";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
-                        ("features".length()
-                                + PersistenceConstants.SLASH.length()
-                                + featureId1.length() +
-                                +PersistenceConstants.SLASH.length()
-                                + "properties".length()
-                                + PersistenceConstants.SLASH.length()
-                                + "last-message".length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (featureId1.length() + "last-message".length());
         final String value = createString(maxAllowedValueForKey + 1);
 
         final Feature feature1 = Feature.newBuilder()
@@ -162,7 +172,7 @@ public final class IndexLengthRestrictionEnforcerTest {
                 .build();
 
         final Thing thing = Thing.newBuilder()
-                .setId(thingId)
+                .setId(THING_ID)
                 .setFeature(feature1)
                 .setFeature(feature2)
                 .setAttributes(attributes)
@@ -204,14 +214,8 @@ public final class IndexLengthRestrictionEnforcerTest {
         final String featureId1 = "text-too-speech-feature";
         final String featureId2 = "illuminance-sensor";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
-                        ("features".length()
-                                + PersistenceConstants.SLASH.length()
-                                + featureId1.length() +
-                                +PersistenceConstants.SLASH.length()
-                                + "properties".length()
-                                + PersistenceConstants.SLASH.length()
-                                + "last-message".length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (featureId1.length() + "last-message".length());
         final String value = createString(maxAllowedValueForKey + 1);
         final Feature feature1 = Feature.newBuilder()
                 .withId(featureId1)
@@ -249,14 +253,8 @@ public final class IndexLengthRestrictionEnforcerTest {
         final String featureId = "text-too-speech-feature";
         final String key = "last-message";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
-                        ("features".length()
-                                + PersistenceConstants.SLASH.length()
-                                + featureId.length() +
-                                +PersistenceConstants.SLASH.length()
-                                + "properties".length()
-                                + PersistenceConstants.SLASH.length()
-                                + "last-message".length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (featureId.length() + "last-message".length());
         final String value = createString(maxAllowedValueForKey + 1);
 
         assertThat(indexLengthRestrictionEnforcer.enforceRestrictionsOnFeatureProperty(featureId, JsonPointer.of(key),
@@ -279,14 +277,8 @@ public final class IndexLengthRestrictionEnforcerTest {
     public void enforceRestrictionsOnFeaturePropertiesViolation() {
         final String featureId = "text-too-speech-feature";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
-                        ("features".length()
-                                + PersistenceConstants.SLASH.length()
-                                + featureId.length() +
-                                + PersistenceConstants.SLASH.length()
-                                + "properties".length()
-                                + PersistenceConstants.SLASH.length()
-                                + "last-message".length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (featureId.length() + "last-message".length());
         final String value = createString(maxAllowedValueForKey + 1);
 
         final FeatureProperties featureProperties = FeatureProperties.newBuilder()
@@ -316,14 +308,8 @@ public final class IndexLengthRestrictionEnforcerTest {
     public void enforceRestrictionsOnFeatureViolation() {
         final String featureId = "text-too-speech-feature";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_FEATURE_PROPERTY_VALUE_LENGTH -
-                        ("features".length()
-                                + PersistenceConstants.SLASH.length()
-                                + featureId.length() +
-                                + PersistenceConstants.SLASH.length()
-                                + "properties".length()
-                                + PersistenceConstants.SLASH.length()
-                                + "last-message".length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        (featureId.length() + "last-message".length());
         final String value = createString(maxAllowedValueForKey + 1);
 
         final Feature feature = Feature.newBuilder()
@@ -352,8 +338,7 @@ public final class IndexLengthRestrictionEnforcerTest {
     public void enforceRestrictionsOnAttributesViolation() {
         final String key = "description";
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH -
-                        ("attributes".length() + PersistenceConstants.SLASH.length() + key.length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD - key.length();
         final String value = createString(maxAllowedValueForKey + 1);
         final String expected = value.substring(0, maxAllowedValueForKey);
 
@@ -379,8 +364,8 @@ public final class IndexLengthRestrictionEnforcerTest {
     public void enforceRestrictionsOnAttributeValueViolation() {
         final JsonPointer key = JsonPointer.of("description");
         final int maxAllowedValueForKey =
-                IndexLengthRestrictionEnforcer.MAX_ATTRIBUTE_VALUE_LENGTH -
-                        ("attributes".length() + key.toString().length());
+                IndexLengthRestrictionEnforcer.MAX_INDEX_CONTENT_LENGTH - THING_ID_NAMESPACE_OVERHEAD -
+                        "description".length();
         final JsonValue value = JsonValue.of(createString(maxAllowedValueForKey + 1));
         final JsonValue expected = JsonValue.of(value.asString().substring(0, maxAllowedValueForKey));
         assertThat(value).isNotEqualTo(expected);

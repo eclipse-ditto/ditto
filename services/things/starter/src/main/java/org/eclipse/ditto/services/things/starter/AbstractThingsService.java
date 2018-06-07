@@ -13,15 +13,18 @@ package org.eclipse.ditto.services.things.starter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
+import java.util.Map;
+
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
+import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.slf4j.Logger;
 
-import com.typesafe.config.Config;
+import com.codahale.metrics.MetricRegistry;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -36,21 +39,13 @@ import akka.stream.ActorMaterializer;
  * <li>Wires up Akka HTTP Routes.</li>
  * </ul>
  */
-public abstract class AbstractThingsService extends DittoService {
+public abstract class AbstractThingsService extends DittoService<ServiceConfigReader> {
 
     /**
      * Name for the Akka Actor System of the Things service.
      */
     private static final String SERVICE_NAME = "things";
 
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.StatsD.HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.StatsD.PORT)
-            .build();
-
-    private final Logger logger;
     private final ThingSnapshotter.Create thingSnapshotterCreate;
 
     /**
@@ -61,23 +56,25 @@ public abstract class AbstractThingsService extends DittoService {
      * @throws NullPointerException if any argument is {@code null}.
      */
     protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
-        super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, CONFIG_KEYS);
+        super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
 
-        this.logger = logger;
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, logger).run();
+    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
+                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
+        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
+
+        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
     }
 
     @Override
-    protected Props getMainRootActorProps(final Config config, final ActorRef pubSubMediator,
+    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
 
-        return ThingsRootActor.props(config, pubSubMediator, materializer,
-                ThingSupervisorActorPropsFactory.getInstance(config, pubSubMediator, thingSnapshotterCreate));
+        return ThingsRootActor.props(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
     }
 
 }
