@@ -199,6 +199,9 @@ final class ConnectionActor extends AbstractPersistentActor {
                 .match(ConnectionCreated.class, event -> {
                     connection = event.getConnection();
                 })
+                .match(ConnectionModified.class, event -> {
+                    connection = event.getConnection();
+                })
                 .match(ConnectionOpened.class, event -> connection = connection != null ? connection.toBuilder()
                         .connectionStatus(ConnectionStatus.OPEN).build() : null)
                 .match(ConnectionClosed.class, event -> connection = connection != null ? connection.toBuilder()
