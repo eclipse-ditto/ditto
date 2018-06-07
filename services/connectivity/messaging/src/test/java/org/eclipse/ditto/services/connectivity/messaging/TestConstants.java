@@ -35,6 +35,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
@@ -42,11 +43,13 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
-import scala.Option;
+import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.Creator;
 
 public class TestConstants {
 
@@ -89,18 +92,19 @@ public class TestConstants {
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
-            final ActorRef pubSubMediator) {
-        return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+            final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
+        return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
                 mockConnectionActorPropsFactory);
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
-            final ActorRef pubSubMediator, final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
+            final ConnectionActorPropsFactory connectionActorPropsFactory) {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                connectionActorPropsFactory);
+                conciergeForwarder, connectionActorPropsFactory);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;
@@ -136,6 +140,25 @@ public class TestConstants {
             Thread.sleep(ms);
         } catch (final InterruptedException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static class ConciergeForwarderActorMock extends AbstractActor {
+
+        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+        private ConciergeForwarderActorMock() {
+        }
+
+        public static Props props() {
+            return Props.create(ConciergeForwarderActorMock.class, (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return receiveBuilder()
+                    .matchAny(o -> log.info("Received: ''{}'' from ''{}''", o, getSender()))
+                    .build();
         }
     }
 }

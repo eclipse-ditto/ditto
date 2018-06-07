@@ -23,9 +23,10 @@ import java.util.List;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.model.policiesenforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.policiesenforcers.ImmutableEffectedSubjectIds;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.ImmutableEffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.junit.Before;
@@ -41,7 +42,7 @@ public abstract class AbstractMongoEventToPersistenceStrategyTest {
     @Parameterized.Parameter
     public JsonSchemaVersion version;
 
-    PolicyEnforcer policyEnforcer;
+    Enforcer policyEnforcer;
 
     IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer;
 
@@ -52,8 +53,10 @@ public abstract class AbstractMongoEventToPersistenceStrategyTest {
 
     @Before
     public void setUpMocks() {
-        policyEnforcer = Mockito.mock(PolicyEnforcer.class);
-        indexLengthRestrictionEnforcer = IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class));
+        policyEnforcer = Mockito.mock(Enforcer.class);
+        indexLengthRestrictionEnforcer =
+                IndexLengthRestrictionEnforcer.newInstance(Mockito.mock(LoggingAdapter.class),
+                        TestConstants.Thing.THING_ID);
 
         final EffectedSubjectIds effectedSubjectIds = ImmutableEffectedSubjectIds.of(Collections.emptyList(),
                 Collections.emptyList());

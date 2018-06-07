@@ -34,7 +34,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyFeatureProperty}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyFeaturePropertyTest {
 
     private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/foo");

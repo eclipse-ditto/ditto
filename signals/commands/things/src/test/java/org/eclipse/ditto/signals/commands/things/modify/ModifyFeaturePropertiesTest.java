@@ -33,7 +33,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyFeatureProperties}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyFeaturePropertiesTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

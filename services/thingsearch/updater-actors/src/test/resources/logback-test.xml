@@ -36,22 +36,9 @@
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-WARN}"/>
 
     <root level="${LOG_LEVEL:-WARN}">
-        <!-- logging INFO messages can be disabled by setting environment variable -->
-        <if condition='isNull("DISABLE_SYSOUT_LOG")'>
-            <then>
-                <appender-ref ref="STDOUT"/>
-            </then>
-        </if>
-
-        <!-- always log ERRORs to sysout -->
+        <appender-ref ref="STDOUT"/>
+        <!-- always log ERRORs to syserr -->
         <appender-ref ref="STDERR"/>
-
-        <if condition='isDefined("LOGSTASH_SERVER")'>
-            <then>
-                <appender-ref ref="stash"/>
-            </then>
-        </if>
     </root>
-
 
 </configuration>

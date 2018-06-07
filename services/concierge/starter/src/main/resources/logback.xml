@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~
+  ~ All rights reserved. This program and the accompanying materials
+  ~ are made available under the terms of the Eclipse Public License v2.0
+  ~ which accompanies this distribution, and is available at
+  ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
+  ~
+  ~ Contributors:
+  ~    Bosch Software Innovations GmbH - initial contribution
+  -->
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{akkaSource} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%date{ISO8601} %-5level [%X{x-correlation-id}] %logger{20} %X{akkaSource} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!--<logger name="akka.actor" level="DEBUG"/>-->
+
+    <!-- Log level for the application -->
+    <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
+
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="STDOUT"/>
+        <!-- always log ERRORs to syserr -->
+        <appender-ref ref="STDERR"/>
+    </root>
+
+</configuration>

@@ -22,6 +22,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -90,15 +92,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     @Override
     public byte[] toBinary(final Object object) {
         if (object instanceof Jsonifiable) {
-            final DittoHeaders dittoHeaders;
-            if (object instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders) object).getDittoHeaders();
-            } else {
-                dittoHeaders = DittoHeaders.empty();
-            }
-
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-
+            final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
             jsonObjectBuilder.set(JSON_DITTO_HEADERS, dittoHeaders.toJson());
 
             final JsonValue jsonValue;
@@ -118,11 +113,22 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                     .toString()
                     .getBytes(UTF8_CHARSET);
         } else {
-            LOG.error("Could not serialize class '{}' as it does not implement '{}'", object.getClass(),
+            LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
                     Jsonifiable.WithPredicate.class);
             final String error = new NotSerializableException(object.getClass().getName()).getMessage();
             return error.getBytes(UTF8_CHARSET);
         }
+    }
+
+    private static DittoHeaders getDittoHeadersOrEmpty(final Object object) {
+        if (object instanceof WithDittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders = ((WithDittoHeaders) object).getDittoHeaders();
+            if (null != dittoHeaders) {
+                return dittoHeaders;
+            }
+            LOG.warn("Object <{}> did not contain DittoHeaders although it should! Using empty DittoHeaders instead.");
+        }
+        return DittoHeaders.empty();
     }
 
     @Override
@@ -140,7 +146,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         try {
             return createJsonifiableFrom(manifest, json);
         } catch (final DittoRuntimeException | JsonRuntimeException e) {
-            LOG.error("Got {} during fromBinary(byte[],String) deserialization for manifest '{}' and JSON: '{}'",
+            LOG.error("Got <{}> during fromBinary(byte[],String) deserialization for manifest <{}> and JSON: '{}'",
                     e.getClass().getSimpleName(), manifest, json, e);
             throw new NotSerializableException(manifest);
         }
@@ -151,7 +157,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
         final BiFunction<JsonObject, DittoHeaders, Jsonifiable> mappingFunction = mappingStrategies.get(manifest);
         if (null == mappingFunction) {
-            LOG.warn("No strategy found to map manifest '{}' to a Jsonifiable.WithPredicate!", manifest);
+            LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
             throw new NotSerializableException(manifest);
         }
 

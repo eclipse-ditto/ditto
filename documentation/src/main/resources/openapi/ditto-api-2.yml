@@ -1634,6 +1634,14 @@ paths:
           schema:
             $ref: '#/definitions/Policy'
       responses:
+        '201':
+          description: The Policy was successfully created.
+          headers:
+            Location:
+              description: The location of the created Policy resource
+              type: string
+          schema:
+            $ref: '#/definitions/Policy'
         '204':
           description: The Policy was successfully updated.
         '400':
@@ -1980,16 +1988,8 @@ paths:
           schema:
             $ref: '#/definitions/Subjects'
       responses:
-        '201':
-          description: The Subjects were successfully created.
-          headers:
-            Location:
-              description: The location of the created Subjects
-              type: string
-          schema:
-            $ref: '#/definitions/Subjects'
         '204':
-          description: The Subjects were successfully updated.
+          description: The Subjects were successfully created or updated.
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2208,16 +2208,8 @@ paths:
           schema:
             $ref: '#/definitions/Resources'
       responses:
-        '201':
-          description: The Resources were successfully created.
-          headers:
-            Location:
-              description: The location of the created Resources
-              type: string
-          schema:
-            $ref: '#/definitions/Resources'
         '204':
-          description: The Resources were successfully updated.
+          description: The Resources were successfully created or updated.
         '400':
           description: |-
             The request could not be completed. The `policyId` either

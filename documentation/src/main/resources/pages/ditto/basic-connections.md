@@ -6,7 +6,7 @@ permalink: basic-connections.html
 ---
 
   {%
-    include note.html content="To get started with connections right away, consolidate the [Manage connections](/connectivity-manage-connections.html) 
+    include note.html content="To get started with connections right away, consolidate the [Manage connections](connectivity-manage-connections.html) 
                                page. "
   %}
 
@@ -42,7 +42,7 @@ self-assigned authorization subjects. Before a connection can access a Ditto res
 `authorizationSubject`s must be referenced in the used authorization mechanism, having the needed access rights. You 
 can achieve this via [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
-For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](/connectivity-mapping.html)
+For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html)
 
 
 [Connectivity API]: connectivity-overview.html

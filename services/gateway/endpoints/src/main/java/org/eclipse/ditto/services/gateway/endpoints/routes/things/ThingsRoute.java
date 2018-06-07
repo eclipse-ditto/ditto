@@ -68,6 +68,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.stream.javadsl.Source;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /things}.
@@ -144,15 +145,7 @@ public final class ThingsRoute extends AbstractRoute {
         return pathEndOrSingleSlash(() ->
                 route( //
                         get(() -> // GET /things?ids=<idsString>&fields=<fieldsString>
-                                parameter(ThingsParameter.IDS.toString(), idsString ->
-                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                                handlePerRequest(ctx, RetrieveThings
-                                                        .getBuilder(idsString.isEmpty() ? null :
-                                                                idsString.split(","))
-                                                        .selectedFields(calculateSelectedFields(fieldsString))
-                                                        .dittoHeaders(dittoHeaders).build())
-                                        )
-                                )
+                                buildRetrieveThingsRoute(ctx, dittoHeaders)
                         ),
                         post(() -> // POST /things
                                 extractDataBytes(payloadSource ->
@@ -162,6 +155,19 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         )
                 )
+        );
+    }
+
+
+    private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        return parameter(ThingsParameter.IDS.toString(), idsString ->
+                parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        handlePerRequest(ctx, dittoHeaders, Source.empty(), emptyRequestBody -> RetrieveThings
+                                .getBuilder((idsString).isEmpty() ? new String[0] : idsString.split(","))
+                                .selectedFields(calculateSelectedFields(fieldsString))
+                                .dittoHeaders(dittoHeaders).build())
+                )
+
         );
     }
 
@@ -244,18 +250,6 @@ public final class ThingsRoute extends AbstractRoute {
         }
 
         return outputJsonBuilder.build();
-    }
-
-    // sets policyId to be equal to thing ID if absent
-    private static void useThingIdAsDefaultPolicyId(final String thingId, final JsonObject inputJson,
-            final JsonObjectBuilder outputJsonBuilder) {
-
-        final Optional<JsonValue> policyIdOpt = inputJson.getValue(Thing.JsonFields.POLICY_ID.getPointer());
-
-        // sets policy ID only if policyId is absent from thing
-        if (!policyIdOpt.isPresent()) {
-            outputJsonBuilder.set(Thing.JsonFields.POLICY_ID, thingId);
-        }
     }
 
     /*

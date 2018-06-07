@@ -18,7 +18,6 @@ import static com.mongodb.client.model.Aggregates.project;
 import static com.mongodb.client.model.Aggregates.sort;
 import static com.mongodb.client.model.Aggregates.unwind;
 import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.or;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -50,6 +49,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICY_INDEX_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PUSH_PROJECTION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SUM_GROUPING;
+import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.filterNotDeleted;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -336,9 +336,8 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         final Bson authorization =
                 or(CreateBsonVisitor.apply(globalPolicyGrantsCriteria), CreateBsonVisitor.apply(aclCriteria));
-        final Bson notDeleted = exists(FIELD_DELETED, false);
 
-        return match(and(authorization, notDeleted, CreateBsonVisitor.apply(filterCriteria)));
+        return match(and(authorization, filterNotDeleted(), CreateBsonVisitor.apply(filterCriteria)));
     }
 
     private static Bson createSecondProjectionStage() {

@@ -16,13 +16,13 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshot;
-import org.eclipse.ditto.services.models.things.commands.sudo.TakeSnapshotResponse;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorInterface;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingWithSnapshotTag;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.signals.commands.things.modify.TagThing;
+import org.eclipse.ditto.signals.commands.things.modify.TagThingResponse;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -31,7 +31,7 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Snapshotting behavior with the sudo-command {@code TakeSnapshot} as external trigger.
  */
-public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, TakeSnapshotResponse> {
+public final class DittoThingSnapshotter extends ThingSnapshotter<TagThing, TagThingResponse> {
 
     private static final ThingMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ThingMongoSnapshotAdapter();
 
@@ -79,14 +79,14 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TakeSnapshot, 
     }
 
     @Override
-    protected Class<TakeSnapshot> getExternalCommandClass() {
-        return TakeSnapshot.class;
+    protected Class<TagThing> getExternalCommandClass() {
+        return TagThing.class;
     }
 
     @Override
-    protected TakeSnapshotResponse createExternalCommandResponse(final long newRevision,
+    protected TagThingResponse createExternalCommandResponse(final long newRevision,
             @Nullable final DittoHeaders dittoHeaders) {
-        return TakeSnapshotResponse.of(newRevision, dittoHeaders);
+        return TagThingResponse.of(persistenceActor.getThingId(), newRevision, dittoHeaders);
     }
 
 }

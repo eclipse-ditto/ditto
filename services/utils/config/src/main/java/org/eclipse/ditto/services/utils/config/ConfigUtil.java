@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +43,6 @@ import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 import com.typesafe.config.ConfigValueType;
 
-import akka.actor.Address;
-
 /**
  * Utilities for Typesafe {@link Config}.
  */
@@ -55,11 +52,6 @@ public final class ConfigUtil {
      * The hosting environment config key.
      */
     public static final String HOSTING_ENVIRONMENT = "hosting.environment";
-
-    /**
-     * The default TCP port used if {@value #ENV_TCP_PORT} is not set.
-     */
-    private static final String DEFAULT_TCP_PORT = "2551";
 
     /**
      * Key of the uri for mongodb.
@@ -77,9 +69,6 @@ public final class ConfigUtil {
     private static final String ENV_HOSTING_ENVIRONMENT = "HOSTING_ENVIRONMENT";
     private static final String ENV_VCAP_LOCATION = "VCAP_LOCATION";
     private static final String ENV_HOSTNAME = "HOSTNAME";
-    private static final String ENV_BIND_TCP_PORT = "BIND_TCP_PORT";
-    private static final String ENV_DNS_PREFIX = "DNS_PREFIX";
-    private static final String ENV_TCP_PORT = "TCP_PORT";
 
     private static final String CLOUD_PROFILE_SUFFIX = "-cloud";
     private static final String DOCKER_PROFILE_SUFFIX = "-docker";
@@ -88,9 +77,6 @@ public final class ConfigUtil {
     private static final String VCAP_PREFIX = "vcap";
     private static final String VCAP_SERVICE_NAME = "name";
     private static final String DOT_SEPARATOR = ".";
-
-    private static final String AKKA_CLUSTER_SEED_NODES = "akka.cluster.seed-nodes";
-    private static final String AKKA_TCP_PROTOCOL = "akka.tcp";
 
     private static final String SECRETS_PATH = "/run/secrets";
     private static final String SECRETS_CONFIG_KEY = "secrets";
@@ -181,104 +167,6 @@ public final class ConfigUtil {
             return initialConfig
                     .withFallback(transformSecretsToConfig());
         }
-    }
-
-    /**
-     * Determines from the passed {@code config} whether a manual {@code joinSeedNodes()} is required or not.
-     *
-     * @param config the config to determine the settings from.
-     * @return whether manually joining cluster seed nodes is required or not.
-     */
-    public static boolean shouldManuallyJoinClusterSeedNodes(final Config config) {
-        return !config.hasPath(AKKA_CLUSTER_SEED_NODES) || config.getStringList(AKKA_CLUSTER_SEED_NODES).isEmpty();
-    }
-
-    /**
-     * Retrieves a list of cluster seed nodes by looking up the passed {@code clusterName} at the DNS.
-     * Uses {@code seed-nodes} configured in the passed {@code config} as fallback if the hostname {@code clusterName}
-     * could not be resolved at the DNS.
-     *
-     * @param clusterName the clusterName to use for looking up at the DNS
-     * @param config the config as fallback for seed-nodes
-     * @return a sorted List (by index id upwards) of resolved cluster seed nodes
-     */
-    public static List<Address> getClusterSeedNodesExceptOwn(final String clusterName, final Config config) {
-        try {
-            return getCanonicalHostnameStreamExceptOwn(clusterName)
-                    .map(addressString -> buildAddress(clusterName, addressString)) //
-                    .collect(Collectors.toList());
-        } catch (final UnknownHostException e) {
-            LOGGER.debug("UnknownHost: {}", e.getMessage(), e);
-            return config.getStringList(AKKA_CLUSTER_SEED_NODES).stream() //
-                    .map(ConfigUtil::convertAkkaTcpStringToAddress) //
-                    .collect(Collectors.toList());
-        }
-    }
-
-    /**
-     * Retrieves a Stream of {@link InetAddress#getCanonicalHostName()}s by looking up the passed {@code hostName} at
-     * the DNS via {@link InetAddress#getAllByName(String)}. This method calculates the canonical hostname which
-     * currently (Docker Swarm Mode in Docker 1.13.1) looks like this:
-     * <ul>
-     * <li>THINGS_policies-leader.1.8dnykvh0b0xt2sv95ooerbkgi.THINGS_blue-net</li>
-     * </ul>
-     *
-     * @param hostName the hostname to lookup at DNS
-     * @return a Stream of canonical hostnames
-     * @throws UnknownHostException when the passed {@code hostName} could not be resolved
-     */
-    private static Stream<String> getCanonicalHostnameStreamExceptOwn(final String hostName)
-            throws UnknownHostException {
-        final String hostNameToUse = Optional.ofNullable(System.getenv(ENV_DNS_PREFIX))
-                .map(prefix -> prefix + hostName)
-                .orElse(hostName);
-        final InetAddress[] allKnownServiceAddresses = InetAddress.getAllByName(hostNameToUse);
-        LOGGER.info("All known service addresses for service '{}': {}", hostNameToUse,
-                Arrays.stream(allKnownServiceAddresses).map(InetAddress::getCanonicalHostName)
-                        .collect(Collectors.joining(",")));
-
-        final String myHostname = System.getenv(ENV_HOSTNAME);
-
-        return Arrays.stream(allKnownServiceAddresses)
-                .filter(addr -> !addr.getCanonicalHostName().equals(myHostname)) // exclude "my" address
-                .map(InetAddress::getCanonicalHostName);
-    }
-
-    /**
-     * Builds an {@link Address} from the passed in {@code clusterName} and {@code hostname} using the port from
-     * environment variables or the default fallback port "{@value DEFAULT_TCP_PORT}".
-     *
-     * @param clusterName the clusterName to use for building the Address
-     * @param hostname the hostname to use for building the Address
-     * @return the built Address
-     */
-    public static Address buildAddress(final String clusterName, final String hostname) {
-        final String tcpPort = Optional.ofNullable(System.getenv(ENV_BIND_TCP_PORT))
-                .orElse(Optional.ofNullable(System.getenv(ENV_TCP_PORT)).orElse(DEFAULT_TCP_PORT));
-        return buildAddress(clusterName, hostname, Integer.parseInt(tcpPort));
-    }
-
-    private static Address buildAddress(final String clusterName, final String hostname, final int port) {
-        // in this case, we would get a problem with java.net.URI which does not parse URIs well with such hostnames
-        if (hostname.contains("_")) {
-            final String ip;
-            try {
-                // use the IP address instead:
-                ip = InetAddress.getByName(hostname).getHostAddress();
-            } catch (final UnknownHostException e) {
-                throw new IllegalStateException("Could not resolve hostname '" + hostname + "'", e);
-            }
-            return Address.apply(AKKA_TCP_PROTOCOL, clusterName, ip, port);
-        } else {
-            return Address.apply(AKKA_TCP_PROTOCOL, clusterName, hostname, port);
-        }
-    }
-
-    private static Address convertAkkaTcpStringToAddress(final String addressString) {
-        final String[] split1 = addressString.split("://", 2);
-        final String[] split2 = split1[1].split("@", 2);
-        final String[] split3 = split2[1].split(":", 2);
-        return buildAddress(split2[0], split3[0], Integer.parseInt(split3[1]));
     }
 
     /**

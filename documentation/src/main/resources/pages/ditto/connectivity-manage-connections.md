@@ -154,9 +154,9 @@ necessary for retrieving the connection metrics is the `connectionId`:
 
 ## Payload mapping configuration
 
-To enable a custom [payload mapping](/connectivity-mapping.html) for a specific connection, you have to configure a
+To enable a custom [payload mapping](connectivity-mapping.html) for a specific connection, you have to configure a
 mapping context in the connection configuration object. The following snippet shows an example `mappingContext`. This
-configuration must be embedded in the connection configuration as shown in the [Connections](/basic-connections.html) section.
+configuration must be embedded in the connection configuration as shown in the [Connections](basic-connections.html) section.
 
 ```json
 "mappingContext": {
