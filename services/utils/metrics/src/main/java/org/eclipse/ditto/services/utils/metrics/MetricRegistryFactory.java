@@ -27,6 +27,9 @@ public final class MetricRegistryFactory {
 
     /**
      * Gets the MongoDB-MetricRegistry, creates it if it does not exist yet.
+     *
+     * @param actorSystem the ActorSystem
+     * @param config the Config to use
      */
     @SuppressWarnings("RedundantCast")
     public static NamedMetricRegistry mongoDb(final ActorSystem actorSystem, final Config config) {

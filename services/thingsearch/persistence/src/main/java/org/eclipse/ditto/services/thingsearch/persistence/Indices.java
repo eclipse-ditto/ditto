@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_ACL;
@@ -45,13 +46,16 @@ public final class Indices {
                 keys(FIELD_NAMESPACE, FIELD_FEATURE_PATH_KEY, FIELD_PATH_KEY, FIELD_PATH_VALUE, FIELD_ID), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
-        private static final Index GLOBAL_READS = IndexFactory.newInstance("ngr",
-                keys(FIELD_NAMESPACE, FIELD_INTERNAL_GLOBAL_READS, FIELD_ID), false)
+        private static final Index ACL = IndexFactory.newInstance("acl",
+                keys(FIELD_INTERNAL_ACL, FIELD_ID), false)
                 .withPartialFilterExpression(filterNotDeleted());
 
-        private static final Index ACL = IndexFactory.newInstance("na",
-                keys(FIELD_NAMESPACE, FIELD_INTERNAL_ACL, FIELD_ID), false)
+        private static final Index GLOBAL_READS = IndexFactory.newInstance("gr",
+                keys(FIELD_INTERNAL_GLOBAL_READS), false)
                 .withPartialFilterExpression(filterNotDeleted());
+
+        private static final Index DELETED = IndexFactory.newInstance("deleted",
+                keys(FIELD_DELETED), false);
 
         /**
          * Gets all defined indices.
@@ -59,7 +63,7 @@ public final class Indices {
          * @return the indices
          */
         public static List<Index> all() {
-            return Collections.unmodifiableList(Arrays.asList(KEY_VALUE, ACL, GLOBAL_READS));
+            return Collections.unmodifiableList(Arrays.asList(KEY_VALUE, ACL, GLOBAL_READS, DELETED));
         }
 
         private static List<String> keys(final String... keyNames) {

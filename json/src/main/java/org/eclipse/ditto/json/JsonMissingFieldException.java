@@ -102,7 +102,7 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
          * Sets a message which points to the name of the missing field within a hierarchy.
          * <p>
          * Given the following valid JSON object:
-         * <p>
+         * </p>
          * <pre>
          *    {
          *       "attributes": {
@@ -120,6 +120,7 @@ public final class JsonMissingFieldException extends JsonRuntimeException {
          * <p>
          * If, for example, the field {@code state} is missing the call to this method would be
          * {@code fieldName("attributes", "localSeason", "location", "state")}.
+         * </p>
          *
          * @param missingFieldNameRoot the root of the hierarchy.
          * @param missingFieldNameChildren all children, grand children etc. of {@code missingFieldNameRoot}.

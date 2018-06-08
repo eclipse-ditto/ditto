@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Defines a JSON Patch which can be used to specify modifications on JSON Objects. For example, the following
  * patch defines an insertion operation on path "address/city" with value "Berlin".
- * <p>
  * <pre>
  *    {
  *       "op": "add",

@@ -95,6 +95,19 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
         </dependency>
