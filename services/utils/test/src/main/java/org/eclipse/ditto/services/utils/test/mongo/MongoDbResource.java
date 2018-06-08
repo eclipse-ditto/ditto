@@ -98,7 +98,7 @@ public final class MongoDbResource extends ExternalResource {
         if (System.getenv(MONGO_PORT_ENV_KEY) != null) {
             mongoDbPort = Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY));
         } else {
-             mongoDbPort = findFreePort();
+            mongoDbPort = findFreePort();
         }
         mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory);
         mongodProcess = tryToStartMongoDb(mongodExecutable);

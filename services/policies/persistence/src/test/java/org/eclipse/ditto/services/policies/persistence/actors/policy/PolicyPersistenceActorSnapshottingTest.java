@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJourna
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesSnapshotTestHelper;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -217,7 +218,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(policyId);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(policyId));
 
                 final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersMockV2);
                 underTest.tell(retrievePolicy, getRef());
@@ -295,7 +296,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(policyId);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(policyId));
 
                 underTest.tell(retrievePolicy, getRef());
 

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTes
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsSnapshotTestHelper;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -177,7 +179,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(thingId);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thingId));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
@@ -254,7 +256,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 expectTerminated(FiniteDuration.apply(activityCheckDeletedIntervalSecs + 5, TimeUnit.SECONDS),
                         underTest);
 
-                underTest = createSupervisorActorFor(thingId);
+                underTest = Retry.untilSuccess(() -> createSupervisorActorFor(thingId));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(FIELD_SELECTOR)
@@ -337,7 +339,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(thingId);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thingId));
 
                 underTest.tell(retrieveThing, getRef());
 
