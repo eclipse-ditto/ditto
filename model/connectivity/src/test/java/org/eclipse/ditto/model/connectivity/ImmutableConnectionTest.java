@@ -352,4 +352,12 @@ public final class ImmutableConnectionTest {
         assertThat(matches).isFalse();
     }
 
+    @Test
+    public void toStringDoesNotContainPassword() {
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, "amqps://foo:thePassword@host.com:5671")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .sources(Collections.singleton(SOURCE1)).build();
+        assertThat(connection.toString()).doesNotContain("thePassword");
+    }
 }

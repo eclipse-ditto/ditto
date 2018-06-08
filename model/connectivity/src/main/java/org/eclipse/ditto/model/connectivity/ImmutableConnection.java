@@ -468,7 +468,7 @@ final class ImmutableConnection implements Connection {
                 ", connectionStatus=" + connectionStatus +
                 ", authorizationContext=" + authorizationContext +
                 ", failoverEnabled=" + failOverEnabled +
-                ", uri=" + uri +
+                ", uri=" + uri.uriStringWithMaskedPassword +
                 ", sources=" + sources +
                 ", targets=" + targets +
                 ", clientCount=" + clientCount +
@@ -655,8 +655,10 @@ final class ImmutableConnection implements Connection {
     private static final class ConnectionUri {
 
         private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
+        private static final String MASKED_URI_FORMAT = "{0}://{1}:*****@{2}:{3,number,#}";
 
         private final String uriString;
+        private final String uriStringWithMaskedPassword;
         private final String protocol;
         @Nullable private final String userName;
         @Nullable private final String password;
@@ -672,6 +674,8 @@ final class ImmutableConnection implements Connection {
             hostname = matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP);
             port = Integer.parseInt(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP));
             path = matcher.group(Connection.UriRegex.PATH_REGEX_GROUP);
+            uriStringWithMaskedPassword = MessageFormat.format(MASKED_URI_FORMAT, protocol, userName, hostname, port)
+                    + (path != null ? "/" + path : "");
         }
 
         /**
