@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.AbstractIterableAssert;
@@ -27,6 +28,7 @@ import org.assertj.core.api.AssertFactory;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ObjectAssert;
 import org.assertj.core.api.ObjectAssertFactory;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -281,17 +283,40 @@ public final class JsonObjectAssert
     private static void compareFieldValues(final JsonField expectedField, final JsonField actualField,
             final boolean compareFieldDefinitions) {
 
-        final JsonValue expectedFieldValue = expectedField.getValue();
-        final JsonValue actualFieldValue = actualField.getValue();
+        compareValuesWithFieldKey(expectedField.getKey(), expectedField.getValue(),
+                actualField.getValue(), compareFieldDefinitions);
+    }
+
+    /*
+     * Recursively compare complex JSON values. The flag 'compareFieldDefinitions' is applied recursively to all
+     * parts of the JSON values.
+     */
+    private static void compareValuesWithFieldKey(final JsonKey key,
+            final JsonValue expectedFieldValue,
+            final JsonValue actualFieldValue,
+            final boolean compareFieldDefinitions) {
 
         if (expectedFieldValue.isObject() && actualFieldValue.isObject() && !compareFieldDefinitions) {
             DittoJsonAssertions.assertThat(actualFieldValue.asObject())
                     .isEqualToIgnoringFieldDefinitions(expectedFieldValue.asObject());
+        } else if (areArraysOfEqualSize(expectedFieldValue, actualFieldValue) && !compareFieldDefinitions) {
+            final JsonArray expectedArray = expectedFieldValue.asArray();
+            final JsonArray actualArray = actualFieldValue.asArray();
+            IntStream.range(0, expectedArray.getSize())
+                    .forEach(i ->
+                            expectedArray.get(i).ifPresent(expectedElement ->
+                                    actualArray.get(i).ifPresent(actualElement ->
+                                            compareValuesWithFieldKey(key, expectedElement, actualElement, false))));
         } else {
             Assertions.assertThat(actualFieldValue)
-                    .as("Values of JsonField <%s> are equal", expectedField.getKey())
+                    .as("Values of JsonField <%s> are equal", key)
                     .isEqualTo(expectedFieldValue);
         }
+    }
+
+    private static boolean areArraysOfEqualSize(final JsonValue expected, final JsonValue actual) {
+        return expected.isArray() && actual.isArray() &&
+                expected.asArray().getSize() == actual.asArray().getSize();
     }
 
     private static void compareFieldDefinitions(final JsonField expectedField, final JsonField actualField) {
