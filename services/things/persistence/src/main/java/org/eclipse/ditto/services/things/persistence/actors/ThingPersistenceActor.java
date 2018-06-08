@@ -213,7 +213,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
     private static final String UNHANDLED_MESSAGE_TEMPLATE =
-            "This Thing Actor did not handle the requested Thing with ID ''{0}''!";
+            "This Thing Actor did not handle the requested Thing with ID <{0}>!";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -272,7 +272,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                     mergeThingModifications(tm.getThing(), copyBuilder);
 
-                    this.thing = copyBuilder.build();
+                    thing = copyBuilder.build();
                 })
 
                 // # Thing Deletion
@@ -583,7 +583,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void scheduleCheckForThingActivity(final long intervalInSeconds) {
-        log.debug("Scheduling for Activity Check in '{}' seconds", intervalInSeconds);
+        log.debug("Scheduling for Activity Check in <{}> seconds.", intervalInSeconds);
         // if there is a previous activity checker, cancel it
         if (activityChecker != null) {
             activityChecker.cancel();
@@ -648,7 +648,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .match(RecoveryCompleted.class, rc -> {
                     if (thing != null) {
                         thing = enhanceThingWithLifecycle(thing);
-                        log.debug("Thing '{}' was recovered.", thingId);
+                        log.debug("Thing <{}> was recovered.", thingId);
 
                         if (isThingActive()) {
                             becomeThingCreatedHandler();
@@ -656,7 +656,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                             // expect life cycle to be DELETED. if it's not, then act as if this thing is deleted.
                             if (!isThingDeleted()) {
                                 // life cycle isn't known, act as
-                                log.error("Unknown lifecycle state '{}' for Thing '{}'", thing.getLifecycle(), thingId);
+                                log.error("Unknown lifecycle state <{}> for Thing <{}>.", thing.getLifecycle(),
+                                        thingId);
                             }
                             becomeThingDeletedHandler();
                         }
@@ -853,7 +854,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Override
     public boolean isThingDeleted() {
-        return thing.hasLifecycle(ThingLifecycle.DELETED);
+        return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
     private void notifySubscribers(final ThingEvent event) {
@@ -899,7 +900,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private void aclInvalid(final Optional<String> message, final AuthorizationContext authContext,
             final DittoHeaders dittoHeaders) {
 
-        log.debug("ACL could not be modified by Authorization Context '{}' due to: {}", authContext,
+        log.debug("ACL could not be modified by Authorization Context <{}> due to: {}", authContext,
                 message.orElse(null));
         notifySender(getSender(), AclModificationInvalidException.newBuilder(thingId)
                 .description(message.orElse(null))
@@ -1068,7 +1069,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             persistAndApplyEvent(thingCreated, event -> {
                 notifySender(CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
-                log.debug("Created new Thing with ID '{}'.", thingId);
+                log.debug("Created new Thing with ID <{}>.", thingId);
                 becomeThingCreatedHandler();
             });
         }
@@ -1139,13 +1140,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 }
             }
             return true;
-        }
-
-        private Collection<String> determineReadSubjects(final AccessControlList acl) {
-            return acl.getAuthorizedSubjectsFor(Permission.READ)
-                    .stream()
-                    .map(AuthorizationSubject::getId)
-                    .collect(Collectors.toSet());
         }
 
         @Override
@@ -1479,7 +1473,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             persistAndApplyEvent(thingDeleted, event -> {
                 notifySender(DeleteThingResponse.of(thingId, dittoHeaders));
-                log.info("Deleted Thing with ID '{}'.", thingId);
+                log.info("Deleted Thing with ID <{}>.", thingId);
                 becomeThingDeletedHandler();
             });
         }
@@ -1544,6 +1538,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             persistAndApplyEvent(eventToPersist, event -> notifySender(response));
         }
+
     }
 
     /**
@@ -1660,6 +1655,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             persistAndApplyEvent(aclEntryDeleted,
                     event -> notifySender(DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders)));
         }
+
     }
 
     /**
@@ -1711,6 +1707,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 aclEntryNotFound(authorizationSubject, dittoHeaders);
             }
         }
+
     }
 
     /**
@@ -1879,6 +1876,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 attributesNotFound(dittoHeaders);
             }
         }
+
     }
 
     /**
@@ -1912,6 +1910,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 attributesNotFound(dittoHeaders);
             }
         }
+
     }
 
     /**
@@ -2103,6 +2102,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 featureNotFound(command.getFeatureId(), command.getDittoHeaders());
             }
         }
+
     }
 
     /**
@@ -2544,7 +2544,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         @Override
         protected void doApply(final Object message) {
             log.debug("Unexpected message after initialization of actor received: {} - "
-                            + "Terminating this actor and sending '{}' to requester ...", message,
+                            + "Terminating this actor and sending <{}> to requester ...", message,
                     ThingNotAccessibleException.class.getName());
             final ThingNotAccessibleException.Builder builder = ThingNotAccessibleException.newBuilder(thingId);
             if (message instanceof WithDittoHeaders) {

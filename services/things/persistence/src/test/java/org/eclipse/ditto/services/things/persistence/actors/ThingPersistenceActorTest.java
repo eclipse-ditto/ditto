@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -795,7 +796,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(thing);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
 
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
@@ -833,7 +834,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(thing);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
 
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
@@ -1034,7 +1035,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(underTest);
-                underTest = createPersistenceActorFor(thing);
+                underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thing));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeadersV2)
                         .withSelectedFields(versionFieldSelector)

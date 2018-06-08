@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
@@ -100,7 +101,8 @@ public class ConnectionActorTest {
     public void tryToSendOtherCommandThanCreateDuringInitialization() {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
 
             underTest.tell(deleteConnection, getRef());
 
@@ -114,7 +116,8 @@ public class ConnectionActorTest {
     public void manageConnection() {
         new TestKit(actorSystem) {{
             final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -136,7 +139,8 @@ public class ConnectionActorTest {
     public void recoverOpenConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -148,7 +152,9 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+            underTest = Retry.untilSuccess(() ->
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -160,7 +166,8 @@ public class ConnectionActorTest {
     public void recoverClosedConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -176,7 +183,9 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+            underTest = Retry.untilSuccess(() ->
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
@@ -188,7 +197,8 @@ public class ConnectionActorTest {
     public void recoverDeletedConnection() {
         new TestKit(actorSystem) {{
             ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder);
             watch(underTest);
 
             // create connection
@@ -201,7 +211,9 @@ public class ConnectionActorTest {
             expectTerminated(underTest);
 
             // recover actor
-            underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder);
+            underTest = Retry.untilSuccess(() ->
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());

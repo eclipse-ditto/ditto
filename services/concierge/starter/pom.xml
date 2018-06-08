@@ -106,6 +106,19 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.discovery</groupId>
+            <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>

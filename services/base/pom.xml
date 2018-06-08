@@ -49,6 +49,15 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lightbend.akka.management</groupId>
+            <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
         </dependency>

@@ -177,6 +177,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
+
         this.policyId = policyId;
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
@@ -380,7 +381,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         if (activityChecker != null) {
             activityChecker.cancel();
         }
-        // send a message to ourself:
+        // send a message to ourselves:
         activityChecker = getContext().system().scheduler()
                 .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
                         new CheckForActivity(lastSequenceNr(), accessCounter), getContext().dispatcher(), null);
@@ -448,14 +449,14 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
                     if (policy != null) {
-                        log.debug("Policy '{}' was recovered.", policyId);
+                        log.debug("Policy <{}> was recovered.", policyId);
 
                         if (isPolicyActive()) {
                             becomePolicyCreatedHandler();
                         } else if (isPolicyDeleted()) {
                             becomePolicyDeletedHandler();
                         } else {
-                            log.error("Unknown lifecycle state '{}' for Policy '{}'", policy.getLifecycle(), policyId);
+                            log.error("Unknown lifecycle state <{}> for Policy <{}>.", policy.getLifecycle(), policyId);
                         }
 
                     }
@@ -546,7 +547,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         if (snapshotter != null) {
             snapshotter.cancel();
         }
-        /* check in the next X minutes and therefore
+        /*
+         * Check in the next X minutes and therefore
          * - stay in-memory for a short amount of minutes after deletion
          * - get a Snapshot when removed from memory
          */
@@ -570,16 +572,16 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     private <E extends PolicyEvent> void processEvent(final E event, final Procedure<E> handler) {
-        log.debug("About to persist Event '{}'", event.getType());
+        log.debug("About to persist Event <{}>.", event.getType());
 
         persist(event, persistedEvent -> {
-            log.info("Successfully persisted Event '{}'", event.getType());
+            log.info("Successfully persisted Event <{}>.", event.getType());
 
             // after the event was persisted, apply the event on the current actor state
             handlePolicyEvents.onMessage().apply(persistedEvent);
 
             /*
-             * the event has to be applied before creating the snapshot, otherwise a snapshot with new
+             * The event has to be applied before creating the snapshot, otherwise a snapshot with new
              * sequence no (e.g. 2), but old thing revision no (e.g. 1) will be created. This can lead to serious
              * aftereffects.
              */
@@ -602,16 +604,16 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     private boolean isPolicyDeleted() {
-        return policy.hasLifecycle(PolicyLifecycle.DELETED);
+        return null == policy || policy.hasLifecycle(PolicyLifecycle.DELETED);
     }
 
     private void doSaveSnapshot(final Runnable invokeAfterSnapshotRunnable) {
         if (snapshotInProgress) {
-            log.debug("Already requested taking a Snapshot - not doing it again");
+            log.debug("Already requested taking a Snapshot - not doing it again.");
         } else {
             snapshotInProgress = true;
             this.invokeAfterSnapshotRunnable = invokeAfterSnapshotRunnable;
-            log.debug("Attempting to save Snapshot for '{}' ..", policy);
+            log.debug("Attempting to save Snapshot for <{}> ...", policy);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(policy);
             saveSnapshot(snapshotToStore);
@@ -623,20 +625,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     private void policyEntryNotFound(final Label label, final DittoHeaders dittoHeaders) {
-        notifySender(
-                PolicyEntryNotAccessibleException.newBuilder(policyId, label.toString()).dittoHeaders(dittoHeaders)
-                        .build());
+        notifySender(PolicyEntryNotAccessibleException.newBuilder(policyId, label).dittoHeaders(dittoHeaders).build());
     }
 
-    private void subjectNotFound(final Label label, final SubjectId subjectId, final DittoHeaders dittoHeaders) {
-        notifySender(SubjectNotAccessibleException.newBuilder(policyId, label.toString(), subjectId.toString())
-                .dittoHeaders(dittoHeaders).build());
+    private void subjectNotFound(final Label label, final CharSequence subjectId, final DittoHeaders dittoHeaders) {
+        notifySender(SubjectNotAccessibleException.newBuilder(policyId, label.toString(), subjectId)
+                .dittoHeaders(dittoHeaders)
+                .build());
     }
 
-    private void resourceNotFound(final Label label, final ResourceKey resourceKey,
-            final DittoHeaders dittoHeaders) {
-        notifySender(ResourceNotAccessibleException.newBuilder(policyId, label.toString(), resourceKey.toString())
-                .dittoHeaders(dittoHeaders).build());
+    private void resourceNotFound(final Label label, final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
+        notifySender(ResourceNotAccessibleException.newBuilder(policyId, label, resourceKey.toString())
+                .dittoHeaders(dittoHeaders)
+                .build());
     }
 
     private WithDittoHeaders policyNotFound(final DittoHeaders dittoHeaders) {
@@ -644,9 +645,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     }
 
     private void policyInvalid(final String message, final DittoHeaders dittoHeaders) {
-        final PolicyModificationInvalidException exception = PolicyModificationInvalidException.newBuilder(policyId) //
-                .description(message) //
-                .dittoHeaders(dittoHeaders) //
+        final PolicyModificationInvalidException exception = PolicyModificationInvalidException.newBuilder(policyId)
+                .description(message)
+                .dittoHeaders(dittoHeaders)
                 .build();
 
         notifySender(exception);
@@ -654,9 +655,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     private void policyEntryInvalid(final Label label, final String message, final DittoHeaders dittoHeaders) {
         final PolicyEntryModificationInvalidException exception =
-                PolicyEntryModificationInvalidException.newBuilder(policyId, label.toString()) //
-                        .description(message) //
-                        .dittoHeaders(dittoHeaders) //
+                PolicyEntryModificationInvalidException.newBuilder(policyId, label)
+                        .description(message)
+                        .dittoHeaders(dittoHeaders)
                         .build();
 
         notifySender(exception);
@@ -674,8 +675,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     /**
      * Message the PolicyPersistenceActor can send to itself to check for activity of the Actor and terminate itself
-     * if
-     * there was no activity since the last check.
+     * if there was no activity since the last check.
      */
     private static final class CheckForActivity {
 
@@ -722,8 +722,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 return false;
             }
             final CheckForActivity that = (CheckForActivity) o;
-            return Objects.equals(currentSequenceNr, that.currentSequenceNr) && Objects
-                    .equals(currentAccessCounter, that.currentAccessCounter);
+            return Objects.equals(currentSequenceNr, that.currentSequenceNr) &&
+                    Objects.equals(currentAccessCounter, that.currentAccessCounter);
         }
 
         @Override
@@ -734,9 +734,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" + "currentSequenceNr=" + currentSequenceNr +
-                    ", currentAccessCounter="
-                    + currentAccessCounter + "]";
+                    ", currentAccessCounter=" + currentAccessCounter + "]";
         }
+
     }
 
     /**
@@ -750,6 +750,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public static final TakeSnapshotInternal INSTANCE = new TakeSnapshotInternal();
 
         private TakeSnapshotInternal() {}
+
     }
 
     /**
@@ -773,6 +774,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.TypedPredicate<T> getPredicate() {
             return command -> Objects.equals(policyId, command.getId());
         }
+
     }
 
     /**
@@ -804,12 +806,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
             if (validator.isValid()) {
                 final PolicyCreated policyCreated =
-                        PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(),
-                                dittoHeaders);
+                        PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(), dittoHeaders);
 
                 processEvent(policyCreated, event -> {
                     notifySender(CreatePolicyResponse.of(policyId, PolicyPersistenceActor.this.policy, dittoHeaders));
-                    log.debug("Created new Policy with ID '{}'.", policyId);
+                    log.debug("Created new Policy with ID <{}>.", policyId);
                     becomePolicyCreatedHandler();
                 });
             } else {
@@ -820,10 +821,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         public FI.UnitApply<CreatePolicy> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID ''{0}''!";
+                final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID <{0}>!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
             };
         }
+
     }
 
     /**
@@ -846,19 +848,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final CreatePolicy command) {
-            notifySender(
-                    PolicyConflictException.newBuilder(command.getId())
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build());
+            notifySender(PolicyConflictException.newBuilder(command.getId())
+                    .dittoHeaders(command.getDittoHeaders())
+                    .build());
         }
 
         @Override
         public FI.UnitApply<CreatePolicy> getUnhandledFunction() {
             return command -> {
-                final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID ''{0}''!";
+                final String msgTemplate = "This Policy Actor did not handle the requested Policy with ID <{0}>!";
                 throw new IllegalArgumentException(MessageFormat.format(msgTemplate, command.getId()));
             };
         }
+
     }
 
     /**
@@ -883,8 +885,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
             if (validator.isValid()) {
                 final PolicyModified policyModified =
-                        PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(),
-                                dittoHeaders);
+                        PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(), dittoHeaders);
                 processEvent(policyModified,
                         event -> notifySender(ModifyPolicyResponse.modified(policyId, dittoHeaders)));
             } else {
@@ -896,6 +897,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifyPolicy> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -920,6 +922,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrievePolicy> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -943,7 +946,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
             processEvent(policyDeleted, event -> {
                 notifySender(DeletePolicyResponse.of(policyId, dittoHeaders));
-                log.info("Deleted Policy with ID '{}'.", policyId);
+                log.info("Deleted Policy with ID <{}>.", policyId);
                 becomePolicyDeletedHandler();
             });
         }
@@ -952,6 +955,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<DeletePolicy> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -983,6 +987,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifyPolicyEntries> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1004,13 +1009,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Label label = policyEntry.getLabel();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            final PolicyEvent eventToPersist;
-            final ModifyPolicyEntryResponse response;
-
-            final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(policy.setEntry(policyEntry));
+            final PoliciesValidator validator = PoliciesValidator.newInstance(policy.setEntry(policyEntry));
 
             if (validator.isValid()) {
+                final PolicyEvent eventToPersist;
+                final ModifyPolicyEntryResponse response;
                 if (policy.contains(label)) {
                     eventToPersist =
                             PolicyEntryModified.of(policyId, policyEntry, getNextRevision(), getEventTimestamp(),
@@ -1033,6 +1036,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifyPolicyEntry> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1054,8 +1058,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Label label = command.getLabel();
 
             if (policy.contains(label)) {
-                final PoliciesValidator validator =
-                        PoliciesValidator.newInstance(policy.removeEntry(label));
+                final PoliciesValidator validator = PoliciesValidator.newInstance(policy.removeEntry(label));
 
                 if (validator.isValid()) {
                     deletePolicyEntry(label, dittoHeaders);
@@ -1079,6 +1082,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<DeletePolicyEntry> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1103,6 +1107,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrievePolicyEntries> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1132,6 +1137,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrievePolicyEntry> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1175,6 +1181,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifySubjects> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1206,6 +1213,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrieveSubjects> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1261,6 +1269,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifySubject> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1312,6 +1321,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<DeleteSubject> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1348,6 +1358,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrieveSubject> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1392,6 +1403,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifyResources> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1422,6 +1434,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrieveResources> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1478,6 +1491,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<ModifyResource> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1530,6 +1544,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<DeleteResource> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1568,6 +1583,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<RetrieveResource> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1592,6 +1608,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         public FI.UnitApply<SudoRetrievePolicy> getUnhandledFunction() {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
+
     }
 
     /**
@@ -1610,13 +1627,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         protected void doApply(final SaveSnapshotSuccess message) {
             final SnapshotMetadata snapshotMetadata = message.metadata();
-            log.debug("Snapshot taken for Policy '{}' with metadata '{}'.", policyId, snapshotMetadata);
+            log.debug("Snapshot taken for Policy <{}> with metadata <{}>.", policyId, snapshotMetadata);
 
             final long newSnapShotSequenceNumber = snapshotMetadata.sequenceNr();
             if (newSnapShotSequenceNumber <= lastSnapshotSequenceNr) {
-                log.warning("Policy '{}' has been already snapshotted with a newer " +
-                                "or equal sequence number. Last sequence number: {}, New Snapshot Metadata: '{}'",
-                        policyId,
+                log.warning("Policy <{}> has been already snap-shot with a newer or equal sequence number." +
+                                " Last sequence number: <{}>, new snapshot metadata: <{}>.", policyId,
                         lastSnapshotSequenceNr, snapshotMetadata);
                 resetSnapshotInProgress();
             } else {
@@ -1632,7 +1648,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         private void deleteEventsOlderThan(final long newestSequenceNumber) {
             if (eventsDeleteOld && newestSequenceNumber > 1) {
                 final long upToSequenceNumber = newestSequenceNumber - 1;
-                log.debug("Delete all event messages for Policy '{}' up to sequence number '{}'.", policy,
+                log.debug("Delete all event messages for Policy <{}> up to sequence number <{}>.", policy,
                         upToSequenceNumber);
                 deleteMessages(upToSequenceNumber);
             }
@@ -1640,8 +1656,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         private void deleteSnapshot(final long sequenceNumber) {
             if (snapshotDeleteOld && sequenceNumber != -1) {
-                log.debug("Delete old snapshot for Policy '{}' with sequence number '{}'.", policyId,
-                        sequenceNumber);
+                log.debug("Delete old snapshot for Policy <{}> with sequence number <{}>.", policyId, sequenceNumber);
                 PolicyPersistenceActor.this.deleteSnapshot(sequenceNumber);
             }
         }
@@ -1653,6 +1668,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             }
             snapshotInProgress = false;
         }
+
     }
 
     /**
@@ -1671,14 +1687,16 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
         @Override
         protected void doApply(final SaveSnapshotFailure message) {
+            final Throwable cause = message.cause();
+            final String causeMessage = cause.getMessage();
             if (isPolicyDeleted()) {
-                log.error(message.cause(), "Failed to save snapshot for delete operation of {}. Cause: {}.", policyId,
-                        message.cause().getMessage());
+                log.error(cause, "Failed to save snapshot for delete operation of <{}>. Cause: {}.", policyId,
+                        causeMessage);
             } else {
-                log.error(message.cause(), "Failed to save snapshot for {}. Cause: {}.", policyId,
-                        message.cause().getMessage());
+                log.error(cause, "Failed to save snapshot for <{}>. Cause: {}.", policyId, causeMessage);
             }
         }
+        
     }
 
     /**
@@ -1696,9 +1714,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final DeleteSnapshotSuccess message) {
-            log.debug("Deleting snapshot with sequence number '{}' for Policy '{}' was successful",
+            log.debug("Deleting snapshot with sequence number <{}> for Policy <{}> was successful.",
                     message.metadata().sequenceNr(), policyId);
         }
+
     }
 
     /**
@@ -1717,9 +1736,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         protected void doApply(final DeleteSnapshotFailure message) {
             final Throwable cause = message.cause();
-            log.error(cause, "Deleting snapshot with sequence number '{}' for Policy '{}' failed. Cause {}: {}",
+            log.error(cause, "Deleting snapshot with sequence number <{}> for Policy <{}> failed. Cause {}: {}",
                     message.metadata().sequenceNr(), policyId, cause.getClass().getSimpleName(), cause.getMessage());
         }
+
     }
 
     /**
@@ -1737,8 +1757,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final DeleteMessagesSuccess message) {
-            log.debug("Deleting messages for Policy '{}' was successful", policyId);
+            log.debug("Deleting messages for Policy <{}> was successful.", policyId);
         }
+
     }
 
     /**
@@ -1757,9 +1778,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         protected void doApply(final DeleteMessagesFailure message) {
             final Throwable cause = message.cause();
-            log.error(cause, "Deleting messages up to seqNo '{}' for Policy '{}' failed. Cause {}: {}", policyId,
-                    message.toSequenceNr(), cause.getClass().getSimpleName(), cause.getMessage());
+            log.error(cause, "Deleting messages up to sequence number <{}> for Policy <{}> failed. Cause {}: {}",
+                    policyId, message.toSequenceNr(), cause.getClass().getSimpleName(), cause.getMessage());
         }
+
     }
 
     /**
@@ -1781,6 +1803,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             log.warning("Unknown message: {}", message);
             unhandled(message);
         }
+
     }
 
     /**
@@ -1800,8 +1823,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final Object message) {
-            log.debug("Unexpected message after initialization of actor received: {} - "
-                            + "Terminating this actor and sending '{}' to requester..", message,
+            log.debug("Unexpected message after initialization of actor received: <{}> - " +
+                            "Terminating this actor and sending <{}> to requester..", message,
                     PolicyNotAccessibleException.class.getName());
             final PolicyNotAccessibleException.Builder builder = PolicyNotAccessibleException.newBuilder(policyId);
             if (message instanceof WithDittoHeaders) {
@@ -1814,6 +1837,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 scheduleCheckForPolicyActivity(activityCheckInterval.getSeconds());
             }
         }
+
     }
 
     /**
@@ -1837,6 +1861,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             }
             notifySender(builder.build());
         }
+
     }
 
     /**
@@ -1904,6 +1929,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         void onCompleted(final TakeSnapshotInternal requestMessage, final ActorRef requestSender,
                 final boolean snapshotCreated) {
+
             log.debug("Completed internal request for snapshot: snapshotCreated={}", snapshotCreated);
         }
 
@@ -1947,6 +1973,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 scheduleSnapshot(snapshotInterval.getSeconds());
             }
         }
+
     }
 
 }

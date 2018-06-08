@@ -19,7 +19,7 @@ import java.lang.management.RuntimeMXBean;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -27,7 +27,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
-import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
@@ -37,17 +36,18 @@ import org.slf4j.Logger;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Cancellable;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Scheduler;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.management.AkkaManagement;
+import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.
@@ -64,9 +64,8 @@ import scala.concurrent.duration.FiniteDuration;
  * <li>{@link #determineConfig()},</li>
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
- * <li>{@link #joinCluster(ActorSystem, Config)},</li>
  * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
- * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader, Cancellable)}.
+ * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
  * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
@@ -81,11 +80,6 @@ import scala.concurrent.duration.FiniteDuration;
  */
 @NotThreadSafe
 public abstract class DittoService<C extends ServiceConfigReader> {
-
-    /**
-     * Amount of seconds this service waits to join the Akka cluster.
-     */
-    public static final short JOIN_CLUSTER_TIMEOUT = 30; // seconds
 
     /**
      * Name of the cluster of this service.
@@ -160,9 +154,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #determineConfig()},</li>
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
-     * <li>{@link #joinCluster(ActorSystem, Config)},</li>
      * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
-     * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader, Cancellable)}.</li>
+     * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
      */
     protected void startActorSystem() {
@@ -172,11 +165,27 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
         final ActorSystem actorSystem = createActorSystem(config);
 
+        AkkaManagement.get(actorSystem).start();
+        ClusterBootstrap.get(actorSystem).start();
+
         startStatusSupplierActor(actorSystem, config);
         startDevOpsCommandsActor(actorSystem, config);
-        final Cancellable shutdownIfJoinFails = joinCluster(actorSystem, config);
         startClusterMemberAwareActor(actorSystem, configReader);
-        startServiceRootActors(actorSystem, configReader, shutdownIfJoinFails);
+        startServiceRootActors(actorSystem, configReader);
+
+        CoordinatedShutdown.get(actorSystem).addTask(
+                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
+                () -> {
+                    logger.info("Shutdown issued from outside (e.g. SIGTERM) - gracefully shutting down..");
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
+
+        CoordinatedShutdown.get(actorSystem).addTask(
+                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "Log successful graceful shutdown",
+                () -> {
+                    logger.info("Graceful shutdown completed.");
+                    return CompletableFuture.completedFuture(Done.getInstance());
+                });
     }
 
     /**
@@ -229,52 +238,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     /**
-     * Lets this service join the Akka cluster.
-     * <p>
-     * May be overridden to change the way how this service joins the Akka cluster. <em>Note: If this method is
-     * overridden the following method won't be called automatically:</em>
-     * </p>
-     * <ul>
-     * <li>{@link #scheduleShutdownIfJoinFails(ActorSystem)}.</li>
-     * </ul>
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param config the configuration settings of this service.
-     * @return a Cancellable to abort the scheduled termination of the Akka actor system if the cluster was joined
-     * successfully.
-     */
-    protected Cancellable joinCluster(final ActorSystem actorSystem, final Config config) {
-        ClusterUtil.joinCluster(actorSystem, config);
-
-        /*
-         * Important: Register Kamon::shutdown after joining the cluster as there is also a "registerOnTermination"
-         * and they are executed in reverse order.
-         */
-        actorSystem.registerOnTermination(Kamon::shutdown);
-
-        return scheduleShutdownIfJoinFails(actorSystem);
-    }
-
-    /**
-     * Schedules termination of the Akka actor system if this service fails to join the Akka cluster within
-     * {@link #JOIN_CLUSTER_TIMEOUT} seconds.
-     * <p>
-     * May be overridden to change the behaviour if this service fails to join the Akka cluster.
-     * </p>
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @return a Cancellable to abort the scheduled termination of the Akka actor system if the cluster was joined
-     * successfully.
-     */
-    protected Cancellable scheduleShutdownIfJoinFails(final ActorSystem actorSystem) {
-        final Scheduler scheduler = actorSystem.scheduler();
-        return scheduler.scheduleOnce(FiniteDuration.apply(JOIN_CLUSTER_TIMEOUT, TimeUnit.SECONDS), () -> {
-            logger.error("Member was not able to join the cluster, going to shutdown actor system now.");
-            actorSystem.terminate();
-        }, actorSystem.dispatcher());
-    }
-
-    /**
      * Starts the {@link ClusterMemberAwareActor}. May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
@@ -310,17 +273,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param configReader the configuration settings of this service.
-     * @param shutdownIfJoinFails gets cancelled as soon as the cluster was joined. Otherwise the actor system is
-     * terminated an an error logged.
      */
-    protected void startServiceRootActors(final ActorSystem actorSystem, final C configReader,
-            final Cancellable shutdownIfJoinFails) {
+    protected void startServiceRootActors(final ActorSystem actorSystem, final C configReader) {
 
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
-
-            shutdownIfJoinFails.cancel();
 
             startStatsdMetricsReporter(actorSystem, configReader);
 
