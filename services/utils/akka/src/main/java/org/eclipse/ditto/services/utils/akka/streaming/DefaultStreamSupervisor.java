@@ -131,7 +131,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy =
             new OneForOneStrategy(true, DeciderBuilder.matchAny(e -> SupervisorStrategy.stop()).build());
 
-    private Cancellable activityCheck;
+    private Cancellable scheduledStreamStart;
 
     private final ActorRef forwardTo;
     private final ActorRef provider;
@@ -146,7 +146,20 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     private @Nullable StreamTrigger activeStream;
     private @Nullable Boolean activeStreamSuccess;
 
-    private DefaultStreamSupervisor(final ActorRef forwardTo, final ActorRef provider,
+    /*
+     * Regular check that this actor is not stuck.
+     */
+    private Cancellable activityCheck;
+
+    /*
+     * Timestamp of the last instant when a forwarder is started or stopped.
+     */
+    private Instant lastStreamStartOrStop;
+
+    /*
+     * package-private for unit tests
+     */
+    DefaultStreamSupervisor(final ActorRef forwardTo, final ActorRef provider,
             final Class<E> elementClass,
             final Function<E, Source<Object, NotUsed>> mapEntityFunction,
             final Function<SudoStreamModifiedEntities, ?> streamTriggerMessageMapper,
@@ -161,6 +174,12 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         this.streamMetadataPersistence = requireNonNull(streamMetadataPersistence);
         this.materializer = requireNonNull(materializer);
         this.streamConsumerSettings = requireNonNull(streamConsumerSettings);
+
+        activityCheck = scheduleActivityCheck(streamConsumerSettings);
+        lastStreamStartOrStop = Instant.now();
+
+        final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
+        scheduleStream(nextStreamTrigger);
     }
 
     /**
@@ -191,7 +210,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public DefaultStreamSupervisor create() throws Exception {
+            public DefaultStreamSupervisor create() {
                 return new DefaultStreamSupervisor<>(forwardTo, provider, elementClass, mapEntityFunction,
                         streamTriggerMessageMapper, streamMetadataPersistence, materializer, streamConsumerSettings);
             }
@@ -220,15 +239,10 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
     }
 
     @Override
-    public void preStart() throws Exception {
-        super.preStart();
-
-        final StreamTrigger nextStreamTrigger = computeNextStreamTrigger(null);
-        scheduleStream(nextStreamTrigger);
-    }
-
-    @Override
     public void postStop() throws Exception {
+        if (null != scheduledStreamStart) {
+            scheduledStreamStart.cancel();
+        }
         if (null != activityCheck) {
             activityCheck.cancel();
         }
@@ -245,6 +259,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                     tryToStartStream();
                 })
                 .match(Terminated.class, this::terminated)
+                .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
                 .build();
     }
 
@@ -260,6 +275,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
                 .matchEquals(FORWARDER_EXCEEDED_MAX_IDLE_TIME_MSG, msg -> streamTimedOut())
                 .matchEquals(TryToStartStream.INSTANCE, msg -> tryToStartStream())
                 .match(Terminated.class, this::terminated)
+                .matchEquals(CheckForActivity.INSTANCE, this::checkForActivity)
                 .build();
     }
 
@@ -357,14 +373,23 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
 
     private void scheduleStream(final Duration duration) {
         log.info("Schedule Stream in: {}", duration);
-        if (activityCheck != null) {
-            activityCheck.cancel();
+        if (scheduledStreamStart != null) {
+            scheduledStreamStart.cancel();
         }
 
-        final FiniteDuration finiteDuration = FiniteDuration.create(duration.getSeconds(), TimeUnit.SECONDS);
-        activityCheck = getContext().system().scheduler()
+        final FiniteDuration finiteDuration = fromDuration(duration);
+        scheduledStreamStart = getContext().system().scheduler()
                 .scheduleOnce(finiteDuration, getSelf(), TryToStartStream.INSTANCE,
                         getContext().dispatcher(), ActorRef.noSender());
+    }
+
+    private Cancellable scheduleActivityCheck(final StreamConsumerSettings streamConsumerSettings) {
+        final FiniteDuration initialDelay = fromDuration(streamConsumerSettings.getOutdatedWarningOffset());
+        final FiniteDuration interval = fromDuration(streamConsumerSettings.getStreamInterval());
+        final CheckForActivity message = CheckForActivity.INSTANCE;
+        return getContext().getSystem()
+                .scheduler()
+                .schedule(initialDelay, interval, getSelf(), message, getContext().dispatcher(), ActorRef.noSender());
     }
 
     private void tryToStartStream() {
@@ -403,7 +428,7 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         if (refOption.isDefined()) {
             forwarderRef = refOption.get();
         } else {
-            forwarderRef = getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
+            forwarderRef = startStreamForwarder();
             log.debug("Watching forwarder: {}", forwarderRef);
             // important: watch the child to get notified when it terminates
             getContext().watch(forwarderRef);
@@ -412,7 +437,13 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         return forwarderRef;
     }
 
+    private ActorRef startStreamForwarder() {
+        streamForwarderStartedOrStopped();
+        return getContext().actorOf(getStreamForwarderProps(), STREAM_FORWARDER_ACTOR_NAME);
+    }
+
     private void terminated(final Terminated terminated) {
+        streamForwarderStartedOrStopped();
         final ActorRef terminatedActor = terminated.getActor();
         log.debug("Received Terminated-Message: {}", terminated);
 
@@ -428,7 +459,38 @@ public final class DefaultStreamSupervisor<E> extends AbstractActor {
         scheduleNextStream();
     }
 
+    private void checkForActivity(final CheckForActivity instance) {
+        final Duration outdatedWarningOfset = streamConsumerSettings.getOutdatedWarningOffset();
+        final Instant now = Instant.now();
+        if (lastStreamStartOrStop != null &&
+                lastStreamStartOrStop.plus(outdatedWarningOfset).isBefore(now)) {
+            // Did not start or stop stream for a long time. Something is wrong.
+            // Throw IllegalStateException to trigger restart.
+            final String message =
+                    String.format("Started or stopped last time at <%s>, which is older than <%s> from now <%s>",
+                            lastStreamStartOrStop.toString(), outdatedWarningOfset.toString(), now.toString());
+            log.error(message);
+            throw new IllegalStateException(message);
+        }
+    }
+
+    private static FiniteDuration fromDuration(final Duration duration) {
+        return FiniteDuration.create(duration.toMillis(), TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Declare stream forwarder to be started or stopped. Used for self-sanity check.
+     * If stream supervisor does not start or stop a forwarder for a long time then something is wrong.
+     */
+    private void streamForwarderStartedOrStopped() {
+        lastStreamStartOrStop = Instant.now();
+    }
+
     private enum TryToStartStream {
+        INSTANCE
+    }
+
+    private enum CheckForActivity {
         INSTANCE
     }
 }
