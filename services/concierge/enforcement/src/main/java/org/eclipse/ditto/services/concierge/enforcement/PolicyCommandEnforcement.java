@@ -213,10 +213,10 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     private void forwardToPoliciesShardRegion(final PolicyCommand command, final ActorRef sender) {
-        policiesShardRegion.tell(command, sender);
         if (command instanceof PolicyModifyCommand) {
             invalidateCaches(command.getId());
         }
+        policiesShardRegion.tell(command, sender);
     }
 
     /**
