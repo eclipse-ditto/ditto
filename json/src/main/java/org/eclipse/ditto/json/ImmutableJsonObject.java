@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -202,12 +201,14 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
         } else {
             result = pointer.getRoot()
                     .flatMap(this::getValueForKey)
-                    .map(jsonValue -> !jsonValue.isObject() || jsonValue.asObject().contains(pointer.nextLevel())) // Recursion
+                    .map(jsonValue -> !jsonValue.isObject() ||
+                            jsonValue.asObject().contains(pointer.nextLevel())) // Recursion
                     .orElse(false);
         }
 
         return result;
     }
+
     private boolean containsKey(final CharSequence key) {
         return fields.containsKey(key.toString());
     }
@@ -316,46 +317,42 @@ final class ImmutableJsonObject extends AbstractImmutableJsonValue implements Js
             return this;
         }
 
-        final Map<JsonKey, JsonValue> jsonValues = new LinkedHashMap<>();
-        for (final JsonPointer jsonPointer : fieldSelector) {
-            if (contains(jsonPointer)) {
-                final JsonObject objectForPointer = get(jsonPointer);
-                final JsonKey rootKey = jsonPointer.getRoot().orElse(ROOT_KEY);
-                if (jsonValues.containsKey(rootKey)) {
-                    jsonValues.put(rootKey, mergeIfJsonObject(jsonValues.get(rootKey), jsonPointer, objectForPointer));
-                } else {
-                    objectForPointer.getValue(rootKey).ifPresent(jsonObject -> jsonValues.put(rootKey, jsonObject));
-                }
-            }
-        }
-
-        final Map<String, JsonField> newJsonFields = jsonValues.entrySet()
+        final List<JsonPointer> pointersContainedInThis = fieldSelector.getPointers()
                 .stream()
-                .map(entry -> JsonFactory.newField(entry.getKey(), entry.getValue(),
-                        Optional.ofNullable(fields.get(entry.getKey().toString()))
-                                .flatMap(JsonField::getDefinition)
-                                .orElse(null)))
-                .collect(Collectors.toMap(JsonField::getKeyName, Function.identity(), (u, v) -> {
-                    throw new IllegalStateException(String.format("Duplicate key %s", u));
-                }, LinkedHashMap::new));
+                .filter(this::contains)
+                .collect(Collectors.toList());
 
-        return of(newJsonFields);
+        if (pointersContainedInThis.isEmpty()) {
+            return JsonFactory.newObject();
+        } else {
+            return filterByTrie(this, JsonFieldSelectorTrie.of(pointersContainedInThis));
+        }
     }
 
-    private static JsonValue mergeIfJsonObject(final JsonValue jsonValue, final JsonPointer pointer,
-            final JsonObject toBeMerged) {
-
-        final JsonValue result;
-        if (jsonValue.isObject()) {
-            final JsonObject alreadyKnownObject = jsonValue.asObject();
-            result = toBeMerged.getValue(pointer)
-                    .map(value -> alreadyKnownObject.setValue(pointer.nextLevel(), value))
-                    .orElse(alreadyKnownObject);
-        } else {
-            result = jsonValue;
+    @SuppressWarnings("unchecked")
+    private static JsonObject filterByTrie(final JsonObject self, final JsonFieldSelectorTrie trie) {
+        if (trie.isEmpty()) {
+            return self;
         }
 
-        return result;
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+
+        for (final JsonKey key : trie.getKeys()) {
+            self.getField(key).ifPresent(child -> {
+                final JsonValue childValue = child.getValue();
+                final JsonValue filteredChildValue = childValue.isObject()
+                        ? filterByTrie(childValue.asObject(), trie.descend(key))
+                        : childValue;
+                final Optional<JsonFieldDefinition> childFieldDefinition = child.getDefinition();
+                if (childFieldDefinition.isPresent()) {
+                    builder.set(childFieldDefinition.get(), filteredChildValue);
+                } else {
+                    builder.set(key, filteredChildValue);
+                }
+            });
+        }
+
+        return builder.build();
     }
 
     @Override

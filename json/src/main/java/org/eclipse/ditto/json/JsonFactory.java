@@ -538,11 +538,10 @@ public final class JsonFactory {
      * or empty this means that no fields were selected thus this method returns an empty JSON field selector.
      * <p>
      * For example, the field selector string
-     * <p>
+     * </p>
      * <pre>
      * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
      * </pre>
-     * <p>
      * would lead to a JSON field selector which consists of the following JSON pointers:
      * <ul>
      * <li>{@code "thingId"},</li>

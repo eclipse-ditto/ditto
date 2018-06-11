@@ -63,7 +63,7 @@ public final class ThingsJsonTest {
                         .build())
                 .build();
 
-        assertThat(feature.toJsonString()).isEqualTo(expectedJsonObject.toString());
+        assertThat(feature.toJson()).isEqualToIgnoringFieldDefinitions(expectedJsonObject);
     }
 
     /** */
@@ -82,7 +82,7 @@ public final class ThingsJsonTest {
         final String thingId = "test.ns:myThing";
 
         final String expectedJson = "{" + "\"thingId\":\"" + thingId + "\"," + "\"attributes\":{"
-                + "\"someIntAttribute\":23,"+ "\"someStringAttribute\":\"someAttrValue\","
+                + "\"someIntAttribute\":23," + "\"someStringAttribute\":\"someAttrValue\","
                 + "\"someBoolAttribute\":true"
                 + "}," + "\"features\":{\"" + featureId + "\":{\"properties\":{"
                 + "\"someObj\":{\"aKey\":\"aValue\"}"
@@ -153,7 +153,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -167,7 +167,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -181,7 +181,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -195,7 +195,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -209,7 +209,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -225,7 +225,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -240,7 +240,7 @@ public final class ThingsJsonTest {
         final JsonObject actualJson =
                 TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, fieldSelector, FieldType.notHidden());
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -254,7 +254,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     @Test
@@ -262,12 +262,13 @@ public final class ThingsJsonTest {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Thing.JsonFields.FEATURES);
 
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.FEATURES.getPointer(), TestConstants.Feature.FEATURES.toJson(FieldType.notHidden()))
+                .set(Thing.JsonFields.FEATURES.getPointer(),
+                        TestConstants.Feature.FEATURES.toJson(FieldType.notHidden()))
                 .build();
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -283,7 +284,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(fieldSelector);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -298,7 +299,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -314,7 +315,7 @@ public final class ThingsJsonTest {
 
         final JsonObject actualJson = TestConstants.Thing.THING_V1.toJson(JsonSchemaVersion.V_1, FieldType.SPECIAL);
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     /** */
@@ -332,7 +333,7 @@ public final class ThingsJsonTest {
                 .set(Thing.JsonFields.ATTRIBUTES.getPointer(), ThingsModelFactory.nullAttributes())
                 .build();
 
-        assertThat(actualJson).isEqualTo(expectedJson);
+        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
     }
 
     private static Map<JsonKey, JsonValue> toMap(final CharSequence keyName, final String value) {
