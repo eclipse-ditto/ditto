@@ -51,7 +51,6 @@ import kamon.Kamon;
 import kamon.jaeger.JaegerReporter;
 import kamon.prometheus.PrometheusReporter;
 import kamon.system.SystemMetrics;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.

@@ -76,6 +76,12 @@
         <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.typesafe.akka</groupId>
+                    <artifactId>akka-remote_${scala.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
