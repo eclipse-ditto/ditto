@@ -85,13 +85,26 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private final Map<String, String> consumedTagsToAddresses;
 
+    /*
+     * This constructor is called via reflection by the static method propsForTest.
+     */
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
-             final ActorRef conciergeForwarder) {
+            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
+            final ActorRef conciergeForwarder) {
         super(connection, connectionStatus, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
+    }
+
+    /*
+     * This constructor is called via reflection by the static method props(Connection, ActorRef).
+     */
+    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef conciergeForwarder) {
+        this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),
+                conciergeForwarder);
+
     }
 
     /**
@@ -103,7 +116,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                ConnectionBasedRabbitConnectionFactoryFactory.getInstance(), conciergeForwarder);
+                conciergeForwarder);
     }
 
     /**
