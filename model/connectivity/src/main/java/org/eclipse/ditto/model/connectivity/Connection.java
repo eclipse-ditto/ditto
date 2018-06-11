@@ -78,6 +78,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
     /**
      * Returns a set of targets of this {@code Connection}.
+     *
+     * @return the targets
      */
     Set<Target> getTargets();
 

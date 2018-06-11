@@ -50,7 +50,7 @@ public enum Topic {
 
     /**
      * @param name name of the topic
-     * @returnthe topic matching the given name
+     * @return the topic matching the given name
      */
     public static Optional<Topic> forName(final CharSequence name) {
         checkNotNull(name, "Name");

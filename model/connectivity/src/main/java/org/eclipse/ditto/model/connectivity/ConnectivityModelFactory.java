@@ -192,6 +192,8 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
+     * @param mappingEngine fully qualified classname of a mapping engine
+     * @param options the mapping options required to instantiate a mapper
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
