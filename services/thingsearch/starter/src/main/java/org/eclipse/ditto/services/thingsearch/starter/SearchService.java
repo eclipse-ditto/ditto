@@ -11,17 +11,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter;
 
-import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.starter.actors.SearchRootActor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import akka.actor.ActorRef;
-import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Search service.
@@ -31,17 +22,12 @@ import akka.stream.ActorMaterializer;
  * <li>Wires up Akka HTTP Routes.</li>
  * </ul>
  */
-public final class SearchService extends DittoService<ServiceConfigReader> {
+public final class SearchService extends AbstractSearchService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SearchService.class);
 
-    /**
-     * Name for the Search service.
-     */
-    private static final String SERVICE_NAME = ConfigKeys.SERVICE_NAME;
-
     private SearchService() {
-        super(LOGGER, SERVICE_NAME, SearchRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        super(LOGGER);
     }
 
     /**
@@ -52,13 +38,6 @@ public final class SearchService extends DittoService<ServiceConfigReader> {
     public static void main(final String[] args) {
         final SearchService searchService = new SearchService();
         searchService.start();
-    }
-
-    @Override
-    protected Props getMainRootActorProps(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
-
-        return SearchRootActor.props(configReader, pubSubMediator, materializer);
     }
 
 }

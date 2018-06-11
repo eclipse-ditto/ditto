@@ -186,6 +186,27 @@ public class PolicyCommandEnforcementTest {
     }
 
     @Test
+    public void modifyPolicyInvalidatesCache() {
+        // GIVEN: authorized modify policy command is forwarded and response is received
+        final ModifyPolicy modifyPolicy = ModifyPolicy.of(POLICY_ID, POLICY, DITTO_HEADERS);
+        enforcer.tell(modifyPolicy, testKit.getRef());
+        expectMsg(policiesShardRegionProbe, SUDO_RETRIEVE_POLICY);
+        policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
+        expectMsg(policiesShardRegionProbe, modifyPolicy);
+        final ModifyPolicyResponse mockResponse = ModifyPolicyResponse.modified(POLICY_ID, DITTO_HEADERS);
+        policiesShardRegionProbe.lastSender().tell(mockResponse, policiesShardRegionProbe.ref());
+        expectMsg(testKit, mockResponse);
+
+        // WHEN: another policy command is sent
+        enforcer.tell(modifyPolicy, testKit.getRef());
+
+        // THEN: cache is reloaded; expect SudoRetrievePolicy and not any other command
+        expectMsg(policiesShardRegionProbe, SUDO_RETRIEVE_POLICY);
+        policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
+        expectMsg(policiesShardRegionProbe, modifyPolicy);
+    }
+
+    @Test
     public void modifyPolicyWhenAuthSubjectDoesNotHaveWritePermissionFails() {
         final ModifyPolicy modifyPolicy = ModifyPolicy.of(POLICY_ID, POLICY, DITTO_HEADERS);
 

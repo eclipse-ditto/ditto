@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
  * <li>a string like for example {@code "foo"},</li>
  * <li>an array like for example {@code [1,2,3,23]} or</li>
  * <li>an object like for example
- * <p>
  * <pre>
  * {
  *   "foo": "bar",
@@ -29,7 +28,6 @@ import javax.annotation.Nullable;
  *   "baz": ["a", "b", "c"]
  * }
  * </pre>
- * <p>
  * </li>
  * </ul>
  * For JSON objects and JSON arrays do exists dedicated interfaces which are {@link JsonObject} and {@link JsonArray}.

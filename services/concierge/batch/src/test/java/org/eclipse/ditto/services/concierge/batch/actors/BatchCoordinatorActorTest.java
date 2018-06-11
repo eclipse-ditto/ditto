@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -295,7 +296,7 @@ public final class BatchCoordinatorActorTest {
                 underTest.tell(Kill.getInstance(), ref());
                 expectTerminated(underTest);
 
-                createBatchCoordinatorActor(batchId);
+                Retry.untilSuccess(() -> createBatchCoordinatorActor(batchId));
 
                 final BatchExecutionFinished batchExecutionFinished = expectMsgClass(BatchExecutionFinished.class);
                 EventAssertions.assertThat(batchExecutionFinished).hasCorrelationId(batchId);
