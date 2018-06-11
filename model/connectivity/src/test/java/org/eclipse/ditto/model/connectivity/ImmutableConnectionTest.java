@@ -126,7 +126,8 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.PROCESSOR_POOL_SIZE, 5)
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson())
             .set(Connection.JsonFields.TAGS, KNOWN_TAGS.stream()
-                    .map(JsonFactory::newValue).collect(JsonCollectors.valuesToArray()))
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray()))
             .build();
 
     @Test
@@ -145,8 +146,7 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void createMinimalConnectionConfigurationInstance() {
-        final Connection connection = ConnectivityModelFactory
-                .newConnectionBuilder(ID, TYPE, STATUS, URI)
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
@@ -208,16 +208,15 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Connection expected =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                        .name(NAME)
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .sources(SOURCES)
-                        .targets(TARGETS)
-                        .clientCount(2)
-                        .mappingContext(KNOWN_MAPPING_CONTEXT)
-                        .tags(KNOWN_TAGS)
-                        .build();
+        final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .name(NAME)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .sources(SOURCES)
+                .targets(TARGETS)
+                .clientCount(2)
+                .mappingContext(KNOWN_MAPPING_CONTEXT)
+                .tags(KNOWN_TAGS)
+                .build();
 
         final Connection actual = ImmutableConnection.fromJson(KNOWN_JSON);
 
@@ -240,8 +239,7 @@ public final class ImmutableConnectionTest {
     public void fromJsonWithoutValidAuthorizationContextFails() {
         final JsonObject invalidJson = KNOWN_JSON.remove(Connection.JsonFields.AUTHORIZATION_CONTEXT.getPointer());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(
-                        () -> ImmutableConnection.fromJson(invalidJson))
+                .isThrownBy(() -> ImmutableConnection.fromJson(invalidJson))
                 .withMessageContaining("Sources " + SOURCE1.getAddresses())
                 .withMessageContaining("Targets " + Arrays.asList(TARGET1.getAddress(), TARGET2.getAddress()))
                 .withNoCause();
@@ -249,17 +247,17 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                        .name(NAME)
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .sources(SOURCES)
-                        .targets(TARGETS)
-                        .clientCount(2)
-                        .mappingContext(KNOWN_MAPPING_CONTEXT)
-                        .tags(KNOWN_TAGS)
-                        .build()
-                        .toJson();
+        final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .name(NAME)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .sources(SOURCES)
+                .targets(TARGETS)
+                .clientCount(2)
+                .mappingContext(KNOWN_MAPPING_CONTEXT)
+                .tags(KNOWN_TAGS)
+                .build();
+
+        final JsonObject actual = underTest.toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -354,10 +352,16 @@ public final class ImmutableConnectionTest {
 
     @Test
     public void toStringDoesNotContainPassword() {
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, "amqps://foo:thePassword@host.com:5671")
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .sources(Collections.singleton(SOURCE1)).build();
-        assertThat(connection.toString()).doesNotContain("thePassword");
+        final String password = "thePassword";
+
+        final String uri = "amqps://foo:" + password + "@host.com:5671";
+
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, uri)
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .sources(Collections.singleton(SOURCE1))
+                .build();
+
+        assertThat(connection.toString()).doesNotContain(password);
     }
+
 }

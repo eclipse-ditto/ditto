@@ -191,6 +191,7 @@ final class ImmutableConnection implements Connection {
                             .map(str -> JsonArray.newBuilder().add(str).build())
                             // allow empty auth context for connection, can be defined in sources/targets
                             .orElseGet(() -> JsonArray.newBuilder().build()));
+
             final List<AuthorizationSubject> authorizationSubjects = authSubjectsJsonArray.stream()
                     .filter(JsonValue::isString)
                     .map(JsonValue::asString)
@@ -237,46 +238,6 @@ final class ImmutableConnection implements Connection {
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
-    }
-
-    private static Set<Target> readTargetsFromJson(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.TARGETS)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .map(ImmutableTarget::fromJson)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
-    }
-
-    private static Set<Source> readSourcesFromJson(final JsonObject jsonObject) {
-        return jsonObject.getValue(JsonFields.SOURCES)
-                .map(array -> array.stream()
-                        .filter(JsonValue::isObject)
-                        .map(JsonValue::asObject)
-                        .map(ImmutableSource::fromJson)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
-    }
-
-    private static AuthorizationContext readAuthorizationContextFromJson(final JsonObject jsonObject) {
-        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
-                .orElseGet(() ->
-                        // as a fallback use the already persisted "authorizationSubject" field
-                        jsonObject.getValue("authorizationSubject")
-                                .filter(JsonValue::isString)
-                                .map(JsonValue::asString)
-                                .map(str -> JsonArray.newBuilder().add(str).build())
-                                // allow empty auth context for connection, can be defined in sources/targets
-                                .orElseGet(() -> JsonArray.newBuilder().build())
-                );
-
-        final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
-                .filter(JsonValue::isString)
-                .map(JsonValue::asString)
-                .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toList());
-        return AuthorizationModelFactory.newAuthContext(authorizationSubjects);
     }
 
     @Override
@@ -355,7 +316,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public String getPath() {
+    public Optional<String> getPath() {
         return uri.getPath();
     }
 
@@ -468,7 +429,7 @@ final class ImmutableConnection implements Connection {
                 ", connectionStatus=" + connectionStatus +
                 ", authorizationContext=" + authorizationContext +
                 ", failoverEnabled=" + failOverEnabled +
-                ", uri=" + uri.uriStringWithMaskedPassword +
+                ", uri=" + uri.getUriStringWithMaskedPassword() +
                 ", sources=" + sources +
                 ", targets=" + targets +
                 ", clientCount=" + clientCount +
@@ -655,16 +616,16 @@ final class ImmutableConnection implements Connection {
     private static final class ConnectionUri {
 
         private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
-        private static final String MASKED_URI_FORMAT = "{0}://{1}:*****@{2}:{3,number,#}";
+        private static final String MASKED_URI_PATTERN = "{0}://{1}{2}:{3,number,#}{4}";
 
         private final String uriString;
-        private final String uriStringWithMaskedPassword;
         private final String protocol;
         @Nullable private final String userName;
         @Nullable private final String password;
         private final String hostname;
         private final int port;
-        private final String path;
+        @Nullable private final String path;
+        private final String uriStringWithMaskedPassword;
 
         private ConnectionUri(final String theUriString, final Matcher matcher) {
             uriString = theUriString;
@@ -673,9 +634,25 @@ final class ImmutableConnection implements Connection {
             password = matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP);
             hostname = matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP);
             port = Integer.parseInt(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP));
-            path = matcher.group(Connection.UriRegex.PATH_REGEX_GROUP);
-            uriStringWithMaskedPassword = MessageFormat.format(MASKED_URI_FORMAT, protocol, userName, hostname, port)
-                    + (path != null ? "/" + path : "");
+            path = matcher.group(UriRegex.PATH_REGEX_GROUP);
+
+            uriStringWithMaskedPassword = createUriStringWithMaskedPassword();
+        }
+
+        private String createUriStringWithMaskedPassword() {
+            return MessageFormat.format(MASKED_URI_PATTERN, protocol, getUserCredentialsOrEmptyString(), hostname, port,
+                    getPathOrEmptyString());
+        }
+
+        private String getUserCredentialsOrEmptyString() {
+            if (null != userName && null != password) {
+                return userName + ":*****@";
+            }
+            return "";
+        }
+
+        private String getPathOrEmptyString() {
+            return null != path ? "/" + path : "";
         }
 
         /**
@@ -716,8 +693,17 @@ final class ImmutableConnection implements Connection {
             return port;
         }
 
-        String getPath() {
-            return path;
+        /**
+         * Returns the path or an empty string.
+         *
+         * @return the path or an empty string.
+         */
+        Optional<String> getPath() {
+            return Optional.ofNullable(path);
+        }
+
+        String getUriStringWithMaskedPassword() {
+            return uriStringWithMaskedPassword;
         }
 
         @Override
