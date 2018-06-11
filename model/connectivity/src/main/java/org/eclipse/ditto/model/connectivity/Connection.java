@@ -145,7 +145,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the path.
      */
-    String getPath();
+    Optional<String> getPath();
 
     /**
      * Whether to validate server certificates on connection establishment,
