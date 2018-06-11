@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
+import static java.util.Collections.emptySet;
+
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -147,6 +149,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(ExternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
+                .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
@@ -238,21 +241,47 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    private void handleSignal(final Signal<?> signal) {
+    /**
+     * @param outbound
+     */
+    private void handleOutboundSignal(final OutboundSignal outbound) {
+        final Signal<?> signal = outbound.getSource();
         enhanceLogUtil(signal);
-        log.debug("Handling signal: {}", signal);
+        log.debug("Handling outbound signal: {}", signal);
+        mapToExternalMessage(signal)
+                .map(message -> new MappedOutboundSignal(outbound, message))
+                .ifPresent(outboundSignal -> publisherActor.forward(outboundSignal, getContext()));
+    }
 
+    /**
+     * Is called for responses or errors which were directly sent to the mapping actor as a response.
+     *
+     * @param signal the response/error
+     */
+    private void handleSignal(final Signal<?> signal) {
+        // map to outbound signal without authorized target (responses and errors are only sent to its origin)
+        log.debug("Handling raw signal: {}", signal);
+        handleOutboundSignal(new UnmappedOutboundSignal(signal, emptySet()));
+
+//        enhanceLogUtil(signal);
+//        log.debug("Handling signal: {}", signal);
+//        mapToExternalMessage(signal)
+//                .map(message -> new MappedOutboundSignal(new UnmappedOutboundSignal(signal, emptySet()), message))
+//                .ifPresent(message -> publisherActor.forward(message, getContext()));
+    }
+
+    private Optional<ExternalMessage> mapToExternalMessage(final Signal<?> signal) {
         try {
             final DittoHeaders filteredDittoHeaders = headerFilter.apply(signal.getDittoHeaders());
             final Signal signalWithFilteredHeaders = signal.setDittoHeaders(filteredDittoHeaders);
-            processor.process(signalWithFilteredHeaders)
-                    .ifPresent(message -> publisherActor.forward(message, getContext()));
+            return processor.process(signalWithFilteredHeaders);
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));
         } catch (final Exception e) {
             log.warning("Got unexpected exception during processing Signal: {}", e.getMessage());
         }
+        return Optional.empty();
     }
 
     private void startTrace(final Signal<?> command) {

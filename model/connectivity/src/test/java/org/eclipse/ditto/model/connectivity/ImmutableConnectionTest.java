@@ -56,13 +56,13 @@ public final class ImmutableConnectionTest {
     private static final Source SOURCE2 = ConnectivityModelFactory.newSource(1, AUTHORIZATION_CONTEXT, "amqp/source2");
     private static final Set<Source> SOURCES = new HashSet<>(Arrays.asList(SOURCE1, SOURCE2));
     private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", "_/_/things/twin/events", "_/_/things/live/events");
+            ConnectivityModelFactory.newTarget("amqp/target1", Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", "_/_/things/live/messages", "_/_/things/live/messages",
-                    "_/_/things/live/events");
+            ConnectivityModelFactory.newTarget("amqp/target2", Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES,
+                    Topic.LIVE_EVENTS);
     private static final Target TARGET3 =
-            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, "_/_/things/live/messages",
-                    "_/_/things/live/messages", "_/_/things/live/commands");
+            ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES,
+                    Topic.LIVE_MESSAGES, Topic.LIVE_COMMANDS);
     private static final Set<Target> TARGETS = new HashSet<>(Arrays.asList(TARGET1, TARGET2, TARGET3));
 
     private static final JsonArray KNOWN_SOURCES_JSON =

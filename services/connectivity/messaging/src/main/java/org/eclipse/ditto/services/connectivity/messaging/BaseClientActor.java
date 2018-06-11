@@ -349,16 +349,28 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     cannotHandle(command, data.getConnection());
                     return stay().using(data.setOrigin(getSender()));
                 })
-                .event(Signal.class, BaseClientData.class, (signal, data) -> {
-                    handleSignal(signal);
+                .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
+                    handleExternalMessage(outboundSignal);
                     return stay();
                 })
-                .event(ExternalMessage.class, BaseClientData.class, (externalMessage, data) -> {
-                    handleExternalMessage(externalMessage);
+                .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
+                    handleOutboundSignal(signal);
                     return stay();
                 })
+//                .event(Signal.class, BaseClientData.class, (signal, data) -> {
+//                    handleSignal(signal);
+//                    return stay();
+//                })
+//                .event(ExternalMessage.class, BaseClientData.class, (externalMessage, data) -> {
+//                    handleExternalMessage(externalMessage);
+//                    return stay();
+//                })
                 .event(Status.Success.class, BaseClientData.class, (success, data) -> {
                     log.info("Got Status.Success: {}", success);
+                    return stay();
+                })
+                .anyEvent((e, baseClientData) -> {
+                    log.warning("Received unhandled event: {}", e);
                     return stay();
                 });
     }
@@ -600,6 +612,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return data.getConnectionStatus() == ConnectionStatus.OPEN;
     }
 
+    private void handleOutboundSignal(final OutboundSignal signal) {
+        enhanceLogUtil(signal.getSource());
+        if (messageMappingProcessorActor != null) {
+            messageMappingProcessorActor.tell(signal, getSelf());
+        } else {
+            log.info("Cannot handle <{}> signal, no MessageMappingProcessor available.", signal.getSource().getType());
+        }
+    }
+
     private void handleSignal(final Signal<?> signal) {
         enhanceLogUtil(signal);
         if (messageMappingProcessorActor != null) {
@@ -612,6 +633,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
         LogUtil.enhanceLogWithCorrelationId(log, signal);
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+    }
+
+    private void handleExternalMessage(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
+        getPublisherActor().ifPresent(publisher -> {
+            incrementPublishedMessageCounter();
+            publisher.forward(mappedOutboundSignal, getContext());
+        });
     }
 
     private void handleExternalMessage(final ExternalMessage externalMessage) {

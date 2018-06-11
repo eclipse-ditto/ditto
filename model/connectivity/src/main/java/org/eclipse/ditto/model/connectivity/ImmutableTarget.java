@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,10 +42,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableTarget implements Target {
 
     private final String address;
-    private final Set<String> topics;
+    private final Set<Topic> topics;
     private final AuthorizationContext authorizationContext;
 
-    ImmutableTarget(final String address, final Set<String> topics, final AuthorizationContext authorizationContext) {
+    ImmutableTarget(final String address, final Set<Topic> topics, final AuthorizationContext authorizationContext) {
         this.address = address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
@@ -56,7 +57,7 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
-    public Set<String> getTopics() {
+    public Set<Topic> getTopics() {
         return topics;
     }
 
@@ -73,6 +74,7 @@ final class ImmutableTarget implements Target {
         jsonObjectBuilder.set(Target.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(Target.JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(Target.JsonFields.TOPICS, topics.stream()
+                .map(Topic::getName)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         if (!authorizationContext.isEmpty()) {
@@ -95,9 +97,12 @@ final class ImmutableTarget implements Target {
      */
     public static Target fromJson(final JsonObject jsonObject) {
         final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
-        final Set<String> readTopics = jsonObject.getValue(JsonFields.TOPICS)
+        final Set<Topic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
+                        .map(Topic::forName)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 

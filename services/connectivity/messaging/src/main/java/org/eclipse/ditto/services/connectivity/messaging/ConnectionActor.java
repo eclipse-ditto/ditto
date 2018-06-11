@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,6 +34,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -127,7 +128,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
 
-    private Set<String> uniqueTopicPaths = Collections.emptySet();
+    private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory) {
@@ -307,22 +308,13 @@ final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Dropping signal, was sent by myself.");
             return;
         }
-        final String topicPath = TopicPathMapper.mapSignalToTopicPath(signal);
-        if (!uniqueTopicPaths.contains(topicPath)) {
-            log.debug("Dropping signal, topic '{}' is not subscribed.", topicPath);
-            return;
-        }
-        // forward to client actor if topic was subscribed and connection is authorized to read
-        if (isAuthorized(signal, connection.getAuthorizationContext())) {
+        final Set<Target> subscribedAndAuthorizedTargets = SignalFilter.filter(connection, signal);
+        // forward to client actor if topic was subscribed and there are targets that are authorized to read
+        if (!subscribedAndAuthorizedTargets.isEmpty()) {
             log.debug("Forwarding signal <{}> to client actor.", signal.getType());
-            clientActor.tell(signal, getSelf());
+            final OutboundSignal outbound = new UnmappedOutboundSignal(signal, subscribedAndAuthorizedTargets);
+            clientActor.tell(outbound, getSelf());
         }
-    }
-
-    private boolean isAuthorized(final Signal<?> signal, final AuthorizationContext authorizationContext) {
-        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
-        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
-        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
     }
 
     private void testConnection(final TestConnection command) {
@@ -564,6 +556,7 @@ final class ConnectionActor extends AbstractPersistentActor {
         });
     }
 
+
     private void unsubscribeFromEvents() {
         forEachPubSubTopicDo(pubSubTopic -> {
             log.debug("Unsubscribing from pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
@@ -576,9 +569,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
         uniqueTopicPaths.stream()
-                .map(TopicPathMapper::mapToPubSubTopic)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+                .map(Topic::getPubSubTopic)
                 .forEach(topicConsumer);
     }
 

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -100,7 +101,7 @@ public class RabbitMQClientActorTest {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
                 ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
                 .authorizationContext(TestConstants.AUTHORIZATION_CONTEXT)
-                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
+                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", Topic.TWIN_EVENTS)))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =

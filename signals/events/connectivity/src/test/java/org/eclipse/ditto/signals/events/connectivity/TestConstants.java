@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 
 /**
  * Constants for testing.
@@ -47,7 +48,7 @@ public final class TestConstants {
                     ConnectivityModelFactory.newSource(2, "amqp/source2")));
 
     public static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", Topic.TWIN_EVENTS)));
     public static Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .authorizationContext(AUTHORIZATION_CONTEXT)

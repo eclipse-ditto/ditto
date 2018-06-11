@@ -16,7 +16,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionAc
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -30,12 +29,19 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
@@ -57,15 +63,22 @@ public class TestConstants {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
-    public static final String SUBJECT_ID = "mySolutionId:mySubject";
+    static final String SUBJECT_ID = "some:subject";
+    private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
+    private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
     private static final Set<Source> SOURCES = new HashSet<>(
             Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
                     ConnectivityModelFactory.newSource(2, "amqp/source2")));
-    private static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey",
-                    "_/_/things/twin/events")));
+    static final Target TWIN_TARGET =
+            ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
+    private static final Target TWIN_TARGET_UNAUTHORIZED =
+            ConnectivityModelFactory.newTarget("twin/key", UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+    private static final Target LIVE_TARGET = ConnectivityModelFactory.newTarget("live/key", Topic.LIVE_EVENTS);
+    private static final Set<Target> TARGETS =
+            new HashSet<>(Arrays.asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET));
     public static final String THING_ID = "ditto:thing";
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
     public static final String CORRELATION_ID = "cid";
@@ -127,6 +140,16 @@ public class TestConstants {
         return ThingModified.of(THING, 1, dittoHeaders);
     }
 
+    public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .readSubjects(readSubjects)
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build();
+        final Message<Object> message =
+                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, "ditto").build()).build();
+        return SendThingMessage.of(THING_ID, message, dittoHeaders);
+    }
+
     public static String modifyThing() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
         final ModifyThing modifyThing = ModifyThing.of(THING_ID, THING, null, dittoHeaders);
@@ -151,7 +174,8 @@ public class TestConstants {
         }
 
         public static Props props() {
-            return Props.create(ConciergeForwarderActorMock.class, (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
+            return Props.create(ConciergeForwarderActorMock.class,
+                    (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
         }
 
         @Override

@@ -222,19 +222,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new ExternalMessageBuilder for the passed {@code messageType} initialized with the passed
-     * {@code headers}.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @param topicPath the topicPath to initialize the builder with.
-     * @return the builder.
-     */
-    public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers,
-            final String topicPath) {
-        return new MutableExternalMessageBuilder(headers, topicPath);
-    }
-
-    /**
      * Creates a new ExternalMessageBuilder based on the passed existing {@code externalMessage}.
      *
      * @param externalMessage the ExternalMessage initialize the builder with.
@@ -321,7 +308,7 @@ public final class ConnectivityModelFactory {
      * @param topics the topics for which this target will receive signals
      * @return the created {@link Target}
      */
-    public static Target newTarget(final String address, final Set<String> topics) {
+    public static Target newTarget(final String address, final Set<Topic> topics) {
         return new ImmutableTarget(address, topics, AuthorizationModelFactory.emptyAuthContext());
     }
 
@@ -333,7 +320,7 @@ public final class ConnectivityModelFactory {
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return the created {@link Target}
      */
-    public static Target newTarget(final String address, final Set<String> topics,
+    public static Target newTarget(final String address, final Set<Topic> topics,
             final AuthorizationContext authorizationContext) {
         return new ImmutableTarget(address, topics, authorizationContext);
     }
@@ -346,7 +333,7 @@ public final class ConnectivityModelFactory {
      * @param additionalTopics additional set of topics that should be published via this target
      * @return the created {@link Target}
      */
-    public static Target newTarget(final String address, final String requiredTopic, final String... additionalTopics) {
+    public static Target newTarget(final String address, final Topic requiredTopic, final Topic... additionalTopics) {
         return newTarget(address, AuthorizationModelFactory.emptyAuthContext(), requiredTopic, additionalTopics);
     }
 
@@ -360,8 +347,8 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            final String requiredTopic, final String... additionalTopics) {
-        final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+            final Topic requiredTopic, final Topic... additionalTopics) {
+        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
         return new ImmutableTarget(address, topics, authorizationContext);
     }

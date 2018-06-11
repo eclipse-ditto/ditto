@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -280,16 +280,22 @@ public class ConnectionActorTest {
     @Test
     public void testThingEventWithAuthorizedSubjectExpectIsForwarded() {
         final Set<String> valid = Collections.singleton(TestConstants.SUBJECT_ID);
-        testForwardThingEvent(valid, true);
+        testForwardThingEvent(true, TestConstants.thingModified(valid));
     }
 
     @Test
     public void testThingEventWithUnauthorizedSubjectExpectIsNotForwarded() {
         final Set<String> invalid = Collections.singleton("iot:user");
-        testForwardThingEvent(invalid, false);
+        testForwardThingEvent(false, TestConstants.thingModified(invalid));
     }
 
-    private void testForwardThingEvent(final Set<String> readSubjects, final boolean isForwarded) {
+    @Test
+    public void testLiveMessageWithAuthorizedSubjectExpectIsNotForwarded() {
+        final Set<String> valid = Collections.singleton(TestConstants.SUBJECT_ID);
+        testForwardThingEvent(false, TestConstants.sendThingMessage(valid));
+    }
+
+    private void testForwardThingEvent(final boolean isForwarded, final Signal<?> signal) {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -301,12 +307,14 @@ public class ConnectionActorTest {
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
-            final ThingModifiedEvent thingModified = TestConstants.thingModified(readSubjects);
-
-            underTest.tell(thingModified, getRef());
+            underTest.tell(signal, getRef());
 
             if (isForwarded) {
-                probe.expectMsg(thingModified);
+                final UnmappedOutboundSignal unmappedOutboundSignal =
+                        probe.expectMsgClass(UnmappedOutboundSignal.class);
+                assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
+                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(
+                        Collections.singleton(TestConstants.TWIN_TARGET));
             } else {
                 probe.expectNoMessage();
             }

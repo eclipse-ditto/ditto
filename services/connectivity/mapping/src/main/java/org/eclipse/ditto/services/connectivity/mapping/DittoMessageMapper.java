@@ -78,9 +78,8 @@ public final class DittoMessageMapper implements MessageMapper {
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
         return Optional.of(
-                ConnectivityModelFactory.newExternalMessageBuilder(headers, adaptable.getTopicPath().getPath())
-                .withText(jsonString)
-                        .asResponse(adaptable.getPayload().getStatus().isPresent())
+                ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                        .withText(jsonString).asResponse(adaptable.getPayload().getStatus().isPresent())
                 .build());
     }
 

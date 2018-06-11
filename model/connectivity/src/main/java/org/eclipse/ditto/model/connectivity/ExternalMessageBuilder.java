@@ -82,6 +82,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder asResponse(boolean response);
 
     /**
+     * Marks the message as an error message.
+     *
+     * @param error whether the message is an error message
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder asError(boolean error);
+
+    /**
      * Builds the ExternalMessage.
      *
      * @return the build message

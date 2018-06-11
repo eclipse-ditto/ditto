@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
@@ -58,7 +59,7 @@ public class JsonExamplesProducer {
                     ConnectivityModelFactory.newSource(2, "amqp/source2")));
 
     private static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", Topic.TWIN_EVENTS)));
 
     private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",

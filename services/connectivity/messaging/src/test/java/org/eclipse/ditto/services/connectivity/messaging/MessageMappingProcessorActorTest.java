@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -111,9 +112,12 @@ public class MessageMappingProcessorActorTest {
 
             messageMappingProcessorActor.tell(commandResponse, getRef());
 
-            final ExternalMessage externalMessage = expectMsgClass(ExternalMessage.class);
-            assertThat(externalMessage.findContentType()).contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-            assertThat(externalMessage.getHeaders().get("correlation-id")).contains(correlationId);
+            final OutboundSignal.WithExternalMessage outboundSignal =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+            assertThat(outboundSignal.getExternalMessage().findContentType())
+                    .contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+            assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
+                    .contains(correlationId);
         }};
     }
 

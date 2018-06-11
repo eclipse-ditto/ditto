@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -33,12 +34,12 @@ public class ImmutableTargetTest {
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static final Target
-            TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, ctx, THINGS_TWIN_EVENTS);
+            TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
     private static final Target
-            TARGET_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, THINGS_TWIN_EVENTS);
+            TARGET_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, TWIN_EVENTS);
     private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
             .newBuilder()
-            .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(THINGS_TWIN_EVENTS).build())
+            .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
             .set(Target.JsonFields.ADDRESS, ADDRESS)
             .build();
 

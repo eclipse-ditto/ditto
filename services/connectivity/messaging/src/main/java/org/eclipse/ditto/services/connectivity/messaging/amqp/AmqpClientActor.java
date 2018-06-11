@@ -290,7 +290,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final String name = AmqpPublisherActor.ACTOR_NAME;
             return Optional.of(getContext().findChild(name).orElseGet(() -> {
                 if (jmsSession != null) {
-                    final Props props = AmqpPublisherActor.props(jmsSession, getTargetsOrEmptySet());
+                    final Props props = AmqpPublisherActor.props(jmsSession);
                     return startChildActor(name, props);
                 } else {
                     throw new IllegalStateException(

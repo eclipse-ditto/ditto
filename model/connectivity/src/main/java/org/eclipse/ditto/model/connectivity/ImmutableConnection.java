@@ -494,7 +494,7 @@ final class ImmutableConnection implements Connection {
         private String uri;
 
         // optional:
-        private AuthorizationContext authorizationContext;
+        private AuthorizationContext authorizationContext = AuthorizationModelFactory.emptyAuthContext();
         private Set<String> tags = new HashSet<>();
         private boolean failOverEnabled = true;
         private boolean validateCertificate = true;

@@ -40,7 +40,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     /**
      * @return set of topics that should be published via this target
      */
-    Set<String> getTopics();
+    Set<Topic> getTopics();
 
     /**
      * Returns the Authorization Context of this {@code Target}. If an authorization context is set on a {@link Target}
