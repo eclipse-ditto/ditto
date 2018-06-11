@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -87,19 +88,28 @@ public class LastSuccessfulStreamCheckingActorTest {
 
     @Test
     public void triggerHealthRetrievalWithExceededErrorOffset() {
+        // GIVEN: actor startup was more than syncWarningOffset in the past
         final LastSuccessfulStreamCheckingActorConfigurationProperties streamHealthCheckConfigurationProperties =
                 buildConfigProperties(true, searchSyncPersistence, syncWarningOffset, syncErrorOffset);
-        underTest =
-                actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
+
+        final Instant startUpInstant = Instant.now().minus(syncErrorOffset.multipliedBy(2L));
+
+        final Props props = Props.create(LastSuccessfulStreamCheckingActor.class, () ->
+                new LastSuccessfulStreamCheckingActor(streamHealthCheckConfigurationProperties, startUpInstant));
+
+        underTest = actorSystem.actorOf(props);
+
+        // WHEN: last successful sync is over syncErrorOffset
         Instant lastSuccessfulStream = now().minusSeconds(syncErrorOffset.getSeconds() + 60);
         when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenReturn(Optional.of(lastSuccessfulStream));
 
+        // THEN: status is ERROR
         sendRetrieveHealth();
 
         final StatusInfo expectedStatusInfo =
                 createStatusInfo(StatusDetailMessage.Level.ERROR,
                         "End timestamp of last successful sync is about <31> " +
-                        "minutes ago. Maximum duration before showing this error is <PT30M>.");
+                                "minutes ago. Maximum duration before showing this error is <PT30M>.");
         expectStatusInfo(expectedStatusInfo);
     }
 
@@ -117,7 +127,7 @@ public class LastSuccessfulStreamCheckingActorTest {
         final StatusInfo expectedStatusInfo =
                 createStatusInfo(StatusDetailMessage.Level.WARN,
                         "End timestamp of last successful sync is about <21> " +
-                        "minutes ago. Maximum duration before showing this warning is <PT20M>.");
+                                "minutes ago. Maximum duration before showing this warning is <PT20M>.");
         expectStatusInfo(expectedStatusInfo);
     }
 
