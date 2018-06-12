@@ -167,7 +167,7 @@ public final class AggregatedDevOpsCommandResponse
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
         commandResponses.forEach(cmdR ->
-                builder.set("/" + calculateServiceName(cmdR) + "/" + String.valueOf(calculateInstance(cmdR)),
+                builder.set("/" + calculateServiceName(cmdR) + "/" + calculateInstance(cmdR),
                         cmdR.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
 
         if (builder.isEmpty()) {
@@ -185,11 +185,11 @@ public final class AggregatedDevOpsCommandResponse
         }
     }
 
-    private static Integer calculateInstance(final CommandResponse<?> commandResponse) {
+    private static String calculateInstance(final CommandResponse<?> commandResponse) {
         if (commandResponse instanceof DevOpsCommandResponse) {
-            return ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse(-1);
+            return ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?");
         } else {
-            return -1;
+            return "?";
         }
     }
 

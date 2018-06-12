@@ -48,7 +48,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
 
     private final JsonObject statistics;
 
-    private RetrieveStatisticsResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+    private RetrieveStatisticsResponse(@Nullable final String serviceName, @Nullable final String instance,
             final JsonObject statistics, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
         this.statistics = Objects.requireNonNull(statistics, "The statistics JSON must not be null!");
@@ -58,13 +58,13 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * Returns a new instance of {@code RetrieveStatisticsResponse}.
      *
      * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
+     * @param instance the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
      * @param statistics the JSON representation of the retrieved Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused this ThingCommandResponse.
      * @return a new statistics command response object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveStatisticsResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveStatisticsResponse of(@Nullable final String serviceName, @Nullable final String instance,
             final JsonObject statistics, final DittoHeaders dittoHeaders) {
         return new RetrieveStatisticsResponse(serviceName, instance, statistics, dittoHeaders);
     }
@@ -99,7 +99,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
                 .deserialize((statusCode) -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
-                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
                             .orElse(null);
                     final JsonObject statistics = jsonObject.getValueOrThrow(JSON_STATISTICS);
                     return RetrieveStatisticsResponse.of(serviceName, instance, statistics, dittoHeaders);

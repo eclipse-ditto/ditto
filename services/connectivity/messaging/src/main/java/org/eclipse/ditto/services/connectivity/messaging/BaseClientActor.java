@@ -323,7 +323,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                                 getInConnectionStatusSince(), stateName().name(),
                                 getCurrentSourcesMetrics(), getCurrentTargetsMetrics()),
                         command.getDittoHeaders().toBuilder()
-                                .source(org.eclipse.ditto.services.utils.config.ConfigUtil.calculateInstanceUniqueSuffix())
+                                .source(org.eclipse.ditto.services.utils.config.ConfigUtil.instanceIdentifier())
                                 .build())
                 )
         )

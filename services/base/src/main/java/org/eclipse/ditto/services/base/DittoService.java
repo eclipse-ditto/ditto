@@ -234,7 +234,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      */
     protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
-                ConfigUtil.instanceIndex()), DevOpsCommandsActor.ACTOR_NAME);
+                ConfigUtil.instanceIdentifier()), DevOpsCommandsActor.ACTOR_NAME);
     }
 
     /**

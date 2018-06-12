@@ -86,7 +86,7 @@ public class StatsdMetricsReporter {
         }
 
         this.socketAddress = socketAddress;
-        this.metricsPrefix = requireNonNull(serviceName) + "." + ConfigUtil.calculateInstanceUniqueSuffix();
+        this.metricsPrefix = requireNonNull(serviceName) + "." + ConfigUtil.instanceIdentifier();
 
         LOGGER.info("Activating StatsD reporting with socketAddress=<{}> and metricsPrefix=<{}>.",
                 socketAddress, metricsPrefix);

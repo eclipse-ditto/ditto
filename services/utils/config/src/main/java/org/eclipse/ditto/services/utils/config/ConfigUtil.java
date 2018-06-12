@@ -209,25 +209,15 @@ public final class ConfigUtil {
     }
 
     /**
-     * Returns the instance index integer.
-     *
-     * @return the instance index
-     */
-    public static Integer instanceIndex() {
-        return Optional.ofNullable(System.getenv(ENV_INSTANCE_INDEX)).map(Integer::parseInt).orElse(-1);
-    }
-
-    /**
-     * Calculates a unique suffix for instance-specific resources (e.g. response queues or kamon "Host" value) based on
-     * the environment the service runs in. E.g.:
+     * Returns the instance identifier based on the environment the service runs in. E.g.:
      * <ul>
      * <li>for Docker Swarm environment the suffix would be the Swarm Instance Index (starting from "1")</li>
      * <li>as fallback the "HOSTNAME" environment variable is used</li>
      * </ul>
      *
-     * @return the calculated unique suffix.
+     * @return the instance identifier
      */
-    public static String calculateInstanceUniqueSuffix() {
+    public static String instanceIdentifier() {
         return Optional.ofNullable(System.getenv(ENV_INSTANCE_INDEX)).orElseGet(ConfigUtil::getHostNameFromEnv);
     }
 

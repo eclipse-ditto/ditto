@@ -68,11 +68,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
     private final LoggingFacade loggingFacade;
 
     private final String serviceName;
-    private final Integer instance;
+    private final String instance;
     private final ActorRef pubSubMediator;
     private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> serviceMappingStrategy;
 
-    private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final Integer instance) {
+    private DevOpsCommandsActor(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         this.loggingFacade = loggingFacade;
         this.serviceName = serviceName;
         this.instance = instance;
@@ -96,7 +96,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * @param instance instance number of the microservice instance.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final LoggingFacade loggingFacade, final String serviceName, final Integer instance) {
+    public static Props props(final LoggingFacade loggingFacade, final String serviceName, final String instance) {
         return Props.create(DevOpsCommandsActor.class,
                 () -> new DevOpsCommandsActor(loggingFacade, serviceName, instance));
     }
@@ -217,7 +217,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-        private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final Integer instance,
+        private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
 
             Arrays.stream(pubSubTopicsToSubscribeTo).forEach(topic ->
@@ -227,7 +227,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         /**
          * @return the Akka configuration Props object.
          */
-        static Props props(final ActorRef pubSubMediator, final String serviceName, final Integer instance,
+        static Props props(final ActorRef pubSubMediator, final String serviceName, final String instance,
                 final String... pubSubTopicsToSubscribeTo) {
             return Props.create(PubSubSubscriberActor.class,
                     (Creator<PubSubSubscriberActor>) () -> new PubSubSubscriberActor(pubSubMediator, serviceName,
@@ -235,12 +235,12 @@ public final class DevOpsCommandsActor extends AbstractActor {
         }
 
         private void subscribeToDevopsTopic(final ActorRef pubSubMediator, final String topic,
-                final String serviceName, final Integer instance) {
+                final String serviceName, final String instance) {
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
                     String.join(":", topic, serviceName), getSelf()), getSelf());
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(
-                    String.join(":", topic, serviceName, instance.toString()), getSelf()), getSelf());
+                    String.join(":", topic, serviceName, instance), getSelf()), getSelf());
         }
 
         @Override
@@ -345,7 +345,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
             if (commandResponse instanceof DevOpsCommandResponse) {
                 log.debug("Received DevOpsCommandResponse from service/instance <{}/{}>: {}",
                         ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?"),
-                        ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse(-1),
+                        ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?"),
                         commandResponse.getType());
             } else {
                 log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}",
