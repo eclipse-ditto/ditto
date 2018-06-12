@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
 
 import java.time.Duration;
@@ -64,21 +66,25 @@ public class TestConstants {
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
     static final String SUBJECT_ID = "some:subject";
+    static final String SOURCE_SUBJECT_ID = "source:subject";
     private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
     public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(SUBJECT_ID));
+    public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
     private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
-    private static final Set<Source> SOURCES = new HashSet<>(
-            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
-                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
-    static final Target TWIN_TARGET =
-            ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
+    private static final Set<Source> SOURCES = asSet(newSource(2, "amqp/source1"),
+            newSource(2, "amqp/source2"));
+    public static final Set<Source> SOURCES_WITH_AUTH_CONTEXT =
+            asSet(newSource(2, SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
+    public static final Set<Source> SOURCES_WITH_SAME_ADDRESS =
+            asSet(newSource(1, SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
+    static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
     private static final Target TWIN_TARGET_UNAUTHORIZED =
-            ConnectivityModelFactory.newTarget("twin/key", UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
-    private static final Target LIVE_TARGET = ConnectivityModelFactory.newTarget("live/key", Topic.LIVE_EVENTS);
-    private static final Set<Target> TARGETS =
-            new HashSet<>(Arrays.asList(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET));
+            newTarget("twin/key", UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+    private static final Target LIVE_TARGET = newTarget("live/key", Topic.LIVE_EVENTS);
+    private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     public static final String THING_ID = "ditto:thing";
     private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
     public static final String CORRELATION_ID = "cid";
@@ -97,11 +103,21 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
+        return createConnection(connectionId, actorSystem, SOURCES);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final Set<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .sources(SOURCES)
+                .sources(sources)
                 .targets(TARGETS)
                 .build();
+    }
+
+    @SafeVarargs
+    public static <T> Set<T> asSet(final T... array) {
+        return new HashSet<>(Arrays.asList(array));
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,

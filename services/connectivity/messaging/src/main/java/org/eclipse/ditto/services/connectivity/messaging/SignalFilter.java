@@ -44,6 +44,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  */
 public class SignalFilter {
 
+
     public static Set<Target> filter(final Connection connection, final Signal<?> signal) {
         final Topic topic = topicFromSignal(signal).orElse(null);
         return connection.getTargets().stream()
@@ -76,16 +77,7 @@ public class SignalFilter {
                 .getChannel()
                 .flatMap(TopicPath.Channel::forName)
                 .orElse(TopicPath.Channel.TWIN);
-        final TopicPath.Criterion criterion;
-        if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
-            criterion = TopicPath.Criterion.MESSAGES;
-        } else if (signal instanceof Command || signal instanceof CommandResponse) {
-            criterion = COMMANDS;
-        } else if (signal instanceof Event) {
-            criterion = EVENTS;
-        } else {
-            criterion = null;
-        }
+        final TopicPath.Criterion criterion = getCriterionOfSignal(signal);
 
         if (TopicPath.Group.THINGS.equals(group)) {
             if (TopicPath.Channel.TWIN.equals(channel)) {
@@ -100,10 +92,30 @@ public class SignalFilter {
                         return Optional.of(Topic.LIVE_EVENTS);
                     case MESSAGES:
                         return Optional.of(Topic.LIVE_MESSAGES);
+                    default:
+                        return Optional.empty();
                 }
             }
         }
 
         return Optional.empty();
+    }
+
+    @Nullable
+    private static TopicPath.Criterion getCriterionOfSignal(final Signal<?> signal) {
+        final TopicPath.Criterion criterion;
+        if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
+            criterion = TopicPath.Criterion.MESSAGES;
+        } else if (signal instanceof Command || signal instanceof CommandResponse) {
+            criterion = COMMANDS;
+        } else if (signal instanceof Event) {
+            criterion = EVENTS;
+        } else {
+            criterion = null;
+        }
+        return criterion;
+    }
+
+    private SignalFilter() {
     }
 }

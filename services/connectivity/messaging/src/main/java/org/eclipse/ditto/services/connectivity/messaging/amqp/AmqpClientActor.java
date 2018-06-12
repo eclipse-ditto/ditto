@@ -18,6 +18,8 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -38,6 +40,7 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -76,7 +79,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private final JmsConnectionFactory jmsConnectionFactory;
     private final ConnectionListener connectionListener;
-    private final Map<String, MessageConsumer> consumerMap;
+    private final List<ConsumerData> consumers;
 
     @Nullable private JmsConnection jmsConnection;
     @Nullable private Session jmsSession;
@@ -87,7 +90,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new ConnectionListener();
-        consumerMap = new HashMap<>();
+        consumers = new LinkedList<>();
     }
 
     /**
@@ -226,10 +229,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             this.jmsConnection = c.connection;
             this.jmsConnection.addConnectionListener(connectionListener);
             this.jmsSession = c.session;
-            consumerMap.clear();
-            consumerMap.putAll(c.consumers);
+            consumers.clear();
+            consumers.addAll(c.consumerList);
             amqpPublisherActor = startAmqpPublisherActor().orElse(null);
-            startCommandConsumers(consumerMap);
+            startCommandConsumers(consumers);
         } else {
             log.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
@@ -249,7 +252,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             stopChildActor(amqpPublisherActor);
             amqpPublisherActor = null;
         }
-        this.consumerMap.clear();
+        this.consumers.clear();
     }
 
     @Override
@@ -257,15 +260,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return Optional.ofNullable(amqpPublisherActor);
     }
 
-    private void startCommandConsumers(final Map<String, MessageConsumer> consumerMap) {
+    private void startCommandConsumers(final List<ConsumerData> consumers) {
         final Optional<ActorRef> messageMappingProcessor = getMessageMappingProcessorActor();
         if (messageMappingProcessor.isPresent()) {
             if (isConsuming()) {
                 stopCommandConsumers();
-                consumerMap.forEach((sourceAddress, messageConsumer) ->
-                        startCommandConsumer(sourceAddress, messageConsumer, messageMappingProcessor.get())
-                );
-                log.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumerMap.keySet());
+                consumers.forEach(consumer -> startCommandConsumer(consumer, messageMappingProcessor.get()));
+                log.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
             } else {
                 log.debug("Not starting consumers, no sources were configured");
             }
@@ -274,11 +275,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumer(final String sourceAddress, final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor) {
-        final String name = AmqpConsumerActor.ACTOR_NAME_PREFIX + sourceAddress;
+    private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor) {
+        final String name = consumer.getActorName();
         if (!getContext().findChild(name).isPresent()) {
-            final Props props = AmqpConsumerActor.props(sourceAddress, messageConsumer, messageMappingProcessor);
+            final AuthorizationContext authorizationContext = resolveAuthorizationContext(consumer.getSource());
+            final Props props = AmqpConsumerActor.props(consumer.getAddress(), consumer.getMessageConsumer(),
+                    messageMappingProcessor, authorizationContext);
             startChildActor(name, props);
         } else {
             log.debug("Child actor {} already exists.", name);
@@ -387,14 +389,14 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         private final JmsConnection connection;
         private final Session session;
-        private final Map<String, MessageConsumer> consumers;
+        private final List<ConsumerData> consumerList;
 
         JmsConnected(@Nullable final ActorRef origin, final JmsConnection connection, final Session session,
-                final Map<String, MessageConsumer> consumers) {
+                final List<ConsumerData> consumerList) {
             super(origin);
             this.connection = connection;
             this.session = session;
-            this.consumers = consumers;
+            this.consumerList = consumerList;
         }
     }
 
@@ -457,13 +459,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
 
-            consumerMap.entrySet().stream()
-                    .filter(e -> e.getValue().equals(consumer))
+            consumers.stream()
+                    .filter(c -> c.getMessageConsumer().equals(consumer))
                     .findFirst()
-                    .ifPresent(entry -> {
-                        log.warning("Consumer <{}> closed due to {}: {}", entry.getKey(),
+                    .ifPresent(c -> {
+                        log.warning("Consumer <{}> closed due to {}: {}", c.getAddress(),
                                 cause.getClass().getSimpleName(), cause.getMessage());
-                        final String actorName = escapeActorName(AmqpConsumerActor.ACTOR_NAME_PREFIX + entry.getKey());
+                        final String actorName = escapeActorName(c.getActorName());
                         getContext().findChild(actorName)
                                 .ifPresent(consumerActor ->
                                         consumerActor.tell(

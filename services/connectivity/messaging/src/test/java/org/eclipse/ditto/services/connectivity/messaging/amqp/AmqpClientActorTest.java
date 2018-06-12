@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import javax.jms.Destination;
@@ -302,6 +303,31 @@ public class AmqpClientActorTest {
 
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
+                        TestConstants.AUTHORIZATION_CONTEXT));
+    }
+
+    @Test
+    public void testConsumeMessageForSourcesWithSameAddress() throws JMSException {
+        final Connection connection =
+                TestConstants.createConnection(connectionId, actorSystem, TestConstants.SOURCES_WITH_SAME_ADDRESS);
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
+                        TestConstants.SOURCE_SPECIFIC_CONTEXT));
+    }
+
+    @Test
+    public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
+        final Connection connection =
+                TestConstants.createConnection(connectionId, actorSystem, TestConstants.SOURCES_WITH_AUTH_CONTEXT);
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
+                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
+                        TestConstants.SOURCE_SPECIFIC_CONTEXT));
+    }
+
+    private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
+            final Consumer<Command> commandConsumer) throws JMSException {
         new TestKit(actorSystem) {{
             final Props props =
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
@@ -318,6 +344,7 @@ public class AmqpClientActorTest {
             final Command command = expectMsgClass(Command.class);
             assertThat(command.getId()).isEqualTo(TestConstants.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
+            commandConsumer.accept(command);
         }};
     }
 

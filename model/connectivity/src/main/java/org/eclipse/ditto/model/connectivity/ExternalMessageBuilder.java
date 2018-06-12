@@ -16,6 +16,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+
 /**
  * Builder for building instances of {@link ExternalMessage}.
  */
@@ -72,6 +74,14 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder withBytes(@Nullable ByteBuffer bytes);
+
+    /**
+     * Associates an {@link AuthorizationContext} with the message.
+     *
+     * @param authorizationContext the {@link AuthorizationContext} assigned to the message
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withAuthorizationContext(AuthorizationContext authorizationContext);
 
     /**
      * Marks the message as a response message.

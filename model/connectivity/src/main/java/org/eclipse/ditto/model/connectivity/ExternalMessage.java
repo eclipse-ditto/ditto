@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 
 /**
@@ -104,6 +105,11 @@ public interface ExternalMessage {
      * @return {@code true} if this message is an error
      */
     boolean isError();
+
+    /**
+     * @return the {@link AuthorizationContext} assigned to this message
+     */
+    Optional<AuthorizationContext> getAuthorizationContext();
 
     /**
      * The known payload types of ExternalMessages.

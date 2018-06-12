@@ -29,7 +29,7 @@ public enum Topic {
     private final String name;
     private final String pubSubTopic;
 
-    private Topic(final String name, final String pubSubTopic) {
+    Topic(final String name, final String pubSubTopic) {
         this.pubSubTopic = pubSubTopic;
         this.name = name;
     }

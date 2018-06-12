@@ -145,7 +145,6 @@ public class MessageMappingProcessorActorTest {
         final Props props = MessageMappingProcessorActor.props(
                 publisherActor,
                 publisherActor,
-                AUTHORIZATION_CONTEXT,
                 getMessageMappingProcessor(null),
                 CONNECTION_ID);
         return actorSystem.actorOf(props);

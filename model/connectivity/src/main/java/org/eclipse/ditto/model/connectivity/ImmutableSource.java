@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -41,15 +42,18 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableSource implements Source {
 
     static final int DEFAULT_CONSUMER_COUNT = 1;
+    private static final AtomicLong ID_GENERATOR = new AtomicLong(0);
 
     private final Set<String> addresses;
     private final int consumerCount;
+    private final long identifier;
     private final AuthorizationContext authorizationContext;
 
     ImmutableSource(final Set<String> addresses, final int consumerCount,
             final AuthorizationContext authorizationContext) {
         this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
+        this.identifier = ID_GENERATOR.getAndIncrement();
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
     }
 
@@ -66,6 +70,11 @@ final class ImmutableSource implements Source {
     @Override
     public AuthorizationContext getAuthorizationContext() {
         return authorizationContext;
+    }
+
+    @Override
+    public long getIdentifier() {
+        return identifier;
     }
 
     @Override

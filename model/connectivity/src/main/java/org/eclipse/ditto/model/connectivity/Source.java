@@ -49,6 +49,8 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      */
     AuthorizationContext getAuthorizationContext();
 
+    long getIdentifier();
+
     /**
      * Returns all non hidden marked fields of this {@code Source}.
      *

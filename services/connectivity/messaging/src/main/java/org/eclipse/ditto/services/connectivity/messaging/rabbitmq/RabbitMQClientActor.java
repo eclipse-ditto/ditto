@@ -30,6 +30,7 @@ import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -397,8 +398,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
                             final String childName = CONSUMER_ACTOR_PREFIX + addressWithIndex;
+                            final AuthorizationContext authorizationContext = resolveAuthorizationContext(source);
                             final ActorRef consumer = startChildActor(childName,
-                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get()));
+                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),
+                                            authorizationContext));
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,
                                         new RabbitMQMessageConsumer(consumer, channel));

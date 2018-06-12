@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +59,6 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
-
 
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory) {
@@ -128,7 +129,6 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
     private void doConnect(final ActorRef sender, @Nullable final ActorRef origin) {
         try {
-
             @SuppressWarnings("squid:S2095")
             final JmsConnection
                     jmsConnection = jmsConnectionFactory.createConnection(connection, exceptionListener);
@@ -139,7 +139,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             final Session jmsSession = jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE);
             log.debug("Session created.");
 
-            final Map<String, MessageConsumer> consumerMap = new HashMap<>();
+            final List<ConsumerData> consumers = new LinkedList<>();
             final Map<String, Exception> failedSources = new HashMap<>();
             connection.getSources().forEach(source ->
                     source.getAddresses().forEach(sourceAddress -> {
@@ -150,7 +150,8 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                             final MessageConsumer messageConsumer;
                             try {
                                 messageConsumer = jmsSession.createConsumer(destination);
-                                consumerMap.put(addressWithIndex, messageConsumer);
+                                consumers.add(
+                                        new ConsumerData(source, sourceAddress, addressWithIndex, messageConsumer));
                             } catch (final JMSException jmsException) {
                                 failedSources.put(addressWithIndex, jmsException);
                             }
@@ -159,7 +160,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
 
             if (failedSources.isEmpty()) {
                 final AmqpClientActor.JmsConnected connectedMessage =
-                        new AmqpClientActor.JmsConnected(origin, jmsConnection, jmsSession, consumerMap);
+                        new AmqpClientActor.JmsConnected(origin, jmsConnection, jmsSession, consumers);
                 sender.tell(connectedMessage, origin);
                 log.debug("Connection <{}> established successfully, stopping myself.", connection.getId());
             } else {

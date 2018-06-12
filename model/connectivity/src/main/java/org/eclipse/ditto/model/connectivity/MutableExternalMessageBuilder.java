@@ -18,6 +18,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
@@ -29,10 +30,9 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     private boolean response = false;
     private boolean error = false;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
-    @Nullable
-    private String textPayload;
-    @Nullable
-    private ByteBuffer bytePayload;
+    @Nullable private String textPayload;
+    @Nullable private ByteBuffer bytePayload;
+    @Nullable private AuthorizationContext authorizationContext;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -46,6 +46,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.payloadType = message.getPayloadType();
         this.response = message.isResponse();
         this.error = message.isError();
+        this.authorizationContext = message.getAuthorizationContext().orElse(null);
     }
 
     /**
@@ -102,6 +103,12 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder withAuthorizationContext(final AuthorizationContext authorizationContext) {
+        this.authorizationContext = authorizationContext;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -115,7 +122,8 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload);
+        return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
+                authorizationContext);
     }
 
 }
