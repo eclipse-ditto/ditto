@@ -59,18 +59,12 @@
 
         <!-- ### Metrics and Tracing -->
         <metrics.version>3.1.2</metrics.version>
-        <kamon.version>1.1.2</kamon.version>
+
         <kamon-core.version>1.1.2</kamon-core.version>
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
-        <kamon-akka.version>1.0.1</kamon-akka.version>
-        <kamon-akka-http.version>1.1.0</kamon-akka-http.version>
-        <kamon-prometheus.version>1.1.0</kamon-prometheus.version>
-        <kamon-jaeger.version>1.0.2</kamon-jaeger.version>
+        <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
 
         <jsr302.version>3.0.1</jsr302.version>
-
-        <aspectj.version>1.8.13</aspectj.version>
-        <aspectj-maven-plugin.version>1.11</aspectj-maven-plugin.version>
 
         <rhino.version>1.7.10</rhino.version>
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
@@ -325,51 +319,40 @@
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
                 <version>${kamon-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-                <version>${kamon-akka.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-http-2.5_${scala.version}</artifactId>
-                <version>${kamon-akka-http.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
-                <version>${kamon-akka.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- this is a dependency not required by kamon - they'll remove it in a future version -->
+                        <groupId>com.lihaoyi</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
                 <version>${kamon-system-metrics.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.kamon</groupId>
+                        <artifactId>sigar-loader</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-prometheus_${scala.version}</artifactId>
                 <version>${kamon-prometheus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-jaeger_${scala.version}</artifactId>
-                <version>${kamon-jaeger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.nanohttpd</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.aspectj</groupId>
-                <artifactId>aspectjrt</artifactId>
-                <version>${aspectj.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.aspectj</groupId>
-                <artifactId>aspectjweaver</artifactId>
-                <version>${aspectj.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
@@ -805,6 +788,7 @@
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-test</artifactId>
                 <version>${project.version}</version>
+                <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
         </dependencies>

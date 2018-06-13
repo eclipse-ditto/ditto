@@ -70,6 +70,18 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-tools_${scala.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http_${scala.version}</artifactId>
+            <scope>provided</scope>
+            <!-- PrometheusReporterRoute needs akka-http .. if a service uses the class, it must provide akka-http itself -->
+        </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-prometheus_${scala.version}</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
 </project>

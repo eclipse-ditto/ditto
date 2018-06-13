@@ -43,7 +43,6 @@ public final class DittoServiceConfigReaderTest {
         assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
         assertThat(underTest.cluster().majorityCheckDelay()).isEqualTo(Duration.ofHours(500));
         assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
-        assertThat(underTest.metrics().isJaegerEnabled()).isTrue();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isTrue();
     }
 
@@ -58,7 +57,6 @@ public final class DittoServiceConfigReaderTest {
         assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
         assertThat(underTest.metrics().isPrometheusEnabled()).isFalse();
-        assertThat(underTest.metrics().isJaegerEnabled()).isFalse();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 
@@ -70,7 +68,6 @@ public final class DittoServiceConfigReaderTest {
         assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
         assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
-        assertThat(underTest.metrics().isJaegerEnabled()).isFalse();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 

@@ -6,7 +6,6 @@
    com.fasterxml.jackson.core:jackson-core:jar:2.9.5:compile
    com.fasterxml.jackson.core:jackson-databind:jar:2.9.5:compile
    com.github.ben-manes.caffeine:caffeine:jar:2.6.2:compile
-   com.github.jjagged:metrics-statsd:jar:1.0.0:compile
    com.github.jnr:jffi:jar:1.2.16:compile
    com.github.jnr:jnr-constants:jar:0.9.9:compile
    com.github.jnr:jnr-ffi:jar:2.1.6:compile
@@ -42,12 +41,9 @@
    io.dropwizard.metrics:metrics-core:jar:3.1.2:compile
    io.dropwizard.metrics:metrics-healthchecks:jar:3.1.2:compile
    io.jsonwebtoken:jjwt:jar:0.7.0:compile
-   io.kamon:kamon-akka-2.5_2.12:jar:0.6.7:compile
-   io.kamon:kamon-akka-remote-2.4_2.12:jar:0.6.7:compile
-   io.kamon:kamon-core_2.12:jar:0.6.7:compile
-   io.kamon:kamon-scala_2.12:jar:0.6.7:compile
-   io.kamon:kamon-statsd_2.12:jar:0.6.7:compile
-   io.kamon:kamon-system-metrics_2.12:jar:0.6.7:compile
+   io.kamon:kamon-core_2.12:jar:1.1.2:compile
+   io.kamon:kamon-prometheus_2.12:jar:1.1.1:compile
+   io.kamon:kamon-system-metrics_2.12:jar:1.0.0:compile
    io.netty:netty-buffer:jar:4.1.24.Final:compile
    io.netty:netty-codec-http:jar:4.1.24.Final:compile
    io.netty:netty-codec:jar:4.1.24.Final:compile

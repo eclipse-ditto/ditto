@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.services.utils.devops.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.slf4j.Logger;
 
@@ -44,11 +46,14 @@ import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.server.Route;
 import akka.management.AkkaManagement;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.stream.ActorMaterializer;
 import kamon.Kamon;
-import kamon.jaeger.JaegerReporter;
 import kamon.prometheus.PrometheusReporter;
 import kamon.system.SystemMetrics;
 
@@ -94,6 +99,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     private final String rootActorName;
     private final C configReader;
 
+    private PrometheusReporter prometheusReporter;
+    private ActorSystem actorSystem;
+
     /**
      * Constructs a new {@code DittoService} object.
      *
@@ -134,6 +142,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         logRuntimeParameters();
         startKamon();
         startActorSystem();
+        startKamonPrometheusHttpEndpoint();
     }
 
     private void logRuntimeParameters() {
@@ -148,14 +157,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final Config kamonConfig = ConfigFactory.load("kamon");
         Kamon.reconfigure(kamonConfig);
 
-        final Config serviceConfig = determineConfig();
         if (configReader.metrics().isSystemMetricsEnabled()) {
             // start system metrics collection
             SystemMetrics.startCollecting();
-        }
-        if (configReader.metrics().isJaegerEnabled()) {
-            // start jaeger reporter
-            this.startJaegerReporter();
         }
         if (configReader.metrics().isPrometheusEnabled()) {
             // start prometheus reporter
@@ -166,27 +170,17 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     private void checkForAspectJ() {
         try {
             Class.forName("org.aspectj.weaver.loadtime.Agent");
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             logger.warn("AspectJ weaving agent is not loaded");
-        }
-    }
-
-    private void startJaegerReporter() {
-        try {
-            final JaegerReporter jaegerReporter = new JaegerReporter();
-            Kamon.addReporter(jaegerReporter);
-            logger.info("Successfully added Jaeger reporter to Kamon.");
-        } catch (Throwable ex) {
-            logger.error("Error while adding Jaeger reporter to Kamon.", ex);
         }
     }
 
     private void startPrometheusReporter() {
         try {
-            final PrometheusReporter prometheusReporter = new PrometheusReporter();
+            prometheusReporter = new PrometheusReporter();
             Kamon.addReporter(prometheusReporter);
             logger.info("Successfully added Prometheus reporter to Kamon.");
-        } catch (Throwable ex) {
+        } catch (final Throwable ex) {
             logger.error("Error while adding Prometheus reporter to Kamon.", ex);
         }
     }
@@ -218,7 +212,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final double parallelismMax =
                 config.getDouble("akka.actor.default-dispatcher.fork-join-executor.parallelism-max");
         logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
-        final ActorSystem actorSystem = createActorSystem(config);
+        actorSystem = createActorSystem(config);
 
         AkkaManagement.get(actorSystem).start();
         ClusterBootstrap.get(actorSystem).start();
@@ -241,6 +235,28 @@ public abstract class DittoService<C extends ServiceConfigReader> {
                     logger.info("Graceful shutdown completed.");
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
+    }
+
+    /**
+     * Starts Prometheus HTTP endpoint on which Prometheus may scrape the data.
+     */
+    private void startKamonPrometheusHttpEndpoint() {
+        if (configReader.metrics().isPrometheusEnabled()) {
+            final ActorMaterializer materializer = createActorMaterializer(actorSystem);
+            final Route prometheusReporterRoute = PrometheusReporterRoute
+                    .buildPrometheusReporterRoute(prometheusReporter);
+            final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem, materializer),
+                            ConnectHttp.toHost(configReader.metrics().getPrometheusHostname(),
+                                    configReader.metrics().getPrometheusPort()), materializer);
+
+            binding.exceptionally(failure -> {
+                logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
+                logger.error("Terminating actorSystem!");
+                actorSystem.terminate();
+                return null;
+            });
+        }
     }
 
     /**

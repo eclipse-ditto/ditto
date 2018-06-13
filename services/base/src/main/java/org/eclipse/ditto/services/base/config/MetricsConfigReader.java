@@ -23,13 +23,12 @@ public final class MetricsConfigReader extends AbstractConfigReader {
     private static final String ENABLED_KEY = "enabled";
 
     private static final String SYSTEM_METRICS_KEY = "systemMetrics";
-    private static final String PATH_SYSTEM_METRICS_ENABLED = path( SYSTEM_METRICS_KEY, ENABLED_KEY);
+    private static final String PATH_SYSTEM_METRICS_ENABLED = path(SYSTEM_METRICS_KEY, ENABLED_KEY);
 
     private static final String PROMETHEUS_KEY = "prometheus";
     private static final String PATH_PROMETHEUS_ENABLED = path(PROMETHEUS_KEY, ENABLED_KEY);
-
-    private static final String JAEGER_KEY = "jaeger";
-    private static final String PATH_JAEGER_ENABLED = path(JAEGER_KEY, ENABLED_KEY);
+    private static final String PATH_PROMETHEUS_HOSTNAME = path(PROMETHEUS_KEY, "hostname");
+    private static final String PATH_PROMETHEUS_PORT = path(PROMETHEUS_KEY, "port");
 
     MetricsConfigReader(final Config config) {
         super(config);
@@ -54,11 +53,21 @@ public final class MetricsConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * Indicates if jaeger is enabled.
+     * Returns the hostname to bind the prometheus HTTP server to.
      *
-     * @return True if jaeger is enabled false if not.
+     * @return the hostname to bind the prometheus HTTP server to.
      */
-    public boolean isJaegerEnabled() {
-        return getIfPresent(PATH_JAEGER_ENABLED, config::getBoolean).orElse(DEFAULT_METRICS_ENABLED);
+    public String getPrometheusHostname() {
+        return getIfPresent(PATH_PROMETHEUS_HOSTNAME, config::getString).orElse("0.0.0.0");
     }
+
+    /**
+     * Returns the port to bind the prometheus HTTP server to.
+     *
+     * @return the port to bind the prometheus HTTP server to.
+     */
+    public Integer getPrometheusPort() {
+        return getIfPresent(PATH_PROMETHEUS_PORT, config::getInt).orElse(9095);
+    }
+
 }

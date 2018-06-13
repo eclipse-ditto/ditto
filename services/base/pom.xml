@@ -71,37 +71,11 @@
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-remote-2.5_${scala.version}</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.typesafe.akka</groupId>
-                    <artifactId>akka-remote_${scala.version}</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
             <artifactId>kamon-prometheus_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
-            <artifactId>kamon-jaeger_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
             <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
         </dependency>
     </dependencies>
 
