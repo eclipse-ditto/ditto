@@ -184,7 +184,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
                 () -> {
-                    logger.info("Shutdown issued from outside (e.g. SIGTERM) - gracefully shutting down..");
+                    logger.info("Initiated coordinated shutdown - gracefully shutting down..");
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
 
