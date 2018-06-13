@@ -78,8 +78,7 @@ public final class ConfigUtil {
     private static final String VCAP_SERVICE_NAME = "name";
     private static final String DOT_SEPARATOR = ".";
 
-    private static final String ENV_SECRETS_PATH = "SECRETS_PATH";
-    private static final String DOCKER_SECRETS_PATH = "/run/secrets";
+    private static final String SECRETS_PATH = "/run/secrets";
     private static final String SECRETS_CONFIG_KEY = "secrets";
 
     private static final Map<String, String> DEFAULT_CONFIG_ALIASES = new HashMap<>();
@@ -309,8 +308,7 @@ public final class ConfigUtil {
     }
 
     private static Config transformSecretsToConfig() {
-        final String secretPath = getSecretsPath();
-        try (final Stream<Path> filesStream = Files.list(Paths.get(secretPath))) {
+        try (final Stream<Path> filesStream = Files.list(Paths.get(SECRETS_PATH))) {
             final Map<String, String> secrets = filesStream.map(ConfigUtil::readSecretFromPath)
                     .filter(Optional::isPresent)
                     .map(Optional::get)
@@ -321,20 +319,10 @@ public final class ConfigUtil {
 
             return ConfigFactory.parseMap(config);
         } catch (final IOException e) {
-            LOGGER.warn("No secrets present at path '{}'", secretPath, e);
+            LOGGER.warn("No secrets present at path '{}'", SECRETS_PATH, e);
         }
 
         return ConfigFactory.empty();
-    }
-
-    private static String getSecretsPath() {
-        final String secretsPath = System.getenv(ENV_SECRETS_PATH);
-        if (secretsPath == null || secretsPath.isEmpty()) {
-            LOGGER.info("Environment variable {} is not defined or empty, using default config aliases: {}",
-                    ENV_SECRETS_PATH, DOCKER_SECRETS_PATH);
-            return DOCKER_SECRETS_PATH;
-        }
-        return secretsPath;
     }
 
     /**
