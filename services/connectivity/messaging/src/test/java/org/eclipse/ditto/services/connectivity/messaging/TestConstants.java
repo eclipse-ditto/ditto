@@ -65,29 +65,50 @@ public class TestConstants {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
-    static final String SUBJECT_ID = "some:subject";
-    static final String SOURCE_SUBJECT_ID = "source:subject";
-    private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
-    public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance(SUBJECT_ID));
-    public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
-    private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
-    private static final Set<Source> SOURCES = asSet(newSource(2, "amqp/source1"),
-            newSource(2, "amqp/source2"));
-    public static final Set<Source> SOURCES_WITH_AUTH_CONTEXT =
-            asSet(newSource(2, SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
-    public static final Set<Source> SOURCES_WITH_SAME_ADDRESS =
-            asSet(newSource(1, SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
-    static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
-    private static final Target TWIN_TARGET_UNAUTHORIZED =
-            newTarget("twin/key", UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
-    private static final Target LIVE_TARGET = newTarget("live/key", Topic.LIVE_EVENTS);
-    private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
-    public static final String THING_ID = "ditto:thing";
-    private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+
     public static final String CORRELATION_ID = "cid";
+
+    public static class Things {
+
+        public static final String NAMESPACE = "ditto";
+        public static final String ID = "thing";
+        public static final String THING_ID = NAMESPACE + ":" + ID;
+        public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+    }
+
+    public static class Authorization {
+
+        static final String SUBJECT_ID = "some:subject";
+        static final String SOURCE_SUBJECT_ID = "source:subject";
+        private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(SUBJECT_ID));
+        public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
+        private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+    }
+
+    public static class Sources {
+
+        public static final Set<Source> SOURCES = asSet(newSource(2, "amqp/source1"),
+                newSource(2, "amqp/source2"));
+        public static final Set<Source> SOURCES_WITH_AUTH_CONTEXT =
+                asSet(newSource(2, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
+        public static final Set<Source> SOURCES_WITH_SAME_ADDRESS =
+                asSet(newSource(1, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
+    }
+
+    public static class Targets {
+
+        static final Target TARGET_WITH_PLACEHOLDER =
+                newTarget("target:{{ thing:namespace }}/{{thing:id}}", Topic.TWIN_EVENTS);
+        static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
+        private static final Target TWIN_TARGET_UNAUTHORIZED =
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+        private static final Target LIVE_TARGET = newTarget("live/key", Topic.LIVE_EVENTS);
+        private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+    }
 
     public static String createRandomConnectionId() {
         return "connection-" + UUID.randomUUID();
@@ -103,15 +124,24 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return createConnection(connectionId, actorSystem, SOURCES);
+        return createConnection(connectionId, actorSystem, Sources.SOURCES);
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Set<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
-                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                 .sources(sources)
-                .targets(TARGETS)
+                .targets(Targets.TARGETS)
+                .build();
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final Target... targets) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
+                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                .sources(Sources.SOURCES)
+                .targets(asSet(targets))
                 .build();
     }
 
@@ -153,7 +183,7 @@ public class TestConstants {
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-        return ThingModified.of(THING, 1, dittoHeaders);
+        return ThingModified.of(Things.THING, 1, dittoHeaders);
     }
 
     public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {
@@ -162,13 +192,14 @@ public class TestConstants {
                 .channel(TopicPath.Channel.LIVE.getName())
                 .build();
         final Message<Object> message =
-                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, "ditto").build()).build();
-        return SendThingMessage.of(THING_ID, message, dittoHeaders);
+                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, Things.THING_ID, "ditto").build())
+                        .build();
+        return SendThingMessage.of(Things.THING_ID, message, dittoHeaders);
     }
 
     public static String modifyThing() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
-        final ModifyThing modifyThing = ModifyThing.of(THING_ID, THING, null, dittoHeaders);
+        final ModifyThing modifyThing = ModifyThing.of(Things.THING_ID, Things.THING, null, dittoHeaders);
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
         final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         return jsonifiable.toJsonString();

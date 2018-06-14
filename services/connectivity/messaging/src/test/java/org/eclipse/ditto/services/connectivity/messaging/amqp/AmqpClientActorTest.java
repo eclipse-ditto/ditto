@@ -150,7 +150,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
                 ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
-                .authorizationContext(TestConstants.AUTHORIZATION_CONTEXT)
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
                 .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
                 .build();
@@ -305,25 +305,27 @@ public class AmqpClientActorTest {
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.AUTHORIZATION_CONTEXT));
+                        TestConstants.Authorization.AUTHORIZATION_CONTEXT));
     }
 
     @Test
     public void testConsumeMessageForSourcesWithSameAddress() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem, TestConstants.SOURCES_WITH_SAME_ADDRESS);
+                TestConstants.createConnection(connectionId, actorSystem,
+                        TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.SOURCE_SPECIFIC_CONTEXT));
+                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarderWithCorrectAuthContext() throws JMSException {
         final Connection connection =
-                TestConstants.createConnection(connectionId, actorSystem, TestConstants.SOURCES_WITH_AUTH_CONTEXT);
+                TestConstants.createConnection(connectionId, actorSystem,
+                        TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.SOURCE_SPECIFIC_CONTEXT));
+                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
@@ -342,7 +344,7 @@ public class AmqpClientActorTest {
             messageListener.onMessage(mockMessage());
 
             final Command command = expectMsgClass(Command.class);
-            assertThat(command.getId()).isEqualTo(TestConstants.THING_ID);
+            assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
             commandConsumer.accept(command);
         }};
@@ -380,7 +382,7 @@ public class AmqpClientActorTest {
             messageListener.onMessage(mockMessage());
 
             final Command command = expectMsgClass(Command.class);
-            assertThat(command.getId()).isEqualTo(TestConstants.THING_ID);
+            assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
             assertThat(command).isInstanceOf(ModifyThing.class);
 

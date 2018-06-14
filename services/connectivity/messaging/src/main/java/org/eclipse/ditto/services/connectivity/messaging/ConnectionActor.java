@@ -127,6 +127,7 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
+    private final PlaceholderFilter placeholdersFilter = new PlaceholderFilter();
 
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
@@ -311,8 +312,10 @@ final class ConnectionActor extends AbstractPersistentActor {
         final Set<Target> subscribedAndAuthorizedTargets = SignalFilter.filter(connection, signal);
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         if (!subscribedAndAuthorizedTargets.isEmpty()) {
-            log.debug("Forwarding signal <{}> to client actor.", signal.getType());
-            final OutboundSignal outbound = new UnmappedOutboundSignal(signal, subscribedAndAuthorizedTargets);
+            final Set<Target> filteredTargets =
+                    placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
+            log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
+            final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
             clientActor.tell(outbound, getSelf());
         }
     }

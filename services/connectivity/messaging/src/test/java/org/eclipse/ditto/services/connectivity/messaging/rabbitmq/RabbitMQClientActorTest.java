@@ -100,7 +100,7 @@ public class RabbitMQClientActorTest {
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
                 ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
-                .authorizationContext(TestConstants.AUTHORIZATION_CONTEXT)
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", Topic.TWIN_EVENTS)))
                 .build();
 

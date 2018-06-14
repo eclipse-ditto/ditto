@@ -74,6 +74,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final MessageMappingProcessor processor;
     private final String connectionId;
     private final ActorRef conciergeForwarder;
+    private final PlaceholderFilter placeholderFilter;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -85,6 +86,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
+        this.placeholderFilter = new PlaceholderFilter();
         final Caffeine caffeine = Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES);
         traces = CaffeineCache.of(caffeine);
@@ -163,7 +165,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         try {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
-            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(authorizationContext);
+            final AuthorizationContext filteredContext =
+                    placeholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
+            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
             final ExternalMessage messageWithAuthSubject =
                     externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
                             authSubjectsArray);
@@ -173,7 +177,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
                 final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
-                        .authorizationContext(authorizationContext);
+                        .authorizationContext(filteredContext);
 
                 if (!signal.getDittoHeaders().getOrigin().isPresent()) {
                     adjustedHeadersBuilder.origin(connectionId);

@@ -21,8 +21,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
@@ -291,8 +293,22 @@ public class ConnectionActorTest {
 
     @Test
     public void testThingEventWithAuthorizedSubjectExpectIsForwarded() {
-        final Set<String> valid = Collections.singleton(TestConstants.SUBJECT_ID);
+        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
         testForwardThingEvent(true, TestConstants.thingModified(valid));
+    }
+
+    @Test
+    public void testThingEventIsForwardedToFilteredTarget() {
+        final Connection connection = TestConstants.createConnection(connectionId, actorSystem,
+                TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
+
+        final Target expectedTarget = ConnectivityModelFactory.newTarget(TestConstants.Targets.TARGET_WITH_PLACEHOLDER,
+                "target:" + TestConstants.Things.NAMESPACE + "/" +
+                        TestConstants.Things.ID);
+
+        final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
+        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
+        testForwardThingEvent(createConnection, true, TestConstants.thingModified(valid), expectedTarget);
     }
 
     @Test
@@ -303,11 +319,16 @@ public class ConnectionActorTest {
 
     @Test
     public void testLiveMessageWithAuthorizedSubjectExpectIsNotForwarded() {
-        final Set<String> valid = Collections.singleton(TestConstants.SUBJECT_ID);
+        final Set<String> valid = Collections.singleton(TestConstants.Authorization.SUBJECT_ID);
         testForwardThingEvent(false, TestConstants.sendThingMessage(valid));
     }
 
     private void testForwardThingEvent(final boolean isForwarded, final Signal<?> signal) {
+        testForwardThingEvent(createConnection, isForwarded, signal, TestConstants.Targets.TWIN_TARGET);
+    }
+
+    private void testForwardThingEvent(final CreateConnection createConnection, final boolean isForwarded,
+            final Signal<?> signal, final Target expectedTarget) {
         new TestKit(actorSystem) {{
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -317,7 +338,7 @@ public class ConnectionActorTest {
 
             // create connection
             underTest.tell(createConnection, getRef());
-            expectMsg(createConnectionResponse);
+            expectMsg(CreateConnectionResponse.of(createConnection.getConnection(), DittoHeaders.empty()));
 
             underTest.tell(signal, getRef());
 
@@ -325,8 +346,7 @@ public class ConnectionActorTest {
                 final UnmappedOutboundSignal unmappedOutboundSignal =
                         probe.expectMsgClass(UnmappedOutboundSignal.class);
                 assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
-                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(
-                        Collections.singleton(TestConstants.TWIN_TARGET));
+                assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singleton(expectedTarget));
             } else {
                 probe.expectNoMessage();
             }

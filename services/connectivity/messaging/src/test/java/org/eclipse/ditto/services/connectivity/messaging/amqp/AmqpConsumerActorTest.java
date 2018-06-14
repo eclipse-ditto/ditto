@@ -151,7 +151,7 @@ public class AmqpConsumerActorTest {
 
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.AUTHORIZATION_CONTEXT));
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";

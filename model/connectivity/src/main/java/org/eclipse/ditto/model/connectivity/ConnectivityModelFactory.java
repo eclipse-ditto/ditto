@@ -340,6 +340,17 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@link Target} from existing target but different address.
+     *
+     * @param target the target
+     * @param address the address where the signals will be published
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final Target target, final String address) {
+        return newTarget(address, target.getTopics(), target.getAuthorizationContext());
+    }
+
+    /**
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
