@@ -110,7 +110,9 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                             .tags(traceInformation.getTags())
                             .tag(TracingTags.AUTH_TYPE, AUTHENTICATION_TYPE)
                             .expirationHandling(expiredTimer ->
-                                    expiredTimer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false)))
+                                    expiredTimer
+                                            .tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
+                                            .tag(TracingTags.AUTH_ERROR, Boolean.toString(true)))
                             .start();
 
                     return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
@@ -147,6 +149,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                     throw e;
                                 } else {
                                     timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
+                                            .tag(TracingTags.AUTH_ERROR, Boolean.toString(true))
                                             .stop();
 
                                     LOGGER.warn("Unexpected error during JWT authentication.", rootCause);

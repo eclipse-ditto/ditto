@@ -32,6 +32,7 @@ public final class TracingTags {
     public static final String ENTITY_SUB_TYPE = PREFIX + "entity.subType";
     public static final String ENTITY_SUB_ID = PREFIX + "entity.subId";
     public static final String AUTH_SUCCESS = PREFIX + "auth.success";
+    public static final String AUTH_ERROR = PREFIX + "auth.error";
     public static final String AUTH_TYPE = PREFIX + "auth.type";
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
 }
