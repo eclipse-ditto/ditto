@@ -60,6 +60,8 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
     private static final String AUTHORIZATION_JWT = "Bearer";
 
+    private static final String AUTHENTICATION_TYPE = "JWT";
+
     private static final String TRACE_FILTER_AUTH_JWT = "filter_auth_jwt";
 
     private final PublicKeyProvider publicKeyProvider;
@@ -106,6 +108,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                             .newTimer(TRACE_FILTER_AUTH_JWT)
                             .maximumDuration(5, TimeUnit.MINUTES)
                             .tags(traceInformation.getTags())
+                            .tag(TracingTags.AUTH_TYPE, AUTHENTICATION_TYPE)
                             .expirationHandling(expiredTimer ->
                                     expiredTimer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false)))
                             .start();

@@ -59,6 +59,7 @@ public final class KamonTracing {
 
         /**
          * Adds tags to the timer.
+         * Already existing tags with the same key will be overridden.
          *
          * @param additionalTags Additional tags for this tracing
          * @return The TracingTimerBuilder
@@ -89,6 +90,19 @@ public final class KamonTracing {
         public TracingTimerBuilder maximumDuration(final long maximumDuration, final TimeUnit maximumDurationTimeUnit) {
             this.maximumDuration = maximumDuration;
             this.maximumDurationTimeUnit = maximumDurationTimeUnit;
+            return this;
+        }
+
+        /**
+         * Adds the given tag to the timer.
+         * Already existing tags with the same key will be overridden.
+         *
+         * @param key They key of the tag
+         * @param value The value of the tag
+         * @return The TracingTimerBuilder
+         */
+        public TracingTimerBuilder tag(final String key, final String value) {
+            this.additionalTags.put(key, value);
             return this;
         }
 
