@@ -84,10 +84,9 @@ public final class KamonMetrics {
     private static synchronized void startNewReporter(final NamedMetricRegistry metricRegistry,
             final String serviceName) {
 
-        try (KamonMetricsReporter kamonMetricsReporter = new KamonMetricsReporter(metricRegistry.getMetricRegistry(),
-                metricRegistry.getMetricName(), serviceName)) {
-
-            kamonMetricsReporter.start(POLL_PERIOD, SECONDS);
-        }
+        @SuppressWarnings("squid:S2095") final KamonMetricsReporter kamonMetricsReporter =
+                new KamonMetricsReporter(metricRegistry.getMetricRegistry(), metricRegistry.getMetricName(),
+                        serviceName);
+        kamonMetricsReporter.start(POLL_PERIOD, SECONDS);
     }
 }

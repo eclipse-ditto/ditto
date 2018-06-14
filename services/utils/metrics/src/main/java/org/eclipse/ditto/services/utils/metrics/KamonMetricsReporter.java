@@ -38,7 +38,7 @@ import kamon.metric.Metric;
 import kamon.metric.TimerMetric;
 
 /**
- * Reports Metrics
+ * Reports metrics of "codehale Metrics framework" to Kamon in a scheduled way.
  */
 public class KamonMetricsReporter extends ScheduledReporter {
 

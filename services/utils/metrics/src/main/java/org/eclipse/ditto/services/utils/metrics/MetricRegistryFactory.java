@@ -18,6 +18,9 @@ import akka.actor.ActorSystem;
 import akka.contrib.persistence.mongodb.MongoPersistenceExtension;
 import akka.contrib.persistence.mongodb.MongoPersistenceExtension$;
 
+/**
+ * Factory for creating new {@link NamedMetricRegistry}s.
+ */
 public final class MetricRegistryFactory {
 
     private static final String MONGO_DB_METRIC_NAME = "mongodb";

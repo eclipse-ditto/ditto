@@ -16,6 +16,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import com.codahale.metrics.MetricRegistry;
 
+/**
+ * Wraps a "codehale Metrics framework" {@link MetricRegistry} and adds a {@code metricName}.
+ */
 public final class NamedMetricRegistry {
 
     private final String metricName;

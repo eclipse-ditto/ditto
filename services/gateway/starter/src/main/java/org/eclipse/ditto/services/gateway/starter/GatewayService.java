@@ -61,7 +61,6 @@ public final class GatewayService extends DittoService {
 
     @Override
     protected void startKamonMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        KamonMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
         KamonMetrics.start(SERVICE_NAME);
     }
 
