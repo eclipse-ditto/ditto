@@ -40,11 +40,9 @@ public final class PrometheusReporterRoute {
      */
     public static Route buildPrometheusReporterRoute(final PrometheusReporter prometheusReporter) {
         return get(() ->
-                pathEndOrSingleSlash(() ->
-                        complete(HttpResponse.create()
-                                .withStatus(StatusCodes.OK)
-                                .withEntity(CONTENT_TYPE, ByteString.fromString(prometheusReporter.scrapeData()))
-                        )
+                complete(HttpResponse.create()
+                        .withStatus(StatusCodes.OK)
+                        .withEntity(CONTENT_TYPE, ByteString.fromString(prometheusReporter.scrapeData()))
                 )
         );
     }
