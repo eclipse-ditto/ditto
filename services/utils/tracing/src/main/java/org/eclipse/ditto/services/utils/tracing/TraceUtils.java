@@ -35,7 +35,7 @@ public final class TraceUtils {
         throw new AssertionError();
     }
 
-    public static MutableKamonTimerBuilder newRoundTripTimer(final RequestContext requestContext) {
+    public static MutableKamonTimerBuilder newHttpRoundtripTimer(final RequestContext requestContext) {
         final String requestMethod = requestContext.getRequest().method().name();
         final String requestPath = requestContext.getRequest().getUri().toRelative().path();
 
@@ -47,7 +47,7 @@ public final class TraceUtils {
                 .tag(TracingTags.REQUEST_METHOD, requestMethod);
     }
 
-    public static MutableKamonTimerBuilder newRoundTripTimer(final Command<?> command) {
+    public static MutableKamonTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
         final String metricsUri = TIMER_AMQP_ROUNDTRIP_PREFIX + command.getType();
         return newTimer(metricsUri)
                 .tag(TracingTags.COMMAND_TYPE, command.getType())
@@ -55,9 +55,9 @@ public final class TraceUtils {
                 .tag(TracingTags.COMMAND_CATEGORY, command.getCategory().name());
     }
 
-    public static MutableKamonTimerBuilder newRoundTripTimer(final Signal<?> command) {
+    public static MutableKamonTimerBuilder newAmqpRoundTripTimer(final Signal<?> command) {
         if (command instanceof Command) {
-            return newRoundTripTimer((Command) command);
+            return newAmqpRoundTripTimer((Command) command);
         }
 
         final String metricsUri = TIMER_AMQP_ROUNDTRIP_PREFIX + command.getType();

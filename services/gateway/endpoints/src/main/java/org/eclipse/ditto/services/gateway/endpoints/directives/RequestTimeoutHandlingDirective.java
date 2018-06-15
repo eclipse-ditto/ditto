@@ -74,7 +74,7 @@ public final class RequestTimeoutHandlingDirective {
             return extractRequestContext(requestContext -> {
 
 
-                final MutableKamonTimerBuilder timerBuilder = TraceUtils.newRoundTripTimer(requestContext);
+                final MutableKamonTimerBuilder timerBuilder = TraceUtils.newHttpRoundtripTimer(requestContext);
 
                 final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                     final MutableKamonTimer mutableTimer = timerBuilder.buildStartedTimer();

@@ -35,7 +35,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -258,7 +257,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             final HashMap<String, String> additionalTags = new HashMap<>();
             final MutableKamonTimer timer = TraceUtils
-                    .newRoundTripTimer(command)
+                    .newAmqpRoundTripTimer(command)
                     .maximumDuration(5, TimeUnit.MINUTES)
                     .tags(additionalTags)
                     .buildStartedTimer();
