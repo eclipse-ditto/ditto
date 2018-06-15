@@ -80,7 +80,7 @@ public final class MutableKamonTimer {
         if (running) {
             this.running = false;
             this.endTimestamp = System.nanoTime();
-            Kamon.histogram(name).refine(this.tags).record(endTimestamp - this.startTimestamp);
+            Kamon.timer(name).refine(this.tags).record(endTimestamp - this.startTimestamp);
         }
     }
 
