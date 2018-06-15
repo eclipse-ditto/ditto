@@ -150,6 +150,17 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>ffendt</id>
+            <name>Florian Fendt</name>
+            <email>florian.fendt@bosch-si.com</email>
+            <url>https://github.com/ffendt</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
