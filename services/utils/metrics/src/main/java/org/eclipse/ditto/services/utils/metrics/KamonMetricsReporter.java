@@ -33,6 +33,8 @@ import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
 
 import kamon.Kamon;
+import kamon.metric.CounterMetric;
+import kamon.metric.GaugeMetric;
 import kamon.metric.HistogramMetric;
 import kamon.metric.Metric;
 import kamon.metric.TimerMetric;
@@ -70,18 +72,48 @@ public class KamonMetricsReporter extends ScheduledReporter {
             final SortedMap<String, Histogram> histograms,
             final SortedMap<String, Meter> meters,
             final SortedMap<String, Timer> timers) {
-        // if we can believe the docs of akka-persistence-mongo, they only measure histograms and timers.
-        histograms.forEach((name, histogram) -> {
-            final HistogramMetric metric = Kamon.histogram(name);
-            final kamon.metric.Histogram h = refine(metric);
-            h.record(histogram.getCount());
-        });
+        gauges.forEach(this::report);
+        counters.forEach(this::report);
+        histograms.forEach(this::report);
+        meters.forEach(this::report);
+        timers.forEach(this::report);
+    }
 
-        timers.forEach((name, timer) -> {
-            final TimerMetric metric = Kamon.timer(name);
-            final kamon.metric.Timer t = refine(metric);
-            t.record(timer.getCount());
-        });
+    private void report(String name, Timer timer) {
+        final TimerMetric metric = Kamon.timer(name);
+        final kamon.metric.Timer t = refine(metric);
+        t.record(timer.getCount());
+    }
+
+    private void report(String name, Histogram histogram) {
+        final HistogramMetric metric = Kamon.histogram(name);
+        final kamon.metric.Histogram h = refine(metric);
+        h.record(histogram.getCount());
+    }
+
+    private void report(String name, Counter counter) {
+        final CounterMetric metric = Kamon.counter(name);
+        final kamon.metric.Counter c = refine(metric);
+        c.increment(counter.getCount());
+    }
+
+    private void report(String name, Gauge gauge) {
+        final GaugeMetric metric = Kamon.gauge(name);
+        final kamon.metric.Gauge g = refine(metric);
+        final Object value = gauge.getValue();
+        if (value instanceof Long) {
+            g.set((Long) value);
+        } else {
+            LOGGER.warn(
+                    "Gauge <{}> reports values that are not of type long. Therefore this gauge can not be reported " +
+                            "to prometheus");
+        }
+    }
+
+    private void report(String name, Meter meter) {
+        final HistogramMetric metric = Kamon.histogram(name);
+        final kamon.metric.Histogram h = refine(metric);
+        h.record(meter.getCount());
     }
 
     private <M extends Metric<T>, T> T refine(final M metric) {
