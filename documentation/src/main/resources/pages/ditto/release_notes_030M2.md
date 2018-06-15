@@ -14,22 +14,22 @@ bugfixes were added.
 
 ### [Reduce network load for cache-sync](https://github.com/eclipse/ditto/issues/126)
 
-With 0.3.0-M1 Ditto had a performance issue when managing more than 100.000 Things in its memory as Ditto used a 
+With 0.3.0-M1 Ditto had a performance issue when managing more than ~100.000 Things in its memory as Ditto used a 
 distributed cluster cache which was not intended to be used in that way. Over time, as cache entries could not be deleted
 from this cache, a Ditto cluster got slower and slower.
 
 This is fixed now in 0.3.0-M2 by introducing a new Ditto service: [ditto-concierge](architecture-services-concierge.html)
 which is also shown in the [architecture overview](architecture-overview.html).
 
-This is the biggest change in this milestone which required a lot of refactoring effort. A big thank you to our two
-committers Daniel and Yufei which did an amazing job. The roundtrip times in a Ditto cluster are now at a constant and
+This is the biggest change in this milestone and required a lot of refactoring effort. Kudos to our two
+committers Daniel and Yufei who did an amazing job: the roundtrip times in a Ditto cluster are now at a constant and
 very good rate.
 
 ### [Cluster bootstrapping improved](https://github.com/eclipse/ditto/issues/167)
 
 Ditto now uses the [akka-management](https://developer.lightbend.com/docs/akka-management/current/index.html) library
-in order to bootstrap a new cluster. By default Ditto uses a DNS-based approach to find its other cluster-nodes and
-bootstrap a not yet formed cluster. This works very well for Docker swarm based clusters.
+in order to bootstrap a new cluster. By default Ditto now uses a DNS-based approach to find its other cluster-nodes and
+bootstrap a not yet formed cluster. This works very well for Docker (and Docker swarm) based clusters.
 
 The benefit is also that the containers no longer need to be started in a specific order and with delay.
 
