@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -110,32 +110,32 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     private static final int DEFAULT_EVICTION_WEIGHT = 1;
 
-    private final Meter hitCount;
-    private final Meter missCount;
-    private final Meter loadSuccessCount;
-    private final Meter loadFailureCount;
+    private final Counter hitCount;
+    private final Counter missCount;
+    private final Counter loadSuccessCount;
+    private final Counter loadFailureCount;
     private final Timer totalLoadTime;
-    private final Meter evictionCount;
-    private final Meter evictionWeight;
+    private final Counter evictionCount;
+    private final Counter evictionWeight;
     private final SimpleGauge<Long> estimatedSize;
     private final SimpleGauge<Long> maxSize;
-    private final Meter estimatedInvalidations;
+    private final Counter estimatedInvalidations;
 
     private volatile @Nullable Cache cache;
 
     private MetricsStatsCounter(final MetricRegistry registry, final String metricsPrefix) {
-        hitCount = registry.meter(createMetricName(metricsPrefix, MetricName.HITS));
-        missCount = registry.meter(createMetricName(metricsPrefix, MetricName.MISSES));
+        hitCount = registry.counter(createMetricName(metricsPrefix, MetricName.HITS));
+        missCount = registry.counter(createMetricName(metricsPrefix, MetricName.MISSES));
         totalLoadTime = registry.timer(createMetricName(metricsPrefix, MetricName.TOTAL_LOAD_TIME));
-        loadSuccessCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_SUCCESS));
-        loadFailureCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_FAILURE));
-        evictionCount = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS));
-        evictionWeight = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS_WEIGHT));
+        loadSuccessCount = registry.counter(createMetricName(metricsPrefix, MetricName.LOADS_SUCCESS));
+        loadFailureCount = registry.counter(createMetricName(metricsPrefix, MetricName.LOADS_FAILURE));
+        evictionCount = registry.counter(createMetricName(metricsPrefix, MetricName.EVICTIONS));
+        evictionWeight = registry.counter(createMetricName(metricsPrefix, MetricName.EVICTIONS_WEIGHT));
         estimatedSize = registry.register(createMetricName(metricsPrefix, MetricName.ESTIMATED_SIZE),
                 new SimpleGauge<>(null));
         maxSize = registry.register(createMetricName(metricsPrefix, MetricName.MAX_SIZE),
                 new SimpleGauge<>(null));
-        estimatedInvalidations = registry.meter(createMetricName(metricsPrefix, MetricName.ESTIMATED_INVALIDATIONS));
+        estimatedInvalidations = registry.counter(createMetricName(metricsPrefix, MetricName.ESTIMATED_INVALIDATIONS));
     }
 
     private String createMetricName(final String metricsPrefix, final MetricName metricName) {
@@ -170,24 +170,24 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Override
     public void recordHits(int count) {
-        hitCount.mark(count);
+        hitCount.inc(count);
     }
 
     @Override
     public void recordMisses(int count) {
-        missCount.mark(count);
+        missCount.inc(count);
     }
 
     @Override
     public void recordLoadSuccess(long loadTime) {
-        loadSuccessCount.mark();
+        loadSuccessCount.inc();
         totalLoadTime.update(loadTime, TimeUnit.NANOSECONDS);
         updateCacheSizeMetrics();
     }
 
     @Override
     public void recordLoadFailure(long loadTime) {
-        loadFailureCount.mark();
+        loadFailureCount.inc();
         totalLoadTime.update(loadTime, TimeUnit.NANOSECONDS);
     }
 
@@ -199,8 +199,8 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Override
     public void recordEviction(int weight) {
-        evictionCount.mark();
-        evictionWeight.mark(weight);
+        evictionCount.inc();
+        evictionWeight.inc(weight);
         updateCacheSizeMetrics();
     }
 
@@ -208,7 +208,7 @@ public final class MetricsStatsCounter implements StatsCounter {
      * Records the invalidation of an entry in the cache.
      */
     public void recordInvalidation() {
-        estimatedInvalidations.mark();
+        estimatedInvalidations.inc();
         updateCacheSizeMetrics();
     }
 
@@ -243,8 +243,8 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Nullable
     private Long getMaxSize() {
-        @SuppressWarnings("unchecked")
-        final Optional<Policy.Eviction> evictionOptional = getRequiredCache().policy().eviction();
+        @SuppressWarnings("unchecked") final Optional<Policy.Eviction> evictionOptional =
+                getRequiredCache().policy().eviction();
         return evictionOptional.map(Policy.Eviction::getMaximum).orElse(null);
     }
 

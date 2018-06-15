@@ -61,10 +61,10 @@ public final class MetricsStatsCounterTest {
                     .isEqualTo(expectedEstimatedSize);
 
             // for all keys one miss is expected for first access
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.MISSES)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.MISSES)).getCount())
                     .isEqualTo(expectedEstimatedSize);
             final long expectedHits = requestTimes0 + requestTimes1 - expectedEstimatedSize;
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.HITS)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.HITS)).getCount())
                     .isEqualTo(expectedHits);
 
             final Timer totalLoadTimeTimer =
@@ -74,18 +74,18 @@ public final class MetricsStatsCounterTest {
             final Duration maxExpectedLoadDuration = Duration.ofSeconds(1);
             assertThat(totalLoadTimeTimer.getMeanRate())
                     .isLessThan(maxExpectedLoadDuration.toNanos());
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS)).getCount())
                     .isEqualTo(expectedEstimatedSize);
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE)).getCount())
                     .isEqualTo(0);
 
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
                     .isEqualTo(0);
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
                     .isEqualTo(0);
 
             assertThat(
-                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
                     .isEqualTo(0);
         });
     }
@@ -109,14 +109,14 @@ public final class MetricsStatsCounterTest {
                see https://github.com/ben-manes/caffeine/wiki/Efficiency
             */
 
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
                     .isGreaterThan(0);
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
                     .isGreaterThan(0);
 
             // invalidations are no evictions
             assertThat(
-                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
                     .isEqualTo(0);
         });
     }
@@ -145,13 +145,13 @@ public final class MetricsStatsCounterTest {
         // THEN
         waitUntilAsserted(() -> {
             assertThat(
-                    registry.meter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
+                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
                     .isEqualTo(1);
             assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
                     .isEqualTo(0L);
 
             // evictions are no invalidations
-            assertThat(registry.meter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
+            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
                     .isEqualTo(0);
         });
     }
