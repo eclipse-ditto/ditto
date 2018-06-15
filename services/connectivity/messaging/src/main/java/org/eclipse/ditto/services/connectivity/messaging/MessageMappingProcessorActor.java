@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -34,8 +35,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTracing;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -84,7 +86,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
 
-        timers = new HashMap<>();
+        timers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -255,13 +257,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             final HashMap<String, String> additionalTags = new HashMap<>();
-            final String commandType = command.getType();
-            additionalTags.put(TracingTags.COMMAND_TYPE, commandType);
-            final MutableKamonTimer timer = KamonTracing
-                    .newTimer("roundtrip_" + connectionId + "_" + commandType)
+            final MutableKamonTimer timer = TraceUtils
+                    .newRoundTripTimer(command)
                     .maximumDuration(5, TimeUnit.MINUTES)
                     .tags(additionalTags)
-                    .start();
+                    .buildStartedTimer();
             this.timers.put(correlationId, timer);
         });
     }

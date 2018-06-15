@@ -13,11 +13,14 @@ package org.eclipse.ditto.services.utils.tracing;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
 
@@ -28,24 +31,22 @@ import kamon.Kamon;
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MutableKamonTimer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MutableKamonTimer.class);
     private final String name;
     private long startTimestamp;
     private long endTimestamp;
     private boolean running;
     private Map<String, String> tags;
 
-    private MutableKamonTimer(final String name, final Map<String, String> tags) {
+    MutableKamonTimer(final String name) {
         this.name = name;
-        this.tags = new HashMap<>(tags);
+        this.tags = new ConcurrentHashMap<>();
         this.running = false;
     }
 
-    static MutableKamonTimer build(final String name) {
-        return new MutableKamonTimer(name, new HashMap<>());
-    }
-
-    static MutableKamonTimer build(final String name, final Map<String, String> tags) {
-        return new MutableKamonTimer(name, tags);
+    public MutableKamonTimer tags(final Map<String, String> tags) {
+        this.tags.putAll(tags);
+        return this;
     }
 
     public MutableKamonTimer tag(final String key, final String value) {
@@ -68,20 +69,34 @@ public final class MutableKamonTimer {
         return this;
     }
 
-    public MutableKamonTimer start() {
+    /**
+     * Starts the MutableKamonTimer. This method is package private so only {@link MutableKamonTimerBuilder} can start
+     * this timer.
+     * @return The started {@link MutableKamonTimer}
+     */
+    MutableKamonTimer start() {
         if (!running) {
             this.running = true;
             this.startTimestamp = System.nanoTime();
+            LOGGER.debug("MutableKamonTimer with name <{]> was started", name);
+        }else{
+            LOGGER.warn("Tried to start the already running MutableKamonTimer with name <{}>");
         }
+
         return this;
     }
 
-    public synchronized void stop() {
+    public synchronized MutableKamonTimer stop() {
         if (running) {
             this.running = false;
             this.endTimestamp = System.nanoTime();
             Kamon.timer(name).refine(this.tags).record(endTimestamp - this.startTimestamp);
+            LOGGER.debug("MutableKamonTimer with name <{]> was stopped", name);
+        }else {
+            LOGGER.warn("Tried to stop the not running MutableKamonTimer with name <{}>");
         }
+
+        return this;
     }
 
     public long getStartTimestamp() {

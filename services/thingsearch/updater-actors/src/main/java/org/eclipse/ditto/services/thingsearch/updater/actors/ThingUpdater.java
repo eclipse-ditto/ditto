@@ -53,8 +53,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.tracing.KamonTracing;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
@@ -532,7 +533,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
             Kamon.histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
 
-            final MutableKamonTimer bulkUpdate = KamonTracing.newTimer(TRACE_THING_BULK_UPDATE).start();
+            final MutableKamonTimer bulkUpdate = TraceUtils.newTimer(TRACE_THING_BULK_UPDATE).buildStartedTimer();
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
                     .via(stopTimer(bulkUpdate))
@@ -820,7 +821,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void deleteThingFromSearchIndex() {
-        final MutableKamonTimer timer = KamonTracing.newTimer(TRACE_THING_DELETE).start();
+        final MutableKamonTimer timer = TraceUtils.newTimer(TRACE_THING_DELETE).buildStartedTimer();
 
         circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .delete(thingId)
@@ -886,7 +887,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     return new IllegalArgumentException(message);
                 });
 
-        final MutableKamonTimer timer = KamonTracing.newTimer(TRACE_THING_MODIFIED).start();
+        final MutableKamonTimer timer = TraceUtils.newTimer(TRACE_THING_MODIFIED).buildStartedTimer();
 
         return circuitBreaker.callWithCircuitBreakerCS(
                 () -> searchUpdaterPersistence
@@ -903,7 +904,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        final MutableKamonTimer timer = KamonTracing.newTimer(TRACE_POLICY_UPDATE).start();
+        final MutableKamonTimer timer = TraceUtils.newTimer(TRACE_POLICY_UPDATE).buildStartedTimer();
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
                 .via(stopTimer(timer))

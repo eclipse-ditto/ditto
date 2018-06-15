@@ -18,12 +18,15 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRa
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
@@ -50,6 +53,7 @@ public final class RequestTimeoutHandlingDirective {
     private static final Duration SEARCH_WARN_TIMEOUT_MS = Duration.ofMillis(5_000);
     private static final Duration HTTP_WARN_TIMEOUT_MS = Duration.ofMillis(1_000);
     private static final String TRACING_ENTITY_SEARCH = "search/things";
+    private static final Map<String, MutableKamonTimer> timers = new ConcurrentHashMap<>();
 
     private RequestTimeoutHandlingDirective() {
         // no op
@@ -69,26 +73,27 @@ public final class RequestTimeoutHandlingDirective {
 
             return extractRequestContext(requestContext -> {
 
-                final MutableKamonTimer mutableTimer = TraceUtils.createTimer(requestContext);
 
-                final Supplier<Route> innerWithTimer = () -> {
-                    mutableTimer.start();
+                final MutableKamonTimerBuilder timerBuilder = TraceUtils.newRoundTripTimer(requestContext);
+
+                final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
+                    final MutableKamonTimer mutableTimer = timerBuilder.buildStartedTimer();
                     LOGGER.debug("Started mutable timer <{}>", mutableTimer);
-                    return Directives.mapResponse(response -> {
-                        final int statusCode = response.status().intValue();
-                        mutableTimer
-                                .tag(TracingTags.STATUS_CODE, statusCode)
-                                .stop();
-                        checkDurationWarning(mutableTimer);
-                        LOGGER.debug("Finished mutable timer <{}> with status <{}>", mutableTimer, statusCode);
-                        return response;
-                    }, inner);
-                };
+                    timers.put(correlationId, mutableTimer);
+
+                    final int statusCode = response.status().intValue();
+                    mutableTimer
+                            .tag(TracingTags.STATUS_CODE, statusCode)
+                            .stop();
+                    checkDurationWarning(mutableTimer);
+                    LOGGER.debug("Finished mutable timer <{}> with status <{}>", mutableTimer, statusCode);
+                    return response;
+                }, inner);
 
                 return Directives.withRequestTimeoutResponse(
                         request ->
                                 enhanceLogWithCorrelationId(correlationId, () ->
-                                        doHandleRequestTimeout(correlationId, config, requestContext, mutableTimer)),
+                                        doHandleRequestTimeout(correlationId, config, requestContext)),
                         innerWithTimer);
             });
         });
@@ -110,7 +115,7 @@ public final class RequestTimeoutHandlingDirective {
     }
 
     private static HttpResponse doHandleRequestTimeout(final String correlationId, final Config config,
-            final RequestContext requestContext, final MutableKamonTimer mutableTimer) {
+            final RequestContext requestContext) {
         final Duration duration = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
 
         final DittoRuntimeException cre = GatewayServiceUnavailableException
@@ -134,9 +139,10 @@ public final class RequestTimeoutHandlingDirective {
         final String rawRequestUri = getRawRequestUri(request);
         LOGGER.debug("Raw request URI was: {}", rawRequestUri);
 
-        mutableTimer
+        final MutableKamonTimer mutableTimer = timers.get(correlationId)
                 .tag(TracingTags.STATUS_CODE, statusCode)
                 .stop();
+
         LOGGER.debug("Finished mutable timer <{}> after a request timeout with status <{}>", mutableTimer, statusCode);
 
         /* We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be

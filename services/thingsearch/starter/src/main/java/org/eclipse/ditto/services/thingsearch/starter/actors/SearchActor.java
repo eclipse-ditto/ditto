@@ -11,7 +11,10 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
+import java.util.Optional;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -39,8 +42,10 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -179,12 +184,14 @@ public final class SearchActor extends AbstractActor {
 
     private void count(final Command countThings) {
         final DittoHeaders dittoHeaders = countThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         log.info("Processing CountThings command: {}", countThings);
         final JsonSchemaVersion version = countThings.getImplementedSchemaVersion();
 
 
-        final MutableKamonTimer querySegment = KamonTracing.newTimer(TRACING_QUERY_PARSING).start();
+        final MutableKamonTimer queryParsingTimer =
+                startNewTimer(TRACING_QUERY_PARSING, correlationIdOpt.orElse(null));
 
         final ActorRef sender = getSender();
 
@@ -194,8 +201,8 @@ public final class SearchActor extends AbstractActor {
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, countThings, QUERY_ASK_TIMEOUT))
                         .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                            querySegment.stop();
+                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                            queryParsingTimer.stop();
                             if (query instanceof PolicyRestrictedSearchAggregation) {
                                 // aggregation-based count for things with policies
                                 return processSearchPersistenceResult(
@@ -219,17 +226,14 @@ public final class SearchActor extends AbstractActor {
                 .to(sender);
     }
 
-    private static String prefixJsonSchemaVersion(final String prefix, final JsonSchemaVersion version) {
-        return prefix + version.toInt();
-    }
-
     private void query(final QueryThings queryThings) {
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         log.info("Processing QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
-        final MutableKamonTimer querySegment = KamonTracing.newTimer(TRACING_QUERY_PARSING).start();
+        final MutableKamonTimer queryParsingTimer = startNewTimer(TRACING_QUERY_PARSING, correlationIdOpt.orElse(null));
 
         final ActorRef sender = getSender();
 
@@ -239,8 +243,8 @@ public final class SearchActor extends AbstractActor {
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, queryThings, QUERY_ASK_TIMEOUT))
                         .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                            querySegment.stop();
+                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                            queryParsingTimer.stop();
 
                             if (query instanceof PolicyRestrictedSearchAggregation) {
                                 // policy-based search via aggregation
@@ -269,16 +273,17 @@ public final class SearchActor extends AbstractActor {
 
     private <T> Source<T, NotUsed> processSearchPersistenceResult(final Supplier<Source<T, NotUsed>> resultSupplier,
             final DittoHeaders dittoHeaders) {
-
-        final MutableKamonTimer persistenceSegment = KamonTracing.newTimer(TRACING_DATABASE_ACCESS).start();
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        final MutableKamonTimer databaseAccessTimer =
+                startNewTimer(TRACING_DATABASE_ACCESS, correlationIdOpt.orElse(null));
 
         final Source<T, NotUsed> source = resultSupplier.get();
 
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
                     // we know that the source provides exactly one ResultList
-                    LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                    persistenceSegment.stop();
+                    LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                    databaseAccessTimer.stop();
                     log.debug("Persistence returned: {}", result);
                     return result;
                 });
@@ -292,7 +297,8 @@ public final class SearchActor extends AbstractActor {
         final Graph<SourceShape<QueryThingsResponse>, NotUsed> result;
 
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         if (thingIds.isEmpty()) {
             result = Source.single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
         } else if (queryThings.getFields()
@@ -319,9 +325,10 @@ public final class SearchActor extends AbstractActor {
                     .build();
 
             log.debug("About to send command to Things: {}", retrieveThings);
-            final MutableKamonTimer thingsSegment = KamonTracing.newTimer(TRACING_THINGS_SERVICE_ACCESS).start();
+            final MutableKamonTimer thingsServiceAccessTimer =
+                    startNewTimer(TRACING_THINGS_SERVICE_ACCESS, correlationIdOpt.orElse(null));
 
-            result = retrieveFromThings(thingIds, retrieveThings, thingsSegment);
+            result = retrieveFromThings(thingIds, retrieveThings, thingsServiceAccessTimer);
         }
 
         return result;
@@ -373,6 +380,14 @@ public final class SearchActor extends AbstractActor {
                     return Source.single(
                             QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                 });
+    }
+
+    private static MutableKamonTimer startNewTimer(final String tracingFilter, @Nullable final String correlationId) {
+        final MutableKamonTimerBuilder timerBuilder = TraceUtils.newTimer(tracingFilter);
+        if (correlationId != null) {
+            timerBuilder.tag(TracingTags.CORRELATION_ID, correlationId);
+        }
+        return timerBuilder.buildStartedTimer();
     }
 
 }

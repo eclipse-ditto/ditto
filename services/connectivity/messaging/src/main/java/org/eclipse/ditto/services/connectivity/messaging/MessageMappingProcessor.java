@@ -33,8 +33,8 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -47,9 +47,10 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 public final class MessageMappingProcessor {
 
-    private static final String INBOUND_MAPPING_TRACE_SUFFIX = "_inbound";
-    private static final String OUTBOUND_MAPPING_TRACE_SUFFIX = "_outbound";
-    private static final String SEGMENT_CATEGORY = "payload-mapping";
+    private static final String MAPPING = "mapping";
+    private static final String INBOUND = "inbound";
+    private static final String OUTBOUND = "outbound";
+    private static final String PAYLOAD_SEGMENT_NAME = "payload";
     private static final String MAPPING_SEGMENT_NAME = "mapping";
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
@@ -100,7 +101,7 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<Signal<?>> process(final ExternalMessage message) {
-        return withTimer(connectionId + INBOUND_MAPPING_TRACE_SUFFIX,
+        return withTimer(MAPPING + "_" + INBOUND,
                 () -> convertMessage(message));
     }
 
@@ -112,7 +113,7 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<ExternalMessage> process(final Signal<?> signal) {
-        return withTimer(connectionId + OUTBOUND_MAPPING_TRACE_SUFFIX,
+        return withTimer(MAPPING + "_" + OUTBOUND,
                 () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal)));
     }
 
@@ -121,14 +122,14 @@ public final class MessageMappingProcessor {
 
         try {
             final Optional<Adaptable> adaptableOpt = withTimer(
-                    MAPPING_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
+                    MAPPING + "_" + INBOUND + "_" + PAYLOAD_SEGMENT_NAME,
                     () -> getMapper(message).map(message)
             );
 
             return adaptableOpt.map(adaptable -> {
                 doUpdateCorrelationId(adaptable);
 
-                return withTimer(PROTOCOL_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
+                return withTimer(MAPPING + "_" + INBOUND + "_" + PROTOCOL_SEGMENT_NAME,
                         () -> {
                             final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
@@ -154,11 +155,12 @@ public final class MessageMappingProcessor {
         checkNotNull(adaptableSupplier);
 
         try {
-            final Adaptable adaptable = withTimer(PROTOCOL_SEGMENT_NAME + "_" + SEGMENT_CATEGORY, adaptableSupplier);
+            final Adaptable adaptable =
+                    withTimer(MAPPING + "_" + OUTBOUND + "_" + PROTOCOL_SEGMENT_NAME, adaptableSupplier);
 
             doUpdateCorrelationId(adaptable);
 
-            return withTimer(MAPPING_SEGMENT_NAME + "_" + SEGMENT_CATEGORY,
+            return withTimer(MAPPING + "_" + OUTBOUND + "_" + PAYLOAD_SEGMENT_NAME,
                     () -> getMapper(adaptable).map(adaptable));
         } catch (final DittoRuntimeException e) {
             throw e;
@@ -215,12 +217,13 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private static <T> T withTimer(final String timerName, final Supplier<T> supplier) {
-        final MutableKamonTimer timer = KamonTracing
+    private <T> T withTimer(final String timerName, final Supplier<T> supplier) {
+        final MutableKamonTimer timer = TraceUtils
                 .newTimer(timerName)
+                .tag(TracingTags.CONNECTION_ID, connectionId)
                 .maximumDuration(5, TimeUnit.MINUTES)
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
-                .start();
+                .buildStartedTimer();
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)

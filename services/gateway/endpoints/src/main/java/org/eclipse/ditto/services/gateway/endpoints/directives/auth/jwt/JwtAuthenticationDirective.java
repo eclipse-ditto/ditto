@@ -16,6 +16,7 @@ import static akka.http.javadsl.server.Directives.onSuccess;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.containsAuthorizationForPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRequestHeader;
+import static org.eclipse.ditto.services.utils.tracing.TraceUtils.determineTraceInformation;
 
 import java.security.PublicKey;
 import java.util.List;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
-import org.eclipse.ditto.services.utils.tracing.KamonTracing;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceInformation;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -101,10 +101,10 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                     final JsonWebToken jwt = authorization.map(ImmutableJsonWebToken::fromAuthorizationString)
                             .orElseThrow(() -> buildMissingJwtException(correlationId));
 
-                    final TraceInformation traceInformation = TraceUtils.determineTraceInformation(
-                            requestContext.getRequest().getUri().toRelative().path());
+                    final TraceInformation traceInformation =
+                            determineTraceInformation(requestContext.getRequest().getUri().toRelative().path());
 
-                    final MutableKamonTimer timer = KamonTracing
+                    final MutableKamonTimer timer = TraceUtils
                             .newTimer(TRACE_FILTER_AUTH_JWT)
                             .maximumDuration(5, TimeUnit.MINUTES)
                             .tags(traceInformation.getTags())
@@ -113,7 +113,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                     expiredTimer
                                             .tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
                                             .tag(TracingTags.AUTH_ERROR, Boolean.toString(true)))
-                            .start();
+                            .buildStartedTimer();
 
                     return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
                             .thenApply(publicKeyOpt ->

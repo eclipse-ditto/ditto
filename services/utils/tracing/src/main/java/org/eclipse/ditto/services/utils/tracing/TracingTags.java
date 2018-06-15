@@ -35,4 +35,6 @@ public final class TracingTags {
     public static final String AUTH_ERROR = PREFIX + "auth.error";
     public static final String AUTH_TYPE = PREFIX + "auth.type";
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
+    public static final String CONNECTION_ID =  PREFIX + "connection.id";
+    public static final String CORRELATION_ID = PREFIX + "correlation.id";
 }
