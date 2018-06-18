@@ -101,7 +101,9 @@ public class KamonMetricsReporter extends ScheduledReporter {
         final GaugeMetric metric = Kamon.gauge(name);
         final kamon.metric.Gauge g = refine(metric);
         final Object value = gauge.getValue();
-        if (value instanceof Long) {
+        if (value == null) {
+            // Do nothing since kamon gauges just keep reporting the previously set value
+        } else if (value instanceof Long) {
             g.set((Long) value);
         } else {
             LOGGER.warn(

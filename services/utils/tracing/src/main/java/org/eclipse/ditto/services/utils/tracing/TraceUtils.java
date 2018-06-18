@@ -16,9 +16,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 
-import akka.http.javadsl.server.RequestContext;
-import kamon.Kamon;
-import kamon.trace.Tracer;
+import akka.http.javadsl.model.HttpRequest;
 
 /**
  * Utility for tracing Http requests.
@@ -35,9 +33,9 @@ public final class TraceUtils {
         throw new AssertionError();
     }
 
-    public static MutableKamonTimerBuilder newHttpRoundtripTimer(final RequestContext requestContext) {
-        final String requestMethod = requestContext.getRequest().method().name();
-        final String requestPath = requestContext.getRequest().getUri().toRelative().path();
+    public static MutableKamonTimerBuilder newHttpRoundTripTimer(final HttpRequest request) {
+        final String requestMethod = request.method().name();
+        final String requestPath = request.getUri().toRelative().path();
 
         final TraceInformation traceInformation = determineTraceInformation(requestPath);
 
@@ -67,16 +65,6 @@ public final class TraceUtils {
 
     public static MutableKamonTimerBuilder newTimer(final String tracingFilter) {
         return MutableKamonTimerBuilder.newTimer(metricizeTraceUri(tracingFilter));
-    }
-
-    public static Tracer.SpanBuilder createTrace(final RequestContext requestContext) {
-        final String requestMethod = requestContext.getRequest().method().name();
-        final String requestPath = requestContext.getRequest().getUri().toRelative().path();
-
-        final TraceInformation traceInformation = determineTraceInformation(requestPath);
-
-        return Kamon.buildSpan(metricizeTraceUri(traceInformation.getTraceUri()))
-                .withTag(TracingTags.REQUEST_METHOD, requestMethod);
     }
 
     public static TraceInformation determineTraceInformation(final String requestPath) {
