@@ -80,7 +80,7 @@ public final class MutableKamonTimer {
             this.startTimestamp = System.nanoTime();
             LOGGER.debug("MutableKamonTimer with name <{]> was started", name);
         } else {
-            LOGGER.warn("Tried to start the already running MutableKamonTimer with name <{}>");
+            LOGGER.warn("Tried to start the already running MutableKamonTimer with name <{}>", name);
         }
 
         return this;
@@ -92,9 +92,9 @@ public final class MutableKamonTimer {
             this.endTimestamp = System.nanoTime();
             final long duration = endTimestamp - this.startTimestamp;
             Kamon.timer(name).refine(this.tags).record(duration);
-            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name);
+            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
         } else {
-            LOGGER.warn("Tried to stop the not running MutableKamonTimer with name <{}>");
+            LOGGER.warn("Tried to stop the not running MutableKamonTimer with name <{}>", name);
         }
 
         return this;

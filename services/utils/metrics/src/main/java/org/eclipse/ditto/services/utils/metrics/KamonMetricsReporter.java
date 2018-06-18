@@ -105,8 +105,8 @@ public class KamonMetricsReporter extends ScheduledReporter {
             g.set((Long) value);
         } else {
             LOGGER.warn(
-                    "Gauge <{}> reports values that are not of type long. Therefore this gauge can not be reported " +
-                            "to prometheus");
+                    "Gauge <{}> reports values that are not of type long, but of type <{}>. " +
+                            "Therefore this gauge can not be reported to prometheus", name, value.getClass().getName());
         }
     }
 
