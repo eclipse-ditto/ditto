@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -38,6 +39,7 @@ public final class MutableKamonTimerBuilder {
     private long maximumDuration = 5;
     private TimeUnit maximumDurationTimeUnit = TimeUnit.MINUTES;
     private Consumer<MutableKamonTimer> additionalExpirationHandling;
+    private ScheduledFuture<?> expirationHandlingFuture;
 
 
     private MutableKamonTimerBuilder(final String tracingFilter) {
@@ -106,19 +108,35 @@ public final class MutableKamonTimerBuilder {
      */
     public MutableKamonTimer buildStartedTimer() {
         final MutableKamonTimer timer = new MutableKamonTimer(tracingFilter).tags(additionalTags);
-        scheduler.schedule(() -> defaultExpirationHandling(tracingFilter, timer, additionalExpirationHandling),
-                maximumDuration, maximumDurationTimeUnit);
+        expirationHandlingFuture =
+                scheduler.schedule(() -> defaultExpirationHandling(tracingFilter, timer, additionalExpirationHandling),
+                        maximumDuration, maximumDurationTimeUnit);
+        timer.onStop(this::cancelScheduledExpirationFuture);
         return timer.start();
+    }
+
+    private void cancelScheduledExpirationFuture(final MutableKamonTimer timer) {
+
+        if (!expirationHandlingFuture.isDone()) {
+            final boolean canceled = expirationHandlingFuture.cancel(false);
+            if (canceled) {
+                LOGGER.info("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
+                        "before timeout", timer.getName());
+            }
+        }
     }
 
     private static void defaultExpirationHandling(final String tracingFilter, final MutableKamonTimer timer,
             @Nullable Consumer<MutableKamonTimer> additionalExpirationHandling) {
-        timer.stop();
-
         LOGGER.debug("Trace for {} stopped. Cause: Timer expired", tracingFilter);
 
         if (additionalExpirationHandling != null) {
-            additionalExpirationHandling.accept(timer);
+            try {
+                additionalExpirationHandling.accept(timer);
+            } catch (Exception e) {
+                timer.stop();
+                LOGGER.warn("Expiration Handling for timer <{}> caused an unexpected exception", timer.getName(), e);
+            }
         }
     }
 }

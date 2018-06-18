@@ -11,8 +11,12 @@
  */
 package org.eclipse.ditto.services.utils.tracing;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -34,14 +38,16 @@ public final class MutableKamonTimer {
     private final String name;
     private long startTimestamp;
     private long endTimestamp;
-    private boolean running;
+    private boolean started;
     private boolean stopped;
     private Map<String, String> tags;
+    private List<Consumer<MutableKamonTimer>> onStopHandlers;
 
     MutableKamonTimer(final String name) {
         this.name = name;
         this.tags = new ConcurrentHashMap<>();
-        this.running = false;
+        this.onStopHandlers = new ArrayList<>();
+        this.started = false;
         this.stopped = false;
     }
 
@@ -85,8 +91,8 @@ public final class MutableKamonTimer {
      * @return The started {@link MutableKamonTimer}
      */
     MutableKamonTimer start() {
-        if (!running) {
-            this.running = true;
+        if (!started) {
+            this.started = true;
             this.startTimestamp = System.nanoTime();
             LOGGER.debug("MutableKamonTimer with name <{]> was started", name);
         } else {
@@ -97,31 +103,77 @@ public final class MutableKamonTimer {
     }
 
     public synchronized MutableKamonTimer stop() {
-        if (running) {
-            this.running = false;
+        if (started && !stopped) {
             this.stopped = true;
             this.endTimestamp = System.nanoTime();
             final long duration = endTimestamp - this.startTimestamp;
             Kamon.timer(name).refine(this.tags).record(duration);
             LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
+            onStopHandlers.forEach(onStopHandler -> onStopHandler.accept(this));
         } else {
-            LOGGER.warn("Tried to stop the not running MutableKamonTimer with name <{}>", name);
+            LOGGER.warn("Tried to stop the not yet started MutableKamonTimer with name <{}>", name);
         }
 
         return this;
     }
 
+    void onStop(Consumer<MutableKamonTimer> onStopHandler) {
+        onStopHandlers.add(onStopHandler);
+    }
+
+    /**
+     * Gets the start timestamp in nano seconds
+     * @return The start timestamp in nano seconds
+     * @throws java.lang.IllegalStateException if timer has not been started before calling this method
+     */
     public long getStartTimestamp() {
+        verifyStarted();
         return this.startTimestamp;
     }
 
+    /**
+     * Gets the end timestamp in nano seconds
+     * @return The end timestamp in nano seconds
+     * @throws java.lang.IllegalStateException if timer has not been started and stopped before calling this method
+     */
     public long getEndTimestamp() {
+        verifyStarted();
+        verifyStopped();
         return this.endTimestamp;
+    }
+
+    /**
+     * Gets the duration from {@link MutableKamonTimer#startTimestamp} to {@link MutableKamonTimer#endTimestamp}
+     * @return The duration
+     * @throws java.lang.IllegalStateException if timer has not been started and stopped before calling this method
+     */
+    public Duration getDuration() {
+        verifyStarted();
+        verifyStopped();
+        return Duration.ofNanos(this.endTimestamp - this.startTimestamp);
+    }
+
+    private void verifyStarted() {
+        if (!started) {
+            throw new IllegalStateException("Timer has not been started, yet. Start timestamp can not be determined " +
+                    "before starting the timer.");
+        }
+    }
+
+    private void verifyStopped() {
+        if (!stopped) {
+            throw new IllegalStateException("Timer has not been stopped, yet. End timestamp can not be determined before " +
+                    "stopping the timer.");
+        }
     }
 
     @Nullable
     public String getTag(final String key) {
         return this.tags.get(key);
+    }
+
+    public String getName() {
+        return this.name;
     }
 
     @Override
@@ -130,7 +182,7 @@ public final class MutableKamonTimer {
                 "name='" + name + '\'' +
                 ", startTimestamp=" + startTimestamp +
                 ", endTimestamp=" + endTimestamp +
-                ", running=" + running +
+                ", running=" + started +
                 ", tags=" + tags +
                 '}';
     }

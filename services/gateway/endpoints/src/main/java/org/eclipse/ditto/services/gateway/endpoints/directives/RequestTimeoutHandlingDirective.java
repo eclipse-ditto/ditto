@@ -95,8 +95,7 @@ public final class RequestTimeoutHandlingDirective {
     }
 
     private static void checkDurationWarning(final MutableKamonTimer mutableTimer) {
-        final Duration duration = Duration.of(mutableTimer.getEndTimestamp() - mutableTimer.getStartTimestamp(),
-                ChronoUnit.NANOS);
+        final Duration duration = mutableTimer.getDuration();
         final String entityType = mutableTimer.getTag(TracingTags.ENTITY_TYPE);
         if (TRACING_ENTITY_SEARCH.equals(entityType) && SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
             LOGGER.warn("Encountered slow search which took over {}ms: {}ms",
