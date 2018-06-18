@@ -35,36 +35,46 @@ public final class MutableKamonTimer {
     private long startTimestamp;
     private long endTimestamp;
     private boolean running;
+    private boolean stopped;
     private Map<String, String> tags;
 
     MutableKamonTimer(final String name) {
         this.name = name;
         this.tags = new ConcurrentHashMap<>();
         this.running = false;
+        this.stopped = false;
     }
 
     public MutableKamonTimer tags(final Map<String, String> tags) {
-        this.tags.putAll(tags);
-        return this;
-    }
-
-    public MutableKamonTimer tag(final String key, final String value) {
-        this.tags.put(key, value);
+        if (!stopped) {
+            this.tags.putAll(tags);
+        } else {
+            LOGGER.warn("Tried to append multiple tags to the stopped timer with name <{}>. Tags are ineffective.",
+                    name);
+        }
         return this;
     }
 
     public MutableKamonTimer tag(final String key, final long value) {
-        this.tags.put(key, Long.toString(value));
-        return this;
+        return tag(key, Long.toString(value));
     }
 
     public MutableKamonTimer tag(final String key, final double value) {
-        this.tags.put(key, Double.toString(value));
-        return this;
+        return tag(key, Double.toString(value));
     }
 
     public MutableKamonTimer tag(final String key, final boolean value) {
-        this.tags.put(key, Boolean.toString(value));
+        return tag(key, Boolean.toString(value));
+    }
+
+    public MutableKamonTimer tag(final String key, final String value) {
+        if (!stopped) {
+            this.tags.put(key, value);
+        } else {
+            LOGGER.warn(
+                    "Tried to append tag <{}> with value <{}> to the stopped timer with name <{}>. Tag is ineffective.",
+                    key, value, name);
+        }
         return this;
     }
 
@@ -89,6 +99,7 @@ public final class MutableKamonTimer {
     public synchronized MutableKamonTimer stop() {
         if (running) {
             this.running = false;
+            this.stopped = true;
             this.endTimestamp = System.nanoTime();
             final long duration = endTimestamp - this.startTimestamp;
             Kamon.timer(name).refine(this.tags).record(duration);
