@@ -49,6 +49,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
@@ -183,6 +184,7 @@ public final class RootRoute {
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
+                config.getStringList(ServiceConfigReader.CONFIG_KEY_HEADER_BLACKLIST),
                 DittoProtocolAdapter.newInstance(), actorSystem.eventStream());
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
