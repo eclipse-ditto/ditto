@@ -18,7 +18,8 @@ RUN set -x \
     && cd $DITTO_HOME \
     && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
-    && apk del .tmp-deps
+    && apk del .tmp-deps \
+    && apk add --no-cache tini
 
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["java","-jar","starter.jar"]
