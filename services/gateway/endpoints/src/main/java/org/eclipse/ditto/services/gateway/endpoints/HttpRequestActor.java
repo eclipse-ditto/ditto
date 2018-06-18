@@ -30,6 +30,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -96,8 +98,12 @@ public final class HttpRequestActor extends AbstractActor {
 
     private java.time.Duration messageTimeout;
 
+    private final MutableKamonTimer roundTripTimer;
+
     private HttpRequestActor(final ActorRef proxyActor, final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
+        this.roundTripTimer = TraceUtils.newHttpRoundTripTimer(request)
+                .buildStartedTimer();
         this.proxyActor = proxyActor;
         this.httpResponseFuture = httpResponseFuture;
 
@@ -112,13 +118,9 @@ public final class HttpRequestActor extends AbstractActor {
         commandResponseAwaiting = ReceiveBuilder.create()
                 .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's '{}' message", COMPLETE_MESSAGE))
                 // If an actor downstream replies with an HTTP response, simply forward it.
-                .match(HttpResponse.class, response -> {
-                    completeWithResult(response);
-                    finishTraceAndStop();
-                })
+                .match(HttpResponse.class, this::completeWithResult)
                 .match(SendMessageAcceptedResponse.class, cmd -> {
-                    final HttpResponse httpResponse =
-                            HttpResponse.create().withStatus(HttpStatusCode.ACCEPTED.toInt());
+                    final HttpResponse httpResponse = HttpResponse.create().withStatus(HttpStatusCode.ACCEPTED.toInt());
                     completeWithResult(httpResponse);
                 })
                 .match(MessageCommandResponse.class, cmd -> {
@@ -266,34 +268,34 @@ public final class HttpRequestActor extends AbstractActor {
     private static Function<HttpResponse, HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
             final HttpRequest request, final CommandResponse commandResponse) {
         return response -> {
-                if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
-                    Uri newUri = request.getUri();
-                    if (!request.method().isIdempotent()) {
-                        // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
-                        final String uriStr = newUri.toString();
-                        String createdLocation;
-                        final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
+            if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
+                Uri newUri = request.getUri();
+                if (!request.method().isIdempotent()) {
+                    // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
+                    final String uriStr = newUri.toString();
+                    String createdLocation;
+                    final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
 
-                        // if the uri contains the id, but *not* at the beginning
-                        if (uriIdIndex > 0) {
-                            createdLocation =
-                                    uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
-                                            commandResponse.getResourcePath().toString();
-                        } else {
-                            createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                                    .toString();
-                        }
-
-                        if (createdLocation.endsWith("/")) {
-                            createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
-                        }
-                        newUri = Uri.create(createdLocation);
+                    // if the uri contains the id, but *not* at the beginning
+                    if (uriIdIndex > 0) {
+                        createdLocation =
+                                uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                                        commandResponse.getResourcePath().toString();
+                    } else {
+                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
+                                .toString();
                     }
-                    return response.addHeader(Location.create(newUri));
-                } else {
-                    return response;
+
+                    if (createdLocation.endsWith("/")) {
+                        createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
+                    }
+                    newUri = Uri.create(createdLocation);
                 }
-            };
+                return response.addHeader(Location.create(newUri));
+            } else {
+                return response;
+            }
+        };
     }
 
     private static HttpResponse createHttpResponseWithHeadersAndBody(
@@ -388,13 +390,10 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Command.class, command -> { // receive Commands
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
-                    newTraceFor(command);
-
                     proxyActor.tell(command, getSelf());
 
                     if (!command.getDittoHeaders().isResponseRequired()) {
                         completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
-                        finishTraceAndStop();
                     } else {
                         // after a Command was received, this Actor can only receive the correlating CommandResponse:
                         getContext().become(commandResponseAwaiting);
@@ -469,27 +468,23 @@ public final class HttpRequestActor extends AbstractActor {
         logger.warning("No response within server request timeout ({}), shutting actor down.",
                 serverRequestTimeout);
         // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
-        finishTraceAndStop();
+        stop();
     }
 
     private void completeWithResult(final HttpResponse response) {
         httpResponseFuture.complete(response);
-        logger.debug("Responding with HttpResponse code '{}'", response.status().intValue());
+        final int statusCode = response.status().intValue();
+        logger.debug("Responding with HttpResponse code '{}'", statusCode);
         if (logger.isDebugEnabled()) {
             logger.debug("Responding with Entity: {}", response.entity());
         }
-        finishTraceAndStop();
+        stop();
     }
 
-    private void finishTraceAndStop() {
+    private void stop() {
         logger.clearMDC();
         // destroy ourself:
         getContext().stop(getSelf());
-    }
-
-    private void newTraceFor(final Command command) {
-        final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
-        LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
     }
 
     private static final class ServerRequestTimeoutMessage {
