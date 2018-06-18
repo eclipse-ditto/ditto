@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.tracing;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -72,6 +71,7 @@ public final class MutableKamonTimer {
     /**
      * Starts the MutableKamonTimer. This method is package private so only {@link MutableKamonTimerBuilder} can start
      * this timer.
+     *
      * @return The started {@link MutableKamonTimer}
      */
     MutableKamonTimer start() {
@@ -79,7 +79,7 @@ public final class MutableKamonTimer {
             this.running = true;
             this.startTimestamp = System.nanoTime();
             LOGGER.debug("MutableKamonTimer with name <{]> was started", name);
-        }else{
+        } else {
             LOGGER.warn("Tried to start the already running MutableKamonTimer with name <{}>");
         }
 
@@ -90,9 +90,10 @@ public final class MutableKamonTimer {
         if (running) {
             this.running = false;
             this.endTimestamp = System.nanoTime();
-            Kamon.timer(name).refine(this.tags).record(endTimestamp - this.startTimestamp);
-            LOGGER.debug("MutableKamonTimer with name <{]> was stopped", name);
-        }else {
+            final long duration = endTimestamp - this.startTimestamp;
+            Kamon.timer(name).refine(this.tags).record(duration);
+            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name);
+        } else {
             LOGGER.warn("Tried to stop the not running MutableKamonTimer with name <{}>");
         }
 
