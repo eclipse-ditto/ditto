@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.connectivity.util;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+
 /**
  * This class encloses everything regarding configuration keys.
  */
@@ -222,9 +224,7 @@ public final class ConfigKeys {
     @Immutable
     public static final class Message {
 
-        private static final String PREFIX = CONNECTIVITY_PREFIX + "message.";
-
-        public static final String HEADER_BLACKLIST = PREFIX + "header-blacklist";
+        public static final String HEADER_BLACKLIST = ServiceConfigReader.CONFIG_KEY_HEADER_BLACKLIST;
     }
 
 

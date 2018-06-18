@@ -44,9 +44,9 @@ import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -116,7 +116,9 @@ final class MessagesRoute extends AbstractRoute {
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
 
-        headerBlacklist = actorSystem.settings().config().getStringList(ConfigKeys.MESSAGE_HEADER_BLACKLIST);
+        headerBlacklist = actorSystem.settings()
+                .config()
+                .getStringList(ServiceConfigReader.CONFIG_KEY_HEADER_BLACKLIST);
     }
 
     /**
@@ -149,10 +151,10 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /inbox/claim} route.
-    *
-    * @return route for claim messages resource.
-    */
+     * Describes {@code /inbox/claim} route.
+     *
+     * @return route for claim messages resource.
+     */
     private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
@@ -171,11 +173,11 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /messages/<messageSubject>} sub route of the things route: {@code
-    * ../things/<thingId>/{inbox|outbox}}.
-    *
-    * @return the sub route for things messages resource.
-    */
+     * Describes {@code /messages/<messageSubject>} sub route of the things route: {@code
+     * ../things/<thingId>/{inbox|outbox}}.
+     *
+     * @return the sub route for things messages resource.
+     */
     private Route thingMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId, final String inboxOutbox) {
         final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
@@ -202,11 +204,11 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /messages/<messageSubject>} sub route of the features route: {@code
-    * ../features/<featureId>/{inbox|outbox}}.
-    *
-    * @return the sub route for feature messages resource.
-    */
+     * Describes {@code /messages/<messageSubject>} sub route of the features route: {@code
+     * ../features/<featureId>/{inbox|outbox}}.
+     *
+     * @return the sub route for feature messages resource.
+     */
     private Route featureMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId, final String featureId, final String inboxOutbox) {
         final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
