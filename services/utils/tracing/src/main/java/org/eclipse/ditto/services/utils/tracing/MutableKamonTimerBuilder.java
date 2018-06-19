@@ -120,7 +120,7 @@ public final class MutableKamonTimerBuilder {
         if (!expirationHandlingFuture.isDone()) {
             final boolean canceled = expirationHandlingFuture.cancel(false);
             if (canceled) {
-                LOGGER.info("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
+                LOGGER.debug("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
                         "before timeout", timer.getName());
             }
         }
