@@ -92,9 +92,9 @@ public class KamonMetricsReporter extends ScheduledReporter {
     }
 
     private void report(String name, Counter counter) {
-        final CounterMetric metric = Kamon.counter(name);
-        final kamon.metric.Counter c = refine(metric);
-        c.increment(counter.getCount());
+        final GaugeMetric metric = Kamon.gauge(name);
+        final kamon.metric.Gauge g = refine(metric);
+        g.set(counter.getCount());
     }
 
     private void report(String name, Gauge gauge) {
