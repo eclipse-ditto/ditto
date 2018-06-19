@@ -110,6 +110,7 @@ public final class SearchActor extends AbstractActor {
     private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
     private static final String THINGS_SERVICE_ACCESS_SEGMENT_NAME = "things_service_access";
     private static final String QUERY_TYPE_TAG = "query_type";
+    private static final String API_VERSION_TAG = "api_version";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
@@ -193,7 +194,7 @@ public final class SearchActor extends AbstractActor {
 
         final String queryType = "count";
 
-        final MutableKamonTimer countTimer = startNewTimer(queryType, correlationIdOpt.orElse(null));
+        final MutableKamonTimer countTimer = startNewTimer(version, queryType, correlationIdOpt.orElse(null));
 
         final MutableKamonTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
@@ -254,7 +255,7 @@ public final class SearchActor extends AbstractActor {
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
-        final MutableKamonTimer searchTimer = startNewTimer(queryType, correlationIdOpt.orElse(null));
+        final MutableKamonTimer searchTimer = startNewTimer(version, queryType, correlationIdOpt.orElse(null));
         final MutableKamonTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
@@ -417,10 +418,12 @@ public final class SearchActor extends AbstractActor {
                 });
     }
 
-    private static MutableKamonTimer startNewTimer(final String queryType,
+    private static MutableKamonTimer startNewTimer(final JsonSchemaVersion version,
+            final String queryType,
             @Nullable final String correlationId) {
-        final MutableKamonTimerBuilder timerBuilder =
-                TraceUtils.newTimer(TRACING_THINGS_SEARCH).tag(QUERY_TYPE_TAG, queryType);
+        final MutableKamonTimerBuilder timerBuilder = TraceUtils.newTimer(TRACING_THINGS_SEARCH)
+                .tag(QUERY_TYPE_TAG, queryType)
+                .tag(API_VERSION_TAG, version.toString());
         if (correlationId != null) {
             timerBuilder.tag(TracingTags.CORRELATION_ID, correlationId);
         }
