@@ -105,12 +105,10 @@ public final class SearchActor extends AbstractActor {
     private static final int QUERY_ASK_TIMEOUT = 500;
     private static final int THINGS_ASK_TIMEOUT = 60 * 1000;
 
-    private static final String TRACING_THINGS_SEARCH = "things_search";
-    private static final String QUERY_PARSING_SEGMENT_SUFFIX = "_query_parsing";
-    private static final String TRACING_QUERY_PARSING = TRACING_THINGS_SEARCH + QUERY_PARSING_SEGMENT_SUFFIX;
-    private static final String DATABASE_ACCESS_SUFFIX = "_database_access";
-    private static final String TRACING_DATABASE_ACCESS = TRACING_THINGS_SEARCH + DATABASE_ACCESS_SUFFIX;
-    private static final String TRACING_THINGS_SERVICE_ACCESS = TRACING_THINGS_SEARCH + "_things_service_access";
+    private static final String TRACING_THINGS_SEARCH = "things_search_query";
+    private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
+    private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
+    private static final String THINGS_SERVICE_ACCESS_SEGMENT_NAME = "things_service_access";
     private static final String QUERY_TYPE_TAG = "query_type";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -195,10 +193,9 @@ public final class SearchActor extends AbstractActor {
 
         final String queryType = "count";
 
-        final MutableKamonTimer countTimer =
-                startNewTimer(TRACING_THINGS_SEARCH, queryType, correlationIdOpt.orElse(null));
-        final MutableKamonTimer queryParsingTimer =
-                startNewTimer(TRACING_QUERY_PARSING, queryType, correlationIdOpt.orElse(null));
+        final MutableKamonTimer countTimer = startNewTimer(queryType, correlationIdOpt.orElse(null));
+
+        final MutableKamonTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -212,8 +209,7 @@ public final class SearchActor extends AbstractActor {
                             queryParsingTimer.stop();
                             if (query instanceof PolicyRestrictedSearchAggregation) {
                                 final MutableKamonTimer databaseAccessTimer =
-                                        startNewTimer(TRACING_DATABASE_ACCESS, queryType,
-                                                correlationIdOpt.orElse(null));
+                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // aggregation-based count for things with policies
                                 return processSearchPersistenceResult(
                                         () -> searchPersistence.count((PolicyRestrictedSearchAggregation) query),
@@ -225,8 +221,7 @@ public final class SearchActor extends AbstractActor {
                                         .map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof Query) {
                                 final MutableKamonTimer databaseAccessTimer =
-                                        startNewTimer(TRACING_DATABASE_ACCESS, queryType,
-                                                correlationIdOpt.orElse(null));
+                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // count without aggregation for things without policies
                                 return processSearchPersistenceResult(() -> searchPersistence.count((Query) query),
                                         dittoHeaders)
@@ -259,10 +254,8 @@ public final class SearchActor extends AbstractActor {
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
-        final MutableKamonTimer searchTimer =
-                startNewTimer(TRACING_THINGS_SEARCH, queryType, correlationIdOpt.orElse(null));
-        final MutableKamonTimer queryParsingTimer =
-                startNewTimer(TRACING_QUERY_PARSING, queryType, correlationIdOpt.orElse(null));
+        final MutableKamonTimer searchTimer = startNewTimer(queryType, correlationIdOpt.orElse(null));
+        final MutableKamonTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -277,8 +270,7 @@ public final class SearchActor extends AbstractActor {
 
                             if (query instanceof PolicyRestrictedSearchAggregation) {
                                 final MutableKamonTimer databaseAccessTimer =
-                                        startNewTimer(TRACING_DATABASE_ACCESS, queryType,
-                                                correlationIdOpt.orElse(null));
+                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // policy-based search via aggregation
                                 return processSearchPersistenceResult(
                                         () -> searchPersistence.findAll((PolicyRestrictedSearchAggregation) query),
@@ -287,11 +279,11 @@ public final class SearchActor extends AbstractActor {
                                             databaseAccessTimer.stop();
                                             return result;
                                         }))
-                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
+                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings,
+                                                searchTimer));
                             } else if (query instanceof Query) {
                                 final MutableKamonTimer databaseAccessTimer =
-                                        startNewTimer(TRACING_DATABASE_ACCESS, queryType,
-                                                correlationIdOpt.orElse(null));
+                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // api/1 search via 'find'
                                 return processSearchPersistenceResult(() -> searchPersistence.findAll((Query) query),
                                         dittoHeaders)
@@ -299,7 +291,8 @@ public final class SearchActor extends AbstractActor {
                                             databaseAccessTimer.stop();
                                             return result;
                                         }))
-                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
+                                        .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings,
+                                                searchTimer));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
                                 return Source.failed((Throwable) query);
@@ -334,7 +327,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
-            final QueryThings queryThings) {
+            final QueryThings queryThings, final MutableKamonTimer searchTimer) {
 
         final Graph<SourceShape<QueryThingsResponse>, NotUsed> result;
 
@@ -368,7 +361,7 @@ public final class SearchActor extends AbstractActor {
 
             log.debug("About to send command to Things: {}", retrieveThings);
             final MutableKamonTimer thingsServiceAccessTimer =
-                    startNewTimer(TRACING_THINGS_SERVICE_ACCESS, "query", correlationIdOpt.orElse(null));
+                    searchTimer.startNewSegment(THINGS_SERVICE_ACCESS_SEGMENT_NAME);
 
             result = retrieveFromThings(thingIds, retrieveThings, thingsServiceAccessTimer);
         }
@@ -424,9 +417,10 @@ public final class SearchActor extends AbstractActor {
                 });
     }
 
-    private static MutableKamonTimer startNewTimer(final String tracingFilter, final String queryType,
+    private static MutableKamonTimer startNewTimer(final String queryType,
             @Nullable final String correlationId) {
-        final MutableKamonTimerBuilder timerBuilder = TraceUtils.newTimer(tracingFilter).tag(QUERY_TYPE_TAG, queryType);
+        final MutableKamonTimerBuilder timerBuilder =
+                TraceUtils.newTimer(TRACING_THINGS_SEARCH).tag(QUERY_TYPE_TAG, queryType);
         if (correlationId != null) {
             timerBuilder.tag(TracingTags.CORRELATION_ID, correlationId);
         }

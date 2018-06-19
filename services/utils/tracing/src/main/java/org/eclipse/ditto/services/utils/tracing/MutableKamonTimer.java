@@ -34,6 +34,7 @@ import kamon.Kamon;
 @AllParametersAndReturnValuesAreNonnullByDefault
 public final class MutableKamonTimer {
 
+    private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(MutableKamonTimer.class);
     private final String name;
     private long startTimestamp;
@@ -42,13 +43,16 @@ public final class MutableKamonTimer {
     private boolean stopped;
     private Map<String, String> tags;
     private List<Consumer<MutableKamonTimer>> onStopHandlers;
+    private List<MutableKamonTimer> segments;
 
     MutableKamonTimer(final String name) {
         this.name = name;
         this.tags = new ConcurrentHashMap<>();
+        this.segments = new ArrayList<>();
         this.onStopHandlers = new ArrayList<>();
         this.started = false;
         this.stopped = false;
+        tag(SEGMENT_TAG, "overall");
     }
 
     public MutableKamonTimer tags(final Map<String, String> tags) {
@@ -110,11 +114,34 @@ public final class MutableKamonTimer {
             Kamon.timer(name).refine(this.tags).record(duration);
             LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
             onStopHandlers.forEach(onStopHandler -> onStopHandler.accept(this));
+            segments.forEach(segment -> {
+                if (!segment.stopped) {
+                    segment.stop();
+                }
+            });
         } else {
             LOGGER.warn("Tried to stop the not yet started MutableKamonTimer with name <{}>", name);
         }
 
         return this;
+    }
+
+    /**
+     * Starts a new timer with the same name and the same tags as this timer but with an additional segment tag that
+     * contains the given segment name.
+     * This segment will be stopped when its parent (the timer you use to start a new segment) is stopped, if it's not
+     * stopped before.
+     *
+     * @param segmentName The name that will be stored in the segment tag
+     * @return The started timer
+     */
+    public MutableKamonTimer startNewSegment(final String segmentName) {
+        verifyStarted();
+        final MutableKamonTimer mutableKamonTimer = new MutableKamonTimer(this.name)
+                .tags(this.tags)
+                .tag(SEGMENT_TAG, segmentName);
+        this.segments.add(mutableKamonTimer);
+        return mutableKamonTimer.start();
     }
 
     void onStop(Consumer<MutableKamonTimer> onStopHandler) {
@@ -135,15 +162,13 @@ public final class MutableKamonTimer {
 
     private void verifyStarted() {
         if (!started) {
-            throw new IllegalStateException("Timer has not been started, yet. Start timestamp can not be determined " +
-                    "before starting the timer.");
+            throw new IllegalStateException("Timer has not been started, yet.");
         }
     }
 
     private void verifyStopped() {
         if (!stopped) {
-            throw new IllegalStateException("Timer has not been stopped, yet. End timestamp can not be determined " +
-                    "before stopping the timer.");
+            throw new IllegalStateException("Timer has not been stopped, yet.");
         }
     }
 
