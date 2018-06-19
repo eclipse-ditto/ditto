@@ -122,28 +122,8 @@ public final class MutableKamonTimer {
     }
 
     /**
-     * Gets the start timestamp in nano seconds
-     * @return The start timestamp in nano seconds
-     * @throws java.lang.IllegalStateException if timer has not been started before calling this method
-     */
-    public long getStartTimestamp() {
-        verifyStarted();
-        return this.startTimestamp;
-    }
-
-    /**
-     * Gets the end timestamp in nano seconds
-     * @return The end timestamp in nano seconds
-     * @throws java.lang.IllegalStateException if timer has not been started and stopped before calling this method
-     */
-    public long getEndTimestamp() {
-        verifyStarted();
-        verifyStopped();
-        return this.endTimestamp;
-    }
-
-    /**
      * Gets the duration from {@link MutableKamonTimer#startTimestamp} to {@link MutableKamonTimer#endTimestamp}
+     *
      * @return The duration
      * @throws java.lang.IllegalStateException if timer has not been started and stopped before calling this method
      */
@@ -162,8 +142,8 @@ public final class MutableKamonTimer {
 
     private void verifyStopped() {
         if (!stopped) {
-            throw new IllegalStateException("Timer has not been stopped, yet. End timestamp can not be determined before " +
-                    "stopping the timer.");
+            throw new IllegalStateException("Timer has not been stopped, yet. End timestamp can not be determined " +
+                    "before stopping the timer.");
         }
     }
 
