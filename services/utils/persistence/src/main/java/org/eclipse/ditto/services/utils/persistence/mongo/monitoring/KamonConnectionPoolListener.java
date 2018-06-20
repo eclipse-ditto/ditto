@@ -95,23 +95,24 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
 
     private class PoolMetric {
 
-        private static final String POOL_PREFIX = "_pool_";
+        private static final String POOL_PREFIX = "_pool";
         private static final String CHECKED_OUT_COUNT = "_checkedOutCount";
         private static final String POOL_SIZE = "_poolSize";
         private static final String WAIT_QUEUE_SIZE = "_waitQueueSize";
+        private static final String CLUSTER_ID_TAG = "cluster_id";
 
-        private final String name;
         private final Gauge poolSizeGauge;
         private final Gauge checkOutCountGauge;
         private final Gauge waitQueueGauge;
 
         private PoolMetric(final ServerId serverId) {
-            this.name = serverId.getClusterId().getValue();
-            poolSizeGauge = Kamon.gauge(metricName + POOL_PREFIX + name + POOL_SIZE);
+            final String clusterId = serverId.getClusterId().getValue();
+            poolSizeGauge = Kamon.gauge(metricName + POOL_PREFIX + POOL_SIZE).refine(CLUSTER_ID_TAG, clusterId);
             poolSizeGauge.set(0);
-            checkOutCountGauge = Kamon.gauge(metricName + POOL_PREFIX + name + CHECKED_OUT_COUNT);
+            checkOutCountGauge =
+                    Kamon.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT).refine(CLUSTER_ID_TAG, clusterId);
             checkOutCountGauge.set(0);
-            waitQueueGauge = Kamon.gauge(metricName + POOL_PREFIX + name + WAIT_QUEUE_SIZE);
+            waitQueueGauge = Kamon.gauge(metricName + POOL_PREFIX + WAIT_QUEUE_SIZE).refine(CLUSTER_ID_TAG, clusterId);
             waitQueueGauge.set(0);
         }
 
