@@ -109,16 +109,16 @@ public final class MutableKamonTimer {
     public synchronized MutableKamonTimer stop() {
         if (started && !stopped) {
             this.stopped = true;
-            this.endTimestamp = System.nanoTime();
-            final long duration = endTimestamp - this.startTimestamp;
-            Kamon.timer(name).refine(this.tags).record(duration);
-            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
-            onStopHandlers.forEach(onStopHandler -> onStopHandler.accept(this));
             segments.forEach(segment -> {
                 if (!segment.stopped) {
                     segment.stop();
                 }
             });
+            this.endTimestamp = System.nanoTime();
+            final long duration = endTimestamp - this.startTimestamp;
+            Kamon.timer(name).refine(this.tags).record(duration);
+            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
+            onStopHandlers.forEach(onStopHandler -> onStopHandler.accept(this));
         } else {
             LOGGER.warn("Tried to stop the not yet started MutableKamonTimer with name <{}>", name);
         }
