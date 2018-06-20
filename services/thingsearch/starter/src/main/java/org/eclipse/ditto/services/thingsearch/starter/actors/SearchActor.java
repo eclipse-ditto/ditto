@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -42,10 +40,9 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
+import org.eclipse.ditto.services.utils.tracing.KamonTimer;
+import org.eclipse.ditto.services.utils.tracing.KamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
-import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -194,9 +191,9 @@ public final class SearchActor extends AbstractActor {
 
         final String queryType = "count";
 
-        final MutableKamonTimer countTimer = startNewTimer(version, queryType);
+        final KamonTimer countTimer = startNewTimer(version, queryType);
 
-        final MutableKamonTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
+        final KamonTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -209,7 +206,7 @@ public final class SearchActor extends AbstractActor {
                             LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
                             queryParsingTimer.stop();
                             if (query instanceof PolicyRestrictedSearchAggregation) {
-                                final MutableKamonTimer databaseAccessTimer =
+                                final KamonTimer databaseAccessTimer =
                                         countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // aggregation-based count for things with policies
                                 return processSearchPersistenceResult(
@@ -221,7 +218,7 @@ public final class SearchActor extends AbstractActor {
                                         }))
                                         .map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof Query) {
-                                final MutableKamonTimer databaseAccessTimer =
+                                final KamonTimer databaseAccessTimer =
                                         countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // count without aggregation for things without policies
                                 return processSearchPersistenceResult(() -> searchPersistence.count((Query) query),
@@ -255,8 +252,8 @@ public final class SearchActor extends AbstractActor {
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
         final String queryType = "query";
-        final MutableKamonTimer searchTimer = startNewTimer(version, queryType);
-        final MutableKamonTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
+        final KamonTimer searchTimer = startNewTimer(version, queryType);
+        final KamonTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -270,7 +267,7 @@ public final class SearchActor extends AbstractActor {
                             queryParsingTimer.stop();
 
                             if (query instanceof PolicyRestrictedSearchAggregation) {
-                                final MutableKamonTimer databaseAccessTimer =
+                                final KamonTimer databaseAccessTimer =
                                         searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // policy-based search via aggregation
                                 return processSearchPersistenceResult(
@@ -283,7 +280,7 @@ public final class SearchActor extends AbstractActor {
                                         .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings,
                                                 searchTimer));
                             } else if (query instanceof Query) {
-                                final MutableKamonTimer databaseAccessTimer =
+                                final KamonTimer databaseAccessTimer =
                                         searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // api/1 search via 'find'
                                 return processSearchPersistenceResult(() -> searchPersistence.findAll((Query) query),
@@ -328,7 +325,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
-            final QueryThings queryThings, final MutableKamonTimer searchTimer) {
+            final QueryThings queryThings, final KamonTimer searchTimer) {
 
         final Graph<SourceShape<QueryThingsResponse>, NotUsed> result;
 
@@ -361,7 +358,7 @@ public final class SearchActor extends AbstractActor {
                     .build();
 
             log.debug("About to send command to Things: {}", retrieveThings);
-            final MutableKamonTimer thingsServiceAccessTimer =
+            final KamonTimer thingsServiceAccessTimer =
                     searchTimer.startNewSegment(THINGS_SERVICE_ACCESS_SEGMENT_NAME);
 
             result = retrieveFromThings(thingIds, retrieveThings, thingsServiceAccessTimer);
@@ -390,7 +387,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveFromThings(final ResultList<String> thingIds,
-            final RetrieveThings retrieveThings, final MutableKamonTimer thingsSegment) {
+            final RetrieveThings retrieveThings, final KamonTimer thingsSegment) {
         final DittoHeaders dittoHeaders = retrieveThings.getDittoHeaders();
         return Source.fromCompletionStage(
                 PatternsCS.ask(pubSubMediator, new DistributedPubSubMediator.Send(
@@ -418,8 +415,8 @@ public final class SearchActor extends AbstractActor {
                 });
     }
 
-    private static MutableKamonTimer startNewTimer(final JsonSchemaVersion version, final String queryType) {
-        final MutableKamonTimerBuilder timerBuilder = TraceUtils.newTimer(TRACING_THINGS_SEARCH)
+    private static KamonTimer startNewTimer(final JsonSchemaVersion version, final String queryType) {
+        final KamonTimerBuilder timerBuilder = TraceUtils.newTimer(TRACING_THINGS_SEARCH)
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString());
 

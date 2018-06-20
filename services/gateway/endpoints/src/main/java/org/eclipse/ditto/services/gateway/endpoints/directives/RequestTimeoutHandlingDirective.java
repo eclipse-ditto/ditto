@@ -17,13 +17,12 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggi
 import static org.eclipse.ditto.services.gateway.endpoints.utils.HttpUtils.getRawRequestUri;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.KamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
@@ -70,7 +69,7 @@ public final class RequestTimeoutHandlingDirective {
             return extractRequestContext(requestContext -> {
 
 
-                final MutableKamonTimer timer =
+                final KamonTimer timer =
                         TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).buildStartedTimer();
                 LOGGER.debug("Started mutable timer <{}>", timer);
 
@@ -94,7 +93,7 @@ public final class RequestTimeoutHandlingDirective {
         });
     }
 
-    private static void checkDurationWarning(final MutableKamonTimer mutableTimer) {
+    private static void checkDurationWarning(final KamonTimer mutableTimer) {
         final Duration duration = mutableTimer.getDuration();
         final String entityType = mutableTimer.getTag(TracingTags.ENTITY_TYPE);
         if (TRACING_ENTITY_SEARCH.equals(entityType) && SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
@@ -109,7 +108,7 @@ public final class RequestTimeoutHandlingDirective {
     }
 
     private static HttpResponse doHandleRequestTimeout(final String correlationId, final Config config,
-            final RequestContext requestContext, final MutableKamonTimer timer) {
+            final RequestContext requestContext, final KamonTimer timer) {
         final Duration duration = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
 
         final DittoRuntimeException cre = GatewayServiceUnavailableException

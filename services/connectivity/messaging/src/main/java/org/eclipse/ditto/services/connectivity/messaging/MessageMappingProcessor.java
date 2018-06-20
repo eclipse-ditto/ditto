@@ -33,7 +33,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.KamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
@@ -218,7 +218,7 @@ public final class MessageMappingProcessor {
     }
 
     private <T> T withTimer(final String timerName, final Supplier<T> supplier) {
-        final MutableKamonTimer timer = TraceUtils
+        final KamonTimer timer = TraceUtils
                 .newTimer(timerName)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
                 .maximumDuration(5, TimeUnit.MINUTES)

@@ -28,9 +28,9 @@ import org.slf4j.LoggerFactory;
  * Builds a MutableKamonTimer and guarantees that no timer will run without a timeout, because the timer is always
  * returned started.
  */
-public final class MutableKamonTimerBuilder {
+public final class KamonTimerBuilder {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MutableKamonTimerBuilder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonTimerBuilder.class);
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private final String tracingFilter;
@@ -38,16 +38,16 @@ public final class MutableKamonTimerBuilder {
 
     private long maximumDuration = 5;
     private TimeUnit maximumDurationTimeUnit = TimeUnit.MINUTES;
-    private Consumer<MutableKamonTimer> additionalExpirationHandling;
+    private Consumer<KamonTimer> additionalExpirationHandling;
     private ScheduledFuture<?> expirationHandlingFuture;
 
 
-    private MutableKamonTimerBuilder(final String tracingFilter) {
+    private KamonTimerBuilder(final String tracingFilter) {
         this.tracingFilter = tracingFilter;
     }
 
-    static MutableKamonTimerBuilder newTimer(final String tracingFilter) {
-        return new MutableKamonTimerBuilder(tracingFilter);
+    static KamonTimerBuilder newTimer(final String tracingFilter) {
+        return new KamonTimerBuilder(tracingFilter);
     }
 
     /**
@@ -57,7 +57,7 @@ public final class MutableKamonTimerBuilder {
      * @param additionalTags Additional tags for this tracing
      * @return The TracingTimerBuilder
      */
-    public MutableKamonTimerBuilder tags(final Map<String, String> additionalTags) {
+    public KamonTimerBuilder tags(final Map<String, String> additionalTags) {
         this.additionalTags.putAll(additionalTags);
         return this;
     }
@@ -68,7 +68,7 @@ public final class MutableKamonTimerBuilder {
      * @param additionalExpirationHandling custom handling of timer expiration.
      * @return The TracingTimerBuilder
      */
-    public MutableKamonTimerBuilder expirationHandling(final Consumer<MutableKamonTimer> additionalExpirationHandling) {
+    public KamonTimerBuilder expirationHandling(final Consumer<KamonTimer> additionalExpirationHandling) {
         this.additionalExpirationHandling = additionalExpirationHandling;
         return this;
     }
@@ -80,7 +80,7 @@ public final class MutableKamonTimerBuilder {
      * @param maximumDurationTimeUnit The unit of the maximum duration.
      * @return The TracingTimerBuilder
      */
-    public MutableKamonTimerBuilder maximumDuration(final long maximumDuration,
+    public KamonTimerBuilder maximumDuration(final long maximumDuration,
             final TimeUnit maximumDurationTimeUnit) {
         this.maximumDuration = maximumDuration;
         this.maximumDurationTimeUnit = maximumDurationTimeUnit;
@@ -95,7 +95,7 @@ public final class MutableKamonTimerBuilder {
      * @param value The value of the tag
      * @return The TracingTimerBuilder
      */
-    public MutableKamonTimerBuilder tag(final String key, final String value) {
+    public KamonTimerBuilder tag(final String key, final String value) {
         this.additionalTags.put(key, value);
         return this;
     }
@@ -104,10 +104,10 @@ public final class MutableKamonTimerBuilder {
      * Starts the timer.
      *
      * @return The timer that will be stopped after running more than the defined
-     * {@link MutableKamonTimerBuilder#maximumDuration maximum duration}
+     * {@link KamonTimerBuilder#maximumDuration maximum duration}
      */
-    public MutableKamonTimer buildStartedTimer() {
-        final MutableKamonTimer timer = new MutableKamonTimer(tracingFilter).tags(additionalTags);
+    public KamonTimer buildStartedTimer() {
+        final KamonTimer timer = new KamonTimer(tracingFilter).tags(additionalTags);
         expirationHandlingFuture =
                 scheduler.schedule(() -> defaultExpirationHandling(tracingFilter, timer, additionalExpirationHandling),
                         maximumDuration, maximumDurationTimeUnit);
@@ -115,7 +115,7 @@ public final class MutableKamonTimerBuilder {
         return timer.start();
     }
 
-    private void cancelScheduledExpirationFuture(final MutableKamonTimer timer) {
+    private void cancelScheduledExpirationFuture(final KamonTimer timer) {
 
         if (!expirationHandlingFuture.isDone()) {
             final boolean canceled = expirationHandlingFuture.cancel(false);
@@ -126,8 +126,8 @@ public final class MutableKamonTimerBuilder {
         }
     }
 
-    private static void defaultExpirationHandling(final String tracingFilter, final MutableKamonTimer timer,
-            @Nullable Consumer<MutableKamonTimer> additionalExpirationHandling) {
+    private static void defaultExpirationHandling(final String tracingFilter, final KamonTimer timer,
+            @Nullable Consumer<KamonTimer> additionalExpirationHandling) {
         LOGGER.debug("Trace for {} stopped. Cause: Timer expired", tracingFilter);
 
         if (additionalExpirationHandling != null) {

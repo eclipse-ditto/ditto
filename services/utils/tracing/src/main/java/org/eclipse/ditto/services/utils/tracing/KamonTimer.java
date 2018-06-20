@@ -32,20 +32,20 @@ import kamon.Kamon;
  */
 @NotThreadSafe
 @AllParametersAndReturnValuesAreNonnullByDefault
-public final class MutableKamonTimer {
+public final class KamonTimer {
 
     private static final String SEGMENT_TAG = "segment";
-    private static final Logger LOGGER = LoggerFactory.getLogger(MutableKamonTimer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonTimer.class);
     private final String name;
     private long startTimestamp;
     private long endTimestamp;
     private boolean started;
     private boolean stopped;
     private Map<String, String> tags;
-    private List<Consumer<MutableKamonTimer>> onStopHandlers;
-    private List<MutableKamonTimer> segments;
+    private List<Consumer<KamonTimer>> onStopHandlers;
+    private List<KamonTimer> segments;
 
-    MutableKamonTimer(final String name) {
+    KamonTimer(final String name) {
         this.name = name;
         this.tags = new ConcurrentHashMap<>();
         this.segments = new ArrayList<>();
@@ -55,7 +55,7 @@ public final class MutableKamonTimer {
         tag(SEGMENT_TAG, "overall");
     }
 
-    public MutableKamonTimer tags(final Map<String, String> tags) {
+    public KamonTimer tags(final Map<String, String> tags) {
         if (!stopped) {
             this.tags.putAll(tags);
         } else {
@@ -65,19 +65,19 @@ public final class MutableKamonTimer {
         return this;
     }
 
-    public MutableKamonTimer tag(final String key, final long value) {
+    public KamonTimer tag(final String key, final long value) {
         return tag(key, Long.toString(value));
     }
 
-    public MutableKamonTimer tag(final String key, final double value) {
+    public KamonTimer tag(final String key, final double value) {
         return tag(key, Double.toString(value));
     }
 
-    public MutableKamonTimer tag(final String key, final boolean value) {
+    public KamonTimer tag(final String key, final boolean value) {
         return tag(key, Boolean.toString(value));
     }
 
-    public MutableKamonTimer tag(final String key, final String value) {
+    public KamonTimer tag(final String key, final String value) {
         if (!stopped) {
             this.tags.put(key, value);
         } else {
@@ -89,12 +89,12 @@ public final class MutableKamonTimer {
     }
 
     /**
-     * Starts the MutableKamonTimer. This method is package private so only {@link MutableKamonTimerBuilder} can start
+     * Starts the MutableKamonTimer. This method is package private so only {@link KamonTimerBuilder} can start
      * this timer.
      *
-     * @return The started {@link MutableKamonTimer}
+     * @return The started {@link KamonTimer}
      */
-    MutableKamonTimer start() {
+    KamonTimer start() {
         if (!started) {
             this.started = true;
             this.startTimestamp = System.nanoTime();
@@ -111,7 +111,7 @@ public final class MutableKamonTimer {
      *
      * @return The stopped timer.
      */
-    public MutableKamonTimer stop() {
+    public KamonTimer stop() {
         if (started && !stopped) {
             this.stopped = true;
             segments.forEach(segment -> {
@@ -140,21 +140,21 @@ public final class MutableKamonTimer {
      * @param segmentName The name that will be stored in the segment tag
      * @return The started timer
      */
-    public MutableKamonTimer startNewSegment(final String segmentName) {
+    public KamonTimer startNewSegment(final String segmentName) {
         verifyStarted();
-        final MutableKamonTimer mutableKamonTimer = new MutableKamonTimer(this.name)
+        final KamonTimer mutableKamonTimer = new KamonTimer(this.name)
                 .tags(this.tags)
                 .tag(SEGMENT_TAG, segmentName);
         this.segments.add(mutableKamonTimer);
         return mutableKamonTimer.start();
     }
 
-    void onStop(Consumer<MutableKamonTimer> onStopHandler) {
+    void onStop(Consumer<KamonTimer> onStopHandler) {
         onStopHandlers.add(onStopHandler);
     }
 
     /**
-     * Gets the duration from {@link MutableKamonTimer#startTimestamp} to {@link MutableKamonTimer#endTimestamp}
+     * Gets the duration from {@link KamonTimer#startTimestamp} to {@link KamonTimer#endTimestamp}
      *
      * @return The duration
      * @throws java.lang.IllegalStateException if timer has not been started and stopped before calling this method

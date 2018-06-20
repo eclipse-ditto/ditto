@@ -30,7 +30,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.KamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -98,7 +98,7 @@ public final class HttpRequestActor extends AbstractActor {
 
     private java.time.Duration messageTimeout;
 
-    private final MutableKamonTimer roundTripTimer;
+    private final KamonTimer roundTripTimer;
 
     private HttpRequestActor(final ActorRef proxyActor, final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {

@@ -35,7 +35,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
+import org.eclipse.ditto.services.utils.tracing.KamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceInformation;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -104,7 +104,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                     final TraceInformation traceInformation =
                             determineTraceInformation(requestContext.getRequest().getUri().toRelative().path());
 
-                    final MutableKamonTimer timer = TraceUtils
+                    final KamonTimer timer = TraceUtils
                             .newTimer(TRACE_FILTER_AUTH_JWT)
                             .maximumDuration(5, TimeUnit.MINUTES)
                             .tags(traceInformation.getTags())
@@ -168,7 +168,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private void validateToken(final JsonWebToken authorizationToken, final PublicKey publicKey,
-            final String correlationId, final MutableKamonTimer timer) {
+            final String correlationId, final KamonTimer timer) {
         final DefaultJwtParser defaultJwtParser = new DefaultJwtParser();
 
         try {
@@ -181,7 +181,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId,
-            final MutableKamonTimer timer) {
+            final KamonTimer timer) {
         timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
                 .stop();
 
