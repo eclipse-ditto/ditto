@@ -36,7 +36,7 @@ public class KamonCommandListener implements CommandListener {
     private final String timerName;
 
     public KamonCommandListener(final String metricName) {
-        this.timerName = ConditionChecker.argumentNotEmpty(metricName, "metricName") + "_mongodb_";
+        this.timerName = ConditionChecker.argumentNotEmpty(metricName, "metricName") + "_mongodb";
     }
 
     @Override
