@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.event.CommandEvent;
 import com.mongodb.event.CommandFailedEvent;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
@@ -31,10 +32,11 @@ import kamon.Kamon;
 public class KamonCommandListener implements CommandListener {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCommandListener.class);
-    private final String histogramPrefix;
+    private static final String COMMAND_NAME_TAG = "command_name";
+    private final String timerName;
 
     public KamonCommandListener(final String metricName) {
-        this.histogramPrefix = ConditionChecker.argumentNotEmpty(metricName, "metricName") + "_mongodb_";
+        this.timerName = ConditionChecker.argumentNotEmpty(metricName, "metricName") + "_mongodb_";
     }
 
     @Override
@@ -65,7 +67,7 @@ public class KamonCommandListener implements CommandListener {
 
         final long elapsedTime = event.getElapsedTime(TimeUnit.NANOSECONDS);
         final String commandName = event.getCommandName();
-        Kamon.histogram(TraceUtils.metricizeTraceUri(histogramPrefix + commandName)).record(elapsedTime);
+        recordElapsedTime(elapsedTime, commandName);
     }
 
     @Override
@@ -83,6 +85,10 @@ public class KamonCommandListener implements CommandListener {
 
         final long elapsedTime = event.getElapsedTime(TimeUnit.NANOSECONDS);
         final String commandName = event.getCommandName();
-        Kamon.histogram(TraceUtils.metricizeTraceUri(histogramPrefix + commandName)).record(elapsedTime);
+        recordElapsedTime(elapsedTime, commandName);
+    }
+
+    private void recordElapsedTime(final long elapsedTime, final String commandName) {
+        Kamon.timer(TraceUtils.metricizeTraceUri(timerName)).refine(COMMAND_NAME_TAG, commandName).record(elapsedTime);
     }
 }
