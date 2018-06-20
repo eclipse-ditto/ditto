@@ -106,7 +106,12 @@ public final class MutableKamonTimer {
         return this;
     }
 
-    public synchronized MutableKamonTimer stop() {
+    /**
+     * Stops the timer and all its segments.
+     *
+     * @return The stopped timer.
+     */
+    public MutableKamonTimer stop() {
         if (started && !stopped) {
             this.stopped = true;
             segments.forEach(segment -> {
