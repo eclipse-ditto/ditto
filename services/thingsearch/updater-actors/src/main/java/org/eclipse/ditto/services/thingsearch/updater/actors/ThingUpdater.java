@@ -53,7 +53,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.tracing.MutableKamonTimerBuilder;
 import org.eclipse.ditto.services.utils.tracing.MutableKamonTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
@@ -129,7 +128,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private static final String TRACE_THING_MODIFIED = "things_search_thing_modified";
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
-    private static final String COUNT_THING_BULK_UPDATE = "things_search_thing_bulkUpdate_count";
+    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String TRACE_THING_DELETE = "things_search_thing_delete";
     private static final String TRACE_POLICY_UPDATE = "things_search_policy_update";
 
@@ -531,7 +530,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
 
-            Kamon.histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
+            Kamon.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record(thingEvents.size());
 
             final MutableKamonTimer bulkUpdate = TraceUtils.newTimer(TRACE_THING_BULK_UPDATE).buildStartedTimer();
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
