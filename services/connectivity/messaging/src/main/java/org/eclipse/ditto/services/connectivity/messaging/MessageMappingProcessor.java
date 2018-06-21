@@ -47,12 +47,12 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 public final class MessageMappingProcessor {
 
-    private static final String MAPPING = "mapping";
+    private static final String TIMER_NAME = "connectivity_message_mapping";
     private static final String INBOUND = "inbound";
     private static final String OUTBOUND = "outbound";
     private static final String PAYLOAD_SEGMENT_NAME = "payload";
-    private static final String MAPPING_SEGMENT_NAME = "mapping";
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
+    private static final String DIRECTION_TAG_NAME = "direction";
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final String connectionId;
@@ -101,8 +101,8 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<Signal<?>> process(final ExternalMessage message) {
-        return withTimer(MAPPING + "_" + INBOUND,
-                () -> convertMessage(message));
+        final KamonTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
+        return withTimer(overAllProcessingTimer, () -> convertMessage(message, overAllProcessingTimer));
     }
 
     /**
@@ -113,23 +113,23 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<ExternalMessage> process(final Signal<?> signal) {
-        return withTimer(MAPPING + "_" + OUTBOUND,
-                () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal)));
+        final KamonTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
+        return withTimer(overAllProcessingTimer,
+                () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), overAllProcessingTimer));
     }
 
-    private Optional<Signal<?>> convertMessage(final ExternalMessage message) {
+    private Optional<Signal<?>> convertMessage(final ExternalMessage message, final KamonTimer overAllProcessingTimer) {
         checkNotNull(message);
 
         try {
             final Optional<Adaptable> adaptableOpt = withTimer(
-                    MAPPING + "_" + INBOUND + "_" + PAYLOAD_SEGMENT_NAME,
-                    () -> getMapper(message).map(message)
-            );
+                    overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
+                    () -> getMapper(message).map(message));
 
             return adaptableOpt.map(adaptable -> {
                 doUpdateCorrelationId(adaptable);
 
-                return withTimer(MAPPING + "_" + INBOUND + "_" + PROTOCOL_SEGMENT_NAME,
+                return withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> {
                             final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
@@ -151,16 +151,17 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier) {
+    private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
+            final KamonTimer overAllProcessingTimer) {
         checkNotNull(adaptableSupplier);
 
         try {
             final Adaptable adaptable =
-                    withTimer(MAPPING + "_" + OUTBOUND + "_" + PROTOCOL_SEGMENT_NAME, adaptableSupplier);
+                    withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME), adaptableSupplier);
 
             doUpdateCorrelationId(adaptable);
 
-            return withTimer(MAPPING + "_" + OUTBOUND + "_" + PAYLOAD_SEGMENT_NAME,
+            return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable).map(adaptable));
         } catch (final DittoRuntimeException e) {
             throw e;
@@ -217,13 +218,7 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private <T> T withTimer(final String timerName, final Supplier<T> supplier) {
-        final KamonTimer timer = TraceUtils
-                .newTimer(timerName)
-                .tag(TracingTags.CONNECTION_ID, connectionId)
-                .maximumDuration(5, TimeUnit.MINUTES)
-                .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
-                .buildStartedTimer();
+    private <T> T withTimer(final KamonTimer timer, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)
@@ -234,5 +229,14 @@ public final class MessageMappingProcessor {
                     .stop();
             throw ex;
         }
+    }
+
+    private KamonTimer startNewTimer() {
+        return TraceUtils
+                .newTimer(TIMER_NAME)
+                .tag(TracingTags.CONNECTION_ID, connectionId)
+                .maximumDuration(5, TimeUnit.MINUTES)
+                .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
+                .buildStartedTimer();
     }
 }
