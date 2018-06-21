@@ -46,7 +46,7 @@
         <jjwt.version>0.7.0</jjwt.version>
         <jackson.version>2.9.5</jackson.version>
         <asm.version>5.2</asm.version>
-        <qpid-jms-client.version>0.32.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.33.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.2.0</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
