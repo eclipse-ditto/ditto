@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.metrics;
 
 import static java.lang.String.format;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
@@ -30,15 +31,17 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
-import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
 
 import kamon.Kamon;
-import kamon.metric.CounterMetric;
+import kamon.metric.AtomicHdrHistogram;
 import kamon.metric.GaugeMetric;
+import kamon.metric.HdrHistogram;
 import kamon.metric.HistogramMetric;
 import kamon.metric.Metric;
+import kamon.metric.TimerImpl;
 import kamon.metric.TimerMetric;
+import kamon.metric.TimerMetricImpl;
 
 /**
  * Reports metrics of "codehale Metrics framework" to Kamon in a scheduled way.
@@ -82,20 +85,16 @@ public class KamonMetricsReporter extends ScheduledReporter {
 
     private void report(String name, Timer timer) {
         final TimerMetric metric = Kamon.timer(name);
-        final kamon.metric.Timer t = refine(metric);
-        final long[] snapshotValues = timer.getSnapshot().getValues();
-        for(long snapshotValue : snapshotValues) {
-            t.record(snapshotValue);
-        }
+        final kamon.metric.Timer kamonTimer = refine(metric);
+        reset(kamonTimer);
+        Arrays.stream(timer.getSnapshot().getValues()).forEach(kamonTimer::record);
     }
 
     private void report(String name, Histogram histogram) {
         final HistogramMetric metric = Kamon.histogram(name);
-        final kamon.metric.Histogram h = refine(metric);
-        final long[] snapshotValues = histogram.getSnapshot().getValues();
-        for (final long snapshotValue : snapshotValues) {
-            h.record(snapshotValue);
-        }
+        final kamon.metric.Histogram kamonHistogram = refine(metric);
+        reset(kamonHistogram);
+        Arrays.stream(histogram.getSnapshot().getValues()).forEach(kamonHistogram::record);
     }
 
     private void report(String name, Counter counter) {
@@ -127,5 +126,20 @@ public class KamonMetricsReporter extends ScheduledReporter {
 
     private <M extends Metric<T>, T> T refine(final M metric) {
         return metric.refine(tags);
+    }
+
+    private void reset(kamon.metric.Histogram histogram) {
+        if (histogram instanceof HdrHistogram) {
+            ((HdrHistogram) histogram).snapshot(true);
+        } else if (histogram instanceof AtomicHdrHistogram) {
+            ((AtomicHdrHistogram) histogram).snapshot(true);
+        } else if (histogram instanceof TimerImpl) {
+            reset(((TimerImpl) histogram).histogram());
+        } else if (histogram instanceof TimerMetricImpl) {
+            reset(((TimerMetricImpl) histogram).underlyingHistogram());
+        } else {
+            LOGGER.warn("Tried to reset Histogram of type <{}>, but there is no method to reset implemented so far.",
+                    histogram.getClass().getName());
+        }
     }
 }
