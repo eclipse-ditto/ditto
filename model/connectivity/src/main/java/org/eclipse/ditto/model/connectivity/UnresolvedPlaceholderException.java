@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Thrown if a placeholder in the connection configuration could be resolved.
+ * Thrown if a placeholder in the connection configuration could not be resolved.
  */
 @Immutable
 public final class UnresolvedPlaceholderException extends DittoRuntimeException

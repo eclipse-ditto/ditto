@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
 
 import java.util.Collections;
 import java.util.Set;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -274,7 +276,7 @@ public class ConnectionActorTest {
                             (connection, conciergeForwarder) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
-                            });
+                            }, null);
             // create another actor because this it is stopped and we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
             final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
@@ -287,6 +289,38 @@ public class ConnectionActorTest {
             final Exception exception = parent.expectMsgClass(ConnectionConfigurationInvalidException.class);
             assertThat(exception).hasMessageContaining("validation failed...");
 
+            // expect the connection actor is terminated
+            expectTerminated(connectionActorRef);
+        }};
+    }
+
+    @Test
+    public void exceptionDueToCustomValidator() {
+        new TestKit(actorSystem) {{
+            final Props connectionActorProps =
+                    ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
+                            conciergeForwarder, mockConnectionActorPropsFactory,
+                            command -> {
+                                throw ConnectionUnavailableException.newBuilder(connectionId)
+                                        .dittoHeaders(command.getDittoHeaders())
+                                        .message("not valid")
+                                        .build();
+                            });
+
+            // create another actor because we want to test if the child is terminated
+            final TestKit parent = new TestKit(actorSystem);
+            final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
+
+            // create connection
+            connectionActorRef.tell(createConnection, parent.getRef());
+            parent.expectMsgClass(ConnectionSupervisorActor.ManualReset.class); // is sent after "empty" recovery
+
+            // expect ConnectionUnavailableException sent to parent
+            final ConnectionUnavailableException exception =
+                    parent.expectMsgClass(ConnectionUnavailableException.class);
+            assertThat(exception).hasMessageContaining("not valid");
+
+            // expect the connection actor is terminated
             expectTerminated(connectionActorRef);
         }};
     }

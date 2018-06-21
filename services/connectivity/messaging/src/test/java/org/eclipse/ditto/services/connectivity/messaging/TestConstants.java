@@ -163,7 +163,7 @@ public class TestConstants {
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, connectionActorPropsFactory);
+                conciergeForwarder, connectionActorPropsFactory, null);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;

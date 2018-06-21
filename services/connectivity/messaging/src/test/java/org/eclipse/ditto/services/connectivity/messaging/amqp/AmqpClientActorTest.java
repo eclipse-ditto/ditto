@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -303,7 +304,7 @@ public class AmqpClientActorTest {
 
     @Test
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT));
     }
@@ -313,9 +314,25 @@ public class AmqpClientActorTest {
         final Connection connection =
                 TestConstants.createConnection(connectionId, actorSystem,
                         TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS);
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
-                c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
+
+        final AtomicBoolean messageReceivedForGlobalContext = new AtomicBoolean(false);
+        final AtomicBoolean messageReceivedForSourceContext = new AtomicBoolean(false);
+
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 2,
+                c -> {
+                    if (c.getDittoHeaders()
+                            .getAuthorizationContext()
+                            .equals(TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                        messageReceivedForSourceContext.set(true);
+                    }
+                    if (c.getDittoHeaders()
+                            .getAuthorizationContext()
+                            .equals(TestConstants.Authorization.AUTHORIZATION_CONTEXT)) {
+                        messageReceivedForGlobalContext.set(true);
+                    }
+                });
+
+        assertThat(messageReceivedForGlobalContext.get() && messageReceivedForSourceContext.get()).isTrue();
     }
 
     @Test
@@ -323,13 +340,13 @@ public class AmqpClientActorTest {
         final Connection connection =
                 TestConstants.createConnection(connectionId, actorSystem,
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
-        testConsumeMessageAndExpectForwardToConciergeForwarder(connection,
+        testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
                         TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
-            final Consumer<Command> commandConsumer) throws JMSException {
+            final int consumers, final Consumer<Command> commandConsumer) throws JMSException {
         new TestKit(actorSystem) {{
             final Props props =
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
@@ -339,14 +356,17 @@ public class AmqpClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
-            verify(mockConsumer, timeout(1000).atLeastOnce()).setMessageListener(captor.capture());
-            final MessageListener messageListener = captor.getValue();
-            messageListener.onMessage(mockMessage());
+            verify(mockConsumer, timeout(1000).atLeast(consumers)).setMessageListener(captor.capture());
+            for (final MessageListener messageListener : captor.getAllValues()) {
+                messageListener.onMessage(mockMessage());
+            }
 
-            final Command command = expectMsgClass(Command.class);
-            assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
-            commandConsumer.accept(command);
+            for (int i = 0; i < consumers; i++) {
+                final Command command = expectMsgClass(Command.class);
+                assertThat(command.getId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
+                commandConsumer.accept(command);
+            }
         }};
     }
 

@@ -37,6 +37,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
+import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
@@ -101,7 +103,7 @@ import scala.concurrent.duration.Duration;
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
-final class ConnectionActor extends AbstractPersistentActor {
+public final class ConnectionActor extends AbstractPersistentActor {
 
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
 
@@ -120,6 +122,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
     private final ConnectionActorPropsFactory propsFactory;
+    private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
 
     @Nullable private ActorRef clientActor;
@@ -132,11 +135,20 @@ final class ConnectionActor extends AbstractPersistentActor {
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
     private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory) {
+            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory,
+            @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
+        final DittoConnectivityCommandValidator
+                dittoCommandValidator = new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder);
+        if (customCommandValidator != null) {
+            this.commandValidator =
+                    new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
+        } else {
+            this.commandValidator = dittoCommandValidator;
+        }
 
         final Config config = getContext().system().settings().config();
         snapshotThreshold = config.getLong(ConfigKeys.Connection.SNAPSHOT_THRESHOLD);
@@ -154,13 +166,15 @@ final class ConnectionActor extends AbstractPersistentActor {
      * @return the Akka configuration Props object
      */
     public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory) {
+            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory,
+            @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ConnectionActor create() {
-                return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory);
+                return new ConnectionActor(connectionId, pubSubMediator, conciergeForwarder, propsFactory,
+                        commandValidator);
             }
         });
     }
@@ -237,9 +251,11 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     @Override
     public Receive createReceive() {
+
         return ReceiveBuilder.create()
-                .match(TestConnection.class, this::testConnection)
-                .match(CreateConnection.class, this::createConnection)
+                .match(TestConnection.class, testConnection -> validateAndForward(testConnection, this::testConnection))
+                .match(CreateConnection.class,
+                        createConnection -> validateAndForward(createConnection, this::createConnection))
                 .match(ConnectivityCommand.class, this::handleCommandDuringInitialization)
                 .match(Shutdown.class, shutdown -> stopSelf())
                 .match(Status.Failure.class, f -> log.warning("Got failure in initial behaviour with cause {}: {}",
@@ -266,7 +282,8 @@ final class ConnectionActor extends AbstractPersistentActor {
                                     .build();
                     getSender().tell(conflictException, getSelf());
                 })
-                .match(ModifyConnection.class, this::modifyConnection)
+                .match(ModifyConnection.class,
+                        modifyConnection -> validateAndForward(modifyConnection, this::modifyConnection))
                 .match(OpenConnection.class, this::openConnection)
                 .match(CloseConnection.class, this::closeConnection)
                 .match(DeleteConnection.class, this::deleteConnection)
@@ -322,10 +339,6 @@ final class ConnectionActor extends AbstractPersistentActor {
 
     private void testConnection(final TestConnection command) {
         final ActorRef origin = getSender();
-        if (!isConnectionConfigurationValid(command.getConnection(), origin)) {
-            return;
-        }
-
         connection = command.getConnection();
 
         askClientActor(command, response -> {
@@ -342,11 +355,19 @@ final class ConnectionActor extends AbstractPersistentActor {
         });
     }
 
+    private <T extends ConnectivityCommand> void validateAndForward(final T command, final Consumer<T> target) {
+        final ActorRef origin = getSender();
+        try {
+            commandValidator.accept(command);
+            target.accept(command);
+        } catch (final Exception e) {
+            handleException(command.getType(), origin, e);
+            stopSelf();
+        }
+    }
+
     private void createConnection(final CreateConnection command) {
         final ActorRef origin = getSender();
-        if (!isConnectionConfigurationValid(command.getConnection(), origin)) {
-            return;
-        }
 
         final ConnectionCreated connectionCreated =
                 ConnectionCreated.of(command.getConnection(), command.getDittoHeaders());
@@ -370,23 +391,8 @@ final class ConnectionActor extends AbstractPersistentActor {
         });
     }
 
-    private boolean isConnectionConfigurationValid(final Connection connection, final ActorRef origin) {
-        try {
-            // try to create actor props before persisting the connection to fail early
-            propsFactory.getActorPropsForType(connection, conciergeForwarder);
-            return true;
-        } catch (final Exception e) {
-            handleException("connect", origin, e);
-            stopSelf();
-            return false;
-        }
-    }
-
     private void modifyConnection(final ModifyConnection command) {
         final ActorRef origin = getSender();
-        if (!isConnectionConfigurationValid(command.getConnection(), origin)) {
-            return;
-        }
 
         if (connection != null && !connection.getConnectionType().equals(command.getConnection().getConnectionType())) {
             handleException("modify", origin, ConnectionConfigurationInvalidException
