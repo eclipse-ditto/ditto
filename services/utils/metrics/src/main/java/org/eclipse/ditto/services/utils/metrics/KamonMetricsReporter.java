@@ -30,6 +30,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
+import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.Timer;
 
 import kamon.Kamon;
@@ -82,13 +83,19 @@ public class KamonMetricsReporter extends ScheduledReporter {
     private void report(String name, Timer timer) {
         final TimerMetric metric = Kamon.timer(name);
         final kamon.metric.Timer t = refine(metric);
-        t.record(timer.getCount());
+        final long[] snapshotValues = timer.getSnapshot().getValues();
+        for(long snapshotValue : snapshotValues) {
+            t.record(snapshotValue);
+        }
     }
 
     private void report(String name, Histogram histogram) {
         final HistogramMetric metric = Kamon.histogram(name);
         final kamon.metric.Histogram h = refine(metric);
-        h.record(histogram.getCount());
+        final long[] snapshotValues = histogram.getSnapshot().getValues();
+        for (final long snapshotValue : snapshotValues) {
+            h.record(snapshotValue);
+        }
     }
 
     private void report(String name, Counter counter) {
