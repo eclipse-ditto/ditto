@@ -122,7 +122,8 @@ public final class KamonTimer {
             this.endTimestamp = System.nanoTime();
             final long duration = endTimestamp - this.startTimestamp;
             Kamon.timer(name).refine(this.tags).record(duration);
-            LOGGER.debug("MutableKamonTimer with name <{}> was stopped after <{}> nanoseconds", name, duration);
+            LOGGER.debug("MutableKamonTimer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
+                    tags.get(SEGMENT_TAG), duration);
             onStopHandlers.forEach(onStopHandler -> onStopHandler.accept(this));
         } else {
             LOGGER.warn("Tried to stop the not yet started MutableKamonTimer with name <{}>", name);
