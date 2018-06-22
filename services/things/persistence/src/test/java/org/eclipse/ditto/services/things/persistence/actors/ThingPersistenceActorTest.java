@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.as
 
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
@@ -47,6 +48,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
@@ -325,8 +327,10 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** Makes sure that it is not possible to modify a thing without a previous create. If this was possible, a thing
-     *  could contain old data (in case of a recreate). */
+    /**
+     * Makes sure that it is not possible to modify a thing without a previous create. If this was possible, a thing
+     * could contain old data (in case of a recreate).
+     */
     @Test
     public void modifyThingWithoutPreviousCreate() {
         final Thing thing = createThingV2WithRandomId();
@@ -422,6 +426,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             }
         };
     }
+
     /** */
     @Test
     public void retrieveThingV2() {
@@ -511,7 +516,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
-    /** Make sure that a re-created thing does not contain data from the previously deleted thing. */
+    /**
+     * Make sure that a re-created thing does not contain data from the previously deleted thing.
+     */
     @Test
     public void deleteAndRecreateThingWithMinimumData() {
         new TestKit(actorSystem) {
@@ -1502,6 +1509,35 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             modifyThing -> ModifyThingResponse.modified(thingId, modifyThing.getDittoHeaders()));
             assertPublishEvent(this, ThingModified.of(thingV2_2, 2L, headersUsed));
         }};
+    }
+
+    @Test
+    public void checkForActivityOfNonexistentThing() {
+        new TestKit(actorSystem) {
+            {
+                // GIVEN: props increments counter whenever a ThingPersistenceActor is created
+                final AtomicInteger restartCounter = new AtomicInteger(0);
+                final String thingId = "test.ns:nonexistent.thing";
+                final Props props = Props.create(ThingPersistenceActor.class, () -> {
+                    restartCounter.incrementAndGet();
+                    return new ThingPersistenceActor(thingId, pubSubMediator, DittoThingSnapshotter::getInstance);
+                });
+
+                // WHEN: CheckForActivity is sent to a persistence actor of nonexistent thing after startup
+                final ActorRef underTest = actorSystem.actorOf(props);
+
+                final Object checkForActivity = new ThingPersistenceActor.CheckForActivity(1L, 1L);
+                underTest.tell(checkForActivity, ActorRef.noSender());
+                underTest.tell(checkForActivity, ActorRef.noSender());
+                underTest.tell(checkForActivity, ActorRef.noSender());
+                // ensure processing of check-for-activity messages by waiting for 1 message roundtrip
+                underTest.tell(RetrieveThing.of(thingId, DittoHeaders.empty()), getRef());
+                expectMsgClass(ThingNotAccessibleException.class);
+
+                // THEN: actor should not restart itself.
+                assertThat(restartCounter.get()).isEqualTo(1);
+            }
+        };
     }
 
     private DittoHeaders testCreateAndModify(final Thing toCreate,
