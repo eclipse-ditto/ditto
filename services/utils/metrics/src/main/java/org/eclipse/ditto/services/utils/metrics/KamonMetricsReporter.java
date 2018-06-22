@@ -83,27 +83,27 @@ public class KamonMetricsReporter extends ScheduledReporter {
         timers.forEach(this::report);
     }
 
-    private void report(String name, Timer timer) {
+    private void report(final String name, final Timer timer) {
         final TimerMetric metric = Kamon.timer(name);
         final kamon.metric.Timer kamonTimer = refine(metric);
-        reset(kamonTimer);
+        reset(kamonTimer, name);
         Arrays.stream(timer.getSnapshot().getValues()).forEach(kamonTimer::record);
     }
 
-    private void report(String name, Histogram histogram) {
+    private void report(final String name, final Histogram histogram) {
         final HistogramMetric metric = Kamon.histogram(name);
         final kamon.metric.Histogram kamonHistogram = refine(metric);
-        reset(kamonHistogram);
+        reset(kamonHistogram, name);
         Arrays.stream(histogram.getSnapshot().getValues()).forEach(kamonHistogram::record);
     }
 
-    private void report(String name, Counter counter) {
+    private void report(final String name, final Counter counter) {
         final GaugeMetric metric = Kamon.gauge(name);
         final kamon.metric.Gauge g = refine(metric);
         g.set(counter.getCount());
     }
 
-    private void report(String name, Gauge gauge) {
+    private void report(final String name, final Gauge gauge) {
         final GaugeMetric metric = Kamon.gauge(name);
         final kamon.metric.Gauge g = refine(metric);
         final Object value = gauge.getValue();
@@ -118,7 +118,7 @@ public class KamonMetricsReporter extends ScheduledReporter {
         }
     }
 
-    private void report(String name, Meter meter) {
+    private void report(final String name, final Meter meter) {
         final HistogramMetric metric = Kamon.histogram(name);
         final kamon.metric.Histogram h = refine(metric);
         h.record(meter.getCount());
@@ -128,18 +128,22 @@ public class KamonMetricsReporter extends ScheduledReporter {
         return metric.refine(tags);
     }
 
-    private void reset(kamon.metric.Histogram histogram) {
+    private boolean reset(final kamon.metric.Histogram histogram, final String name) {
         if (histogram instanceof HdrHistogram) {
             ((HdrHistogram) histogram).snapshot(true);
         } else if (histogram instanceof AtomicHdrHistogram) {
             ((AtomicHdrHistogram) histogram).snapshot(true);
         } else if (histogram instanceof TimerImpl) {
-            reset(((TimerImpl) histogram).histogram());
+            return reset(((TimerImpl) histogram).histogram(), name);
         } else if (histogram instanceof TimerMetricImpl) {
-            reset(((TimerMetricImpl) histogram).underlyingHistogram());
+            return reset(((TimerMetricImpl) histogram).underlyingHistogram(), name);
         } else {
             LOGGER.warn("Tried to reset Histogram of type <{}>, but there is no method to reset implemented so far.",
                     histogram.getClass().getName());
+            return false;
         }
+
+        LOGGER.debug("Histogram with name <{}> successfully reset", name);
+        return true;
     }
 }
