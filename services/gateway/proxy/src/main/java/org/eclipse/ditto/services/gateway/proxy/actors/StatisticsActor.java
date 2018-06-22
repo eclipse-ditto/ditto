@@ -72,6 +72,8 @@ public final class StatisticsActor extends AbstractActor {
     private static final String CONCIERGE_ROOT = ConciergeMessagingConstants.ROOT_ACTOR_PATH;
     private static final String SEARCH_UPDATER_ROOT = ThingsSearchConstants.UPDATER_ROOT_ACTOR_PATH;
 
+    private static final String EMPTY_STRING_TAG = "<empty>";
+
     /**
      * The wait time in milliseconds to gather all statistics from the cluster nodes.
      */
@@ -171,14 +173,18 @@ public final class StatisticsActor extends AbstractActor {
                                     .map(str -> {
                                         // groupKey may be either namespace or resource-type+namespace (in case of concierge)
                                         final String[] groupKeys = str.split(":", 3);
-                                        if (groupKeys.length == 1 && groupKeys[0].isEmpty()) {
-                                            return "<empty>";
-                                        } else if (groupKeys.length == 2) {
-                                            // normal: namespace
-                                            return groupKeys[0];
-                                        } else {
-                                            // concierge: resource-type + namespace
-                                            return groupKeys[0] + ":" + groupKeys[1];
+                                        // assume String.split(String, int) may not return an empty array
+                                        switch (groupKeys.length) {
+                                            case 0:
+                                                // should not happen with Java 8 strings, but just in case
+                                                return EMPTY_STRING_TAG;
+                                            case 1:
+                                            case 2:
+                                                // normal: namespace
+                                                return ensureNonemptyString(groupKeys[0]);
+                                            default:
+                                                // concierge: resource-type + namespace
+                                                return groupKeys[0] + ":" + groupKeys[1];
                                         }
                                     })
                             )
@@ -242,6 +248,10 @@ public final class StatisticsActor extends AbstractActor {
 
         private long count = -1L;
         private final Map<String, Long> hotnessMap = new HashMap<>();
+    }
+
+    private static String ensureNonemptyString(final String possiblyEmptyString) {
+        return possiblyEmptyString.isEmpty() ? EMPTY_STRING_TAG : possiblyEmptyString;
     }
 
     /**
@@ -341,7 +351,7 @@ public final class StatisticsActor extends AbstractActor {
 
         private static String ensureNonemptyKey(final String key, final Map<String, ?> hotnessMap) {
             if (key.isEmpty()) {
-                String candidate = "<empty>";
+                String candidate = EMPTY_STRING_TAG;
                 for (int i = 0; ; ++i) {
                     if (!hotnessMap.containsKey(candidate)) {
                         return candidate;
