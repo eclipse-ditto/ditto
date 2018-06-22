@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,7 +45,6 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -228,7 +226,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
-    private ThingPersistenceActor(final String thingId,
+    ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
@@ -491,6 +489,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
      * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code
      * builder} remains unchanged.
+     *
      * @param thingWithModifications the thing containing the modifications.
      * @param builder the builder to be modified.
      */
@@ -958,7 +957,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * Message the ThingPersistenceActor can send to itself to check for activity of the Actor and terminate itself
      * if there was no activity since the last check.
      */
-    private static final class CheckForActivity {
+    static final class CheckForActivity {
 
         private final long currentSequenceNr;
         private final long currentAccessCounter;
@@ -970,7 +969,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          * @param currentSequenceNr the current {@code lastSequenceNr()} of the ThingPersistenceActor.
          * @param currentAccessCounter the current {@code accessCounter} of the ThingPersistenceActor.
          */
-        public CheckForActivity(final long currentSequenceNr, final long currentAccessCounter) {
+        CheckForActivity(final long currentSequenceNr, final long currentAccessCounter) {
             this.currentSequenceNr = currentSequenceNr;
             this.currentAccessCounter = currentAccessCounter;
         }
@@ -980,7 +979,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          *
          * @return the current {@code ThingsModelFactory.lastSequenceNr()} of the ThingPersistenceActor.
          */
-        public long getCurrentSequenceNr() {
+        long getCurrentSequenceNr() {
             return currentSequenceNr;
         }
 
@@ -989,7 +988,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          *
          * @return the current {@code accessCounter} of the ThingPersistenceActor.
          */
-        public long getCurrentAccessCounter() {
+        long getCurrentAccessCounter() {
             return currentAccessCounter;
         }
 
@@ -1274,7 +1273,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             if (containsPolicy(command)) {
                 applyModifyCommand(command);
             } else {
-                notifySender(getSender(), PolicyIdMissingException.fromThingIdOnUpdate(thingId, command.getDittoHeaders()));
+                notifySender(getSender(),
+                        PolicyIdMissingException.fromThingIdOnUpdate(thingId, command.getDittoHeaders()));
             }
         }
 
