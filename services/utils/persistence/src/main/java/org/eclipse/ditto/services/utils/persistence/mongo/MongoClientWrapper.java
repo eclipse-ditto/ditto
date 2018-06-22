@@ -28,6 +28,7 @@ import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.connection.SslSettings;
+import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.management.JMXConnectionPoolListener;
@@ -35,6 +36,9 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
+
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 /**
  * MongoDB Client Wrapper.
@@ -74,11 +78,16 @@ public class MongoClientWrapper implements Closeable {
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
+
+        final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+
         final MongoClientSettings.Builder builder =
                 MongoClientSettings.builder()
                         .readPreference(ReadPreference.secondaryPreferred())
                         .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
                         .credentialList(connectionString.getCredentialList())
+                        .streamFactoryFactory(NettyStreamFactoryFactory.builder()
+                                .eventLoopGroup(eventLoopGroup).build())
                         .sslSettings(SslSettings.builder().applyConnectionString(connectionString).build());
 
         if (customCommandListener != null) {

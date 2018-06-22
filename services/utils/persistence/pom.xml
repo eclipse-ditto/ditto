@@ -80,6 +80,11 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+        </dependency>
+
         <!-- test dependencies -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
