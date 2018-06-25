@@ -296,7 +296,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-transport</artifactId>
-                <version>4.1.25.Final</version>
+                <version>4.1.24.Final</version>
             </dependency>
 
             <dependency>
