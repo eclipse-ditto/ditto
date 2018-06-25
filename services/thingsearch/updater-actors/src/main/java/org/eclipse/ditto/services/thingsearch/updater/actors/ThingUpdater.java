@@ -131,6 +131,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String TRACE_THING_DELETE = "things_search_thing_delete";
     private static final String TRACE_POLICY_UPDATE = "things_search_policy_update";
+    private static final String UPDATE_TYPE_TAG = "update_type";
 
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
@@ -533,7 +534,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
             Kamon.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record(thingEvents.size());
 
-            final StartedTimer bulkUpdate = DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).build();
+            final StartedTimer bulkUpdate =
+                    DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").build();
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
                     .via(stopTimer(bulkUpdate))
@@ -824,7 +826,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void deleteThingFromSearchIndex() {
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_THING_DELETE).build();
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer(TRACE_THING_DELETE).tag(UPDATE_TYPE_TAG, "delete").build();
 
         circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .delete(thingId)
@@ -890,7 +893,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     return new IllegalArgumentException(message);
                 });
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_THING_MODIFIED).build();
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer(TRACE_THING_MODIFIED).tag(UPDATE_TYPE_TAG, "modified").build();
 
         return circuitBreaker.callWithCircuitBreakerCS(
                 () -> searchUpdaterPersistence
@@ -907,7 +911,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_POLICY_UPDATE).build();
+        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_POLICY_UPDATE).tag(UPDATE_TYPE_TAG, "update").build();
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
                 .via(stopTimer(timer))
