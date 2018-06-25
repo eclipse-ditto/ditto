@@ -16,9 +16,9 @@ import java.util.function.Function;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
 
 import com.typesafe.config.Config;
 

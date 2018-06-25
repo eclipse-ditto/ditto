@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.net.InetSocketAddress;
 import java.time.Duration;
 
 import org.junit.Test;

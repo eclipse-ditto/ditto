@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.OptionVisitor;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
@@ -39,7 +38,7 @@ final class ParameterOptionVisitor implements OptionVisitor {
 
     /**
      * Constructs a new {@code ParameterOptionVisitor} object.
-     * 
+     *
      * @param fieldExpressionFactory the FieldExpressionFactory.
      * @param queryBuilder the query builder to be used.
      * @throws NullPointerException if any argument is {@code null}.

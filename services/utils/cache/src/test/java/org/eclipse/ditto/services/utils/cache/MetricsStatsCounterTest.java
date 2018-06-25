@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.cache;
 import static com.codahale.metrics.MetricRegistry.name;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -24,7 +23,6 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.Timer;
 import org.junit.Before;
 import org.junit.Test;
 

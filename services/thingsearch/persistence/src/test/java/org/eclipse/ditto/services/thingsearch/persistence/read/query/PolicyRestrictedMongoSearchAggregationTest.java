@@ -17,13 +17,12 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import java.util.Optional;
 
 import org.bson.conversions.Bson;
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
+import org.junit.Test;
 
 /**
  * Tests {@link PolicyRestrictedMongoSearchAggregation}.

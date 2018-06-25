@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;

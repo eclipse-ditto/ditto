@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.thingsearchparser.predicates.ast.Node;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.PredicateVisitor;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;

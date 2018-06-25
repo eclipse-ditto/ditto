@@ -11,7 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.devops.prometheus;
 
-import static akka.http.javadsl.server.Directives.*;
+import static akka.http.javadsl.server.Directives.complete;
+import static akka.http.javadsl.server.Directives.get;
 
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;

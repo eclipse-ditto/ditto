@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.tracing;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.junit.Test;
 
 /**

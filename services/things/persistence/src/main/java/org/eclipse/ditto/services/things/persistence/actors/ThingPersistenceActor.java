@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -46,7 +45,6 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
