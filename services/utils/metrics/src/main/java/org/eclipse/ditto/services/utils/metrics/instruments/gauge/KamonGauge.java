@@ -16,11 +16,16 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.metrics.instruments.histogram.KamonHistogram;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import kamon.Kamon;
 import kamon.metric.AtomicLongGauge;
 
 public class KamonGauge implements Gauge {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonGauge.class);
     private final String name;
     private final Map<String, String> tags;
 
@@ -88,6 +93,7 @@ public class KamonGauge implements Gauge {
     @Override
     public boolean reset() {
         getKamonInternalGauge().set(0);
+        LOGGER.debug("Reset histogram with name <{}>.", name);
         return true;
     }
 

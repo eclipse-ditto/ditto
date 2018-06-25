@@ -16,11 +16,16 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.KamonGauge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import kamon.Kamon;
 import kamon.metric.LongAdderCounter;
 
 public class KamonCounter implements Counter {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);
     private final String name;
     private final Map<String, String> tags;
 
@@ -86,8 +91,10 @@ public class KamonCounter implements Counter {
         final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
         if (kamonInternalCounter instanceof LongAdderCounter) {
             ((LongAdderCounter) kamonInternalCounter).snapshot(true);
+            LOGGER.debug("Reset histogram with name <{}>.", name);
             return true;
         }
+        LOGGER.debug("Could not reset histogram with name <{}>.", name);
         return false;
     }
 }

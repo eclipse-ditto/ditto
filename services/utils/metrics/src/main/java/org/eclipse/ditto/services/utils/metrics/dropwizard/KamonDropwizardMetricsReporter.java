@@ -79,6 +79,7 @@ public class KamonDropwizardMetricsReporter extends ScheduledReporter {
     }
 
     private void report(final String name, final Timer timer) {
+        LOGGER.debug("Reporting dropwizard timer with name <{}>.", name);
         final PreparedTimer dittoTimer = DittoMetrics.timer(name).tags(this.tags);
         dittoTimer.reset();
         Arrays.stream(timer.getSnapshot().getValues())
@@ -86,6 +87,7 @@ public class KamonDropwizardMetricsReporter extends ScheduledReporter {
     }
 
     private void report(final String name, final Histogram histogram) {
+        LOGGER.debug("Reporting dropwizard histogram with name <{}>.", name);
         final org.eclipse.ditto.services.utils.metrics.instruments.histogram.Histogram dittoHistogram =
                 DittoMetrics.histogram(name).tags(this.tags);
         dittoHistogram.reset();
@@ -93,6 +95,7 @@ public class KamonDropwizardMetricsReporter extends ScheduledReporter {
     }
 
     private void report(final String name, final Counter counter) {
+        LOGGER.debug("Reporting dropwizard counter with name <{}>.", name);
         final org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter dittoCounter =
                 DittoMetrics.counter(name).tags(tags);
         dittoCounter.reset();
@@ -100,6 +103,7 @@ public class KamonDropwizardMetricsReporter extends ScheduledReporter {
     }
 
     private void report(final String name, final Gauge gauge) {
+        LOGGER.debug("Reporting dropwizard gauge with name <{}>.", name);
         final Object value = gauge.getValue();
         if (value == null) {
             // Do nothing since kamon gauges just keep reporting the previously set value
@@ -115,9 +119,10 @@ public class KamonDropwizardMetricsReporter extends ScheduledReporter {
     }
 
     private void report(final String name, final Meter meter) {
+        LOGGER.debug("Reporting dropwizard meter with name <{}>.", name);
         final org.eclipse.ditto.services.utils.metrics.instruments.histogram.Histogram dittoHistogram =
                 DittoMetrics.histogram(name).tags(this.tags);
-
+        dittoHistogram.reset();
         dittoHistogram.record(meter.getCount());
     }
 }

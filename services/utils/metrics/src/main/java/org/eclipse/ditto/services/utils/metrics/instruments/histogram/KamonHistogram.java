@@ -70,6 +70,7 @@ public class KamonHistogram implements Histogram {
 
         try {
             getSnapshot(true);
+            LOGGER.debug("Reset histogram with name <{}>.", name);
         } catch (IllegalStateException e) {
             LOGGER.warn("Could not reset Kamon timer.", e);
             return false;
