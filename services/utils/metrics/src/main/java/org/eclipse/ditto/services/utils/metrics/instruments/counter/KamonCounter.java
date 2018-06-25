@@ -16,12 +16,12 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.KamonGauge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
 import kamon.metric.LongAdderCounter;
+import kamon.metric.MetricValue;
 
 public class KamonCounter implements Counter {
 
@@ -75,11 +75,7 @@ public class KamonCounter implements Counter {
 
     @Override
     public long getCount() {
-        final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-        if (kamonInternalCounter instanceof LongAdderCounter) {
-            return ((LongAdderCounter) kamonInternalCounter).snapshot(false).value();
-        }
-        throw new IllegalStateException("Could not get count of kamon counter");
+        return getSnapshot(false).value();
     }
 
     private kamon.metric.Counter getKamonInternalCounter() {
@@ -88,13 +84,22 @@ public class KamonCounter implements Counter {
 
     @Override
     public boolean reset() {
-        final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
-        if (kamonInternalCounter instanceof LongAdderCounter) {
-            ((LongAdderCounter) kamonInternalCounter).snapshot(true);
+        try {
+            getSnapshot(true);
             LOGGER.debug("Reset histogram with name <{}>.", name);
             return true;
+        } catch (IllegalStateException e) {
+            LOGGER.warn("Could not reset histogram with name <{}>.", name);
+            return false;
         }
-        LOGGER.debug("Could not reset histogram with name <{}>.", name);
-        return false;
+    }
+
+    private MetricValue getSnapshot(final boolean reset) {
+        final kamon.metric.Counter kamonInternalCounter = getKamonInternalCounter();
+        if (kamonInternalCounter instanceof LongAdderCounter) {
+            return ((LongAdderCounter) kamonInternalCounter).snapshot(reset);
+        }
+
+        throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>", name));
     }
 }
