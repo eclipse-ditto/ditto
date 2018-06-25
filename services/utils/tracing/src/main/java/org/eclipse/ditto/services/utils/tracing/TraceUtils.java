@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.utils.tracing;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -33,38 +35,38 @@ public final class TraceUtils {
         throw new AssertionError();
     }
 
-    public static KamonTimerBuilder newHttpRoundTripTimer(final HttpRequest request) {
+    public static ExpiringTimerBuilder newHttpRoundTripTimer(final HttpRequest request) {
         final String requestMethod = request.method().name();
         final String requestPath = request.getUri().toRelative().path();
 
         final TraceInformation traceInformation = determineTraceInformation(requestPath);
 
         final String metricsUri = TIMER_HTTP_ROUNDTRIP_PREFIX + traceInformation.getTraceUri();
-        return newTimer(metricsUri)
+        return newExpiringTimer(metricsUri)
                 .tags(traceInformation.getTags())
                 .tag(TracingTags.REQUEST_METHOD, requestMethod);
     }
 
-    public static KamonTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
+    public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
         final String metricsUri = TIMER_AMQP_ROUNDTRIP_PREFIX + command.getType();
-        return newTimer(metricsUri)
+        return newExpiringTimer(metricsUri)
                 .tag(TracingTags.COMMAND_TYPE, command.getType())
                 .tag(TracingTags.COMMAND_TYPE_PREFIX, command.getTypePrefix())
                 .tag(TracingTags.COMMAND_CATEGORY, command.getCategory().name());
     }
 
-    public static KamonTimerBuilder newAmqpRoundTripTimer(final Signal<?> command) {
+    public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Signal<?> command) {
         if (command instanceof Command) {
             return newAmqpRoundTripTimer((Command) command);
         }
 
         final String metricsUri = TIMER_AMQP_ROUNDTRIP_PREFIX + command.getType();
-        return newTimer(metricsUri)
+        return newExpiringTimer(metricsUri)
                 .tag(TracingTags.COMMAND_TYPE, command.getType());
     }
 
-    public static KamonTimerBuilder newTimer(final String tracingFilter) {
-        return KamonTimerBuilder.newTimer(metricizeTraceUri(tracingFilter));
+    private static ExpiringTimerBuilder newExpiringTimer(final String tracingFilter) {
+        return DittoMetrics.expiringTimer(metricizeTraceUri(tracingFilter));
     }
 
     public static TraceInformation determineTraceInformation(final String requestPath) {

@@ -33,8 +33,8 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTimer;
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -101,7 +101,7 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<Signal<?>> process(final ExternalMessage message) {
-        final KamonTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
+        final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
         return withTimer(overAllProcessingTimer, () -> convertMessage(message, overAllProcessingTimer));
     }
 
@@ -113,12 +113,13 @@ public final class MessageMappingProcessor {
      * @throws RuntimeException if something went wrong
      */
     public Optional<ExternalMessage> process(final Signal<?> signal) {
-        final KamonTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
+        final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
                 () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), overAllProcessingTimer));
     }
 
-    private Optional<Signal<?>> convertMessage(final ExternalMessage message, final KamonTimer overAllProcessingTimer) {
+    private Optional<Signal<?>> convertMessage(final ExternalMessage message,
+            final StartedTimer overAllProcessingTimer) {
         checkNotNull(message);
 
         try {
@@ -152,7 +153,7 @@ public final class MessageMappingProcessor {
     }
 
     private Optional<ExternalMessage> convertToExternalMessage(final Supplier<Adaptable> adaptableSupplier,
-            final KamonTimer overAllProcessingTimer) {
+            final StartedTimer overAllProcessingTimer) {
         checkNotNull(adaptableSupplier);
 
         try {
@@ -218,7 +219,7 @@ public final class MessageMappingProcessor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
-    private <T> T withTimer(final KamonTimer timer, final Supplier<T> supplier) {
+    private <T> T withTimer(final StartedTimer timer, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             timer.tag(TracingTags.MAPPING_SUCCESS, true)
@@ -231,12 +232,12 @@ public final class MessageMappingProcessor {
         }
     }
 
-    private KamonTimer startNewTimer() {
-        return TraceUtils
-                .newTimer(TIMER_NAME)
+    private StartedTimer startNewTimer() {
+        return DittoMetrics
+                .expiringTimer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
                 .maximumDuration(5, TimeUnit.MINUTES)
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
-                .buildStartedTimer();
+                .build();
     }
 }

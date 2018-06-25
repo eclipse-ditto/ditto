@@ -36,7 +36,8 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTimer;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -150,7 +151,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
             final Command command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final KamonTimer timer = TraceUtils.newTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS).buildStartedTimer();
+        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS).build();
 
         final List<Future<Object>> futures = thingIds.stream()
                 .filter(thingId -> thingIdMatcher.reset(thingId).matches())
@@ -197,7 +198,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private Future<CommandResponse> mapToReadCommandResponsesFuture(
             final Future<Iterable<Object>> iterableFuture, final Comparator<WithEntity> comparator,
-            final Command retrieveThings, final KamonTimer timer) {
+            final Command retrieveThings, final StartedTimer timer) {
         return iterableFuture.map(new Mapper<Iterable<Object>, CommandResponse>() {
             @Override
             public CommandResponse apply(final Iterable<Object> p) {

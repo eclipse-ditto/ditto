@@ -76,13 +76,10 @@ import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
-import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
-import org.eclipse.ditto.services.utils.metrics.NamedMetricRegistry;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -107,8 +104,6 @@ public final class RootRoute {
     static final String WS_PATH_PREFIX = "ws";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
-
-    private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
 
     private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
     private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
@@ -201,15 +196,11 @@ public final class RootRoute {
         }
 
 
-        final NamedMetricRegistry namedPublicKeysCacheMetricRegistry =
-                new NamedMetricRegistry("ditto.auth.jwt.publicKeys.cache", new MetricRegistry());
-        KamonMetrics.addMetricRegistry(namedPublicKeysCacheMetricRegistry);
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
 
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY),
-                namedPublicKeysCacheMetricRegistry);
+                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY), "ditto.auth.jwt.publicKeys.cache");
         final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
 

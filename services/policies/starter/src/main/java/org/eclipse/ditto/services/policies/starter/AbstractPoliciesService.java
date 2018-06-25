@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
-import org.eclipse.ditto.services.utils.metrics.MetricRegistryFactory;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
 
 import akka.actor.ActorSystem;
@@ -48,8 +48,8 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
 
     @Override
     protected void startKamonMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        KamonMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
-        KamonMetrics.start(SERVICE_NAME);
+        KamonDropwizardMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
+        KamonDropwizardMetrics.start(SERVICE_NAME);
     }
 
 }

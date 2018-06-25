@@ -28,8 +28,6 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSear
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
-import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 

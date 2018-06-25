@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.metrics;
+package org.eclipse.ditto.services.utils.metrics.dropwizard;
 
 import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;

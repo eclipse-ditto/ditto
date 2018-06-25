@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.metrics;
+package org.eclipse.ditto.services.utils.metrics.dropwizard;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -22,16 +22,16 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * Responsible for starting new {@link KamonMetricsReporter} for given {@link NamedMetricRegistry}
+ * Responsible for starting new {@link KamonDropwizardMetricsReporter} for given {@link org.eclipse.ditto.services.utils.metrics.dropwizard.NamedMetricRegistry}
  * </p>
  * <p>
  * The implementation is heavily synchronized, but this is not a problem because it is only used at startup and
  * operations are fast.
  * </p>
  */
-public final class KamonMetrics {
+public final class KamonDropwizardMetrics {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(KamonMetrics.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonDropwizardMetrics.class);
 
     private static final short POLL_PERIOD = 5; // seconds between polls
 
@@ -41,10 +41,10 @@ public final class KamonMetrics {
 
     private static String serviceName;
 
-    private KamonMetrics() {}
+    private KamonDropwizardMetrics() {}
 
     /**
-     * Adds named Starts a new instance of {@link KamonMetricsReporter} for the given metric registry.
+     * Adds named Starts a new instance of {@link KamonDropwizardMetricsReporter} for the given metric registry.
      *
      * @param metricRegistry the named registry of the metrics.
      * @throws NullPointerException if metricRegistry is {@code null}.
@@ -76,16 +76,16 @@ public final class KamonMetrics {
     public static synchronized void start(final String serviceName) {
 
         checkNotNull(serviceName, "service name");
-        KamonMetrics.serviceName = serviceName;
-        metricRegistries.values().forEach(metricRegistry -> startNewReporter(metricRegistry, KamonMetrics.serviceName));
+        KamonDropwizardMetrics.serviceName = serviceName;
+        metricRegistries.values().forEach(metricRegistry -> startNewReporter(metricRegistry, KamonDropwizardMetrics.serviceName));
         started = true;
     }
 
     private static synchronized void startNewReporter(final NamedMetricRegistry metricRegistry,
             final String serviceName) {
 
-        @SuppressWarnings("squid:S2095") final KamonMetricsReporter kamonMetricsReporter =
-                new KamonMetricsReporter(metricRegistry.getMetricRegistry(), metricRegistry.getMetricName(),
+        @SuppressWarnings("squid:S2095") final KamonDropwizardMetricsReporter kamonMetricsReporter =
+                new KamonDropwizardMetricsReporter(metricRegistry.getMetricRegistry(), metricRegistry.getMetricName(),
                         serviceName);
         kamonMetricsReporter.start(POLL_PERIOD, SECONDS);
     }

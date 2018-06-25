@@ -14,17 +14,15 @@ package org.eclipse.ditto.services.utils.persistence.mongo.monitoring;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.event.CommandEvent;
 import com.mongodb.event.CommandFailedEvent;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
 import com.mongodb.event.CommandSucceededEvent;
-
-import kamon.Kamon;
 
 /**
  * Reports elapsed time for every MongoDB command to Kamon.
@@ -89,6 +87,8 @@ public class KamonCommandListener implements CommandListener {
     }
 
     private void recordElapsedTime(final long elapsedTime, final String commandName) {
-        Kamon.timer(TraceUtils.metricizeTraceUri(timerName)).refine(COMMAND_NAME_TAG, commandName).record(elapsedTime);
+        DittoMetrics.timer(TraceUtils.metricizeTraceUri(timerName))
+                .tag(COMMAND_NAME_TAG, commandName)
+                .record(elapsedTime, TimeUnit.NANOSECONDS);
     }
 }

@@ -13,16 +13,12 @@ package org.eclipse.ditto.services.utils.cache;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.metrics.NamedMetricRegistry;
-
-import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -48,14 +44,11 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
 
     private CaffeineCache(final Caffeine<?, ?> caffeine,
             final AsyncCacheLoader<K, V> loader,
-            @Nullable final NamedMetricRegistry namedMetricRegistry) {
+            @Nullable final String metricsPrefix) {
 
-        @SuppressWarnings("unchecked")
-        final Caffeine<K, V> typedCaffeine = (Caffeine<K, V>) caffeine;
-        if (namedMetricRegistry != null) {
-            final String metricsPrefix = namedMetricRegistry.getMetricName();
-            final MetricRegistry metricRegistry = namedMetricRegistry.getMetricRegistry();
-            this.metricStatsCounter = MetricsStatsCounter.of(metricsPrefix, metricRegistry);
+        @SuppressWarnings("unchecked") final Caffeine<K, V> typedCaffeine = (Caffeine<K, V>) caffeine;
+        if (metricsPrefix != null) {
+            this.metricStatsCounter = MetricsStatsCounter.of(metricsPrefix);
             caffeine.recordStats(() -> metricStatsCounter);
             this.asyncLoadingCache = typedCaffeine.buildAsync(loader);
             this.synchronousCacheView = asyncLoadingCache.synchronous();
@@ -76,7 +69,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> asyncLoader) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine,
+            final AsyncCacheLoader<K, V> asyncLoader) {
         requireNonNull(caffeine);
         requireNonNull(asyncLoader);
 
@@ -118,17 +112,17 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * Creates a new instance based with a Null-Cache-Loader. This is useful if the cache is populated manually.
      *
      * @param caffeine a (pre-configured) caffeine instance.
-     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
+     * @param metricsPrefix The prefix of metrics, may be {@code null}.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
      */
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine,
-            @Nullable final NamedMetricRegistry namedMetricRegistry) {
+            @Nullable final String metricsPrefix) {
         requireNonNull(caffeine);
 
         final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
-        return new CaffeineCache<>(caffeine, cacheLoader, namedMetricRegistry);
+        return new CaffeineCache<>(caffeine, cacheLoader, metricsPrefix);
     }
 
     /**
@@ -136,17 +130,17 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values asynchronously.
-     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
+     * @param metricsPrefix The prefix of metrics, may be {@code null}.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
      */
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader,
-            @Nullable final NamedMetricRegistry namedMetricRegistry) {
+            @Nullable final String metricsPrefix) {
         requireNonNull(caffeine);
         requireNonNull(loader);
 
-        return new CaffeineCache<>(caffeine, loader, namedMetricRegistry);
+        return new CaffeineCache<>(caffeine, loader, metricsPrefix);
     }
 
     /**
@@ -154,17 +148,17 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      *
      * @param caffeine a (pre-configured) caffeine instance.
      * @param loader the algorithm used for loading values.
-     * @param namedMetricRegistry a named {@link MetricRegistry} for cache statistics, may be {@code null}.
+     * @param metricsPrefix The prefix of metrics, may be {@code null}.
      * @param <K> the type of the key.
      * @param <V> the type of the value.
      * @return the created instance
      */
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final CacheLoader<K, V> loader,
-            @Nullable final NamedMetricRegistry namedMetricRegistry) {
+            @Nullable final String metricsPrefix) {
         requireNonNull(caffeine);
         requireNonNull(loader);
 
-        return new CaffeineCache<>(caffeine, loader, namedMetricRegistry);
+        return new CaffeineCache<>(caffeine, loader, metricsPrefix);
     }
 
     @Override
@@ -211,8 +205,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
-        @SuppressWarnings("unchecked")
-        final AsyncCacheLoader<K, V> nullCacheLoader = (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;
+        @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
+                (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;
         return nullCacheLoader;
     }
 }

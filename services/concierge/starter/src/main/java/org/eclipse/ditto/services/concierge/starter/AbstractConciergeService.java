@@ -16,9 +16,9 @@ import java.util.function.Function;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
-import org.eclipse.ditto.services.utils.metrics.MetricRegistryFactory;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-import org.eclipse.ditto.services.utils.metrics.KamonMetrics;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
 
 import com.typesafe.config.Config;
 
@@ -40,8 +40,8 @@ public abstract class AbstractConciergeService<C extends AbstractConciergeConfig
 
     @Override
     protected void startKamonMetricsReporter(final ActorSystem actorSystem, final C configReader) {
-        KamonMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
-        KamonMetrics.start(SERVICE_NAME);
+        KamonDropwizardMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
+        KamonDropwizardMetrics.start(SERVICE_NAME);
     }
 
 }

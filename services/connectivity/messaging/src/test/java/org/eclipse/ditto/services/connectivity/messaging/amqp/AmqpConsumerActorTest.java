@@ -44,7 +44,6 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.DefaultResizer;

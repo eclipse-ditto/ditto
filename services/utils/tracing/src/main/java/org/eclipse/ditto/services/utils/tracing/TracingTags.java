@@ -20,9 +20,6 @@ public final class TracingTags {
     public static final String COMMAND_TYPE = PREFIX + "command.type";
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
-    public static final String SERVICE_NAME = PREFIX + "service.name";
-    public static final String SERVICE_INSTANCE = PREFIX + "service.instance";
-    public static final String METRICS_NAME = PREFIX + "metrics.name";
     public static final String STATUS_CODE = PREFIX + "statusCode";
     public static final String REQUEST_METHOD = PREFIX + "request.method";
     public static final String REQUEST_PATH = PREFIX + "request.path";
@@ -36,5 +33,4 @@ public final class TracingTags {
     public static final String AUTH_TYPE = PREFIX + "auth.type";
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
     public static final String CONNECTION_ID =  PREFIX + "connection.id";
-    public static final String CORRELATION_ID = PREFIX + "correlation.id";
 }

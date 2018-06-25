@@ -15,20 +15,19 @@ import static com.codahale.metrics.MetricRegistry.name;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.util.AbstractMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.awaitility.core.ThrowingRunnable;
-import org.eclipse.ditto.services.utils.metrics.NamedMetricRegistry;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.Timer;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -40,11 +39,42 @@ public final class MetricsStatsCounterTest {
     private static final String METRICS_PREFIX = "myPrefix";
     private static final long MAXIMUM_SIZE = 20;
 
+    private final Counter hitCount = DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.HITS));
+    private final Counter missCount = DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.MISSES));
+    private final PreparedTimer totalLoadTime =
+            DittoMetrics.timer(createMetricName(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME));
+    private final Counter loadSuccessCount =
+            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS));
+    private final Counter loadFailureCount =
+            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE));
+    private final Counter evictionCount =
+            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS));
+    private final Counter evictionWeight =
+            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT));
+    private final Gauge estimatedSize =
+            DittoMetrics.gauge(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE));
+    private final Gauge maxSize = DittoMetrics.gauge(createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE));
+    private final Counter estimatedInvalidations =
+            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS));
+
+    @Before
+    public void resetMetrics() {
+        hitCount.reset();
+        missCount.reset();
+        totalLoadTime.reset();
+        loadSuccessCount.reset();
+        loadFailureCount.reset();
+        evictionCount.reset();
+        evictionWeight.reset();
+        estimatedSize.reset();
+        maxSize.reset();
+        estimatedInvalidations.reset();
+    }
+
     @Test
     public void basicUsage() {
         // GIVEN
-        final MetricRegistry registry = new MetricRegistry();
-        final CaffeineCache<Integer, Integer> cache = createCaffeineCache(registry);
+        final CaffeineCache<Integer, Integer> cache = createCaffeineCache();
 
         // WHEN
         final long requestTimes0 = 3;
@@ -54,47 +84,30 @@ public final class MetricsStatsCounterTest {
 
         // THEN
         waitUntilAsserted(() -> {
-            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE)).getValue())
-                    .isEqualTo(MAXIMUM_SIZE);
+            assertThat(maxSize.get()).isEqualTo(MAXIMUM_SIZE);
             final long expectedEstimatedSize = 2;
-            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
-                    .isEqualTo(expectedEstimatedSize);
+            assertThat(estimatedSize.get()).isEqualTo(expectedEstimatedSize);
 
             // for all keys one miss is expected for first access
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.MISSES)).getCount())
-                    .isEqualTo(expectedEstimatedSize);
+            assertThat(missCount.getCount()).isEqualTo(expectedEstimatedSize);
             final long expectedHits = requestTimes0 + requestTimes1 - expectedEstimatedSize;
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.HITS)).getCount())
-                    .isEqualTo(expectedHits);
+            assertThat(hitCount.getCount()).isEqualTo(expectedHits);
 
-            final Timer totalLoadTimeTimer =
-                    registry.timer(createMetricName(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME));
-            assertThat(totalLoadTimeTimer.getCount())
-                    .isEqualTo(expectedEstimatedSize);
-            final Duration maxExpectedLoadDuration = Duration.ofSeconds(1);
-            assertThat(totalLoadTimeTimer.getMeanRate())
-                    .isLessThan(maxExpectedLoadDuration.toNanos());
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS)).getCount())
-                    .isEqualTo(expectedEstimatedSize);
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE)).getCount())
-                    .isEqualTo(0);
+            assertThat(totalLoadTime.getNumberOfRecords()).isEqualTo(expectedEstimatedSize);
+            assertThat(loadSuccessCount.getCount()).isEqualTo(expectedEstimatedSize);
+            assertThat(loadFailureCount.getCount()).isEqualTo(0);
 
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                    .isEqualTo(0);
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
-                    .isEqualTo(0);
+            assertThat(evictionCount.getCount()).isEqualTo(0);
+            assertThat(evictionWeight.getCount()).isEqualTo(0);
 
-            assertThat(
-                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                    .isEqualTo(0);
+            assertThat(estimatedInvalidations.getCount()).isEqualTo(0);
         });
     }
 
     @Test
     public void evictions() {
         // GIVEN
-        final MetricRegistry registry = new MetricRegistry();
-        final CaffeineCache<Integer, Integer> cache = createCaffeineCache(registry);
+        final CaffeineCache<Integer, Integer> cache = createCaffeineCache();
 
         // WHEN
         final int cacheExceedingElementsCount = 300;
@@ -109,15 +122,11 @@ public final class MetricsStatsCounterTest {
                see https://github.com/ben-manes/caffeine/wiki/Efficiency
             */
 
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                    .isGreaterThan(0);
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT)).getCount())
-                    .isGreaterThan(0);
+            assertThat(evictionCount.getCount()).isGreaterThan(0);
+            assertThat(evictionWeight.getCount()).isGreaterThan(0);
 
             // invalidations are no evictions
-            assertThat(
-                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                    .isEqualTo(0);
+            assertThat(estimatedInvalidations.getCount()).isEqualTo(0);
         });
     }
 
@@ -128,14 +137,12 @@ public final class MetricsStatsCounterTest {
     @Test
     public void invalidate() {
         // GIVEN
-        final MetricRegistry registry = new MetricRegistry();
-        final CaffeineCache<Integer, Integer> cache = createCaffeineCache(registry);
+        final CaffeineCache<Integer, Integer> cache = createCaffeineCache();
 
         final int knownKey = 0;
         cache.get(knownKey);
 
-        assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
-                .isEqualTo(1L);
+        assertThat(estimatedSize.get()).isEqualTo(1L);
 
         // WHEN
         cache.invalidate(knownKey);
@@ -144,33 +151,19 @@ public final class MetricsStatsCounterTest {
 
         // THEN
         waitUntilAsserted(() -> {
-            assertThat(
-                    registry.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS)).getCount())
-                    .isEqualTo(1);
-            assertThat(getGauge(registry, createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE)).getValue())
-                    .isEqualTo(0L);
+            assertThat(estimatedInvalidations.getCount()).isEqualTo(1);
+            assertThat(estimatedSize.get()).isEqualTo(0L);
 
             // evictions are no invalidations
-            assertThat(registry.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS)).getCount())
-                    .isEqualTo(0);
+            assertThat(evictionCount.getCount()).isEqualTo(0);
         });
     }
 
-    private CaffeineCache<Integer, Integer> createCaffeineCache(final MetricRegistry registry) {
-        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
-                .maximumSize(MAXIMUM_SIZE);
+    private CaffeineCache<Integer, Integer> createCaffeineCache() {
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(MAXIMUM_SIZE);
         final AsyncCacheLoader<Integer, Integer> loader = (key, executor) -> CompletableFuture.completedFuture(key);
 
-        return CaffeineCache.of(caffeine, loader, new NamedMetricRegistry(METRICS_PREFIX, registry));
-    }
-
-    private Gauge getGauge(final MetricRegistry registry, final String metricName) {
-        final Map<String, Gauge> foundMetrics = registry.getGauges((name, metric) -> Objects.equals(name, metricName));
-        if (foundMetrics.isEmpty()) {
-            throw new IllegalArgumentException("Not found: " + metricName);
-        } else {
-            return foundMetrics.values().iterator().next();
-        }
+        return CaffeineCache.of(caffeine, loader, METRICS_PREFIX);
     }
 
     private <K, V> void requestNTimes(final Cache<K, V> cache, final K key, final long requests) {

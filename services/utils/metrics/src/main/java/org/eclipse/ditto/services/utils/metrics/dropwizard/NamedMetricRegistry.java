@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.metrics;
+package org.eclipse.ditto.services.utils.metrics.dropwizard;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -24,7 +24,7 @@ public final class NamedMetricRegistry {
     private final String metricName;
     private final MetricRegistry metricRegistry;
 
-    public NamedMetricRegistry(final String metricName, final MetricRegistry metricRegistry) {
+    NamedMetricRegistry(final String metricName, final MetricRegistry metricRegistry) {
 
         checkNotNull(metricRegistry, "metric registry");
         argumentNotEmpty(metricName, "metric name");

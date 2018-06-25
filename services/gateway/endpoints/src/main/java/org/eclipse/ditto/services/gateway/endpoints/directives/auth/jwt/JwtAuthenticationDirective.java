@@ -35,9 +35,9 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
-import org.eclipse.ditto.services.utils.tracing.KamonTimer;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceInformation;
-import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
@@ -104,8 +104,8 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                     final TraceInformation traceInformation =
                             determineTraceInformation(requestContext.getRequest().getUri().toRelative().path());
 
-                    final KamonTimer timer = TraceUtils
-                            .newTimer(TRACE_FILTER_AUTH_JWT)
+                    final StartedTimer timer = DittoMetrics
+                            .expiringTimer(TRACE_FILTER_AUTH_JWT)
                             .maximumDuration(5, TimeUnit.MINUTES)
                             .tags(traceInformation.getTags())
                             .tag(TracingTags.AUTH_TYPE, AUTHENTICATION_TYPE)
@@ -113,7 +113,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                     expiredTimer
                                             .tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
                                             .tag(TracingTags.AUTH_ERROR, Boolean.toString(true)))
-                            .buildStartedTimer();
+                            .build();
 
                     return onSuccess(() -> publicKeyProvider.getPublicKey(jwt.getIssuer(), jwt.getKeyId())
                             .thenApply(publicKeyOpt ->
@@ -168,7 +168,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private void validateToken(final JsonWebToken authorizationToken, final PublicKey publicKey,
-            final String correlationId, final KamonTimer timer) {
+            final String correlationId, final StartedTimer timer) {
         final DefaultJwtParser defaultJwtParser = new DefaultJwtParser();
 
         try {
@@ -181,7 +181,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId,
-            final KamonTimer timer) {
+            final StartedTimer timer) {
         timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
                 .stop();
 

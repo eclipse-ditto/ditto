@@ -13,14 +13,10 @@ package org.eclipse.ditto.services.concierge.cache;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.function.Consumer;
-
 import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.metrics.NamedMetricRegistry;
 
-import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -39,31 +35,23 @@ public final class CacheFactory {
      * @param cacheLoader the cache loader.
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
      * @param metricName the name of the metric provided for the cache.
-     * @param metricsReportingConsumer a consumer which configures the cache for metrics reporting.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
             final CacheConfigReader cacheConfigReader,
-            final String metricName,
-            final Consumer<NamedMetricRegistry> metricsReportingConsumer) {
+            final String metricName) {
         requireNonNull(cacheLoader);
         requireNonNull(cacheConfigReader);
         requireNonNull(metricName);
-        requireNonNull(metricsReportingConsumer);
 
-        final NamedMetricRegistry namedEnforcerMetricRegistry =
-                new NamedMetricRegistry(metricName, new MetricRegistry());
-        final Cache<K, V> cache = createCache(cacheConfigReader, cacheLoader, namedEnforcerMetricRegistry);
-        metricsReportingConsumer.accept(namedEnforcerMetricRegistry);
-
-        return cache;
+        return createCache(cacheConfigReader, cacheLoader, metricName);
     }
 
     private static <K, V> CaffeineCache<K, V> createCache(final CacheConfigReader cacheConfigReader,
-            final AsyncCacheLoader<K, V> loader, NamedMetricRegistry namedMetricRegistry) {
-        return CaffeineCache.of(caffeine(cacheConfigReader), loader, namedMetricRegistry);
+            final AsyncCacheLoader<K, V> loader, final String metricName) {
+        return CaffeineCache.of(caffeine(cacheConfigReader), loader, metricName);
     }
 
     private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {

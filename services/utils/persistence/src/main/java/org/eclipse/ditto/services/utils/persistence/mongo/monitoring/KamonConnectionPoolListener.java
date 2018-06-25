@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.persistence.mongo.monitoring;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +29,6 @@ import com.mongodb.event.ConnectionPoolOpenedEvent;
 import com.mongodb.event.ConnectionPoolWaitQueueEnteredEvent;
 import com.mongodb.event.ConnectionPoolWaitQueueExitedEvent;
 import com.mongodb.event.ConnectionRemovedEvent;
-
-import kamon.Kamon;
-import kamon.metric.Gauge;
 
 /**
  * Reports MongoDB connection pool statistics to Kamon.
@@ -107,13 +106,19 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
 
         private PoolMetric(final ServerId serverId) {
             final String clusterId = serverId.getClusterId().getValue();
-            poolSizeGauge = Kamon.gauge(metricName + POOL_PREFIX + POOL_SIZE).refine(CLUSTER_ID_TAG, clusterId);
-            poolSizeGauge.set(0);
+            poolSizeGauge = DittoMetrics.gauge(metricName + POOL_PREFIX + POOL_SIZE)
+                    .tag(CLUSTER_ID_TAG, clusterId);
+            poolSizeGauge.set(0L);
+
             checkOutCountGauge =
-                    Kamon.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT).refine(CLUSTER_ID_TAG, clusterId);
-            checkOutCountGauge.set(0);
-            waitQueueGauge = Kamon.gauge(metricName + POOL_PREFIX + WAIT_QUEUE_SIZE).refine(CLUSTER_ID_TAG, clusterId);
-            waitQueueGauge.set(0);
+                    DittoMetrics.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT)
+                            .tag(CLUSTER_ID_TAG, clusterId);
+            checkOutCountGauge.set(0L);
+
+            waitQueueGauge =
+                    DittoMetrics.gauge(metricName + POOL_PREFIX + WAIT_QUEUE_SIZE)
+                            .tag(CLUSTER_ID_TAG, clusterId);
+            waitQueueGauge.set(0L);
         }
 
         private PoolMetric incPoolSize() {

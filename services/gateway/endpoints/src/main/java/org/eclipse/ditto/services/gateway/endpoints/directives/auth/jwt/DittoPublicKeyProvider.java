@@ -20,7 +20,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.text.MessageFormat;
 import java.time.Duration;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -45,12 +44,10 @@ import org.eclipse.ditto.services.gateway.security.jwt.JsonWebKey;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.services.utils.metrics.NamedMetricRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalListener;
@@ -77,12 +74,12 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient, final int maxCacheEntries, final Duration expiry,
-            final NamedMetricRegistry namedMetricRegistry) {
+            final String metricsPrefix) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
         argumentNotNull(expiry);
-        argumentNotNull(namedMetricRegistry);
+        argumentNotNull(metricsPrefix);
 
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
 
@@ -90,7 +87,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .maximumSize(maxCacheEntries)
                 .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
                 .removalListener(new CacheRemovalListener());
-        this.publicKeyCache = CaffeineCache.of(caffeine, loader, namedMetricRegistry);
+        this.publicKeyCache = CaffeineCache.of(caffeine, loader, metricsPrefix);
     }
 
     /**
@@ -100,16 +97,16 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      * @param httpClient the http client.
      * @param maxCacheEntries the max amount of public keys to cache.
      * @param expiry the expiry of cache entries in minutes.
-     * @param namedMetricRegistry the named {@link MetricRegistry} for cache statistics.
+     * @param metricsPrefix the prefix of the metrics name.
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient,
             final int maxCacheEntries, final Duration expiry,
-            final NamedMetricRegistry namedMetricRegistry) {
+            final String metricsPrefix) {
         return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, maxCacheEntries, expiry,
-                namedMetricRegistry);
+                metricsPrefix);
     }
 
     @Override

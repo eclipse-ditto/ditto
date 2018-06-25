@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.tracing.KamonTimer;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
@@ -66,7 +66,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
-    private final Map<String, KamonTimer> timers;
+    private final Map<String, StartedTimer> timers;
 
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
@@ -256,11 +256,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             final HashMap<String, String> additionalTags = new HashMap<>();
-            final KamonTimer timer = TraceUtils
+            final StartedTimer timer = TraceUtils
                     .newAmqpRoundTripTimer(command)
                     .maximumDuration(5, TimeUnit.MINUTES)
                     .tags(additionalTags)
-                    .buildStartedTimer();
+                    .build();
             this.timers.put(correlationId, timer);
         });
     }
@@ -284,7 +284,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final KamonTimer timer = timers.get(correlationId);
+        final StartedTimer timer = timers.get(correlationId);
         if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }

@@ -25,18 +25,15 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-base</artifactId>
-        </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-base</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-metrics</artifactId>
         </dependency>
 
         <dependency>
