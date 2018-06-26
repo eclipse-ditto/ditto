@@ -51,6 +51,7 @@ public class MongoClientWrapper implements Closeable {
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
+    private static EventLoopGroup eventLoopGroup = null;
 
     /**
      * Initializes the persistence with a passed in {@code database} and {@code clientSettings}.
@@ -89,7 +90,8 @@ public class MongoClientWrapper implements Closeable {
                         .credential(connectionString.getCredential());
 
         if (connectionString.getSslEnabled()) {
-            builder.streamFactoryFactory(buildNettyStreamFactoryFactory())
+            eventLoopGroup = new NioEventLoopGroup();
+            builder.streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
                     .sslSettings(buildSSLSettings());
         } else {
             builder.sslSettings(SslSettings.builder()
@@ -173,7 +175,7 @@ public class MongoClientWrapper implements Closeable {
 
     private static SslSettings buildSSLSettings() {
 
-        SSLContext sslContext = null;
+        final SSLContext sslContext;
         try {
             sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(null, null, null);
@@ -187,12 +189,6 @@ public class MongoClientWrapper implements Closeable {
                 .context(sslContext)
                 .enabled(true)
                 .build();
-    }
-
-    private static NettyStreamFactoryFactory buildNettyStreamFactoryFactory() {
-        final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-
-        return NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build();
     }
 
     /**
@@ -211,6 +207,9 @@ public class MongoClientWrapper implements Closeable {
 
     @Override
     public void close() {
+        if (eventLoopGroup != null) {
+            eventLoopGroup.shutdownGracefully();
+        }
         mongoClient.close();
     }
 }
