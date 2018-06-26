@@ -16,7 +16,6 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
@@ -59,7 +58,8 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
                 adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable),statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
@@ -75,7 +75,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
             return SendClaimMessageResponse.TYPE;
         } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
             return SendMessageAcceptedResponse.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
+        } else if (adaptable.getMessagePath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {
             return SendThingMessageResponse.TYPE;

@@ -11,6 +11,12 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.DIRECTION;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.FEATURE_ID;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.STATUS_CODE;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.SUBJECT;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.THING_ID;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -89,9 +95,6 @@ final class MessageAdaptableHelper {
                 .map(JsonValue::asObject)
                 .orElseGet(JsonFactory::newObject);
 
-        final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(messageCommandHeadersJsonObject);
-        allHeadersBuilder.putHeaders(dittoHeaders);
-
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
         messageCommandJson.getValue(messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()))
@@ -115,6 +118,17 @@ final class MessageAdaptableHelper {
 
         messageCommandJson.getValue(CommandResponse.JsonFields.STATUS).ifPresent(payloadBuilder::withStatus);
 
+        final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+        allHeadersBuilder.putHeaders(dittoHeaders);
+
+        // these headers are used to store message attributes of Message that are not fields.
+        // their content is duplicated elsewhere. do not carry them in adaptable headers.
+        allHeadersBuilder.removeHeader(SUBJECT.getKey())
+                .removeHeader(DIRECTION.getKey())
+                .removeHeader(THING_ID.getKey())
+                .removeHeader(FEATURE_ID.getKey())
+                .removeHeader(STATUS_CODE.getKey());
+
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
                 .withHeaders(allHeadersBuilder.build()).build();
@@ -129,9 +143,9 @@ final class MessageAdaptableHelper {
      * @throws NullPointerException if {@code adaptable} is {@code null}.
      * @throws IllegalArgumentException if {@code adaptable}
      * <ul>
-     *     <li>has no headers,</li>
-     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
-     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * <li>has no headers,</li>
+     * <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
@@ -167,9 +181,9 @@ final class MessageAdaptableHelper {
      * @throws NullPointerException if {@code adaptable} is {@code null}.
      * @throws IllegalArgumentException if {@code adaptable}
      * <ul>
-     *     <li>has no headers,</li>
-     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
-     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * <li>has no headers,</li>
+     * <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
@@ -179,14 +193,18 @@ final class MessageAdaptableHelper {
                 .map(headers -> {
                     final TopicPath topicPath = adaptable.getTopicPath();
                     final DittoHeadersBuilder dittoHeadersBuilder = headers.toBuilder();
-                    if (!headers.containsKey(MessageHeaderDefinition.THING_ID.getKey())) {
-                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
-                                topicPath.getNamespace() + ":" + topicPath.getId());
-                    }
-                    if (!headers.containsKey(MessageHeaderDefinition.SUBJECT.getKey())) {
-                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(),
-                                topicPath.getSubject().orElse(""));
-                    }
+
+                    // these headers are used to store message attributes of Message that are not fields.
+                    // their content comes from elsewhere; overwrite message headers of the same names.
+                    dittoHeadersBuilder.putHeader(THING_ID.getKey(),
+                            topicPath.getNamespace() + ":" + topicPath.getId());
+                    dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
+                    adaptable.getMessagePath().getDirection().ifPresent(direction ->
+                            dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
+                    adaptable.getMessagePath().getFeatureId().ifPresent(featureId ->
+                            dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
+                    adaptable.getPayload().getStatus().ifPresent(statusCode ->
+                            dittoHeadersBuilder.putHeader(STATUS_CODE.getKey(), String.valueOf(statusCode.toInt())));
                     return dittoHeadersBuilder.build();
                 })
                 .map(MessagesModelFactory::newHeadersBuilder)

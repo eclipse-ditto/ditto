@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -64,7 +63,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessage.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
+        } else if (adaptable.getMessagePath().getFeatureId().isPresent()) {
             return SendFeatureMessage.TYPE;
         } else {
             return SendThingMessage.TYPE;
