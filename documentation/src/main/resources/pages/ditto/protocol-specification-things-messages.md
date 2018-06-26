@@ -24,7 +24,7 @@ next section that describes how to [use the messages API](#using-the-messages-ap
 There are three protocol parameters that have special meaning for Messages:
 * `topic` : *{namespace}*/*{thingId}*/things/live/messages/*{messageSubject}*
 * `path` : *{addressedPartOfThing}*/*{mailbox}*/messages/*{messageSubject}*
-* `headers` : The headers for Messages require several arguments: *thing-id*, *direction*, *content-type* and *subject*
+* `headers` : The headers for Messages must include *content-type*
 
 <br/>
 
@@ -48,11 +48,8 @@ the Thing, while `` would address the whole Thing. Valid paths are e.g.:
 
 <br>
 
-In the `headers` of the envelope the Messages API requires several fields:
-* `thing-id` : The id of the Thing as a string in the form *{namespace}:{thingId}*
-* `direction` : It is a string and can be either *TO* or *FROM*, which states if the Message is sent to or from a Thing
+In the `headers` of the envelope the Messages API requires:
 * `content-type` : The type of the payload you are sending, e.g. *text/plain*
-* `subject` : The *messageSubject* of your Message.
 
 ## Using the Messages API
 
@@ -72,10 +69,7 @@ What follows is a simple example Message that asks our Thing *smartcoffee* how i
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
         "content-type": "text/plain",
-        "subject": "ask",
-        "direction": "TO",
         "correlation-id": "a-unique-string-for-this-message"
     },
     "path": "/inbox/messages/ask",
@@ -83,11 +77,8 @@ What follows is a simple example Message that asks our Thing *smartcoffee* how i
 }
 ```
 
-In this case, we need to specify, that we want to use the live channel
-(which is the only channel capable of sending Messages anyway). The header
-`direction` shows that the Message is sent *TO* the inbox (`path`) of our Thing.
 Notice that our `topic` adheres to the [Ditto Protocol topic definition](protocol-specification-topic.html)
-with *messages* as the criterion and the message-subject as *action*. 
+with *messages* as the criterion, *live* as channel, and the message-subject as action.
 
 We encourage you to always send a `correlation-id` with your Messages.
 This is especially important, since the WebSocket Ditto Protocol binding
@@ -103,16 +94,10 @@ The response we would get from our coffee machine could look something like this
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
-        "read-subjects": ["ditto"],
-        "subject": "ask",
         "correlation-id": "a-unique-string-for-this-message",
         "auth-subjects": ["ditto", "nginx:ditto"],
-        "channel": "live",
         "content-type": "text/plain",
         "version": 1,
-        "direction": "FROM",
-        "status": "418"
     },
     "path": "/outbox/messages/ask",
     "value": "I do not know, since i am only a coffee machine.",
@@ -120,7 +105,7 @@ The response we would get from our coffee machine could look something like this
 }
 ```
 
-The answer of the coffee machine has the same `topic`, `subject` and `correlation-id`
+The answer of the coffee machine has the same `topic` and `correlation-id`
 as the original message. As we can see, the response does not only contain a
 `value` but also the `status` of the response
 which is based on the [HTTP status codes](protocol-specification.html#status). 
@@ -161,15 +146,10 @@ to the WebSocket, our JavaScript receiver would receive the following data:
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
-        "read-subjects": ["ditto"],
-        "subject": "ask",
         "correlation-id": "demo-6qaal9l",
         "auth-subjects": ["ditto", "nginx:ditto"],
-        "channel": "live",
         "content-type": "text/plain",
-        "version": 1,
-        "direction": "TO"
+        "version": 1
     },
     "path": "/inbox/messages/ask",
     "value": "Hey, how are you?"
@@ -193,19 +173,14 @@ response Message you can send using a Ditto Protocol binding.
 ```javascript
 createTextResponse = function(originalMessage, payload, statusCode) {
     var topic = originalMessage.topic;
-    var thingId = originalMessage.headers["thing-id"];
-    var subject = originalMessage.headers["subject"];
     var correlationId = originalMessage.headers["correlation-id"];
     var outboxPath = originalMessage.path.replace("inbox", "outbox");
     
     return {
       "topic": topic,
       "headers": {
-          "thing-id": thingId,
-          "subject": subject,
           "correlation-id": correlationId,
-          "content-type": "text/plain",
-          "direction": "FROM"
+          "content-type": "text/plain"
       },
       "path": outboxPath,
       "status": statusCode,
@@ -222,15 +197,10 @@ Message have the same `correlation-id`, the issuer would receive your response:
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/ask",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
-        "read-subjects": ["ditto"],
-        "subject": "ask",
         "correlation-id": "demo-6qaal9l",
         "auth-subjects": ["ditto", "nginx:ditto"],
-        "channel": "live",
         "content-type": "text/plain",
-        "version": 1,
-        "direction": "FROM"
+        "version": 1
     },
     "path": "/outbox/messages/ask",
     "status": 418,
@@ -248,11 +218,7 @@ A Message to a Feature could therefore have the following JSON:
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/heatUp",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
-        "feature-id": "water-tank",
         "content-type": "text/plain",
-        "subject": "heatUp",
-        "direction": "TO",
         "correlation-id": "a-unique-string-for-this-message"
     },
     "path": "/features/water-tank/inbox/messages/heatUp",
@@ -273,11 +239,7 @@ A Claim Message to gain access to our smart coffee machine might look like this:
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/claim",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
-        "feature-id": "water-tank",
         "content-type": "text/plain",
-        "subject": "claim",
-        "direction": "TO",
         "correlation-id": "a-unique-string-for-this-claim-message"
     },
     "path": "/inbox/messages/claim",
@@ -293,10 +255,7 @@ to the issuer by setting an additional permission and respond with a *status* of
 {
     "topic": "org.eclipse.ditto/smartcoffee/things/live/messages/claim",
     "headers": {
-        "thing-id": "org.eclipse.ditto:smartcoffee",
         "content-type": "text/plain",
-        "subject": "claim",
-        "direction": "FROM",
         "correlation-id": "a-unique-string-for-this-claim-message"
     },
     "path": "/outbox/messages/claim",
