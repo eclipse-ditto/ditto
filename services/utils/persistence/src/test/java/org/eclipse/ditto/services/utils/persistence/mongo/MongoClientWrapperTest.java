@@ -63,7 +63,7 @@ public class MongoClientWrapperTest {
 
 
         // test
-        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, null);
 
         // verify
         assertWithExpected(wrapper, false, true);
@@ -77,7 +77,7 @@ public class MongoClientWrapperTest {
         final Config config = CONFIG.withValue(MongoConfig.URI, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
 
         // test
-        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
+        final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config, null);
 
         // verify
         assertWithExpected(wrapper, true, true);

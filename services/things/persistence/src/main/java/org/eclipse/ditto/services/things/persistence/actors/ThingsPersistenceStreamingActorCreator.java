@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.PidWithSeqNr
 import com.typesafe.config.Config;
 
 import akka.actor.Props;
+import akka.event.LoggingAdapter;
 
 
 /**
@@ -41,9 +42,9 @@ public final class ThingsPersistenceStreamingActorCreator {
      * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final int streamingCacheSize) {
+    public static Props props(final Config config, final int streamingCacheSize, final LoggingAdapter log) {
         return DefaultPersistenceStreamingActor.props(ThingTag.class, config, streamingCacheSize,
-                ThingsPersistenceStreamingActorCreator::createElement);
+                ThingsPersistenceStreamingActorCreator::createElement, log);
     }
 
     private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {

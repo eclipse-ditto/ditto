@@ -12,12 +12,15 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.io.Closeable;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 
@@ -37,6 +40,7 @@ import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
+import akka.event.LoggingAdapter;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
@@ -70,7 +74,8 @@ public class MongoClientWrapper implements Closeable {
      */
     public static MongoClientWrapper newInstance(final Config config,
             @Nullable final CommandListener customCommandListener,
-            @Nullable final ConnectionPoolListener customConnectionPoolListener) {
+            @Nullable final ConnectionPoolListener customConnectionPoolListener,
+            final LoggingAdapter log) {
         final int maxPoolSize = MongoConfig.getPoolMaxSize(config);
         final int maxPoolWaitQueueSize = MongoConfig.getPoolMaxWaitQueueSize(config);
         final Duration maxPoolWaitTime = MongoConfig.getPoolMaxWaitTime(config);
@@ -78,6 +83,16 @@ public class MongoClientWrapper implements Closeable {
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
+        SSLContext sslContext = null;
+
+        try {
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, null, null);
+        } catch (NoSuchAlgorithmException e) {
+            log.warning("NoSuchAlgorithm is supported for SSLContext: ", e.getMessage());
+        } catch (KeyManagementException e) {
+             log.warning("SSLContext couldn't be initialized: ", e.getMessage());
+        }
 
         final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
@@ -88,7 +103,11 @@ public class MongoClientWrapper implements Closeable {
                         .credentialList(connectionString.getCredentialList())
                         .streamFactoryFactory(NettyStreamFactoryFactory.builder()
                                 .eventLoopGroup(eventLoopGroup).build())
-                        .sslSettings(SslSettings.builder().applyConnectionString(connectionString).build());
+                        .sslSettings(SslSettings.builder()
+                                .context(sslContext)
+                                .applyConnectionString(connectionString)
+                                .build());
+
 
         if (customCommandListener != null) {
             builder.addCommandListener(customCommandListener);
@@ -109,8 +128,8 @@ public class MongoClientWrapper implements Closeable {
      * @param config Config containing mongoDB settings including the URI.
      * @return a new {@code MongoClientWrapper} object.
      */
-    public static MongoClientWrapper newInstance(final Config config) {
-        return newInstance(config, null, null);
+    public static MongoClientWrapper newInstance(final Config config, final LoggingAdapter log) {
+        return newInstance(config, null, null, log);
     }
 
     /**
@@ -124,8 +143,7 @@ public class MongoClientWrapper implements Closeable {
      * @param maxPoolWaitQueueSize the max queue size of the pool.
      * @param maxPoolWaitTimeSecs the max wait time in the pool.
      * @return a new {@code MongoClientWrapper} object.
-     *
-     * @see #newInstance(Config) for production purposes
+     * @see #newInstance(Config, akka.event.LoggingAdapter) for production purposes
      */
     public static MongoClientWrapper newInstance(final String host, final int port, final String dbName,
             final int maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
