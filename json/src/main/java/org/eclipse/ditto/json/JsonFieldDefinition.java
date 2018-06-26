@@ -19,9 +19,10 @@ import javax.annotation.Nullable;
  * A {@code JsonFieldDefinition} is a formal description of a single {@link JsonField}. A JSON field consists of a key
  * (or name) and a value. A JsonFieldDefinition differs in the way that it consists not only of a simple JSON key but
  * its super type {@link JsonPointer}. With the help of this interface one can explicitly define a schema of a JSON
- * document including all sub documents. <p> The following example shows how a JSON document would be described with the
- * help of JsonFieldDefinition.
+ * document including all sub documents.
  * <p>
+ * The following example shows how a JSON document would be described with the help of JsonFieldDefinition.
+ * </p>
  * <pre>
  *      {
  *         "thingId": "myThing",
@@ -35,31 +36,33 @@ import javax.annotation.Nullable;
  * </pre>
  * <p>
  * Within an according class the structure of this JSON document could be described as follows:
- * <p>
+ * </p>
  * <pre>
- *       import static JsonFactory.newFieldDefinition;
+ *    import static JsonFactory.newIntFieldDefinition;
+ *    import static JsonFactory.newStringFieldDefinition;
+ *    ...
+ *
+ *    public final class Thing {
+ *
+ *        private static final JsonFieldDefinition THING_ID = newStringFieldDefinition("thingId");
+ *        private static final JsonFieldDefinition SUBSEL = newIntFieldDefinition("attributes/someAttr/subsel");
+ *        private static final JsonFieldDefinition ANOTHER_ATTR = newStringFieldDefinition("attributes/anotherAttr");
+ *
  *       ...
  *
- *        public final class Thing {
- *
- *           private static final JsonFieldDefinition THING_ID = newFieldDefinition("thingId", String.class);
- *           private static final JsonFieldDefinition SUBSEL = newFieldDefinition("attributes/someAttr/subsel",
- * int.class);
- *           private static final JsonFieldDefinition ANOTHER_ATTR = newFieldDefinition("attributes/anotherAttr",
- * String.class);
- *
- *           ...
- *
- *        }
+ *    }
  * </pre>
  * <p>
  * In this case {@code attributes} and {@code someAttr} are implicitly defined with the value type {@link JsonObject}.
+ * </p>
  * <p>
  * Additionally, a JSON field definition can be marked with zero to n {@link JsonFieldMarker}s. The semantics of a
  * marker is defined by you rather than Ditto JSON. One possible usage scenario would be to define the fields which
  * belong to a particular schema version with a maker according to that version.
+ * </p>
  * <p>
  * <em>Implementations of this interface are required to be immutable!</em>
+ * </p>
  */
 public interface JsonFieldDefinition<T> {
 
@@ -134,9 +137,7 @@ public interface JsonFieldDefinition<T> {
      * @throws IllegalArgumentException if {@code pointer} is empty.
      * @see JsonFactory#newBooleanFieldDefinition(CharSequence, JsonFieldMarker...)
      */
-    static JsonFieldDefinition<Boolean> ofBoolean(final CharSequence pointer,
-            final JsonFieldMarker ... markers) {
-
+    static JsonFieldDefinition<Boolean> ofBoolean(final CharSequence pointer, final JsonFieldMarker ... markers) {
         return JsonFactory.newBooleanFieldDefinition(pointer, markers);
     }
 
@@ -151,9 +152,7 @@ public interface JsonFieldDefinition<T> {
      * @throws IllegalArgumentException if {@code pointer} is empty.
      * @see JsonFactory#newJsonObjectFieldDefinition(CharSequence, JsonFieldMarker...)
      */
-    static JsonFieldDefinition<JsonObject> ofJsonObject(final CharSequence pointer,
-            final JsonFieldMarker ... markers) {
-
+    static JsonFieldDefinition<JsonObject> ofJsonObject(final CharSequence pointer, final JsonFieldMarker ... markers) {
         return JsonFactory.newJsonObjectFieldDefinition(pointer, markers);
     }
 
@@ -168,9 +167,7 @@ public interface JsonFieldDefinition<T> {
      * @throws IllegalArgumentException if {@code pointer} is empty.
      * @see JsonFactory#newJsonArrayFieldDefinition(CharSequence, JsonFieldMarker...)
      */
-    static JsonFieldDefinition<JsonArray> ofJsonArray(final CharSequence pointer,
-            final JsonFieldMarker ... markers) {
-
+    static JsonFieldDefinition<JsonArray> ofJsonArray(final CharSequence pointer, final JsonFieldMarker ... markers) {
         return JsonFactory.newJsonArrayFieldDefinition(pointer, markers);
     }
 
@@ -185,9 +182,7 @@ public interface JsonFieldDefinition<T> {
      * @throws IllegalArgumentException if {@code pointer} is empty.
      * @see JsonFactory#newJsonValueFieldDefinition(CharSequence, JsonFieldMarker...)
      */
-    static JsonFieldDefinition<JsonValue> ofJsonValue(final CharSequence pointer,
-            final JsonFieldMarker ... markers) {
-
+    static JsonFieldDefinition<JsonValue> ofJsonValue(final CharSequence pointer, final JsonFieldMarker ... markers) {
         return JsonFactory.newJsonValueFieldDefinition(pointer, markers);
     }
 

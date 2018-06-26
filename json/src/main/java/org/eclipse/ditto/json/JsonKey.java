@@ -14,7 +14,6 @@ package org.eclipse.ditto.json;
 /**
  * Represents a JSON key. A JSON key can be used to access values of a JSON document. For example, in the following JSON
  * document
- * <p>
  * <pre>
  *    {
  *       "foo": 1,
@@ -24,6 +23,7 @@ package org.eclipse.ditto.json;
  * </pre>
  * <p>
  * {@code "foo"}, {@code "bar"} and {@code "baz"} are JSON keys which can be represented by this interface.
+ * </p>
  * <p>
  * <em>Implementations of this interface are required to be immutable.</em>
  * </p>

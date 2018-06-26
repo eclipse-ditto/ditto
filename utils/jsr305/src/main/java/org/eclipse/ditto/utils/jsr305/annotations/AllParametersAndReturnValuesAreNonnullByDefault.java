@@ -20,11 +20,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.meta.TypeQualifierDefault;
 
 /**
+ * <p>
  * This annotation can be applied to a package, class or method to indicate that
  * all method return values and method parameters should be treated as {@link Nonnull} by default.
- * <p>
+ * </p>
  * <p>Consider using {@link AllValuesAreNonnullByDefault} instead, because it also considers field values.</p>
- * <p>
  * <p>NOTE: Package-level annotations are not passed to lower-level packages.</p>
  *
  * @see AllValuesAreNonnullByDefault

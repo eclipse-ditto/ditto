@@ -45,6 +45,8 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
+import akka.event.Logging;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -176,6 +178,44 @@ public class DefaultStreamSupervisorTest {
 
             // verify the db has NOT been updated with the queryEnd, cause we never got a success-message
             verify(searchSyncPersistence, never()).updateLastSuccessfulStreamEnd(eq(expectedQueryEnd));
+        }};
+    }
+
+    @Test
+    public void supervisorRestartsIfStreamItDoesNotStartOrStopStreamForTooLong() {
+        actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
+        actorSystem.log().info("Re-enable logging should the test fail.");
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+
+        new TestKit(actorSystem) {{
+
+            // GIVEN: A stream supervisor props with extremely short outdated warn offset and stream interval
+            //        that sends messages on restart
+
+            final Duration oneMs = Duration.ofMillis(1L);
+            final Duration oneDay = Duration.ofDays(1L);
+            final StreamConsumerSettings settings =
+                    StreamConsumerSettings.of(START_OFFSET, oneMs, INITIAL_START_OFFSET, oneDay, oneDay,
+                            ELEMENTS_STREAMED_PER_BATCH, oneMs);
+
+            final String onRestartMessage = "creating DefaultStreamSupervisor";
+
+            final Props propsWithCreationHook = Props.create(DefaultStreamSupervisor.class, () -> {
+
+                // send message to testkit on creation
+                getRef().tell(onRestartMessage, ActorRef.noSender());
+
+                return new DefaultStreamSupervisor<>(forwardTo.ref(), provider.ref(), String.class, Source::single,
+                        Function.identity(), searchSyncPersistence, materializer, settings);
+            });
+
+            // WHEN: The stream supervisor is created
+            actorSystem.actorOf(propsWithCreationHook);
+
+            // THEN: The stream supervisor keeps restarting.
+            for (int i = 0; i < 10; ++i) {
+                expectMsg(onRestartMessage);
+            }
         }};
     }
 

@@ -36,6 +36,9 @@ entries:
     - title: 0.3.0-M1 Release notes
       url: /release_notes_030-M1.html
       output: web
+    - title: 0.3.0-M2 Release notes
+      url: /release_notes_030-M2.html
+      output: web
 
   - title: Installation
     output: web
