@@ -19,6 +19,7 @@ import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
@@ -45,17 +46,19 @@ public abstract class AbstractMongoClientActor extends AbstractActor {
     @Override
     public void preStart() throws NoSuchAlgorithmException, KeyManagementException {
         final Duration timeout = getTimeout();
-        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(null, null, null);
+        final ConnectionString connectionString = new ConnectionString(getConnectionString());
 
         final MongoClientOptions.Builder mongoClientOptionsBuilder =
                 MongoClientOptions.builder()
                         .connectTimeout((int) timeout.toMillis())
                         .socketTimeout((int) timeout.toMillis())
-                        .serverSelectionTimeout((int) timeout.toMillis())
-//                      .sslEnabled(true)
-//                      .sslInvalidHostNameAllowed(true)
-                        .socketFactory(sslContext.getSocketFactory());
+                        .serverSelectionTimeout((int) timeout.toMillis());
+
+        if (connectionString.getSslEnabled()) {
+            final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, null, null);
+            mongoClientOptionsBuilder.socketFactory(sslContext.getSocketFactory());
+        }
 
         final MongoClientURI mongoClientURI = new MongoClientURI(getConnectionString(), mongoClientOptionsBuilder);
 

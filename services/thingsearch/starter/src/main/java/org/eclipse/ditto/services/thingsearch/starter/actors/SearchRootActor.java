@@ -95,7 +95,7 @@ public final class SearchRootActor extends AbstractActor {
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
         final MongoClientWrapper mongoClientWrapper =
-                MongoClientWrapper.newInstance(rawConfig, kamonCommandListener, kamonConnectionPoolListener, log);
+                MongoClientWrapper.newInstance(rawConfig, kamonCommandListener, kamonConnectionPoolListener);
 
         final StreamMetadataPersistence thingsSyncPersistence =
                 MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,

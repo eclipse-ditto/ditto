@@ -40,7 +40,6 @@ import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
-import akka.event.LoggingAdapter;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
@@ -74,8 +73,7 @@ public class MongoClientWrapper implements Closeable {
      */
     public static MongoClientWrapper newInstance(final Config config,
             @Nullable final CommandListener customCommandListener,
-            @Nullable final ConnectionPoolListener customConnectionPoolListener,
-            final LoggingAdapter log) {
+            @Nullable final ConnectionPoolListener customConnectionPoolListener) {
         final int maxPoolSize = MongoConfig.getPoolMaxSize(config);
         final int maxPoolWaitQueueSize = MongoConfig.getPoolMaxWaitQueueSize(config);
         final Duration maxPoolWaitTime = MongoConfig.getPoolMaxWaitTime(config);
@@ -83,31 +81,21 @@ public class MongoClientWrapper implements Closeable {
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
-        SSLContext sslContext = null;
-
-        try {
-            sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(null, null, null);
-        } catch (NoSuchAlgorithmException e) {
-            log.warning("NoSuchAlgorithm is supported for SSLContext: ", e.getMessage());
-        } catch (KeyManagementException e) {
-             log.warning("SSLContext couldn't be initialized: ", e.getMessage());
-        }
-
-        final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
         final MongoClientSettings.Builder builder =
                 MongoClientSettings.builder()
                         .readPreference(ReadPreference.secondaryPreferred())
                         .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
-                        .credentialList(connectionString.getCredentialList())
-                        .streamFactoryFactory(NettyStreamFactoryFactory.builder()
-                                .eventLoopGroup(eventLoopGroup).build())
-                        .sslSettings(SslSettings.builder()
-                                .context(sslContext)
-                                .applyConnectionString(connectionString)
-                                .build());
+                        .credential(connectionString.getCredential());
 
+        if (connectionString.getSslEnabled()) {
+            builder.streamFactoryFactory(buildNettyStreamFactoryFactory())
+                    .sslSettings(buildSSLSettings());
+        } else {
+            builder.sslSettings(SslSettings.builder()
+                    .applyConnectionString(connectionString)
+                    .build());
+        }
 
         if (customCommandListener != null) {
             builder.addCommandListener(customCommandListener);
@@ -128,8 +116,8 @@ public class MongoClientWrapper implements Closeable {
      * @param config Config containing mongoDB settings including the URI.
      * @return a new {@code MongoClientWrapper} object.
      */
-    public static MongoClientWrapper newInstance(final Config config, final LoggingAdapter log) {
-        return newInstance(config, null, null, log);
+    public static MongoClientWrapper newInstance(final Config config) {
+        return newInstance(config, null, null);
     }
 
     /**
@@ -143,7 +131,7 @@ public class MongoClientWrapper implements Closeable {
      * @param maxPoolWaitQueueSize the max queue size of the pool.
      * @param maxPoolWaitTimeSecs the max wait time in the pool.
      * @return a new {@code MongoClientWrapper} object.
-     * @see #newInstance(Config, akka.event.LoggingAdapter) for production purposes
+     * @see #newInstance(Config) for production purposes
      */
     public static MongoClientWrapper newInstance(final String host, final int port, final String dbName,
             final int maxPoolSize, final int maxPoolWaitQueueSize, final long maxPoolWaitTimeSecs) {
@@ -158,7 +146,6 @@ public class MongoClientWrapper implements Closeable {
                 maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS), false, null);
         return new MongoClientWrapper(dbName, mongoClientSettings);
     }
-
 
     private static MongoClientSettings buildClientSettings(final MongoClientSettings.Builder builder,
             final int maxPoolSize,
@@ -182,6 +169,30 @@ public class MongoClientWrapper implements Closeable {
         builder.connectionPoolSettings(connectionPoolSettingsBuilder.build());
 
         return builder.build();
+    }
+
+    private static SslSettings buildSSLSettings() {
+
+        SSLContext sslContext = null;
+        try {
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, null, null);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("No such Algorithm is supported ",  e);
+        } catch (KeyManagementException e) {
+            throw new IllegalStateException("KeyManagementException ", e);
+        }
+
+        return SslSettings.builder()
+                .context(sslContext)
+                .enabled(true)
+                .build();
+    }
+
+    private static NettyStreamFactoryFactory buildNettyStreamFactoryFactory() {
+        final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+
+        return NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build();
     }
 
     /**

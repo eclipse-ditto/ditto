@@ -21,7 +21,6 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 import com.typesafe.config.Config;
 
 import akka.actor.Props;
-import akka.event.LoggingAdapter;
 
 
 /**
@@ -59,11 +58,10 @@ public final class DefaultPersistenceStreamingActor<T extends EntityIdWithRevisi
     public static <T extends EntityIdWithRevision> Props props(final Class<T> elementClass,
             final Config config,
             final int streamingCacheSize,
-            final Function<PidWithSeqNr, T> entityMapper,
-            final LoggingAdapter log) {
+            final Function<PidWithSeqNr, T> entityMapper) {
 
         return Props.create(DefaultPersistenceStreamingActor.class, () -> {
-            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config, log);
+            final MongoClientWrapper mongoClient = MongoClientWrapper.newInstance(config);
             final MongoReadJournal readJournal = MongoReadJournal.newInstance(config, mongoClient);
             return new DefaultPersistenceStreamingActor<>(elementClass,
                     streamingCacheSize, entityMapper, readJournal, mongoClient);

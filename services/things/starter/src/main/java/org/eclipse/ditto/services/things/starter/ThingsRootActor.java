@@ -172,7 +172,7 @@ final class ThingsRootActor extends AbstractActor {
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.THINGS_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(ThingsPersistenceStreamingActorCreator.ACTOR_NAME,
-                ThingsPersistenceStreamingActorCreator.props(config, tagsStreamingCacheSize, log));
+                ThingsPersistenceStreamingActorCreator.props(config, tagsStreamingCacheSize));
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());

@@ -79,7 +79,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
-                kamonCommandListener, kamonConnectionPoolListener, log);
+                kamonCommandListener, kamonConnectionPoolListener);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
                         MongoEventToPersistenceStrategyFactory.getInstance());
