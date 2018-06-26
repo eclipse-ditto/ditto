@@ -82,6 +82,10 @@
             <artifactId>kamon-prometheus_${scala.version}</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-metrics</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

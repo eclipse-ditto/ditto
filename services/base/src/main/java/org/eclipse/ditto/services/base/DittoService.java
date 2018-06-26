@@ -79,7 +79,7 @@ import kamon.system.SystemMetrics;
  * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
- * <li>{@link #startKamonMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+ * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -363,7 +363,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #startKamonMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+     * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
      * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -379,7 +379,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
-            startKamonMetricsReporter(actorSystem, configReader);
+            addDropwizardMetricRegistries(actorSystem, configReader);
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
@@ -391,12 +391,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     /**
-     * May be overridden to start a Kamon metrics reporter. <em>The base implementation does nothing.</em>
+     * May be overridden to add custom dropwizard metric registries. <em>The base implementation does nothing.</em>
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param configReader the configuration reader of this service.
      */
-    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final C configReader) {
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
         // Does nothing by default.
     }
 

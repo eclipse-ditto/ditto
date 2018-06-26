@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
 
@@ -59,9 +59,9 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
     }
 
     @Override
-    protected void startKamonMetricsReporter(final ActorSystem actorSystem,  final ServiceConfigReader configReader) {
-        KamonDropwizardMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
-        KamonDropwizardMetrics.start(SERVICE_NAME);
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(
+                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
 
     @Override

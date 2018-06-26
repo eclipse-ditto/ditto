@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.KamonDropwizardMetrics;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
 
@@ -34,8 +34,6 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
      */
     private static final String SERVICE_NAME = "policies";
 
-    private final Logger logger;
-
     /**
      * Constructs a new {@code AbstractPoliciesService}.
      *
@@ -43,13 +41,12 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
      */
     protected AbstractPoliciesService(final Logger logger) {
         super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
-        this.logger = logger;
     }
 
     @Override
-    protected void startKamonMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        KamonDropwizardMetrics.addMetricRegistry(MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
-        KamonDropwizardMetrics.start(SERVICE_NAME);
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(
+                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
 
 }

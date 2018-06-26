@@ -63,6 +63,7 @@
         <kamon-core.version>1.1.2</kamon-core.version>
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
         <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
+        <prometheus.java-client.version>0.4.0</prometheus.java-client.version>
 
         <jsr302.version>3.0.1</jsr302.version>
 
@@ -353,6 +354,16 @@
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_dropwizard</artifactId>
+                <version>${prometheus.java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_common</artifactId>
+                <version>${prometheus.java-client.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->

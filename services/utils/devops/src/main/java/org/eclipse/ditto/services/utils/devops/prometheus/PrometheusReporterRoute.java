@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.devops.prometheus;
 import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.get;
 
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
+
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
@@ -43,8 +45,15 @@ public final class PrometheusReporterRoute {
         return get(() ->
                 complete(HttpResponse.create()
                         .withStatus(StatusCodes.OK)
-                        .withEntity(CONTENT_TYPE, ByteString.fromString(prometheusReporter.scrapeData()))
+                        .withEntity(CONTENT_TYPE, ByteString.fromString(buildMetricsString(prometheusReporter)))
                 )
         );
+    }
+
+    private static String buildMetricsString(final PrometheusReporter prometheusReporter) {
+        return "#Kamon Metrics\n" +
+                prometheusReporter.scrapeData() +
+                "#Dropwizard Metrics\n" +
+                DropwizardMetricsPrometheusReporter.getData();
     }
 }
