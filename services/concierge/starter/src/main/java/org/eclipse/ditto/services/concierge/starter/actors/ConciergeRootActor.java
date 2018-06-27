@@ -192,8 +192,9 @@ public final class ConciergeRootActor extends AbstractActor {
         final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
                 .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
 
-        final ActorRef mongoClient = startChildActor(context, MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(mongoUri, healthConfig.getPersistenceTimeout()));
+        final ActorRef mongoClient = startChildActor(context, MongoClientActor.ACTOR_NAME,
+                MongoClientActor.props(mongoUri, healthConfig.getPersistenceTimeout(),
+                        config.getMongoSSLEnabled()));
 
         if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();

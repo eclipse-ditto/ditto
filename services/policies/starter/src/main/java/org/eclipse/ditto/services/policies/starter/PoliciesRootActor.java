@@ -156,7 +156,8 @@ public final class PoliciesRootActor extends AbstractActor {
 
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        healthConfig.getPersistenceTimeout()));
+                        healthConfig.getPersistenceTimeout(),
+                        config.getBoolean(ConfigKeys.MONGO_SSL_ENABLED)));
 
         final boolean healthCheckEnabled = healthConfig.enabled();
         final Duration healthCheckInterval = healthConfig.getInterval();

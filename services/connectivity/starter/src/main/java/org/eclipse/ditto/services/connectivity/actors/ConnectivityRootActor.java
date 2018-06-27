@@ -157,7 +157,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
+                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT),
+                        config.getBoolean(ConfigKeys.MONGO_SSL_ENABLED)));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,

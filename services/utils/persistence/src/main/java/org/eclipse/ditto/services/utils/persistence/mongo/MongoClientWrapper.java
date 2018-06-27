@@ -89,7 +89,7 @@ public class MongoClientWrapper implements Closeable {
                         .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
                         .credential(connectionString.getCredential());
 
-        if (connectionString.getSslEnabled()) {
+        if (MongoConfig.getSSLEnabled(config)) {
             eventLoopGroup = new NioEventLoopGroup();
             builder.streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
                     .sslSettings(buildSSLSettings());
