@@ -76,6 +76,18 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         return new DittoProtocolAdapter();
     }
 
+    /**
+     * Configure whether this adapter should remove internal message headers.
+     *
+     * @param yesOrNo whether this adapter should remove internal message headers.
+     * @return this object.
+     */
+    public DittoProtocolAdapter removeInternalMessageHeaders(final boolean yesOrNo) {
+        messageCommandAdapter.removeInternalMessageHeaders(yesOrNo);
+        messageCommandResponseAdapter.removeInternalMessageHeaders(yesOrNo);
+        return this;
+    }
+
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();

@@ -27,6 +27,8 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
+    private boolean removeInternalHeaders = true;
+
     private MessageCommandResponseAdapter(
             final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies) {
         super(mappingStrategies);
@@ -64,6 +66,17 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
         return mappingStrategies;
     }
 
+    /**
+     * Configure whether this adapter should remove internal message headers from Ditto protocol messages.
+     *
+     * @param yesOrNo whether this object should remove internal message headers.
+     * @return this object.
+     */
+    public MessageCommandResponseAdapter removeInternalMessageHeaders(final boolean yesOrNo) {
+        removeInternalHeaders = yesOrNo;
+        return this;
+    }
+
     @Override
     public Adaptable toAdaptable(final MessageCommandResponse t) {
         return toAdaptable(t, TopicPath.Channel.LIVE);
@@ -86,7 +99,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     public Adaptable toAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
     }
 
 }

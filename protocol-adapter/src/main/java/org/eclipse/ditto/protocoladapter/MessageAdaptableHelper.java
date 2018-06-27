@@ -72,7 +72,8 @@ final class MessageAdaptableHelper {
             final JsonObject messageCommandJson,
             final JsonPointer resourcePath,
             final Message<?> message,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final boolean removeInternalHeaders) {
 
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingId);
 
@@ -101,11 +102,13 @@ final class MessageAdaptableHelper {
 
         // these headers are used to store message attributes of Message that are not fields.
         // their content is duplicated elsewhere. do not carry them in adaptable headers.
-        allHeadersBuilder.removeHeader(SUBJECT.getKey())
-                .removeHeader(DIRECTION.getKey())
-                .removeHeader(THING_ID.getKey())
-                .removeHeader(FEATURE_ID.getKey())
-                .removeHeader(STATUS_CODE.getKey());
+        if (removeInternalHeaders) {
+            allHeadersBuilder.removeHeader(SUBJECT.getKey())
+                    .removeHeader(DIRECTION.getKey())
+                    .removeHeader(THING_ID.getKey())
+                    .removeHeader(FEATURE_ID.getKey())
+                    .removeHeader(STATUS_CODE.getKey());
+        }
 
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())

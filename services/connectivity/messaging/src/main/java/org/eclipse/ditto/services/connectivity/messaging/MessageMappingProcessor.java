@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -55,17 +56,18 @@ public final class MessageMappingProcessor {
     private static final String SEGMENT_CATEGORY = "payload-mapping";
     private static final String MAPPING_SEGMENT_NAME = "mapping";
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
-    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final String connectionId;
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
+    private final DittoProtocolAdapter protocolAdapter;
 
     private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
             final DiagnosticLoggingAdapter log) {
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
+        this.protocolAdapter = DittoProtocolAdapter.newInstance();
     }
 
     /**
@@ -85,7 +87,11 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        return new MessageMappingProcessor(connectionId, registry, log);
+        final MessageMappingProcessor result = new MessageMappingProcessor(connectionId, registry, log);
+        if (HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).compatibilityMode()) {
+            result.protocolAdapter.removeInternalMessageHeaders(false);
+        }
+        return result;
     }
 
     /**
@@ -123,7 +129,7 @@ public final class MessageMappingProcessor {
         final String correlationId = signal.getDittoHeaders().getCorrelationId().orElse("no-correlation-id");
         return doApplyTraced(
                 () -> createProcessingContext(connectionId + OUTBOUND_MAPPING_TRACE_SUFFIX, correlationId),
-                ctx -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), ctx));
+                ctx -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), ctx));
     }
 
     private Optional<Signal<?>> convertMessage(final ExternalMessage message, final TraceContext ctx) {
@@ -142,7 +148,7 @@ public final class MessageMappingProcessor {
                 return doApplyTracedSegment(
                         () -> createSegment(ctx, PROTOCOL_SEGMENT_NAME),
                         () -> {
-                            final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
+                            final Signal<?> signal = protocolAdapter.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
                                     DittoHeaders.newBuilder(message.getHeaders());
                             dittoHeadersBuilder.putHeaders(signal.getDittoHeaders());

@@ -25,6 +25,8 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
+    private boolean removeInternalHeaders = true;
+
     private MessageCommandAdapter(final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies) {
         super(mappingStrategies);
     }
@@ -36,6 +38,17 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
      */
     public static MessageCommandAdapter newInstance() {
         return new MessageCommandAdapter(mappingStrategies());
+    }
+
+    /**
+     * Configure whether this adapter should remove internal message headers from Ditto protocol messages.
+     *
+     * @param yesOrNo whether this object should remove internal message headers.
+     * @return this object.
+     */
+    public MessageCommandAdapter removeInternalMessageHeaders(final boolean yesOrNo) {
+        removeInternalHeaders = yesOrNo;
+        return this;
     }
 
     private static Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies() {
@@ -73,7 +86,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     @Override
     public Adaptable toAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
     }
 
 }

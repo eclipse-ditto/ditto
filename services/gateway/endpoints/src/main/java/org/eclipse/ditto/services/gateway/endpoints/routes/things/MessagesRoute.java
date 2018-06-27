@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -116,9 +116,7 @@ final class MessagesRoute extends AbstractRoute {
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
 
-        headerBlacklist = actorSystem.settings()
-                .config()
-                .getStringList(ServiceConfigReader.CONFIG_KEY_HEADER_BLACKLIST);
+        headerBlacklist = HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).blacklist();
     }
 
     /**

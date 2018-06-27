@@ -221,13 +221,6 @@ public final class ConfigKeys {
         }
     }
 
-    @Immutable
-    public static final class Message {
-
-        public static final String HEADER_BLACKLIST = ServiceConfigReader.CONFIG_KEY_HEADER_BLACKLIST;
-    }
-
-
     /*
      * This class is not designed for instantiation.
      */

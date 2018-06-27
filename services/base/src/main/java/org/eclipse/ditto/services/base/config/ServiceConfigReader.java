@@ -19,11 +19,6 @@ import com.typesafe.config.Config;
 public interface ServiceConfigReader {
 
     /**
-     * Full config key of Ditto header blacklist.
-     */
-    String CONFIG_KEY_HEADER_BLACKLIST = "ditto.header-blacklist";
-
-    /**
      * Retrieve a cluster configuration reader.
      *
      * @return the cluster configuration of the service.
