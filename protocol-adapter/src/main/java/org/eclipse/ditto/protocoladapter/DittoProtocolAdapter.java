@@ -334,14 +334,11 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
         final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
         final TopicPath topicPath = adaptable.getTopicPath();
-        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
-                .channel(topicPath.getChannel().getName())
-                .build();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
-                .map(jsonObject -> errorRegistry.parse(jsonObject, adjustedHeaders))
+                .map(jsonObject -> errorRegistry.parse(jsonObject, dittoHeaders))
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();
