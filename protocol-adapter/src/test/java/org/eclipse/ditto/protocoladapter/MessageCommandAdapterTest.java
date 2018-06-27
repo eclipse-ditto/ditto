@@ -67,8 +67,7 @@ public final class MessageCommandAdapterTest {
                 TestPayload.of(APPLICATION_JSON, JsonValue.of(null)),
                 TestPayload.of(APPLICATION_JSON, null),
                 TestPayload.of(APPLICATION_OCTET_STREAM, binaryPayloadAsJson(), BINARY_PAYLOAD, true),
-                TestPayload.of("text/xml", JsonValue.of(XML_PAYLOAD), XML_PAYLOAD.getBytes(StandardCharsets.UTF_8),
-                        true),
+                TestPayload.of("text/xml", JsonValue.of(XML_PAYLOAD), XML_PAYLOAD, false),
                 TestPayload.of(null, null)
         );
         final Collection<String> messageTypes =

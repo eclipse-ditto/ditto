@@ -49,9 +49,8 @@ final class MessageAdaptableHelper {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
-    private static final String TEXT_PLAIN = "text/plain";
+    private static final String TEXT_PREFIX = "text/";
     private static final String APPLICATION_JSON = "application/json";
-    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     private MessageAdaptableHelper() {
         throw new AssertionError();
@@ -139,7 +138,7 @@ final class MessageAdaptableHelper {
         final MessageBuilder<T> messageBuilder = MessagesModelFactory.newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
         if (shouldBeInterpretedAsText) {
-            if (isPlainText(contentType) && value.filter(JsonValue::isString).isPresent()) {
+            if (isAnyText(contentType) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
             } else {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
@@ -200,12 +199,12 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON) ||
+        return isAnyText(contentType) || contentType.toLowerCase().startsWith(APPLICATION_JSON) ||
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
     }
 
-    private static boolean isPlainText(final String contentType) {
-        return contentType.startsWith(TEXT_PLAIN);
+    private static boolean isAnyText(final String contentType) {
+        return contentType.toLowerCase().startsWith(TEXT_PREFIX);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {
