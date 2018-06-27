@@ -27,7 +27,7 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
 
     private static final String PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT =
             "things-aggregator.single-retrieve-thing-timeout";
-    private static final String MONGO_SSL_ENABLED = "ditto.services-utils-config.mongodb.options.ssl";
+
 
     protected AbstractConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
@@ -60,12 +60,4 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
         return config.getDuration(PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
     }
 
-    /**
-     * Retrieve boolean which indicates if SSL is enabled for MongoClient connections.
-     *
-     * @return boolean if SSL is enabled or not..
-     */
-    public Boolean getMongoSSLEnabled() {
-        return config.getBoolean(MONGO_SSL_ENABLED);
-    }
 }

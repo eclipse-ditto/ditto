@@ -36,6 +36,8 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
+import com.typesafe.config.Config;
+
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
@@ -185,16 +187,17 @@ public final class ConciergeRootActor extends AbstractActor {
     }
 
     private static ActorRef startHealthCheckingActor(final ActorContext context,
-            final AbstractConciergeConfigReader config) {
+            final AbstractConciergeConfigReader configReader) {
 
-        final HealthConfigReader healthConfig = config.health();
-        final String mongoUri = MongoConfig.getMongoUri(config.getRawConfig());
+        final Config config = configReader.getRawConfig();
+        final HealthConfigReader healthConfig = configReader.health();
+        final String mongoUri = MongoConfig.getMongoUri(config);
         final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
                 .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
 
         final ActorRef mongoClient = startChildActor(context, MongoClientActor.ACTOR_NAME,
                 MongoClientActor.props(mongoUri, healthConfig.getPersistenceTimeout(),
-                        config.getMongoSSLEnabled()));
+                        MongoConfig.getSSLEnabled(config)));
 
         if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();

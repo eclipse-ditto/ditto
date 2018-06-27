@@ -21,8 +21,6 @@ public final class ConfigKeys {
      */
     public static final String MONGO_URI = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
-    public static final String MONGO_SSL_ENABLED = "ditto.services-utils-config.mongodb.options.ssl";
-
     private static final String THINGS_PREFIX = "ditto.things.";
 
     /**

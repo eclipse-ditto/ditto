@@ -25,8 +25,6 @@ public final class ConfigKeys {
      */
     public static final String MONGO_URI = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
-    public static final String MONGO_SSL_ENABLED = "services-utils-config.mongodb.options.ssl";
-
     /**
      * Configuration Keys for HTTP.
      */

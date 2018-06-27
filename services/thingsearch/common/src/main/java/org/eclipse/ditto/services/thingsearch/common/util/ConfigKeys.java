@@ -30,8 +30,6 @@ public final class ConfigKeys {
     private static final String SEARCH_PREFIX = DITTO_PREFIX + SEARCH_ROLE + ".";
     private static final String SEARCH_UPDATER_PREFIX = SEARCH_PREFIX + "updater.";
 
-    public static final String MONGO_SSL_ENABLED = "services-utils-config.mongodb.options.ssl";
-
     /**
      * Prefix for mongoDB config
      */
