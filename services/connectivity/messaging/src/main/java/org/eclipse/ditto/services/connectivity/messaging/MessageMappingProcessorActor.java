@@ -260,6 +260,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     .newAmqpRoundTripTimer(command)
                     .maximumDuration(5, TimeUnit.MINUTES)
                     .tags(additionalTags)
+                    .expirationHandling(startedTimer -> this.timers.remove(correlationId))
                     .build();
             this.timers.put(correlationId, timer);
         });
@@ -284,7 +285,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final StartedTimer timer = timers.get(correlationId);
+        final StartedTimer timer = timers.remove(correlationId);
         if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
