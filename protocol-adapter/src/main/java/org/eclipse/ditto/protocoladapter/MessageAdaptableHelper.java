@@ -24,7 +24,6 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -88,30 +87,10 @@ final class MessageAdaptableHelper {
         messagesTopicPathBuilder.subject(message.getSubject());
 
         final JsonPointer messagePointer = MessageCommand.JsonFields.JSON_MESSAGE.getPointer();
-        final JsonPointer headersJsonPointer = messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS
-                .getPointer());
-        final JsonObject messageCommandHeadersJsonObject = messageCommandJson.getValue(headersJsonPointer)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseGet(JsonFactory::newObject);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
         messageCommandJson.getValue(messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()))
-                .map(p -> messageCommandHeadersJsonObject.getValue(DittoHeaderDefinition.CONTENT_TYPE.getKey())
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .map(contentType -> {
-                            if (MessageAdaptableHelper.shouldBeInterpretedAsText(contentType) ||
-                                    MessageAdaptableHelper.shouldBeInterpretedAsBinary(contentType)) {
-                                return p;
-                            } else {
-                                return JsonValue.of(
-                                        new String(BASE_64_DECODER.decode(p.asString()),
-                                                MessageAdaptableHelper.determineCharset(contentType)));
-                            }
-                        })
-                        .orElse(p))
                 .ifPresent(payloadBuilder::withValue);
 
         message.getStatusCode().ifPresent(payloadBuilder::withStatus);
@@ -157,7 +136,7 @@ final class MessageAdaptableHelper {
         final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
         final Charset charset = shouldBeInterpretedAsText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
-        final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
+        final MessageBuilder<T> messageBuilder = MessagesModelFactory.newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
         if (shouldBeInterpretedAsText) {
             if (isPlainText(contentType) && value.filter(JsonValue::isString).isPresent()) {
@@ -223,10 +202,6 @@ final class MessageAdaptableHelper {
     private static boolean shouldBeInterpretedAsText(final String contentType) {
         return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON) ||
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
-    }
-
-    private static boolean shouldBeInterpretedAsBinary(final String contentType) {
-        return contentType.startsWith(APPLICATION_OCTET_STREAM);
     }
 
     private static boolean isPlainText(final String contentType) {
