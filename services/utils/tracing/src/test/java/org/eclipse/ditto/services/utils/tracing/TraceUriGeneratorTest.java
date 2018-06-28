@@ -57,12 +57,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "inbox")
-                        .tag(TracingTags.ENTITY_SUB_ID, "messages")
                         .build());
     }
 
@@ -73,12 +68,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "features")
-                        .tag(TracingTags.ENTITY_SUB_ID, "Vehicle")
                         .build());
     }
 
@@ -89,11 +79,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "features")
                         .build());
     }
 
@@ -104,11 +90,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/attributes" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "attributes")
                         .build());
     }
 
@@ -119,12 +101,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/attributes" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "attributes")
-                        .tag(TracingTags.ENTITY_SUB_ID, "firmware-version")
                         .build());
     }
 
@@ -136,12 +113,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "features")
-                        .tag(TracingTags.ENTITY_SUB_ID, "Vehicle")
                         .build());
     }
 
@@ -152,12 +124,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri + "/features" + SHORTENED_PATH_SUFFIX;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abc:1a4ed3df-308b-462e-9cfc-b78891f18c39")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "features")
-                        .tag(TracingTags.ENTITY_SUB_ID, "Vehicle")
                         .build());
     }
 
@@ -168,12 +135,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abcdefgh:fancy-car")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "inbox")
-                        .tag(TracingTags.ENTITY_SUB_ID, "claim")
                         .build());
     }
 
@@ -184,12 +146,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "1")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "abcdefgh:fancy-car")
-                        .tag(TracingTags.ENTITY_SUB_TYPE, "features")
-                        .tag(TracingTags.ENTITY_SUB_ID, "Vehicle")
                         .build());
     }
 
@@ -200,10 +157,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "2")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "things")
-                        .tag(TracingTags.ENTITY_ID, "ns:1")
                         .build());
     }
 
@@ -214,9 +168,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "2")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "search/things")
                         .build());
     }
 
@@ -227,10 +179,7 @@ public final class TraceUriGeneratorTest {
         final String expectedPath = expectedUri;
         assertTraceUri(path,
                 TraceInformation.Builder.forTraceUri(expectedUri)
-                        .tag(TracingTags.API_VERSION, "2")
                         .tag(TracingTags.REQUEST_PATH, expectedPath)
-                        .tag(TracingTags.ENTITY_TYPE, "search/things")
-                        .tag(TracingTags.ENTITY_ID, "count")
                         .build());
     }
 

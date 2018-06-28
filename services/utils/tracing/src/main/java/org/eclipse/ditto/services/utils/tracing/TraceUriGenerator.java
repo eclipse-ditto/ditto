@@ -138,21 +138,13 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
             final String sanitizedPath;
             final String pathToShorten = matcher.group(PATHS_TO_SHORTEN_GROUP);
             if (pathToShorten != null) {
-                tags.put(TracingTags.API_VERSION, matcher.group(API_VERSION_GROUP));
-                addTagToMap(tags, TracingTags.ENTITY_ID, "entityId", matcher);
-                addTagToMap(tags, TracingTags.ENTITY_TYPE, "entityType", matcher);
-                addTagToMap(tags, TracingTags.ENTITY_SUB_ID, "subEntityId", matcher);
-                addTagToMap(tags, TracingTags.ENTITY_SUB_TYPE, "subEntityType", matcher);
+                final Optional<String> subEntityType = getMatcherValue("subEntityType", matcher);
                 if (messageMatcher.matches()) {
                     traceUri = pathToShorten + MESSAGES_PATH_SUFFIX;
                     sanitizedPath = traceUri;
                 } else {
                     traceUri = pathToShorten + SHORTENED_PATH_SUFFIX;
-                    if (tags.containsKey(TracingTags.ENTITY_SUB_TYPE)) {
-                        sanitizedPath = traceUri + "/" + tags.get(TracingTags.ENTITY_SUB_TYPE) + SHORTENED_PATH_SUFFIX;
-                    } else {
-                        sanitizedPath = traceUri;
-                    }
+                    sanitizedPath = subEntityType.map(s -> traceUri + "/" + s + SHORTENED_PATH_SUFFIX).orElse(traceUri);
                 }
             } else {
                 final String pathFullLength = matcher.group(PATHS_EXACT_LENGTH_GROUP);
@@ -182,12 +174,10 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
         }
     }
 
-    private void addTagToMap(final Map<String, String> tags, final String tagKey, final String matchingGroup,
-            final Matcher matcher) {
-        tryGetCapturingGroup(matcher, matchingGroup)
+    private Optional<String> getMatcherValue(final String matchingGroup, final Matcher matcher) {
+        return tryGetCapturingGroup(matcher, matchingGroup)
                 .filter(Objects::nonNull)
-                .filter(g -> !g.isEmpty())
-                .ifPresent(g -> tags.put(tagKey, g));
+                .filter(g -> !g.isEmpty());
     }
 
     private Optional<String> tryGetCapturingGroup(final Matcher matcher, final String group) {

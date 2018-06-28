@@ -41,15 +41,13 @@ public final class TraceUtils {
 
         final TraceInformation traceInformation = determineTraceInformation(requestPath);
 
-        final String metricsUri = TIMER_HTTP_ROUNDTRIP_PREFIX + traceInformation.getTraceUri();
-        return newExpiringTimer(metricsUri)
+        return newExpiringTimer(TIMER_HTTP_ROUNDTRIP_PREFIX)
                 .tags(traceInformation.getTags())
                 .tag(TracingTags.REQUEST_METHOD, requestMethod);
     }
 
     public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
-        final String metricsUri = TIMER_AMQP_ROUNDTRIP_PREFIX + command.getType();
-        return newExpiringTimer(metricsUri)
+        return newExpiringTimer(TIMER_AMQP_ROUNDTRIP_PREFIX)
                 .tag(TracingTags.COMMAND_TYPE, command.getType())
                 .tag(TracingTags.COMMAND_TYPE_PREFIX, command.getTypePrefix())
                 .tag(TracingTags.COMMAND_CATEGORY, command.getCategory().name());
