@@ -311,30 +311,34 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void handleSignal(final Signal<?> signal) {
         enhanceLogUtil(signal);
         if (clientActor == null) {
-            log.debug("Cannot forward thing event, client actor not ready.");
+            log.debug("Signal dropped: Client actor not ready.");
             return;
         }
         if (connection == null) {
-            log.debug("No Connection configuration available.");
+            log.debug("Signal dropped: No Connection configuration available.");
             return;
         }
         if (uniqueTopicPaths.isEmpty()) {
-            log.debug("Not forwarding anything.");
+            log.debug("Signal dropped: No topic paths present.");
             return;
         }
         if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
-            log.debug("Dropping signal, was sent by myself.");
+            log.debug("Signal dropped: was sent by myself.");
             return;
         }
+
         final Set<Target> subscribedAndAuthorizedTargets = SignalFilter.filter(connection, signal);
-        // forward to client actor if topic was subscribed and there are targets that are authorized to read
-        if (!subscribedAndAuthorizedTargets.isEmpty()) {
-            final Set<Target> filteredTargets =
-                    placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
-            log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
-            final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
-            clientActor.tell(outbound, getSelf());
+        if (subscribedAndAuthorizedTargets.isEmpty()) {
+            log.debug("Signal dropped: No subscribed and authorized targets present");
+            return;
         }
+
+        // forward to client actor if topic was subscribed and there are targets that are authorized to read
+        final Set<Target> filteredTargets =
+                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
+        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
+        final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
+        clientActor.tell(outbound, getSelf());
     }
 
     private void testConnection(final TestConnection command) {
