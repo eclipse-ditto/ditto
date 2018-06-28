@@ -187,7 +187,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using conciergeForwarder", adjustedSignal.getType());
+
+                // This message is important to check if a command is accepted for a specific connection, as this
+                // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
+                log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder", adjustedSignal
+                        .getType());
                 conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
