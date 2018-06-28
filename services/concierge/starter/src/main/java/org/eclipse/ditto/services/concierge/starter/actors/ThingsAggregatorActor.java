@@ -208,8 +208,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                         .map(WithEntity::getEntity)
                         .collect(toList());
 
-                timer.tag("count", Integer.toBinaryString(things.size()))
-                        .stop();
+                timer.stop();
 
                 if (retrieveThings instanceof SudoCommand) {
                     return SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),

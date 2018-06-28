@@ -119,7 +119,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                                 final AuthorizationContext authContext =
                                                         AuthorizationModelFactory.newAuthContext(authSubjects);
 
-                                                timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(true))
+                                                timer.tag(TracingTags.AUTH_SUCCESS, true)
                                                         .stop();
 
                                                 return authContext;
@@ -127,7 +127,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                             ).exceptionally(t -> {
                                 final Throwable rootCause = (t instanceof CompletionException) ? t.getCause() : t;
                                 if (rootCause instanceof GatewayAuthenticationFailedException) {
-                                    timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
+                                    timer.tag(TracingTags.AUTH_SUCCESS, false)
                                             .stop();
 
 
@@ -135,8 +135,8 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                     LOGGER.debug("JWT authentication failed.", e);
                                     throw e;
                                 } else {
-                                    timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
-                                            .tag(TracingTags.AUTH_ERROR, Boolean.toString(true))
+                                    timer.tag(TracingTags.AUTH_SUCCESS, false)
+                                            .tag(TracingTags.AUTH_ERROR, true)
                                             .stop();
 
                                     LOGGER.warn("Unexpected error during JWT authentication.", rootCause);
@@ -169,7 +169,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId,
             final StartedTimer timer) {
-        timer.tag(TracingTags.AUTH_SUCCESS, Boolean.toString(false))
+        timer.tag(TracingTags.AUTH_SUCCESS, false)
                 .stop();
 
         return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified")
