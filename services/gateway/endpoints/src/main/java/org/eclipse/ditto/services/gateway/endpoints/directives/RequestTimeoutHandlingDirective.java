@@ -95,8 +95,9 @@ public final class RequestTimeoutHandlingDirective {
 
     private static void checkDurationWarning(final StoppedTimer mutableTimer) {
         final Duration duration = mutableTimer.getDuration();
-        final String entityType = mutableTimer.getTag(TracingTags.ENTITY_TYPE);
-        if (TRACING_ENTITY_SEARCH.equals(entityType) && SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+        final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
+        if (requestPath != null && requestPath.contains("/search/things") &&
+                SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
             LOGGER.warn("Encountered slow search which took over {}ms: {}ms",
                     SEARCH_WARN_TIMEOUT_MS.toMillis(),
                     duration.toMillis());

@@ -17,20 +17,22 @@ package org.eclipse.ditto.services.utils.tracing;
 public final class TracingTags {
 
     private static final String PREFIX = "ditto.";
+    //AMQP round trip tags
     public static final String COMMAND_TYPE = PREFIX + "command.type";
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
+    public static final String CONNECTION_ID =  PREFIX + "connection.id";
+
+    //HTTP round trip tags
     public static final String STATUS_CODE = PREFIX + "statusCode";
     public static final String REQUEST_METHOD = PREFIX + "request.method";
     public static final String REQUEST_PATH = PREFIX + "request.path";
-    public static final String API_VERSION = PREFIX + "apiVersion";
-    public static final String ENTITY_TYPE = PREFIX + "entity.type";
-    public static final String ENTITY_ID = PREFIX + "entity.id";
-    public static final String ENTITY_SUB_TYPE = PREFIX + "entity.subType";
-    public static final String ENTITY_SUB_ID = PREFIX + "entity.subId";
+
+    //Auth filter tags
     public static final String AUTH_SUCCESS = PREFIX + "auth.success";
     public static final String AUTH_ERROR = PREFIX + "auth.error";
     public static final String AUTH_TYPE = PREFIX + "auth.type";
+
+    //Mapping tags
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
-    public static final String CONNECTION_ID =  PREFIX + "connection.id";
 }
