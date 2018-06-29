@@ -107,10 +107,10 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
                                     DirectivesLoggingUtils.enhanceLogWithCorrelationId(correlationId,
                                             () -> {
                                                 final PublicKey publicKey = publicKeyOpt
-                                                        .orElseThrow(() -> buildJwtUnauthorizedException(correlationId,
-                                                                timer));
+                                                        .orElseThrow(
+                                                                () -> buildJwtUnauthorizedException(correlationId));
 
-                                                validateToken(jwt, publicKey, correlationId, timer);
+                                                validateToken(jwt, publicKey, correlationId);
 
                                                 final List<AuthorizationSubject> authSubjects =
                                                         authorizationSubjectsProvider
@@ -155,7 +155,7 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
     }
 
     private void validateToken(final JsonWebToken authorizationToken, final PublicKey publicKey,
-            final String correlationId, final StartedTimer timer) {
+            final String correlationId) {
         final DefaultJwtParser defaultJwtParser = new DefaultJwtParser();
 
         try {
@@ -163,14 +163,11 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
             LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage(),
                     e);
-            throw buildJwtUnauthorizedException(correlationId, timer);
+            throw buildJwtUnauthorizedException(correlationId);
         }
     }
 
-    private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId,
-            final StartedTimer timer) {
-        timer.tag(TracingTags.AUTH_SUCCESS, false)
-                .stop();
+    private static DittoRuntimeException buildJwtUnauthorizedException(final String correlationId) {
 
         return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified")
                 .description("Check if your token is not expired and set the token accordingly.")
