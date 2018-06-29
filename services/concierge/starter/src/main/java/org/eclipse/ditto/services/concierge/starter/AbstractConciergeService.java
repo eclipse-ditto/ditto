@@ -18,6 +18,7 @@ import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.NamedMetricRegistry;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
@@ -40,8 +41,8 @@ public abstract class AbstractConciergeService<C extends AbstractConciergeConfig
 
     @Override
     protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
-        DropwizardMetricsPrometheusReporter.addMetricRegistry(
-                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
+        final NamedMetricRegistry mongo = MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig());
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(mongo);
     }
 
 }

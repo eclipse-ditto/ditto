@@ -16,7 +16,18 @@ import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrume
 
 public interface Histogram extends ResettableMetricInstrument, TaggedMetricInstrument<Histogram> {
 
+    /**
+     * Records the specified value in the histogram.
+     *
+     * @param value The value to record.
+     * @return This histogram.
+     */
     Histogram record(Long value);
 
+    /**
+     * Gets all recorded values.
+     *
+     * @return An array of all recorded values.
+     */
     Long[] getRecordedValues();
 }

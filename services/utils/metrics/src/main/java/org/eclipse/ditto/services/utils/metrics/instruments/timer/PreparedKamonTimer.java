@@ -89,24 +89,13 @@ public class PreparedKamonTimer implements PreparedTimer {
     public Long[] getRecords() {
         final List<Long> values = new ArrayList<>();
         final Seq<Bucket> buckets = getSnapshot(false).distribution().buckets();
-        buckets.foreach(bucket -> addBucketValuesToList(bucket, values));
+        buckets.toStream().foreach(bucket -> addBucketValuesToList(bucket, values));
         return values.toArray(new Long[0]);
     }
 
     @Override
     public Long getNumberOfRecords() {
         return getSnapshot(false).distribution().count();
-    }
-
-    private List<Long> addBucketValuesToList(Bucket bucket, List<Long> values) {
-        for (int i = 0; i < bucket.frequency(); i++) {
-            values.add(bucket.value());
-        }
-        return values;
-    }
-
-    private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).refine(this.tags);
     }
 
     @Override
@@ -147,5 +136,16 @@ public class PreparedKamonTimer implements PreparedTimer {
             return ((AtomicHdrHistogram) histogram).snapshot(reset);
         }
         throw new IllegalStateException("Could not get snapshot of kamon timer");
+    }
+
+    private kamon.metric.Timer getKamonInternalTimer() {
+        return Kamon.timer(name).refine(this.tags);
+    }
+
+    private List<Long> addBucketValuesToList(Bucket bucket, List<Long> values) {
+        for (int i = 0; i < bucket.frequency(); i++) {
+            values.add(bucket.value());
+        }
+        return values;
     }
 }

@@ -29,7 +29,7 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
     StoppedTimer stop();
 
     /**
-     * Indicates whether this timer is still running
+     * Indicates whether this timer is still running.
      *
      * @return True if running, False if not.
      */
@@ -41,8 +41,8 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      * This segment will be stopped when its parent (the timer you use to start a new segment) is stopped, if it's not
      * stopped before.
      *
-     * @param segmentName The name that will be stored in the segment tag
-     * @return The started timer
+     * @param segmentName The name that will be stored in the segment tag.
+     * @return The started timer.
      */
     StartedTimer startNewSegment(final String segmentName);
 
@@ -53,9 +53,9 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
     StartedTimer onStop(final OnStopHandler onStopHandler);
 
     /**
-     * Returns the start timestamp in nanos
+     * Returns the start timestamp in nanos.
      *
-     * @return The start timestamp in nanos;
+     * @return The start timestamp in nanos.
      */
     Long getStartTimeStamp();
 

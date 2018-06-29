@@ -39,13 +39,15 @@ public class KamonGauge implements Gauge {
     }
 
     @Override
-    public void increment() {
+    public Gauge increment() {
         getKamonInternalGauge().increment();
+        return this;
     }
 
     @Override
-    public void decrement() {
+    public Gauge decrement() {
         getKamonInternalGauge().decrement();
+        return this;
     }
 
     @Override

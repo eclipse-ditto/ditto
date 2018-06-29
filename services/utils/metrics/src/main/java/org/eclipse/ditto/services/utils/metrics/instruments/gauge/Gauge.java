@@ -16,11 +16,31 @@ import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrume
 
 public interface Gauge extends ResettableMetricInstrument, TaggedMetricInstrument<Gauge> {
 
-    void increment();
+    /**
+     * Increments the value of the gauge by one.
+     *
+     * @return This gauge.
+     */
+    Gauge increment();
 
-    void decrement();
+    /**
+     * Decrements the value of the gauge by one.
+     *
+     * @return This gauge.
+     */
+    Gauge decrement();
 
+    /**
+     * Sets the value of the gauge to the given value.
+     *
+     * @param value The value the gauge should be set to.
+     */
     void set(Long value);
 
+    /**
+     * Gets the current value of the gauge.
+     *
+     * @return The current value of the gauge.
+     */
     Long get();
 }

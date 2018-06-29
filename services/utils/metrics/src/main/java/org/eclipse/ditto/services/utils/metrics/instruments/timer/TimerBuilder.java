@@ -19,8 +19,8 @@ public interface TimerBuilder<T extends TimerBuilder, B extends Timer> {
      * Adds tags to the timer.
      * Already existing tags with the same key will be overridden.
      *
-     * @param additionalTags Additional tags for this tracing
-     * @return The TracingTimerBuilder
+     * @param additionalTags Additional tags for this tracing.
+     * @return The TracingTimerBuilder.
      */
     T tags(final Map<String, String> additionalTags);
 
@@ -28,16 +28,16 @@ public interface TimerBuilder<T extends TimerBuilder, B extends Timer> {
      * Adds the given tag to the timer.
      * Already existing tags with the same key will be overridden.
      *
-     * @param key They key of the tag
-     * @param value The value of the tag
-     * @return The TracingTimerBuilder
+     * @param key They key of the tag.
+     * @param value The value of the tag.
+     * @return The TracingTimerBuilder.
      */
     T tag(final String key, final String value);
 
     /**
-     * Builds the timer
+     * Builds the timer.
      *
-     * @return the built timer
+     * @return the built timer.
      */
     B build();
 }

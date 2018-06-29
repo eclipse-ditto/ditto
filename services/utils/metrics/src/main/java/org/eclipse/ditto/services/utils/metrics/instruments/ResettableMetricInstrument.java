@@ -16,7 +16,7 @@ public interface ResettableMetricInstrument extends MetricInstrument {
     /**
      * Resets the metric.
      *
-     * @return Returns true if metric could be reset successfully. False if not
+     * @return Returns true if metric could be reset successfully. False if not.
      */
     boolean reset();
 }

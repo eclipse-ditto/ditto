@@ -16,9 +16,9 @@ import org.eclipse.ditto.services.utils.metrics.instruments.MetricInstrument;
 public interface Timer extends MetricInstrument {
 
     /**
-     * Gets the name of this timer
+     * Gets the name of this timer.
      *
-     * @return the name of this timer
+     * @return the name of this timer.
      */
     String getName();
 }

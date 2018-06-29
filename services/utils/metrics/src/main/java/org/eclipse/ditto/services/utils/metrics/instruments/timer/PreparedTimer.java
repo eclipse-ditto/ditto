@@ -25,30 +25,30 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
      * Starts the Timer. This method is package private so only {@link DefaultTimerBuilder} can start
      * this timer.
      *
-     * @return The started {@link StartedTimer timer}
+     * @return The started {@link StartedTimer timer}.
      */
     StartedTimer start();
 
     /**
-     * Records the given time
+     * Records the given time.
      *
-     * @param time The time to record
-     * @param timeUnit The unit of the time to record
-     * @return This timer
+     * @param time The time to record.
+     * @param timeUnit The unit of the time to record.
+     * @return This timer.
      */
     PreparedTimer record(long time, TimeUnit timeUnit);
 
     /**
-     * Gets recorded times in nanoseconds
+     * Gets recorded times in nanoseconds.
      *
-     * @return recorded times in nanoseconds
+     * @return recorded times in nanoseconds.
      */
     Long[] getRecords();
 
     /**
-     * Get number of records
+     * Get number of records.
      *
-     * @return The number of records for this timer
+     * @return The number of records for this timer.
      */
     Long getNumberOfRecords();
 }

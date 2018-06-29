@@ -24,6 +24,10 @@ public final class NamedMetricRegistry {
     private final String metricName;
     private final MetricRegistry metricRegistry;
 
+    /**
+     * Constructs a new Named Metric Registry. Is package private to restrict instantiation to only be possible in
+     * {@link MetricRegistryFactory}.
+     */
     NamedMetricRegistry(final String metricName, final MetricRegistry metricRegistry) {
 
         checkNotNull(metricRegistry, "metric registry");
@@ -33,11 +37,21 @@ public final class NamedMetricRegistry {
         this.metricRegistry = metricRegistry;
     }
 
-    public String getMetricName() {
+    /**
+     * Gets the name of this metric registry.
+     *
+     * @return The name of this metric registry.
+     */
+    public String getName() {
         return metricName;
     }
 
-    public MetricRegistry getMetricRegistry() {
+    /**
+     * Gets the dropwizard metric registry.
+     *
+     * @return The dropwizard metric registry.
+     */
+    public MetricRegistry getRegistry() {
         return metricRegistry;
     }
 }

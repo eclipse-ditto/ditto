@@ -38,11 +38,16 @@ public class DropwizardMetricsPrometheusReporter {
      */
     public static void addMetricRegistry(final NamedMetricRegistry metricRegistry) {
         checkNotNull(metricRegistry, "metrics registry");
-        registry.register(new DropwizardExports(metricRegistry.getMetricRegistry()));
+        registry.register(new DropwizardExports(metricRegistry.getRegistry()));
 
-        LOGGER.info("Started to export dropwizard metrics <{}>.", metricRegistry.getMetricName());
+        LOGGER.info("Started to export dropwizard metrics <{}>.", metricRegistry.getName());
     }
 
+    /**
+     * Gets the recorded data in Prometheus format.
+     *
+     * @return The recorded data in Prometheus format.
+     */
     public static String getData() {
         try (final StringWriter stringWriter = new StringWriter()) {
             TextFormat.write004(stringWriter, registry.metricFamilySamples());

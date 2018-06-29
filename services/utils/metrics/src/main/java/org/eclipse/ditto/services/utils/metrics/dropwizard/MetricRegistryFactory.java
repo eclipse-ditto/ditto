@@ -25,8 +25,7 @@ public final class MetricRegistryFactory {
 
     private static final String MONGO_DB_METRIC_NAME = "mongodb";
 
-    private MetricRegistryFactory() {
-    }
+    private MetricRegistryFactory() { }
 
     /**
      * Gets the MongoDB-MetricRegistry, creates it if it does not exist yet.

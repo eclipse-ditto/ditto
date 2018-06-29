@@ -16,8 +16,19 @@ import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrume
 
 public interface Counter extends ResettableMetricInstrument, TaggedMetricInstrument<Counter> {
 
+    /**
+     * Increments the value of the counter by one.
+     *
+     * @return This counter.
+     */
     Counter increment();
 
+
+    /**
+     * Increments the value of the counter by one for the specified values of times.
+     *
+     * @return This counter.
+     */
     Counter increment(long times);
 
     long getCount();

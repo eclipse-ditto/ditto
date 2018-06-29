@@ -49,11 +49,11 @@ public class StartedKamonTimer implements StartedTimer {
 
     @Override
     public StartedTimer tags(final Map<String, String> tags) {
-        if (!stopped) {
-            this.tags.putAll(tags);
-        } else {
+        if (stopped) {
             LOGGER.warn("Tried to append multiple tags to the stopped timer with name <{}>. Tags are ineffective.",
                     name);
+        } else {
+            this.tags.putAll(tags);
         }
         return this;
     }
@@ -71,12 +71,12 @@ public class StartedKamonTimer implements StartedTimer {
 
     @Override
     public StartedTimer tag(final String key, final String value) {
-        if (!stopped) {
-            this.tags.put(key, value);
-        } else {
+        if (stopped) {
             LOGGER.warn(
                     "Tried to append tag <{}> with value <{}> to the stopped timer with name <{}>. Tag is ineffective.",
                     key, value, name);
+        } else {
+            this.tags.put(key, value);
         }
         return this;
     }
@@ -84,13 +84,14 @@ public class StartedKamonTimer implements StartedTimer {
     @Override
     public StoppedTimer stop() {
 
-        if (!isRunning()) {
-            throw new IllegalStateException(
-                    String.format("Tried to stop the already stopped timer <%s> with segment <%s>.", name,
-                            getTag(SEGMENT_TAG)));
+        if (isRunning()) {
+            stopped = true;
+            return StoppedKamonTimer.fromStartedTimer(this);
         }
-        stopped = true;
-        return StoppedKamonTimer.fromStartedTimer(this);
+
+        throw new IllegalStateException(
+                String.format("Tried to stop the already stopped timer <%s> with segment <%s>.", name,
+                        getTag(SEGMENT_TAG)));
     }
 
     @Override
