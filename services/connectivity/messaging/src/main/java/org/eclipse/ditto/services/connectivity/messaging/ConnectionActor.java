@@ -251,7 +251,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     @Override
     public Receive createReceive() {
-
         return ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection -> validateAndForward(testConnection, this::testConnection))
                 .match(CreateConnection.class,
@@ -378,21 +377,32 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         persistEvent(connectionCreated, persistedEvent -> {
             connection = persistedEvent.getConnection();
+            getContext().become(connectionCreatedBehaviour);
 
-            askClientActor(command, response -> {
-                        getContext().become(connectionCreatedBehaviour);
-                        subscribeForEvents();
-                        origin.tell(
-                                CreateConnectionResponse.of(connection, command.getDittoHeaders()),
-                                getSelf());
-                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                    }, error -> {
-                        getContext().become(connectionCreatedBehaviour);
-                        handleException("connect", origin, error);
-                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                    }
-            );
+            if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+                log.debug("Connection <{}> has status <{}> and will therefore be opened.", connection.getId(),
+                        connection.getConnectionStatus().getName());
+                askClientActor(command, response -> {
+                            subscribeForEvents();
+                        }, error -> {
+                            handleException("connect", origin, error, false);
+                        }, unused -> {
+                            this.respondWithCreateConnectionResponse(connection, command, origin);
+                        }
+                );
+            } else {
+                log.debug("Connection <{}> has status <{}> and will therefore stay closed.", connection.getId(),
+                        connection.getConnectionStatus().getName());
+                this.respondWithCreateConnectionResponse(connection, command, origin);
+            }
         });
+    }
+
+    private void respondWithCreateConnectionResponse(final Connection connection, final CreateConnection command,
+            final ActorRef origin) {
+        origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
+        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+
     }
 
     private void modifyConnection(final ModifyConnection command) {
@@ -492,6 +502,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
             final Consumer<Throwable> onError) {
+        askClientActor(cmd, onSuccess, onError, unused -> {});
+    }
+
+    private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
+            final Consumer<Throwable> onError, final Consumer<Void> onFinally) {
 
         startClientActorIfRequired();
         final long timeout = Optional.ofNullable(cmd.getDittoHeaders().get("timeout"))
@@ -514,11 +529,19 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         } else {
                             onSuccess.accept(response);
                         }
+                        onFinally.accept(null);
                     });
+        } else {
+            onFinally.accept(null);
         }
     }
 
     private void handleException(final String action, final ActorRef origin, final Throwable exception) {
+        this.handleException(action, origin, exception, true);
+    }
+
+    private void handleException(final String action, final ActorRef origin, final Throwable exception,
+            final boolean sendExceptionResponse) {
         final DittoRuntimeException dre;
         if (exception instanceof DittoRuntimeException) {
             dre = (DittoRuntimeException) exception;
@@ -529,7 +552,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     .build();
         }
 
-        origin.tell(dre, getSelf());
+        if (sendExceptionResponse) {
+            origin.tell(dre, getSelf());
+        }
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, connectionId,
                 dre.getClass().getSimpleName(), dre.getMessage());
     }
@@ -568,7 +593,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
             pubSubMediator.tell(subscribe, getSelf());
         });
     }
-
 
     private void unsubscribeFromEvents() {
         forEachPubSubTopicDo(pubSubTopic -> {

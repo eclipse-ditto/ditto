@@ -20,6 +20,10 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -42,11 +46,13 @@ import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
+import akka.actor.Scheduler;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.management.AkkaManagement;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.stream.ActorMaterializer;
+import akka.stream.stage.TimerMessages;
 import kamon.Kamon;
 
 /**
@@ -173,10 +179,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
 
+        final AtomicBoolean gracefulShutdown = new AtomicBoolean(false);
+
         CoordinatedShutdown.get(actorSystem).addTask(
                 CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
                 () -> {
-                    logger.info("Shutdown issued from outside (e.g. SIGTERM) - gracefully shutting down..");
+                    logger.info("Initiated coordinated shutdown - gracefully shutting down..");
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
 
@@ -184,8 +192,30 @@ public abstract class DittoService<C extends ServiceConfigReader> {
                 CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "Log successful graceful shutdown",
                 () -> {
                     logger.info("Graceful shutdown completed.");
+                    gracefulShutdown.set(true);
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
+
+        actorSystem.registerOnTermination(() -> {
+            if (gracefulShutdown.get()) {
+                exit(0);
+            } else {
+                exit(-1);
+            }
+        });
+    }
+
+    private void exit(int status) {
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        final String message = String.format("Exiting JVM with status code '%d'", status);
+        scheduler.schedule(() -> {
+            if(status == 0) {
+                logger.info(message);
+            }else {
+                logger.warn(message);
+            }
+            System.exit(status);
+        }, 0, TimeUnit.SECONDS);
     }
 
     /**
