@@ -88,7 +88,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
             return SendClaimMessageResponse.TYPE;
         } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
             return SendMessageAcceptedResponse.TYPE;
-        } else if (adaptable.getMessagePath().getFeatureId().isPresent()) {
+        } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {
             return SendThingMessageResponse.TYPE;

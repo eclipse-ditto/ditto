@@ -61,12 +61,4 @@ public interface Adaptable {
      */
     boolean containsHeaderForKey(CharSequence key);
 
-    /**
-     * Interpret the {@code path} field of this {@code Adaptable}.
-     *
-     * @return interface of the "path" field.
-     */
-    default MessagePath getMessagePath() {
-        return new MessagePath(getPayload().getPath());
-    }
 }

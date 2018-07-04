@@ -76,7 +76,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessage.TYPE;
-        } else if (adaptable.getMessagePath().getFeatureId().isPresent()) {
+        } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessage.TYPE;
         } else {
             return SendThingMessage.TYPE;

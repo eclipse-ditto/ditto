@@ -132,7 +132,7 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     }
 
     protected static String featureIdForMessageFrom(final Adaptable adaptable) {
-        return adaptable.getMessagePath()
+        return adaptable.getPayload().getPath()
                 .getFeatureId()
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }

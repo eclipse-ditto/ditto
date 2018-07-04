@@ -180,9 +180,9 @@ final class MessageAdaptableHelper {
                     dittoHeadersBuilder.putHeader(THING_ID.getKey(),
                             topicPath.getNamespace() + ":" + topicPath.getId());
                     dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
-                    adaptable.getMessagePath().getDirection().ifPresent(direction ->
+                    adaptable.getPayload().getPath().getDirection().ifPresent(direction ->
                             dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
-                    adaptable.getMessagePath().getFeatureId().ifPresent(featureId ->
+                    adaptable.getPayload().getPath().getFeatureId().ifPresent(featureId ->
                             dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
                     adaptable.getPayload().getStatus().ifPresent(statusCode ->
                             dittoHeadersBuilder.putHeader(STATUS_CODE.getKey(), String.valueOf(statusCode.toInt())));

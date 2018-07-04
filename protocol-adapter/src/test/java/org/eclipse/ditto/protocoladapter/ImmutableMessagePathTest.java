@@ -12,18 +12,44 @@
 package org.eclipse.ditto.protocoladapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.messages.MessageDirection.FROM;
 import static org.eclipse.ditto.model.messages.MessageDirection.TO;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.OptionalAssert;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.junit.Test;
 
+import nl.jqno.equalsverifier.EqualsVerifier;
+
 /**
- * Unit tests for {@link MessagePath}.
+ * Unit tests for {@link ImmutableMessagePath}.
  */
-public class MessagePathTest {
+public class ImmutableMessagePathTest {
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(ImmutableMessagePath.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(ImmutableMessagePath.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNullJsonPointer() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ImmutableMessagePath.of(null))
+                .withMessage("The %s must not be null!", "JSON pointer")
+                .withNoCause();
+    }
 
     @Test
     public void parseDirection() {
@@ -42,10 +68,10 @@ public class MessagePathTest {
     }
 
     private static OptionalAssert<MessageDirection> assertDirection(final String jsonPointer) {
-        return assertThat(new MessagePath(JsonPointer.of(jsonPointer)).getDirection());
+        return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).getDirection());
     }
 
     private static OptionalAssert<String> assertFeatureId(final String jsonPointer) {
-        return assertThat(new MessagePath(JsonPointer.of(jsonPointer)).getFeatureId());
+        return assertThat(ImmutableMessagePath.of(JsonPointer.of(jsonPointer)).getFeatureId());
     }
 }
