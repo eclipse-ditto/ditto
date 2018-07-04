@@ -52,14 +52,15 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
 
-    private DittoProtocolAdapter() {
-        this(ProtocolAdapterErrorRegistry.newInstance());
+    private DittoProtocolAdapter(final boolean removeInternalMessageHeaders) {
+        this(ProtocolAdapterErrorRegistry.newInstance(), removeInternalMessageHeaders);
     }
 
-    protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry) {
+    protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
+            final boolean removeInternalMessageHeaders) {
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.newInstance();
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.newInstance();
+        this.messageCommandAdapter = MessageCommandAdapter.of(removeInternalMessageHeaders);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(removeInternalMessageHeaders);
         this.thingModifyCommandAdapter = ThingModifyCommandAdapter.newInstance();
         this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.newInstance();
         this.thingQueryCommandAdapter = ThingQueryCommandAdapter.newInstance();
@@ -73,19 +74,17 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter();
+        return of(Boolean.TRUE);
     }
 
     /**
-     * Configure whether this adapter should remove internal message headers.
+     * Creates a new {@code DittoProtocolAdapter} instance.
      *
-     * @param yesOrNo whether this adapter should remove internal message headers.
-     * @return this object.
+     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
+     * @return the instance.
      */
-    public DittoProtocolAdapter removeInternalMessageHeaders(final boolean yesOrNo) {
-        messageCommandAdapter.removeInternalMessageHeaders(yesOrNo);
-        messageCommandResponseAdapter.removeInternalMessageHeaders(yesOrNo);
-        return this;
+    public static DittoProtocolAdapter of(final boolean removeInternalMessageHeaders) {
+        return new DittoProtocolAdapter(removeInternalMessageHeaders);
     }
 
     @Override

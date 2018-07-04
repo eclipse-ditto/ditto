@@ -27,11 +27,13 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
-    private boolean removeInternalHeaders = true;
+    private final boolean removeInternalHeaders;
 
     private MessageCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies) {
+            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies,
+            final boolean removeInternalMessageHeaders) {
         super(mappingStrategies);
+        this.removeInternalHeaders = removeInternalMessageHeaders;
     }
 
     /**
@@ -40,7 +42,17 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
      * @return the adapter.
      */
     public static MessageCommandResponseAdapter newInstance() {
-        return new MessageCommandResponseAdapter(mappingStrategies());
+        return of(Boolean.TRUE);
+    }
+
+    /**
+     * Returns a new MessageCommandResponseAdapter.
+     *
+     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
+     * @return the adapter.
+     */
+    public static MessageCommandResponseAdapter of(final boolean removeInternalMessageHeaders) {
+        return new MessageCommandResponseAdapter(mappingStrategies(), removeInternalMessageHeaders);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {
@@ -64,17 +76,6 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
-    }
-
-    /**
-     * Configure whether this adapter should remove internal message headers from Ditto protocol messages.
-     *
-     * @param yesOrNo whether this object should remove internal message headers.
-     * @return this object.
-     */
-    public MessageCommandResponseAdapter removeInternalMessageHeaders(final boolean yesOrNo) {
-        removeInternalHeaders = yesOrNo;
-        return this;
     }
 
     @Override

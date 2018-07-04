@@ -188,7 +188,7 @@ public final class RootRoute {
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
                 headersConfig.blacklist(),
-                DittoProtocolAdapter.newInstance().removeInternalMessageHeaders(!headersConfig.compatibilityMode()),
+                DittoProtocolAdapter.of(!headersConfig.compatibilityMode()),
                 actorSystem.eventStream());
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
@@ -60,14 +61,14 @@ public final class MessageMappingProcessor {
     private final String connectionId;
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
-    private final DittoProtocolAdapter protocolAdapter;
+    private final ProtocolAdapter protocolAdapter;
 
     private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
-            final DiagnosticLoggingAdapter log) {
+            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter) {
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
-        this.protocolAdapter = DittoProtocolAdapter.newInstance();
+        this.protocolAdapter = protocolAdapter;
     }
 
     /**
@@ -87,11 +88,10 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        final MessageMappingProcessor result = new MessageMappingProcessor(connectionId, registry, log);
-        if (HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).compatibilityMode()) {
-            result.protocolAdapter.removeInternalMessageHeaders(false);
-        }
-        return result;
+        final boolean compatibilityMode =
+                HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).compatibilityMode();
+        final DittoProtocolAdapter protocolAdapter = DittoProtocolAdapter.of(!compatibilityMode);
+        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 
     /**
