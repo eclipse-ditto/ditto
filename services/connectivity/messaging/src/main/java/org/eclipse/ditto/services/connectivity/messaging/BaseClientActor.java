@@ -29,9 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -98,6 +101,7 @@ import scala.concurrent.duration.Duration;
 public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseClientData> {
 
     private static final int CONNECTING_TIMEOUT = 10;
+    protected static final int TEST_CONNECTION_TIMEOUT = 10;
     protected static final int RETRIEVE_METRICS_TIMEOUT = 2;
 
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
@@ -214,9 +218,29 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                                     } else {
                                         return mappingStatus;
                                     }
-                                }).thenAccept(testStatus -> sender.tell(testStatus, getSelf()));
+                                }).thenAccept(testStatus -> sender.tell(testStatus, getSelf()))
+                                .get(TEST_CONNECTION_TIMEOUT, TimeUnit.SECONDS);
                     } catch (final DittoRuntimeException e) {
                         getSender().tell(new Status.Failure(e), getSelf());
+                    } catch (final InterruptedException | ExecutionException | CancellationException e) {
+                        log.error(e, "Got an internal error while testing to connect to a connection");
+                        final ConnectionFailedException failedException =
+                                ConnectionFailedException.newBuilder(connectionId())
+                                        .description(String.format(
+                                                "The requested Connection could not be connected after %d seconds.",
+                                                TEST_CONNECTION_TIMEOUT))
+                                        .cause(e).build();
+                        getSender().tell(new Status.Failure(failedException), getSelf());
+                    } catch (final TimeoutException e) {
+                        log.info("Timed out after {} seconds while testing to connect to a connection",
+                                TEST_CONNECTION_TIMEOUT);
+                        final ConnectionFailedException failedException =
+                                ConnectionFailedException.newBuilder(connectionId())
+                                        .description(String.format(
+                                                "The requested Connection could not be connected after %d seconds.",
+                                                TEST_CONNECTION_TIMEOUT))
+                                        .cause(e).build();
+                        getSender().tell(new Status.Failure(failedException), getSelf());
                     }
                     return stop();
                 })
