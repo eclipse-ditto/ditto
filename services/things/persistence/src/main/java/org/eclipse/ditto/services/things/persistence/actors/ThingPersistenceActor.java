@@ -57,6 +57,10 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.ModifyAttributesStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
@@ -64,7 +68,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
@@ -104,7 +107,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
@@ -149,9 +151,7 @@ import org.eclipse.ditto.signals.events.things.AclModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesDeleted;
-import org.eclipse.ditto.signals.events.things.AttributesModified;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
@@ -737,8 +737,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private final class LazyStrategyLoader {
 
-        final Map<Class, ReceiveStrategy> strategies = new HashMap<>();
         final Map<Class, Supplier<ReceiveStrategy>> supplier = new HashMap<>();
+        final Map<Class, ReceiveStrategy> strategies = new HashMap<>();
         final ReceiveStrategy unhandledStrategy = new MatchAnyAfterInitializeStrategy();
 
         private LazyStrategyLoader() {
@@ -1533,40 +1533,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     /**
-     * This strategy handles the {@link ModifyAttributes} command.
-     */
-    @NotThreadSafe
-    private final class ModifyAttributesStrategy extends AbstractThingCommandStrategy<ModifyAttributes> {
-
-        /**
-         * Constructs a new {@code ModifyAttributesStrategy} object.
-         */
-        public ModifyAttributesStrategy() {
-            super(ModifyAttributes.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyAttributes command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final ThingModifiedEvent eventToPersist;
-            final ThingModifyCommandResponse response;
-
-            if (thing().getAttributes().isPresent()) {
-                eventToPersist = AttributesModified.of(thingId, command.getAttributes(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyAttributesResponse.modified(thingId, dittoHeaders);
-            } else {
-                eventToPersist = AttributesCreated.of(thingId, command.getAttributes(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyAttributesResponse.created(thingId, command.getAttributes(), dittoHeaders);
-            }
-
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-
-    }
-
-    /**
      * This strategy handles the {@link ModifyAttribute} command.
      */
     @NotThreadSafe
@@ -2261,7 +2227,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         @Override
-        protected void doApply(final RetrieveFeatureProperties command) {
+        protected Result doApply(final RetrieveFeatureProperties command) {
             final Optional<Features> optionalFeatures = thing().getFeatures();
 
             final String featureId = command.getFeatureId();
@@ -2444,41 +2410,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             log.debug(shutdownLogTemplate, thingId);
             // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
             getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
-        }
-
-    }
-
-    /**
-     * This extension of {@link AbstractReceiveStrategy} is for handling {@link ThingCommand}.
-     *
-     * @param <T> type of the class this strategy matches against.
-     */
-    @NotThreadSafe
-    abstract class AbstractThingCommandStrategy<T extends Command> extends AbstractReceiveStrategy<T> {
-
-        /**
-         * Constructs a new {@code AbstractThingCommandStrategy} object.
-         *
-         * @param theMatchingClass the class of the message this strategy reacts to.
-         * @param theLogger the logger to use for logging.
-         * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
-         */
-        AbstractThingCommandStrategy(final Class<T> theMatchingClass, final DiagnosticLoggingAdapter theLogger) {
-            super(theMatchingClass, theLogger);
-        }
-
-        @Override
-        public FI.TypedPredicate<T> getPredicate() {
-            return command -> null != thing() && thing().getId()
-                    .filter(command.getId()::equals)
-                    .isPresent();
-        }
-
-        @Override
-        public FI.UnitApply<T> getUnhandledFunction() {
-            return command -> {
-                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-            };
         }
 
     }

@@ -5,12 +5,21 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
-package org.eclipse.ditto.services.things.persistence.actors;
+package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import java.util.Optional;
+import java.util.function.BiFunction;
+
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+
+import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.FI;
 
 /**
@@ -42,7 +51,7 @@ public interface ReceiveStrategy<T> {
      * @return the function which applies the message.
      * @see #getPredicate()
      */
-    FI.UnitApply<T> getApplyFunction();
+    BiFunction<Context, T, Result> getApplyFunction();
 
     /**
      * Returns the function to perform if the predicate evaluated to {@code false}.
@@ -51,5 +60,25 @@ public interface ReceiveStrategy<T> {
      * @see #getPredicate()
      */
     FI.UnitApply<T> getUnhandledFunction();
+
+    interface Result {
+
+        Optional<ThingEvent> getEventToPersist();
+
+        Optional<ThingCommandResponse> getResponse();
+
+        Optional<DittoRuntimeException> getException();
+    }
+
+    interface Context {
+
+        String getThingId();
+
+        Thing getThing();
+
+        long nextRevision();
+
+        DiagnosticLoggingAdapter log();
+    }
 
 }

@@ -5,13 +5,15 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
-package org.eclipse.ditto.services.things.persistence.actors;
+package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import static java.util.Objects.requireNonNull;
+
+import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -47,7 +49,7 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
         logger = requireNonNull(theLogger, "The logger must not be null!");
     }
 
-    protected void preApply(final T message) {
+    protected Result preApply(final Context context, final T message) {
         if (message instanceof Command) {
             final Command command = (Command) message;
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
@@ -55,10 +57,10 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
                 logger.debug("Applying command '{}': {}", command.getType(), command.toJsonString());
             }
         }
-        doApply(message);
+        return doApply(context, message);
     }
 
-    protected abstract void doApply(T message);
+    protected abstract Result doApply(final Context context, T message);
 
     @Override
     public Class<T> getMatchingClass() {
@@ -71,7 +73,7 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     }
 
     @Override
-    public FI.UnitApply<T> getApplyFunction() {
+    public BiFunction<Context, T, Result> getApplyFunction() {
         return this::preApply;
     }
 
