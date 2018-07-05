@@ -5,24 +5,20 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -31,35 +27,20 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.Validator;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.AclInvalidException;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
-import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.ModifyAttributesStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -68,26 +49,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
@@ -98,15 +60,6 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyRes
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
@@ -117,15 +70,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyRes
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
@@ -140,18 +85,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyRe
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
-import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
-import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeDeleted;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
@@ -167,12 +100,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
-import org.eclipse.ditto.signals.events.things.PolicyIdModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import com.typesafe.config.Config;
@@ -181,13 +109,11 @@ import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
@@ -214,7 +140,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      */
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
-    private static final String UNHANDLED_MESSAGE_TEMPLATE =
+    public static final String UNHANDLED_MESSAGE_TEMPLATE =
             "This Thing Actor did not handle the requested Thing with ID <{0}>!";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -456,8 +382,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 //                .matchAny(new MatchAnyAfterInitializeStrategy())
 //                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
 //                .build();
-        final LazyStrategyLoader lazyStrategyLoader = new LazyStrategyLoader();
-        final Receive receive = ReceiveBuilder.create().matchAny(lazyStrategyLoader::apply).build();
+//        final LazyStrategyLoader lazyStrategyLoader = new LazyStrategyLoader();
+//        final Receive receive = ReceiveBuilder.create()
+//                .match(ThingCommand.class, )
+//                .build();
         getContext().become(receive, true);
         getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 
@@ -580,28 +508,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         pubSubMediator.tell(new DistributedPubSubMediator.Publish(ThingEvent.TYPE_PREFIX, event, true), getSelf());
     }
 
-    private void attributesNotFound(final DittoHeaders dittoHeaders) {
-        notifySender(AttributesNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build());
-    }
-
-    private void attributeNotFound(final JsonPointer attributeKey, final DittoHeaders dittoHeaders) {
-        notifySender(AttributeNotAccessibleException.newBuilder(thingId, attributeKey)
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
-
-    private void featureNotFound(final String featureId, final DittoHeaders dittoHeaders) {
-        final FeatureNotAccessibleException featureNotAccessibleException =
-                FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
-
-        notifySender(getSender(), featureNotAccessibleException);
-    }
-
-    private void featuresNotFound(final DittoHeaders dittoHeaders) {
-        notifySender(getSender(), FeaturesNotAccessibleException.newBuilder(thingId)
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
 
     private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
@@ -610,44 +516,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private void notifySender(final ActorRef sender, final WithDittoHeaders message) {
         accessCounter++;
         sender.tell(message, getSelf());
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private void aclInvalid(final Optional<String> message, final AuthorizationContext authContext,
-            final DittoHeaders dittoHeaders) {
-
-        log.debug("ACL could not be modified by Authorization Context <{}> due to: {}", authContext,
-                message.orElse(null));
-        notifySender(getSender(), AclModificationInvalidException.newBuilder(thingId)
-                .description(message.orElse(null))
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
-
-    private void aclEntryNotFound(final AuthorizationSubject authorizationSubject, final DittoHeaders dittoHeaders) {
-        notifySender(getSender(), AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
-
-    private void featureDefinitionNotFound(final String featureId, final DittoHeaders dittoHeaders) {
-        notifySender(getSender(), FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
-
-    private void featurePropertiesNotFound(final String featureId, final DittoHeaders dittoHeaders) {
-        notifySender(getSender(), FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
-                .dittoHeaders(dittoHeaders)
-                .build());
-    }
-
-    private void featurePropertyNotFound(final String featureId, final JsonPointer jsonPointer,
-            final DittoHeaders dittoHeaders) {
-
-        notifySender(getSender(), FeaturePropertyNotAccessibleException.newBuilder(thingId, featureId, jsonPointer)
-                .dittoHeaders(dittoHeaders)
-                .build());
     }
 
     private Consumer<Object> getIncomingMessagesLoggerOrNull() {
@@ -731,906 +599,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         public String toString() {
             return getClass().getSimpleName() + " [" + "currentSequenceNr=" + currentSequenceNr +
                     ", currentAccessCounter=" + currentAccessCounter + "]";
-        }
-
-    }
-
-    private final class LazyStrategyLoader {
-
-        final Map<Class, Supplier<ReceiveStrategy>> supplier = new HashMap<>();
-        final Map<Class, ReceiveStrategy> strategies = new HashMap<>();
-        final ReceiveStrategy unhandledStrategy = new MatchAnyAfterInitializeStrategy();
-
-        private LazyStrategyLoader() {
-            // Thing level
-            supplier.put(CreateThing.class, () -> new ThingConflictStrategy());
-            supplier.put(ModifyThing.class, () -> new ModifyThingStrategy());
-            supplier.put(RetrieveThing.class, () -> new RetrieveThingStrategy());
-            supplier.put(DeleteThing.class, () -> new DeleteThingStrategy());
-
-            // Policy ID
-            supplier.put(RetrievePolicyId.class, () -> new RetrievePolicyIdStrategy());
-            supplier.put(ModifyPolicyId.class, () -> new ModifyPolicyIdStrategy());
-
-            // ACL
-            supplier.put(ModifyAcl.class, () -> new ModifyAclStrategy());
-            supplier.put(RetrieveAcl.class, () -> new RetrieveAclStrategy());
-            supplier.put(ModifyAclEntry.class, () -> new ModifyAclEntryStrategy());
-            supplier.put(RetrieveAclEntry.class, () -> new RetrieveAclEntryStrategy());
-            supplier.put(DeleteAclEntry.class, () -> new DeleteAclEntryStrategy());
-
-            // Attributes
-            supplier.put(ModifyAttributes.class, () -> new ModifyAttributesStrategy());
-            supplier.put(ModifyAttribute.class, () -> new ModifyAttributeStrategy());
-            supplier.put(RetrieveAttributes.class, () -> new RetrieveAttributesStrategy());
-            supplier.put(RetrieveAttribute.class, () -> new RetrieveAttributeStrategy());
-            supplier.put(DeleteAttributes.class, () -> new DeleteAttributesStrategy());
-            supplier.put(DeleteAttribute.class, () -> new DeleteAttributeStrategy());
-
-            // Features
-            supplier.put(ModifyFeatures.class, () -> new ModifyFeaturesStrategy());
-            supplier.put(ModifyFeature.class, () -> new ModifyFeatureStrategy());
-            supplier.put(RetrieveFeatures.class, () -> new RetrieveFeaturesStrategy());
-            supplier.put(RetrieveFeature.class, () -> new RetrieveFeatureStrategy());
-            supplier.put(DeleteFeatures.class, () -> new DeleteFeaturesStrategy());
-            supplier.put(DeleteFeature.class, () -> new DeleteFeatureStrategy());
-
-            // Feature Definition
-            supplier.put(ModifyFeatureDefinition.class, () -> new ModifyFeatureDefinitionStrategy());
-            supplier.put(RetrieveFeatureDefinition.class, () -> new RetrieveFeatureDefinitionStrategy());
-            supplier.put(DeleteFeatureDefinition.class, () -> new DeleteFeatureDefinitionStrategy());
-
-            // Feature Properties
-            supplier.put(ModifyFeatureProperties.class, () -> new ModifyFeaturePropertiesStrategy());
-            supplier.put(ModifyFeatureProperty.class, () -> new ModifyFeaturePropertyStrategy());
-            supplier.put(RetrieveFeatureProperties.class, () -> new RetrieveFeaturePropertiesStrategy());
-            supplier.put(RetrieveFeatureProperty.class, () -> new RetrieveFeaturePropertyStrategy());
-            supplier.put(DeleteFeatureProperties.class, () -> new DeleteFeaturePropertiesStrategy());
-            supplier.put(DeleteFeatureProperty.class, () -> new DeleteFeaturePropertyStrategy());
-
-            // sudo
-            supplier.put(SudoRetrieveThing.class, () -> new SudoRetrieveThingStrategy());
-
-            // Persistence specific
-            supplier.put(CheckForActivity.class, () -> new CheckForActivityStrategy());
-
-            // TakeSnapshot, pre load
-            thingSnapshotter.strategies().forEach(s -> strategies.put(s.getMatchingClass(), s));
-        }
-
-        protected void apply(final Object message) throws Exception {
-            log.info("Loading strategy for class: {}", message.getClass());
-
-            final ReceiveStrategy strategy = strategies.computeIfAbsent(message.getClass(), cls -> {
-                final Supplier<ReceiveStrategy> receiveStrategySupplier = supplier.get(message.getClass());
-                if (receiveStrategySupplier != null) {
-                    log.info("Strategy for {} does not exists, creating.", cls);
-                    return receiveStrategySupplier.get();
-                } else {
-                    log.info("Message of type {} cannot be handled.", message.getClass());
-                    return null;
-                }
-            });
-
-            if (strategy != null) {
-                if (strategy.getPredicate().defined(message)) {
-                    strategy.getApplyFunction().apply(message);
-                } else {
-                    strategy.getUnhandledFunction().apply(message);
-                }
-            } else {
-                unhandledStrategy.getApplyFunction().apply(message);
-            }
-        }
-    }
-
-    /**
-     * This strategy handles the {@link CreateThing} command.
-     */
-    @NotThreadSafe
-    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> {
-
-        /**
-         * Constructs a new {@code CreateThingStrategy} object.
-         */
-        public CreateThingStrategy() {
-            super(CreateThing.class, log);
-        }
-
-        @Override
-        public FI.TypedPredicate<CreateThing> getPredicate() {
-            return command -> Objects.equals(thingId, command.getId());
-        }
-
-        @Override
-        protected void doApply(final CreateThing command) {
-            final DittoHeaders commandHeaders = command.getDittoHeaders();
-
-            // Thing not yet created - do so ..
-            final Thing newThing;
-            try {
-                newThing =
-                        handleCommandVersion(command.getImplementedSchemaVersion(), command.getThing(), commandHeaders);
-            } catch (final DittoRuntimeException e) {
-                notifySender(e);
-                return;
-            }
-
-            // before persisting, check if the Thing is valid and reject if not:
-            if (!isValidThing(command.getImplementedSchemaVersion(), newThing, commandHeaders)) {
-                return;
-            }
-
-            final ThingCreated thingCreated;
-            if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                thingCreated = ThingCreated.of(newThing, nextRevision(), eventTimestamp(), commandHeaders);
-            }
-            // default case handle as v2 and upwards:
-            else {
-                thingCreated =
-                        ThingCreated.of(newThing.setPolicyId(newThing.getPolicyId().orElse(thingId)), nextRevision(),
-                                eventTimestamp(), commandHeaders);
-            }
-
-            persistAndApplyEvent(thingCreated, event -> {
-                notifySender(CreateThingResponse.of(thing(), thingCreated.getDittoHeaders()));
-                log.debug("Created new Thing with ID <{}>.", thingId);
-                becomeThingCreatedHandler();
-            });
-        }
-
-        private Thing handleCommandVersion(final JsonSchemaVersion version, final Thing thing,
-                final DittoHeaders dittoHeaders) {
-
-            if (JsonSchemaVersion.V_1.equals(version)) {
-                return enhanceNewThingWithFallbackAcl(enhanceThingWithLifecycle(thing),
-                        dittoHeaders.getAuthorizationContext());
-            }
-            // default case handle as v2 and upwards:
-            else {
-                //acl is not allowed to be set in v2
-                if (thing.getAccessControlList().isPresent()) {
-                    throw AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
-                }
-
-                // policyId is required for v2
-                if (!thing.getPolicyId().isPresent()) {
-                    throw PolicyIdMissingException.fromThingIdOnCreate(thingId, dittoHeaders);
-                }
-
-                return enhanceThingWithLifecycle(thing);
-            }
-        }
-
-        /**
-         * Retrieves the Thing with first authorization subjects as fallback for the ACL of the Thing if the passed
-         * {@code newThing} has no ACL set.
-         *
-         * @param newThing the new Thing to take as a "base" and to check for presence of ACL inside.
-         * @param authContext the AuthorizationContext to take the first AuthorizationSubject as fallback from.
-         * @return the really new Thing with guaranteed ACL.
-         */
-        private Thing enhanceNewThingWithFallbackAcl(final Thing newThing, final AuthorizationContext authContext) {
-            final ThingBuilder.FromCopy newThingBuilder = ThingsModelFactory.newThingBuilder(newThing);
-
-            final Boolean isAclEmpty = newThing.getAccessControlList()
-                    .map(AccessControlList::isEmpty)
-                    .orElse(true);
-            if (isAclEmpty) {
-                // do the fallback and use the first authorized subject and give all permissions to it:
-                final AuthorizationSubject authorizationSubject = authContext.getFirstAuthorizationSubject()
-                        .orElseThrow(() -> new NullPointerException("AuthorizationContext does not contain an " +
-                                "AuthorizationSubject!"));
-                newThingBuilder.setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS);
-            }
-
-            return newThingBuilder.build();
-        }
-
-        private boolean isValidThing(final JsonSchemaVersion version, final Thing thing, final DittoHeaders headers) {
-            final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
-            if (JsonSchemaVersion.V_1.equals(version)) {
-                if (accessControlList.isPresent()) {
-                    final Validator aclValidator =
-                            AclValidator.newInstance(accessControlList.get(), Thing.MIN_REQUIRED_PERMISSIONS);
-                    // before persisting, check if the ACL is valid and reject if not:
-                    if (!aclValidator.isValid()) {
-                        notifySender(getSender(), AclInvalidException.newBuilder(thing.getId().orElse(thingId))
-                                .dittoHeaders(headers)
-                                .build());
-                        return false;
-                    }
-                } else {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public FI.UnitApply<CreateThing> getUnhandledFunction() {
-            return command -> {
-                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-            };
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link CreateThing} command for an already existing Thing.
-     */
-    @NotThreadSafe
-    private final class ThingConflictStrategy extends AbstractReceiveStrategy<CreateThing> {
-
-        /**
-         * Constructs a new {@code ThingConflictStrategy} object.
-         */
-        public ThingConflictStrategy() {
-            super(CreateThing.class, log);
-        }
-
-        @Override
-        public FI.TypedPredicate<CreateThing> getPredicate() {
-            return command -> Objects.equals(thingId, command.getId());
-        }
-
-        @Override
-        protected void doApply(final CreateThing command) {
-            notifySender(ThingConflictException.newBuilder(command.getId())
-                    .dittoHeaders(command.getDittoHeaders())
-                    .build());
-        }
-
-        @Override
-        public FI.UnitApply<CreateThing> getUnhandledFunction() {
-            return command -> {
-                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-            };
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyThing} command for an already existing Thing.
-     */
-    @NotThreadSafe
-    private final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing> {
-
-        /**
-         * Constructs a new {@code ModifyThingStrategy} object.
-         */
-        public ModifyThingStrategy() {
-            super(ModifyThing.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyThing command) {
-            if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                handleModifyExistingWithV1Command(command);
-            } else {
-                // from V2 upwards, use this logic:
-                handleModifyExistingWithV2Command(command);
-            }
-        }
-
-        private void handleModifyExistingWithV1Command(final ModifyThing command) {
-            if (JsonSchemaVersion.V_1.equals(thing().getImplementedSchemaVersion())) {
-                handleModifyExistingV1WithV1Command(command);
-            } else {
-                handleModifyExistingV2WithV1Command(command);
-            }
-        }
-
-        private void handleModifyExistingV1WithV1Command(final ModifyThing command) {
-            // if the ACL was modified together with the Thing, an additional check is necessary
-            final boolean isCommandAclEmpty = command.getThing()
-                    .getAccessControlList()
-                    .map(AccessControlList::isEmpty)
-                    .orElse(true);
-            if (!isCommandAclEmpty) {
-                applyModifyCommand(command);
-            } else {
-                final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final Optional<AccessControlList> existingAccessControlList = thing().getAccessControlList();
-                if (existingAccessControlList.isPresent()) {
-                    // special apply - take the ACL of the persisted thing instead of the new one in the command:
-                    final Thing modifiedThingWithOldAcl = ThingsModelFactory.newThingBuilder(command.getThing())
-                            .removeAllPermissions()
-                            .setPermissions(existingAccessControlList.get())
-                            .build();
-                    final ThingModified thingModified =
-                            ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(), dittoHeaders);
-                    persistAndApplyEvent(thingModified,
-                            event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
-                } else {
-                    log.error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
-                            "Persisting the event nevertheless to not block the user because of an " +
-                            "unknown internal state.", thingId);
-                    final ThingModified thingModified =
-                            ThingModified.of(command.getThing(), nextRevision(), eventTimestamp(), dittoHeaders);
-                    persistAndApplyEvent(thingModified,
-                            event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
-                }
-            }
-        }
-
-        private void handleModifyExistingV2WithV1Command(final ModifyThing command) {
-            // remove any acl information from command and add the current policy Id
-            final Thing thingWithoutAcl = removeACL(copyPolicyId(thing(), command.getThing()));
-            final ThingModified thingModified =
-                    ThingModified.of(thingWithoutAcl, nextRevision(), eventTimestamp(), command.getDittoHeaders());
-            persistAndApplyEvent(thingModified,
-                    event -> notifySender(ModifyThingResponse.modified(thingId, command.getDittoHeaders())));
-        }
-
-        private void handleModifyExistingWithV2Command(final ModifyThing command) {
-            if (JsonSchemaVersion.V_1.equals(thing().getImplementedSchemaVersion())) {
-                handleModifyExistingV1WithV2Command(command);
-            } else {
-                handleModifyExistingV2WithV2Command(command);
-            }
-        }
-
-        /**
-         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
-         * via API v2 and targets a Thing with API version V1.
-         */
-        private void handleModifyExistingV1WithV2Command(final ModifyThing command) {
-            if (containsPolicy(command)) {
-                applyModifyCommand(command);
-            } else {
-                notifySender(getSender(),
-                        PolicyIdMissingException.fromThingIdOnUpdate(thingId, command.getDittoHeaders()));
-            }
-        }
-
-        /**
-         * Handles a {@link org.eclipse.ditto.signals.commands.things.modify.ModifyThing} command that was sent
-         * via API v2 and targets a Thing with API version V2.
-         */
-        private void handleModifyExistingV2WithV2Command(final ModifyThing command) {
-            // ensure the Thing contains a policy ID
-            final Thing thingWithPolicyId =
-                    containsPolicyId(command) ? command.getThing() : copyPolicyId(thing(), command.getThing());
-            applyModifyCommand(ModifyThing.of(command.getThingId(),
-                    thingWithPolicyId,
-                    null,
-                    command.getDittoHeaders()));
-        }
-
-        private void applyModifyCommand(final ModifyThing command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            // make sure that the ThingModified-Event contains all data contained in the resulting thing (this is
-            // required e.g. for updating the search-index)
-            final long nextRevision = nextRevision();
-            final ThingBuilder.FromCopy modifiedThingBuilder = thing().toBuilder()
-                    .setRevision(nextRevision)
-                    .setModified(null);
-            mergeThingModifications(command.getThing(), modifiedThingBuilder);
-            final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(), nextRevision,
-                    eventTimestamp(), dittoHeaders);
-
-            persistAndApplyEvent(thingModified,
-                    event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
-        }
-
-        /**
-         * Merges the modifications from {@code thingWithModifications} to {@code builder}. Merge is implemented very
-         * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
-         * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code
-         * builder} remains unchanged.
-         *
-         * @param thingWithModifications the thing containing the modifications.
-         * @param builder the builder to be modified.
-         */
-        private void mergeThingModifications(final Thing thingWithModifications, final ThingBuilder.FromCopy builder) {
-            thingWithModifications.getPolicyId().ifPresent(builder::setPolicyId);
-            thingWithModifications.getAccessControlList().ifPresent(builder::setPermissions);
-            thingWithModifications.getAttributes().ifPresent(builder::setAttributes);
-            thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
-        }
-
-        private boolean containsPolicy(final ModifyThing command) {
-            return containsInitialPolicy(command) || containsPolicyId(command);
-        }
-
-        private boolean containsInitialPolicy(final ModifyThing command) {
-            return command.getInitialPolicy().isPresent();
-        }
-
-        private boolean containsPolicyId(final ModifyThing command) {
-            return command.getThing().getPolicyId().isPresent();
-        }
-
-        private Thing copyPolicyId(final Thing from, final Thing to) {
-            return to.toBuilder()
-                    .setPolicyId(from.getPolicyId().orElseGet(() -> {
-                        log.error("Thing <{}> is schema version 2 and should therefore contain a policyId", thingId);
-                        return null;
-                    }))
-                    .build();
-        }
-
-        private Thing removeACL(final Thing thing) {
-            return thing.toBuilder()
-                    .removeAllPermissions()
-                    .build();
-        }
-
-        @Override
-        public FI.UnitApply<ModifyThing> getUnhandledFunction() {
-            return command -> notifySender(new ThingNotAccessibleException(thingId, command.getDittoHeaders()));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveThing} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
-
-        /**
-         * Constructs a new {@code RetrieveThingStrategy} object.
-         */
-        public RetrieveThingStrategy() {
-            super(RetrieveThing.class, log);
-        }
-
-        @Override
-        public FI.TypedPredicate<RetrieveThing> getPredicate() {
-            return command -> Objects.equals(thingId, command.getId()) && null != thing() && !isThingDeleted();
-        }
-
-        @Override
-        protected void doApply(final RetrieveThing command) {
-            final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
-            if (snapshotRevisionOptional.isPresent()) {
-                loadSnapshot(command, snapshotRevisionOptional.get(), getSender());
-            } else {
-                final JsonObject thingJson = command.getSelectedFields()
-                        .map(sf -> thing().toJson(command.getImplementedSchemaVersion(), sf))
-                        .orElseGet(() -> thing().toJson(command.getImplementedSchemaVersion()));
-
-                notifySender(RetrieveThingResponse.of(thingId, thingJson, command.getDittoHeaders()));
-            }
-        }
-
-        private void loadSnapshot(final RetrieveThing command, final long snapshotRevision, final ActorRef sender) {
-            thingSnapshotter.loadSnapshot(snapshotRevision).thenAccept(thingOptional -> {
-                if (thingOptional.isPresent()) {
-                    respondWithLoadSnapshotResult(command, sender, thingOptional.get());
-                } else {
-                    respondWithNotAccessibleException(command, sender);
-                }
-            });
-        }
-
-        private void respondWithLoadSnapshotResult(final RetrieveThing command, final ActorRef sender,
-                final Thing snapshotThing) {
-
-            final JsonObject thingJson = command.getSelectedFields()
-                    .map(sf -> snapshotThing.toJson(command.getImplementedSchemaVersion(), sf))
-                    .orElseGet(() -> snapshotThing.toJson(command.getImplementedSchemaVersion()));
-
-            notifySender(sender, RetrieveThingResponse.of(thingId, thingJson, command.getDittoHeaders()));
-        }
-
-        private void respondWithNotAccessibleException(final RetrieveThing command, final ActorRef sender) {
-            // reset command headers so that correlationId etc. are preserved
-            notifySender(sender, new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders()));
-        }
-
-        @Override
-        public FI.UnitApply<RetrieveThing> getUnhandledFunction() {
-            return command -> notifySender(new ThingNotAccessibleException(thingId, command.getDittoHeaders()));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link SudoRetrieveThing} command.
-     */
-    @NotThreadSafe
-    private final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
-
-        /**
-         * Constructs a new {@code SudoRetrieveThingStrategy} object.
-         */
-        public SudoRetrieveThingStrategy() {
-            super(SudoRetrieveThing.class, log);
-        }
-
-        @Override
-        public FI.TypedPredicate<SudoRetrieveThing> getPredicate() {
-            return command -> Objects.equals(thingId, command.getId()) && null != thing() && !isThingDeleted();
-        }
-
-        @Override
-        protected void doApply(final SudoRetrieveThing command) {
-            final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-            final JsonSchemaVersion versionToUse = determineSchemaVersion(command);
-            final JsonObject thingJson = selectedFields
-                    .map(sf -> thing().toJson(versionToUse, sf, FieldType.regularOrSpecial()))
-                    .orElseGet(() -> thing().toJson(versionToUse, FieldType.regularOrSpecial()));
-
-            notifySender(SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
-        }
-
-        private JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command) {
-            return command.useOriginalSchemaVersion()
-                    ? getOriginalSchemaVersion()
-                    : command.getImplementedSchemaVersion();
-        }
-
-        private JsonSchemaVersion getOriginalSchemaVersion() {
-            return null != thing() ? thing().getImplementedSchemaVersion() : JsonSchemaVersion.LATEST;
-        }
-
-        @Override
-        public FI.UnitApply<SudoRetrieveThing> getUnhandledFunction() {
-            return command -> notifySender(new ThingNotAccessibleException(thingId, command.getDittoHeaders()));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteThing} command.
-     */
-    @NotThreadSafe
-    private final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
-
-        /**
-         * Constructs a new {@code DeleteThingStrategy} object.
-         */
-        public DeleteThingStrategy() {
-            super(DeleteThing.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteThing command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final ThingDeleted thingDeleted = ThingDeleted.of(thingId, nextRevision(), eventTimestamp(), dittoHeaders);
-
-            persistAndApplyEvent(thingDeleted, event -> {
-                notifySender(DeleteThingResponse.of(thingId, dittoHeaders));
-                log.info("Deleted Thing with ID <{}>.", thingId);
-                becomeThingDeletedHandler();
-            });
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrievePolicyId} command.
-     */
-    @NotThreadSafe
-    private final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<RetrievePolicyId> {
-
-        /**
-         * Constructs a new {@code RetrievePolicyIdStrategy} object.
-         */
-        public RetrievePolicyIdStrategy() {
-            super(RetrievePolicyId.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrievePolicyId command) {
-            final Optional<String> optPolicyId = thing().getPolicyId();
-            if (optPolicyId.isPresent()) {
-                final String policyId = optPolicyId.get();
-                notifySender(RetrievePolicyIdResponse.of(thingId, policyId, command.getDittoHeaders()));
-            } else {
-                notifySender(PolicyIdNotAccessibleException.newBuilder(thingId)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyPolicyId} command.
-     */
-    @NotThreadSafe
-    private final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPolicyId> {
-
-        /**
-         * Constructs a new {@code ModifyPolicyIdStrategy} object.
-         */
-        public ModifyPolicyIdStrategy() {
-            super(ModifyPolicyId.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyPolicyId command) {
-            final ThingModifiedEvent eventToPersist;
-            final ThingModifyCommandResponse response;
-
-            if (thing().getPolicyId().isPresent()) {
-                eventToPersist = PolicyIdModified.of(thingId, command.getPolicyId(), nextRevision(), eventTimestamp(),
-                        command.getDittoHeaders());
-                response = ModifyPolicyIdResponse.modified(thingId, command.getDittoHeaders());
-            } else {
-                eventToPersist = PolicyIdCreated.of(thingId, command.getPolicyId(), nextRevision(), eventTimestamp(),
-                        command.getDittoHeaders());
-                response = ModifyPolicyIdResponse.created(thingId, command.getPolicyId(), command.getDittoHeaders());
-            }
-
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyAcl} command.
-     */
-    @NotThreadSafe
-    private final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
-
-        /**
-         * Constructs a new {@code ModifyAclStrategy} object.
-         */
-        public ModifyAclStrategy() {
-            super(ModifyAcl.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyAcl command) {
-            final AccessControlList newAccessControlList = command.getAccessControlList();
-            final Validator aclValidator = AclValidator.newInstance(newAccessControlList,
-                    Thing.MIN_REQUIRED_PERMISSIONS);
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (aclValidator.isValid()) {
-                final AclModified aclModified = AclModified.of(thingId, newAccessControlList, nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-
-                persistAndApplyEvent(aclModified, event -> notifySender(
-                        ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders())));
-            } else {
-                aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyAclEntry} command.
-     */
-    @NotThreadSafe
-    private final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAclEntry> {
-
-        /**
-         * Constructs a new {@code ModifyAclEntryStrategy} object.
-         */
-        public ModifyAclEntryStrategy() {
-            super(ModifyAclEntry.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyAclEntry command) {
-            final AccessControlList acl = thing().getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-            final AclEntry modifiedAclEntry = command.getAclEntry();
-            final Validator aclValidator = AclValidator.newInstance(acl.setEntry(modifiedAclEntry),
-                    Thing.MIN_REQUIRED_PERMISSIONS);
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (aclValidator.isValid()) {
-                final ThingModifiedEvent eventToPersist;
-                final ModifyAclEntryResponse response;
-
-                if (acl.contains(modifiedAclEntry.getAuthorizationSubject())) {
-                    eventToPersist = AclEntryModified.of(command.getId(), modifiedAclEntry, nextRevision(),
-                            eventTimestamp(), dittoHeaders);
-                    response = ModifyAclEntryResponse.modified(thingId, modifiedAclEntry, dittoHeaders);
-                } else {
-                    eventToPersist = AclEntryCreated.of(command.getId(), modifiedAclEntry, nextRevision(),
-                            eventTimestamp(), dittoHeaders);
-                    response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
-                }
-
-                persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-            } else {
-                aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteAclEntry} command.
-     */
-    @NotThreadSafe
-    private final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAclEntry> {
-
-        /**
-         * Constructs a new {@code DeleteAclEntryStrategy} object.
-         */
-        public DeleteAclEntryStrategy() {
-            super(DeleteAclEntry.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteAclEntry command) {
-            final AccessControlList acl = thing().getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-            final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            if (acl.contains(authorizationSubject)) {
-                final Validator aclValidator =
-                        AclValidator.newInstance(acl.removeAllPermissionsOf(authorizationSubject),
-                                Thing.MIN_REQUIRED_PERMISSIONS);
-                if (aclValidator.isValid()) {
-                    deleteAclEntry(authorizationSubject, dittoHeaders);
-                } else {
-                    aclInvalid(aclValidator.getReason(), dittoHeaders.getAuthorizationContext(), dittoHeaders);
-                }
-            } else {
-                aclEntryNotFound(authorizationSubject, dittoHeaders);
-            }
-        }
-
-        private void deleteAclEntry(final AuthorizationSubject authorizationSubject, final DittoHeaders dittoHeaders) {
-            final AclEntryDeleted aclEntryDeleted =
-                    AclEntryDeleted.of(thingId, authorizationSubject, nextRevision(), eventTimestamp(), dittoHeaders);
-
-            persistAndApplyEvent(aclEntryDeleted,
-                    event -> notifySender(DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders)));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveAcl} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveAclStrategy extends AbstractThingCommandStrategy<RetrieveAcl> {
-
-        /**
-         * Constructs a new {@code RetrieveAclStrategy} object.
-         */
-        public RetrieveAclStrategy() {
-            super(RetrieveAcl.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveAcl command) {
-            final AccessControlList acl = thing().getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-            final JsonObject aclJson = acl.toJson(command.getImplementedSchemaVersion());
-            notifySender(RetrieveAclResponse.of(thingId, aclJson, command.getDittoHeaders()));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveAclEntry} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
-
-        /**
-         * Constructs a new {@code RetrieveAclEntryStrategy} object.
-         */
-        public RetrieveAclEntryStrategy() {
-            super(RetrieveAclEntry.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveAclEntry command) {
-            final AccessControlList acl = thing().getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-            final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (acl.contains(authorizationSubject)) {
-                final AclEntry aclEntry = acl.getEntryFor(authorizationSubject)
-                        .orElseGet(
-                                () -> AclEntry.newInstance(authorizationSubject, ThingsModelFactory.noPermissions()));
-                notifySender(RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders));
-            } else {
-                aclEntryNotFound(authorizationSubject, dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyAttribute} command.
-     */
-    @NotThreadSafe
-    private final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyAttribute> {
-
-        /**
-         * Constructs a new {@code ModifyAttributeStrategy} object.
-         */
-        public ModifyAttributeStrategy() {
-            super(ModifyAttribute.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyAttribute command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Attributes> optionalAttributes = thing().getAttributes();
-
-            final ThingModifiedEvent eventToPersist;
-            final ThingModifyCommandResponse response;
-
-            final JsonPointer attributeJsonPointer = command.getAttributePointer();
-            final JsonValue attributeValue = command.getAttributeValue();
-            if (optionalAttributes.isPresent() && optionalAttributes.get().contains(attributeJsonPointer)) {
-                eventToPersist = AttributeModified.of(thingId, attributeJsonPointer, attributeValue, nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyAttributeResponse.modified(thingId, attributeJsonPointer, dittoHeaders);
-            } else {
-                eventToPersist = AttributeCreated.of(thingId, attributeJsonPointer, attributeValue, nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyAttributeResponse.created(thingId, attributeJsonPointer, attributeValue, dittoHeaders);
-            }
-
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteAttributes} command.
-     */
-    @NotThreadSafe
-    private final class DeleteAttributesStrategy extends AbstractThingCommandStrategy<DeleteAttributes> {
-
-        /**
-         * Constructs a new {@code DeleteAttributesStrategy} object.
-         */
-        public DeleteAttributesStrategy() {
-            super(DeleteAttributes.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteAttributes command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            if (thing().getAttributes().isPresent()) {
-                final AttributesDeleted attributesDeleted = AttributesDeleted.of(command.getThingId(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                persistAndApplyEvent(attributesDeleted,
-                        event -> notifySender(DeleteAttributesResponse.of(thingId, dittoHeaders)));
-            } else {
-                attributesNotFound(dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteAttribute} command.
-     */
-    @NotThreadSafe
-    private final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteAttribute> {
-
-        /**
-         * Constructs a new {@code DeleteAttributeStrategy} object.
-         */
-        public DeleteAttributeStrategy() {
-            super(DeleteAttribute.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteAttribute command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final JsonPointer attributeJsonPointer = command.getAttributePointer();
-            final Optional<Attributes> attributesOptional = thing().getAttributes();
-            if (attributesOptional.isPresent()) {
-                final Attributes attributes = attributesOptional.get();
-                if (attributes.contains(attributeJsonPointer)) {
-                    final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
-                            attributeJsonPointer, nextRevision(), eventTimestamp(), dittoHeaders);
-
-                    persistAndApplyEvent(attributeDeleted, event -> notifySender(
-                            DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)));
-                } else {
-                    attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
-                }
-            } else {
-                attributeNotFound(attributeJsonPointer, command.getDittoHeaders());
-            }
         }
 
     }
@@ -2327,7 +1295,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          * Constructs a new {@code MatchAnyDuringInitializeStrategy} object.
          */
         public MatchAnyDuringInitializeStrategy() {
-            super(Object.class, log);
+            super(Object.class);
         }
 
         @Override

@@ -32,7 +32,7 @@ public final class ModifyAttributesStrategy extends AbstractThingCommandStrategy
      * Constructs a new {@code ModifyAttributesStrategy} object.
      */
     public ModifyAttributesStrategy() {
-        super(ModifyAttributes.class, null);
+        super(ModifyAttributes.class);
     }
 
     @Override
@@ -55,7 +55,7 @@ public final class ModifyAttributesStrategy extends AbstractThingCommandStrategy
             response = ModifyAttributesResponse.created(thingId, command.getAttributes(), dittoHeaders);
         }
 
-        return ImmutableResult.of(eventToPersist, response);
+        return result(eventToPersist, response);
     }
 
 }

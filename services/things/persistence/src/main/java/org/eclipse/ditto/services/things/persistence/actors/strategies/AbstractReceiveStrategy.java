@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Instant;
 import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -21,7 +22,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.FI;
 
 /**
  * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()} as well as a default
@@ -66,8 +66,8 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     }
 
     @Override
-    public FI.TypedPredicate<T> getPredicate() {
-        return command -> true;
+    public BiFunction<Context, T, Boolean> getPredicate() {
+        return (context, command) -> true;
     }
 
     @Override
@@ -76,10 +76,11 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     }
 
     @Override
-    public FI.UnitApply<T> getUnhandledFunction() {
-        return msg -> {
-            // unhandled
-        };
+    public BiFunction<Context, T, Result> getUnhandledFunction() {
+        return (ctx, msg) -> ImmutableResult.empty();
     }
 
+    protected static Instant eventTimestamp() {
+        return Instant.now();
+    }
 }

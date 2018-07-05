@@ -16,11 +16,10 @@ import java.util.function.BiFunction;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.FI;
 
 /**
  * This interface represents a strategy for received messages in the Thing managing actors.
@@ -41,8 +40,8 @@ public interface ReceiveStrategy<T> {
      *
      * @return a predicate which determines whether this strategy get applied or not.
      */
-    default FI.TypedPredicate<T> getPredicate() {
-        return t -> true;
+    default BiFunction<Context, T, Boolean> getPredicate() {
+        return (c, t) -> true;
     }
 
     /**
@@ -59,13 +58,13 @@ public interface ReceiveStrategy<T> {
      * @return the function to be performed as this strategy is not applicable.
      * @see #getPredicate()
      */
-    FI.UnitApply<T> getUnhandledFunction();
+    BiFunction<Context, T, Result> getUnhandledFunction();
 
     interface Result {
 
         Optional<ThingEvent> getEventToPersist();
 
-        Optional<ThingCommandResponse> getResponse();
+        Optional<AbstractCommandResponse> getResponse();
 
         Optional<DittoRuntimeException> getException();
     }

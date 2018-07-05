@@ -12,8 +12,8 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -22,7 +22,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
+import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
@@ -34,8 +37,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessible
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
-
-import akka.japi.pf.FI;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * This extension of {@link AbstractReceiveStrategy} is for handling {@link ThingCommand}.
@@ -56,22 +58,18 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
     }
 
     @Override
-    public FI.TypedPredicate<T> getPredicate() {
-        return command -> null != thing() && thing().getId()
+    public BiFunction<Context, T, Boolean> getPredicate() {
+        return (ctx, command) -> null != ctx.getThing() && ctx.getThing().getId()
                 .filter(command.getId()::equals)
                 .isPresent();
     }
 
     @Override
-    public FI.UnitApply<T> getUnhandledFunction() {
-        return command -> {
+    public BiFunction<Context, T, Result> getUnhandledFunction() {
+        return (context, command) -> {
             throw new IllegalArgumentException(
                     MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
         };
-    }
-
-    protected static Instant eventTimestamp() {
-        return Instant.now();
     }
 
     protected DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
@@ -142,5 +140,21 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
         return AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    protected boolean isThingDeleted(final Thing thing) {
+        return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
+    }
+
+    protected static Result result(final DittoRuntimeException exception) {
+        return ImmutableResult.of(exception);
+    }
+
+    protected static Result result(final AbstractCommandResponse response) {
+        return ImmutableResult.of(response);
+    }
+
+    protected static Result result(final ThingEvent eventToPersist, final AbstractCommandResponse response) {
+        return ImmutableResult.of(eventToPersist, response);
     }
 }
