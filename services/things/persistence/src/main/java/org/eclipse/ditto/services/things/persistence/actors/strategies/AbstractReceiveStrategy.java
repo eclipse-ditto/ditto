@@ -35,21 +35,19 @@ import akka.japi.pf.FI;
 public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
 
     private final Class<T> matchingClass;
-    private final DiagnosticLoggingAdapter logger;
 
     /**
      * Constructs a new {@code AbstractReceiveStrategy} object.
      *
      * @param theMatchingClass the class of the message this strategy reacts to.
-     * @param theLogger the logger to use for logging.
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractReceiveStrategy(final Class<T> theMatchingClass, final DiagnosticLoggingAdapter theLogger) {
+    protected AbstractReceiveStrategy(final Class<T> theMatchingClass) {
         matchingClass = requireNonNull(theMatchingClass, "The matching class must not be null!");
-        logger = requireNonNull(theLogger, "The logger must not be null!");
     }
 
     protected Result preApply(final Context context, final T message) {
+        final DiagnosticLoggingAdapter logger = context.log();
         if (message instanceof Command) {
             final Command command = (Command) message;
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
