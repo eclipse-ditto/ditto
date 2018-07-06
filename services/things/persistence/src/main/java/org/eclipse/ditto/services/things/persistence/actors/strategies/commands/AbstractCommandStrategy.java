@@ -42,6 +42,7 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
     @Override
     public Result apply(final Context context, final T command) {
+        // TODO log
         return isDefined(context, command) ? doApply(context, command) : unhandled(context, command);
     }
 
@@ -50,7 +51,8 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
         return theMatchingClass;
     }
 
-    protected boolean isDefined(final Context context, final T command) {
+    @Override
+    public boolean isDefined(final Context context, final T command) {
         return null != context
                 && null != context.getThing()
                 && context.getThing().getId().filter(command.getId()::equals).isPresent();

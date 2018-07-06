@@ -13,8 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -68,7 +66,6 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
@@ -113,6 +110,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private long accessCounter;
     private Cancellable activityChecker;
     private Thing thing;
+    private final CheckForActivityStrategy checkForActivityStrategy;
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
@@ -148,6 +146,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         thing = modified;
                     }
                 }).build();
+        checkForActivityStrategy = new CheckForActivityStrategy();
     }
 
     /**
@@ -318,12 +317,25 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     private void becomeThingCreatedHandler() {
-        final Receive receive = ReceiveBuilder
-                .create()
-                .match(Command.class, this::handleCommand)
-                .matchAny(unhandled -> {
-                    log.warning("Unknown message: {}", unhandled);
-                    unhandled(unhandled);
+
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
+                .match(Command.class, command -> commandReceiveStrategy.isDefined(ImmutableContext.empty(), command),
+                        this::handleCommand);
+
+        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder)
+                .match(thingSnapshotter.strategies())
+                .match(new CheckForActivityStrategy())
+                .matchAny(new ReceiveStrategy<Object>() {
+                    @Override
+                    public Class<Object> getMatchingClass() {
+                        return Object.class;
+                    }
+
+                    @Override
+                    public void apply(final Object message) {
+                        log.warning("Unknown message: {}", message);
+                        unhandled(message);
+                    }
                 })
                 .build();
 
@@ -335,9 +347,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void becomeThingDeletedHandler() {
-        final Collection<ReceiveStrategy<?>> thingDeletedStrategies = initThingDeletedStrategies();
+
         final Receive receive = new StrategyAwareReceiveBuilder()
-                .matchEach(thingDeletedStrategies)
+                .match(new CreateThingStrategy())
+                .match(thingSnapshotter.strategies())
+                .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
@@ -351,19 +365,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          */
         scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
         thingSnapshotter.stopMaintenanceSnapshots();
-    }
-
-    private Collection<ReceiveStrategy<?>> initThingDeletedStrategies() {
-        final Collection<ReceiveStrategy<?>> result = new ArrayList<>();
-        result.add(new CreateThingStrategy());
-
-        // TakeSnapshot
-        result.addAll(thingSnapshotter.strategies());
-
-        // Persistence specific
-        result.add(new CheckForActivityStrategy());
-
-        return result;
     }
 
     private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
@@ -484,19 +485,19 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 thingSnapshotter);
         final CommandStrategy.Result result = commandReceiveStrategy.apply(context, command);
 
-        // TODO in the current implementation we would notify the sender more than once
         if (result.getEventToPersist().isPresent() && result.getResponse().isPresent()) {
             final ThingModifiedEvent eventToPersist = result.getEventToPersist().get();
-            final WithDittoHeaders response = result.getResponse().get();
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
+            persistAndApplyEvent(eventToPersist, event -> {
+                final WithDittoHeaders response = result.getResponse().get();
+                notifySender(response);
+                if (result.isBecomeDeleted()) {
+                    becomeThingDeletedHandler();
+                }
+            });
         } else if (result.getResponse().isPresent()) {
             notifySender(result.getResponse().get());
         } else if (result.getException().isPresent()) {
             notifySender(result.getException().get());
-        }
-
-        if (result.isBecomeDeleted()) {
-            becomeThingDeletedHandler();
         }
     }
 
@@ -558,7 +559,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * This strategy handles the {@link CreateThing} command.
      */
     @NotThreadSafe
-    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> {
+    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> implements
+            ReceiveStrategy.WithUnhandledFunction<CreateThing> {
 
         /**
          * Constructs a new {@code CreateThingStrategy} object.
@@ -568,8 +570,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         @Override
-        public FI.TypedPredicate<CreateThing> getPredicate() {
-            return command -> Objects.equals(thingId, command.getId());
+        public boolean isDefined(final CreateThing command) {
+            return Objects.equals(thingId, command.getId());
         }
 
         @Override
@@ -678,12 +680,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         @Override
-        public FI.UnitApply<CreateThing> getUnhandledFunction() {
-            return command -> {
-                throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-            };
+        public void unhandled(final CreateThing command) {
+            throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
         }
-
     }
 
     /**

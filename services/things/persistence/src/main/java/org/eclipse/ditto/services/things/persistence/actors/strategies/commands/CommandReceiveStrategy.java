@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
@@ -115,14 +116,23 @@ public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
     }
 
     @Override
-    protected boolean isDefined(final Context context, final Command command) {
+    public boolean isDefined(final Context context, final Command command) {
         return strategies.containsKey(command.getClass());
     }
 
     @Override
     protected Result doApply(final Context context, final Command command) {
         final CommandStrategy<Command> commandStrategy = (CommandStrategy<Command>) strategies.get(command.getClass());
-        return commandStrategy.apply(context, command);
+        if (commandStrategy != null) {
+            LogUtil.enhanceLogWithCorrelationId(context.getLog(), command.getDittoHeaders().getCorrelationId());
+            if (context.getLog().isDebugEnabled()) {
+                context.getLog().debug("Applying command '{}': {}", command.getType(), command.toJsonString());
+            }
+            return commandStrategy.apply(context, command);
+        } else {
+            context.getLog().info("No strategy found for command {}.", command.getType());
+            return Result.empty();
+        }
     }
 
 }

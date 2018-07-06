@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import akka.japi.pf.FI;
-
 /**
  * This interface represents a strategy for received messages in the Thing managing actors.
  *
@@ -28,28 +26,26 @@ public interface ReceiveStrategy<T> {
     Class<T> getMatchingClass();
 
     /**
-     * Returns a predicate which determines whether this strategy get applied or not.
-     *
-     * @return a predicate which determines whether this strategy get applied or not.
+     * Apply the strategy to the given message.
      */
-    default FI.TypedPredicate<T> getPredicate() {
-        return t -> true;
+    void apply(T message);
+
+
+    interface WithDefined<T> extends ReceiveStrategy<T> {
+
+        /**
+         * predicate which determines whether this strategy get applied or not.
+         */
+        default boolean isDefined(T message) {
+            return true;
+        }
     }
 
-    /**
-     * Returns the function which applies the message if the predicate evaluated to {@code true}.
-     *
-     * @return the function which applies the message.
-     * @see #getPredicate()
-     */
-    FI.UnitApply<T> getApplyFunction();
+    interface WithUnhandledFunction<T> extends WithDefined<T> {
 
-    /**
-     * Returns the function to perform if the predicate evaluated to {@code false}.
-     *
-     * @return the function to be performed as this strategy is not applicable.
-     * @see #getPredicate()
-     */
-    FI.UnitApply<T> getUnhandledFunction();
-
+        /**
+         * function to perform if the predicate evaluated to {@code false}.
+         */
+        void unhandled(T message);
+    }
 }

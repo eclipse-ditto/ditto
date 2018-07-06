@@ -19,7 +19,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.pf.FI;
 
 /**
  * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()} as well as a default
@@ -33,7 +32,7 @@ import akka.japi.pf.FI;
 public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
 
     private final Class<T> matchingClass;
-    private final DiagnosticLoggingAdapter logger;
+    protected final DiagnosticLoggingAdapter logger;
 
     /**
      * Constructs a new {@code AbstractReceiveStrategy} object.
@@ -66,20 +65,8 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     }
 
     @Override
-    public FI.TypedPredicate<T> getPredicate() {
-        return command -> true;
-    }
-
-    @Override
-    public FI.UnitApply<T> getApplyFunction() {
-        return this::preApply;
-    }
-
-    @Override
-    public FI.UnitApply<T> getUnhandledFunction() {
-        return msg -> {
-            // unhandled
-        };
+    public void apply(final T message) {
+        preApply(message);
     }
 
 }

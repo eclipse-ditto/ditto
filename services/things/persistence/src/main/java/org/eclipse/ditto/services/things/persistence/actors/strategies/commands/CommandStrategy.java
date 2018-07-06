@@ -28,6 +28,8 @@ public interface CommandStrategy<T extends Command> {
 
     Result apply(Context context, T command);
 
+    boolean isDefined(Context context, T command);
+
     interface Result {
 
         Optional<ThingModifiedEvent> getEventToPersist();

@@ -23,8 +23,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -44,7 +42,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     }
 
     @Override
-    protected boolean isDefined(final Context context, final RetrieveThing command) {
+    public boolean isDefined(final Context context, final RetrieveThing command) {
         return Objects.equals(context.getThingId(), command.getId())
                 && null != context.getThing()
                 && !isThingDeleted(context.getThing());

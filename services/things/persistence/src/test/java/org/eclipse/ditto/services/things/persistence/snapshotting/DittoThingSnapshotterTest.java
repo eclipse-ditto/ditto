@@ -27,6 +27,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import akka.event.DiagnosticLoggingAdapter;
+
 /**
  * Unit test for {@link DittoThingSnapshotter}.
  */
@@ -39,13 +41,16 @@ public final class DittoThingSnapshotterTest {
     @Mock
     private SnapshotAdapter<ThingWithSnapshotTag> taggedSnapshotAdapterMock;
 
+    @Mock
+    private DiagnosticLoggingAdapter log;
+
     private DittoThingSnapshotter underTest;
 
     /** */
     @Before
     public void setUp() {
         underTest = new DittoThingSnapshotter(persistenceActorMock, taggedSnapshotAdapterMock,
-                true, true, null, null, null, null, null);
+                true, true, log, null, null, null, null);
         when(persistenceActorMock.getThing()).thenReturn(THING_V1);
     }
 

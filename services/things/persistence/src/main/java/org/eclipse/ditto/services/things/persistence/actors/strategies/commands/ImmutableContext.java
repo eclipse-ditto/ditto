@@ -34,6 +34,10 @@ public class ImmutableContext implements CommandStrategy.Context {
         this.thingSnapshotter = thingSnapshotter;
     }
 
+    public static CommandStrategy.Context empty() {
+        return new ImmutableContext(null, null, 0, null, null);
+    }
+
     @Override
     public String getThingId() {
         return thingId;

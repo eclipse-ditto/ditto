@@ -17,9 +17,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ImmutableResult;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -37,7 +34,7 @@ public final class ThingConflictStrategy extends AbstractCommandStrategy<CreateT
     }
 
     @Override
-    protected boolean isDefined(final Context context, final CreateThing command) {
+    public boolean isDefined(final Context context, final CreateThing command) {
         return Objects.equals(context.getThingId(), command.getId());
     }
 

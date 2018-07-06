@@ -41,6 +41,11 @@ final class StrategyAwareReceiveBuilder {
         peekStep = null;
     }
 
+    StrategyAwareReceiveBuilder(final ReceiveBuilder receiveBuilder) {
+        this.delegationTarget = receiveBuilder;
+        peekStep = null;
+    }
+
     /**
      * Adds a new case strategy to this builder.
      *
@@ -50,8 +55,18 @@ final class StrategyAwareReceiveBuilder {
      * @return this builder with the strategy added.
      */
     <T> StrategyAwareReceiveBuilder match(final ReceiveStrategy<T> strategy) {
-        delegationTarget.match(strategy.getMatchingClass(), strategy.getPredicate(), strategy.getApplyFunction());
-        delegationTarget.match(strategy.getMatchingClass(), strategy.getUnhandledFunction());
+        if (strategy instanceof ReceiveStrategy.WithUnhandledFunction) {
+            final ReceiveStrategy.WithUnhandledFunction<T> withUnhandled =
+                    (ReceiveStrategy.WithUnhandledFunction<T>) strategy;
+            delegationTarget.match(strategy.getMatchingClass(), withUnhandled::isDefined, strategy::apply);
+            delegationTarget.match(strategy.getMatchingClass(), withUnhandled::unhandled);
+        }
+        if (strategy instanceof ReceiveStrategy.WithDefined) {
+            final ReceiveStrategy.WithDefined<T> withDefined = (ReceiveStrategy.WithDefined<T>) strategy;
+            delegationTarget.match(withDefined.getMatchingClass(), withDefined::isDefined, withDefined::apply);
+        } else {
+            delegationTarget.match(strategy.getMatchingClass(), strategy::apply);
+        }
         return this;
     }
 
@@ -77,7 +92,7 @@ final class StrategyAwareReceiveBuilder {
      * @return this builder with the strategy added.
      */
     StrategyAwareReceiveBuilder matchAny(final ReceiveStrategy<Object> strategy) {
-        delegationTarget.matchAny(strategy.getApplyFunction());
+        delegationTarget.matchAny(strategy::apply);
         return this;
     }
 
@@ -100,6 +115,13 @@ final class StrategyAwareReceiveBuilder {
         }
 
         return this;
+    }
+
+    /**
+     * @return the created receive builder to further customize it
+     */
+    ReceiveBuilder toReceiveBuilder() {
+        return delegationTarget;
     }
 
     /**

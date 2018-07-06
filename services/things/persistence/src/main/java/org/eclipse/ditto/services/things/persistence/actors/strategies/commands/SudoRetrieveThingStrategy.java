@@ -23,10 +23,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ImmutableResult;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
 /**
@@ -43,7 +39,7 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
     }
 
     @Override
-    protected boolean isDefined(final Context context, final SudoRetrieveThing command) {
+    public boolean isDefined(final Context context, final SudoRetrieveThing command) {
         return Objects.equals(context.getThingId(), command.getId())
                 && null != context.getThing()
                 && !isThingDeleted(context.getThing());
