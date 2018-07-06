@@ -15,11 +15,22 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
- * TODO javadoc
+ * This interface represents a strategy for handling events in the
+ * {@link org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor}.
+ *
+ * @param <T> type of the event this strategy matches against.
  */
 @FunctionalInterface
 public interface HandleStrategy<T extends ThingEvent> {
 
+    /**
+     * Applies an event to a Thing.
+     *
+     * @param event the event to apply.
+     * @param thing the Thing to apply the event to.
+     * @param revision the next revision of the Thing.
+     * @return the Thing with the event applied.
+     */
     Thing handle(T event, Thing thing, long revision);
 
 }

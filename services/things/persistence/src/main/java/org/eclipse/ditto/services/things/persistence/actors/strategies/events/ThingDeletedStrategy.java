@@ -11,13 +11,16 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 
 /**
- * TODO javadoc
+ * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingDeleted} event.
  */
+@ThreadSafe
 final class ThingDeletedStrategy implements HandleStrategy<ThingDeleted> {
 
     @Override
@@ -29,8 +32,6 @@ final class ThingDeletedStrategy implements HandleStrategy<ThingDeleted> {
                     .setModified(event.getTimestamp().orElse(null))
                     .build();
         } else {
-            // TODO think about logging in event strategies
-            // log.warning("Thing was null when 'ThingDeleted' event should have been applied on recovery.");
             return null;
         }
     }

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ImmutableContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ThingNotFoundStrategy;
@@ -85,6 +86,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    // TODO create the strategy only once for all actors
     private static final EventHandleStrategy THING_EVENT_STRATEGY = new EventHandleStrategy();
 
     private final String thingId;
@@ -125,12 +127,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
                         snapshotInterval);
 
-        handleThingEvents = ReceiveBuilder.create().match(ThingEvent.class, event -> {
-            final Thing modified = thingEventHandlers.handle(event, thing, getRevisionNumber());
-            if (modified != null) {
-                thing = modified;
-            }
-        }).build();
+        handleThingEvents = ReceiveBuilder.create()
+                .match(ThingEvent.class, event -> {
+                    final Thing modified = THING_EVENT_STRATEGY.handle(event, thing, getRevisionNumber());
+                    if (modified != null) {
+                        thing = modified;
+                    }
+                }).build();
     }
 
     /**
@@ -309,6 +312,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     final ImmutableContext context = new ImmutableContext(thingId, thing, nextRevision(), log);
                     final ReceiveStrategy.Result result = commandReceiveStrategy.handle(context, command);
 
+                    // TODO in the current implementation we would notify the sender more than once
                     if (result.getEventToPersist().isPresent() && result.getResponse().isPresent()) {
                         final ThingModifiedEvent eventToPersist = result.getEventToPersist().get();
                         final WithDittoHeaders response = result.getResponse().get();

@@ -28,7 +28,6 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActo
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
@@ -37,7 +36,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessible
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This extension of {@link AbstractReceiveStrategy} is for handling {@link ThingCommand}.
@@ -146,7 +145,7 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
         return ImmutableResult.of(response);
     }
 
-    protected static Result result(final ThingEvent eventToPersist, final CommandResponse response) {
+    protected static Result result(final ThingModifiedEvent eventToPersist, final CommandResponse response) {
         return ImmutableResult.of(eventToPersist, response);
     }
 }

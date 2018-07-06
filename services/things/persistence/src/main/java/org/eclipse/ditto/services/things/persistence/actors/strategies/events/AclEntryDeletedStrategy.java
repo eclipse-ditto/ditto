@@ -11,12 +11,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 
 /**
- * TODO javadoc
+ * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryDeleted} event.
  */
+@ThreadSafe
 final class AclEntryDeletedStrategy implements HandleStrategy<AclEntryDeleted> {
 
     @Override

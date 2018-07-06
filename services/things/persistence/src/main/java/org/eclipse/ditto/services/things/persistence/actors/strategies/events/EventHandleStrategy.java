@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.concurrent.ThreadSafe;
+
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
@@ -48,8 +50,9 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
- * TODO javadoc
+ * This strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
+@ThreadSafe
 public class EventHandleStrategy implements HandleStrategy {
 
     private final Map<Class<? extends ThingEvent>, HandleStrategy<? extends ThingEvent>> strategies = new HashMap<>();
@@ -58,34 +61,60 @@ public class EventHandleStrategy implements HandleStrategy {
      * Constructs a new {@code EventHandleStrategy}.
      */
     public EventHandleStrategy() {
+        addThingStrategies();
+        addAclStrategies();
+        addAttributesStrategies();
+        addFeaturesStrategies();
+        addPolicyIdStrategies();
+    }
+
+    private void addThingStrategies() {
         addStrategy(ThingCreated.class, new ThingCreatedStrategy());
         addStrategy(ThingModified.class, new ThingModifiedStrategy());
         addStrategy(ThingDeleted.class, new ThingDeletedStrategy());
+    }
+
+    private void addAclStrategies() {
         addStrategy(AclModified.class, new AclModifiedStrategy());
+
         addStrategy(AclEntryCreated.class, new AclEntryCreatedStrategy());
         addStrategy(AclEntryModified.class, new AclEntryModifiedStrategy());
         addStrategy(AclEntryDeleted.class, new AclEntryDeletedStrategy());
+    }
+
+    private void addAttributesStrategies() {
         addStrategy(AttributesCreated.class, new AttributesCreatedStrategy());
         addStrategy(AttributesModified.class, new AttributesModifiedStrategy());
         addStrategy(AttributesDeleted.class, new AttributesDeletedStrategy());
+
         addStrategy(AttributeCreated.class, new AttributeCreatedStrategy());
         addStrategy(AttributeModified.class, new AttributeModifiedStrategy());
         addStrategy(AttributeDeleted.class, new AttributeDeletedStrategy());
+    }
+
+    private void addFeaturesStrategies() {
         addStrategy(FeaturesCreated.class, new FeaturesCreatedStrategy());
         addStrategy(FeaturesModified.class, new FeaturesModifiedStrategy());
         addStrategy(FeaturesDeleted.class, new FeaturesDeletedStrategy());
+
         addStrategy(FeatureCreated.class, new FeatureCreatedStrategy());
         addStrategy(FeatureModified.class, new FeatureModifiedStrategy());
         addStrategy(FeatureDeleted.class, new FeatureDeletedStrategy());
+
         addStrategy(FeatureDefinitionCreated.class, new FeatureDefinitionCreatedStrategy());
         addStrategy(FeatureDefinitionModified.class, new FeatureDefinitionModifiedStrategy());
         addStrategy(FeatureDefinitionDeleted.class, new FeatureDefinitionDeletedStrategy());
+
         addStrategy(FeaturePropertiesCreated.class, new FeaturePropertiesCreatedStrategy());
         addStrategy(FeaturePropertiesModified.class, new FeaturePropertiesModifiedStrategy());
         addStrategy(FeaturePropertiesDeleted.class, new FeaturePropertiesDeletedStrategy());
+
         addStrategy(FeaturePropertyCreated.class, new FeaturePropertyCreatedStrategy());
         addStrategy(FeaturePropertyModified.class, new FeaturePropertyModifiedStrategy());
         addStrategy(FeaturePropertyDeleted.class, new FeaturePropertyDeletedStrategy());
+    }
+
+    private void addPolicyIdStrategies() {
         addStrategy(PolicyIdCreated.class, new PolicyIdCreatedStrategy());
         addStrategy(PolicyIdModified.class, new PolicyIdModifiedStrategy());
     }
