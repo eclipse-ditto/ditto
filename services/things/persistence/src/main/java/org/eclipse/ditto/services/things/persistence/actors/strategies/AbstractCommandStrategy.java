@@ -42,7 +42,7 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
     @Override
     public Result apply(final Context context, final T command) {
-        return isDefined(context, command) ? apply(context, command) : unhandled(context, command);
+        return isDefined(context, command) ? doApply(context, command) : unhandled(context, command);
     }
 
     @Override
