@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * @param <T> type of the event this strategy matches against.
  */
 @FunctionalInterface
-public interface HandleStrategy<T extends ThingEvent> {
+public interface EventStrategy<T extends ThingEvent> {
 
     /**
      * Applies an event to a Thing.

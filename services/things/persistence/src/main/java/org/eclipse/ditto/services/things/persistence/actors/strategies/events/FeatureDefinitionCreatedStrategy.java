@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated} event.
  */
 @ThreadSafe
-final class FeatureDefinitionCreatedStrategy implements HandleStrategy<FeatureDefinitionCreated> {
+final class FeatureDefinitionCreatedStrategy implements EventStrategy<FeatureDefinitionCreated> {
 
     @Override
     public Thing handle(final FeatureDefinitionCreated event, final Thing thing, final long revision) {

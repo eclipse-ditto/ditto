@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.AttributesCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributesCreated} event.
  */
 @ThreadSafe
-final class AttributesCreatedStrategy implements HandleStrategy<AttributesCreated> {
+final class AttributesCreatedStrategy implements EventStrategy<AttributesCreated> {
 
     @Override
     public Thing handle(final AttributesCreated event, final Thing thing, final long revision) {

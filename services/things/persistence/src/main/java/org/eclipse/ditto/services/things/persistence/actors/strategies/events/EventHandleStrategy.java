@@ -53,9 +53,9 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
 @ThreadSafe
-public class EventHandleStrategy implements HandleStrategy {
+public class EventHandleStrategy implements EventStrategy {
 
-    private final Map<Class<? extends ThingEvent>, HandleStrategy<? extends ThingEvent>> strategies = new HashMap<>();
+    private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies = new HashMap<>();
 
     /**
      * Constructs a new {@code EventHandleStrategy}.
@@ -119,13 +119,13 @@ public class EventHandleStrategy implements HandleStrategy {
         addStrategy(PolicyIdModified.class, new PolicyIdModifiedStrategy());
     }
 
-    private <T extends ThingEvent> void addStrategy(final Class<T> cls, final HandleStrategy<T> strategy) {
+    private <T extends ThingEvent> void addStrategy(final Class<T> cls, final EventStrategy<T> strategy) {
         strategies.put(cls, strategy);
     }
 
     @Override
     public Thing handle(final ThingEvent event, final Thing thing, final long revision) {
-        final HandleStrategy<ThingEvent> strategy = (HandleStrategy<ThingEvent>) strategies.get(event.getClass());
+        final EventStrategy<ThingEvent> strategy = (EventStrategy<ThingEvent>) strategies.get(event.getClass());
         if (strategy != null) {
             return strategy.handle(event, thing, revision);
         } else {

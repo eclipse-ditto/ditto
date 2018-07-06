@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.PolicyIdModified} event.
  */
 @ThreadSafe
-final class PolicyIdCreatedStrategy implements HandleStrategy<PolicyIdCreated> {
+final class PolicyIdCreatedStrategy implements EventStrategy<PolicyIdCreated> {
 
     @Override
     public Thing handle(final PolicyIdCreated event, final Thing thing, final long revision) {

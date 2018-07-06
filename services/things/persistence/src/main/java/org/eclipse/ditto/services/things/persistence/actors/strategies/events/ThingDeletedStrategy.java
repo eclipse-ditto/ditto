@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingDeleted} event.
  */
 @ThreadSafe
-final class ThingDeletedStrategy implements HandleStrategy<ThingDeleted> {
+final class ThingDeletedStrategy implements EventStrategy<ThingDeleted> {
 
     @Override
     public Thing handle(final ThingDeleted event, final Thing thing, final long revision) {

@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.AttributeModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributeModified} event.
  */
 @ThreadSafe
-final class AttributeModifiedStrategy implements HandleStrategy<AttributeModified> {
+final class AttributeModifiedStrategy implements EventStrategy<AttributeModified> {
 
     @Override
     public Thing handle(final AttributeModified event, final Thing thing, final long revision) {

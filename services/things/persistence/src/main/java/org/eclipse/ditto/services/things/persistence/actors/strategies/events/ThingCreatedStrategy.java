@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingCreated} event.
  */
 @ThreadSafe
-final class ThingCreatedStrategy implements HandleStrategy<ThingCreated> {
+final class ThingCreatedStrategy implements EventStrategy<ThingCreated> {
 
     @Override
     public Thing handle(final ThingCreated event, final Thing thing, final long revision) {

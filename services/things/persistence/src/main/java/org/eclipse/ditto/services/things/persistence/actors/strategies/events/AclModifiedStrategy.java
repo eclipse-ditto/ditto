@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.AclModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclModified} event.
  */
 @ThreadSafe
-final class AclModifiedStrategy implements HandleStrategy<AclModified> {
+final class AclModifiedStrategy implements EventStrategy<AclModified> {
 
     @Override
     public Thing handle(final AclModified event, final Thing thing, final long revision) {

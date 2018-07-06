@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryDeleted} event.
  */
 @ThreadSafe
-final class AclEntryDeletedStrategy implements HandleStrategy<AclEntryDeleted> {
+final class AclEntryDeletedStrategy implements EventStrategy<AclEntryDeleted> {
 
     @Override
     public Thing handle(final AclEntryDeleted event, final Thing thing, final long revision) {

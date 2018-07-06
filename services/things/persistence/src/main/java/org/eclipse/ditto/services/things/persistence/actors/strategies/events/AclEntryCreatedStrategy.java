@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryCreated;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryCreated} event.
  */
 @ThreadSafe
-final class AclEntryCreatedStrategy implements HandleStrategy<AclEntryCreated> {
+final class AclEntryCreatedStrategy implements EventStrategy<AclEntryCreated> {
 
     @Override
     public Thing handle(final AclEntryCreated event, final Thing thing, final long revision) {

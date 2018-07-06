@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted} event.
  */
 @ThreadSafe
-final class FeaturePropertiesDeletedStrategy implements HandleStrategy<FeaturePropertiesDeleted> {
+final class FeaturePropertiesDeletedStrategy implements EventStrategy<FeaturePropertiesDeleted> {
 
     @Override
     public Thing handle(final FeaturePropertiesDeleted event, final Thing thing, final long revision) {
