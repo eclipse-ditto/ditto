@@ -27,24 +27,41 @@ public interface ReceiveStrategy<T> {
 
     /**
      * Apply the strategy to the given message.
+     *
+     * @param message the message
      */
     void apply(T message);
 
 
+    /**
+     * The interface With defined.
+     *
+     * @param <T> the type parameter
+     */
     interface WithDefined<T> extends ReceiveStrategy<T> {
 
         /**
          * predicate which determines whether this strategy get applied or not.
+         *
+         * @param message the message
+         * @return the boolean
          */
         default boolean isDefined(T message) {
             return true;
         }
     }
 
+    /**
+     * The interface With unhandled function.
+     *
+     * @param <T> the type parameter
+     */
     interface WithUnhandledFunction<T> extends WithDefined<T> {
 
         /**
          * function to perform if the predicate evaluated to {@code false}.
+         *
+         * @param message the message
          */
         void unhandled(T message);
     }

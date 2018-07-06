@@ -21,10 +21,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()} as well as a default
- * implementation of {@link #getPredicate()} and {@link #getUnhandledFunction()}. The predicate always evaluates to
- * {@code true} which means that the "apply function" of this strategy is used. The behaviour of the "apply function"
- * has to be implemented by subclasses. The "unhandled function" does nothing by default.
+ * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()}
+ * The behaviour of the "apply function" has to be implemented by subclasses.
  *
  * @param <T> type of the class this strategy matches against.
  */
