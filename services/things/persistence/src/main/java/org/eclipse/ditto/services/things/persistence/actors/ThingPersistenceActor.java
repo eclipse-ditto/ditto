@@ -31,12 +31,11 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ImmutableContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ThingNotFoundStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
@@ -91,7 +90,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private static final ThingEventHandlers thingEventHandlers = new ThingEventHandlers();
+    private static final EventHandleStrategy THING_EVENT_STRATEGY = new EventHandleStrategy();
 
     private final String thingId;
     private final ActorRef pubSubMediator;
@@ -131,8 +130,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
                         snapshotInterval);
 
-        handleThingEvents = ReceiveBuilder.create().matchAny(event -> {
-            final Thing modified = thingEventHandlers.handle(event, thing(), getRevisionNumber());
+        handleThingEvents = ReceiveBuilder.create().match(ThingEvent.class, event -> {
+            final Thing modified = THING_EVENT_STRATEGY.handle(event, thing(), getRevisionNumber());
             if (modified != null) {
                 thing.set(modified);
             }
@@ -282,18 +281,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @Override
     public Receive createReceiveRecover() {
         // defines how state is updated during recovery
-        return ReceiveBuilder.create()
+        return handleThingEvents.orElse(ReceiveBuilder.create()
 
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     log.debug("Got SnapshotOffer: {}", ss);
-                    setThing(thingSnapshotter.recoverThingFromSnapshotOffer(ss));
+                    thing = thingSnapshotter.recoverThingFromSnapshotOffer(ss);
                 })
 
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
-                    if (thing() != null) {
-                        setThing(enhanceThingWithLifecycle(thing()));
+                    if (thing != null) {
+                        thing = enhanceThingWithLifecycle(thing);
                         log.debug("Thing <{}> was recovered.", thingId);
 
                         if (isThingActive()) {
@@ -302,7 +301,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                             // expect life cycle to be DELETED. if it's not, then act as if this thing is deleted.
                             if (!isThingDeleted()) {
                                 // life cycle isn't known, act as
-                                log.error("Unknown lifecycle state <{}> for Thing <{}>.", thing().getLifecycle(),
+                                log.error("Unknown lifecycle state <{}> for Thing <{}>.", thing.getLifecycle(),
                                         thingId);
                             }
                             becomeThingDeletedHandler();
@@ -311,10 +310,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     }
                 })
 
-//                // # Handle unknown
-//                .matchAny(m -> log.warning("Unknown recover message: {}", m))
-
-                .build().orElse(handleThingEvents);
+                // # Handle unknown
+                .matchAny(m -> log.warning("Unknown recover message: {}", m)).build());
     }
 
     /*
