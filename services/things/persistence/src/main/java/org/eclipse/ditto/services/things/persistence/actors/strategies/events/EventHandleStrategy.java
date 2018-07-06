@@ -57,10 +57,25 @@ public class EventHandleStrategy implements EventStrategy {
 
     private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies = new HashMap<>();
 
+    private static class LazyHolder {
+
+        static final EventHandleStrategy INSTANCE = new EventHandleStrategy();
+
+    }
+
+    /**
+     * Returns the {@code EventHandleStrategy} instance.
+     *
+     * @return the instance.
+     */
+    public static EventHandleStrategy getInstance() {
+        return LazyHolder.INSTANCE;
+    }
+
     /**
      * Constructs a new {@code EventHandleStrategy}.
      */
-    public EventHandleStrategy() {
+    private EventHandleStrategy() {
         addThingStrategies();
         addAclStrategies();
         addAttributesStrategies();

@@ -39,9 +39,9 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.ImmutableContext;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ImmutableContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -100,9 +100,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    // TODO create the strategy only once for all actors
-    private static final EventHandleStrategy THING_EVENT_STRATEGY = new EventHandleStrategy();
-
+    private final CommandReceiveStrategy commandReceiveStrategy = CommandReceiveStrategy.getInstance();
+    private final EventHandleStrategy eventHandleStrategy = EventHandleStrategy.getInstance();
     private final String thingId;
     private final ActorRef pubSubMediator;
     private final java.time.Duration activityCheckInterval;
@@ -110,10 +109,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private final Receive handleThingEvents;
     private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final long snapshotThreshold;
+
     private long accessCounter;
     private Cancellable activityChecker;
     private Thing thing;
-    private final CommandReceiveStrategy commandReceiveStrategy = CommandReceiveStrategy.getInstance();
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
@@ -144,7 +143,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
-                    final Thing modified = THING_EVENT_STRATEGY.handle(event, thing, getRevisionNumber());
+                    final Thing modified = eventHandleStrategy.handle(event, thing, getRevisionNumber());
                     if (modified != null) {
                         thing = modified;
                     }
