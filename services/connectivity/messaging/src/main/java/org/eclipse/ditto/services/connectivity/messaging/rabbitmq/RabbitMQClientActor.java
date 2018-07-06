@@ -155,7 +155,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         createConnectionSender = getSender();
-        return connect(connection, getSender());
+        return connect(connection, getSender(), FiniteDuration.apply(TEST_CONNECTION_TIMEOUT, TimeUnit.SECONDS));
     }
 
     @Override
@@ -296,6 +296,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin) {
+        return connect(connection, origin, FiniteDuration.apply(10, TimeUnit.SECONDS));
+    }
+
+    private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin, final FiniteDuration timeout) {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
             final ActorRef self = getSelf();
@@ -307,7 +311,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         }));
 
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
-                        FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
+                        timeout, (rmqConnection, connectionActorRef) -> {
                             log.info("Established RMQ connection: {}", rmqConnection);
                             self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), origin);
                             return null;

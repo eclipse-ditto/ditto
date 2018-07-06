@@ -372,7 +372,6 @@ final class ConnectionActor extends AbstractPersistentActor {
 
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
         getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-
     }
 
     private boolean isConnectionConfigurationValid(final Connection connection, final ActorRef origin) {
@@ -409,13 +408,20 @@ final class ConnectionActor extends AbstractPersistentActor {
             askClientActor(command, response -> {
                         getContext().become(connectionCreatedBehaviour);
                         subscribeForEvents();
-                        origin.tell(ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
-                                getSelf());
-                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                    }, error -> handleException("connect-after-modify", origin, error)
+                    },
+                    error -> handleException("connect-after-modify", origin, error),
+                    unused -> respondWithModifyConnectionResponse(connectionId, command, origin)
             );
         });
     }
+
+    private void respondWithModifyConnectionResponse(final String connectionId, final ModifyConnection command,
+            final ActorRef origin) {
+
+        origin.tell(ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()), getSelf());
+        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+    }
+
 
     private void openConnection(final OpenConnection command) {
         checkConnectionNotNull();
