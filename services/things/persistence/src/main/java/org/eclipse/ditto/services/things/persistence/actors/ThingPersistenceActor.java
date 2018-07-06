@@ -41,6 +41,9 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.ImmutableContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -109,6 +112,7 @@ import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
@@ -376,16 +380,37 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     private void becomeThingCreatedHandler() {
-//        final Collection<ReceiveStrategy<?>> thingCreatedStrategies = initThingCreatedStrategies();
-//        final Receive receive = new StrategyAwareReceiveBuilder()
-//                .matchEach(thingCreatedStrategies)
-//                .matchAny(new MatchAnyAfterInitializeStrategy())
-//                .setPeekConsumer(getIncomingMessagesLoggerOrNull())
-//                .build();
-//        final LazyStrategyLoader lazyStrategyLoader = new LazyStrategyLoader();
-//        final Receive receive = ReceiveBuilder.create()
-//                .match(ThingCommand.class, )
-//                .build();
+
+        final CommandReceiveStrategy commandReceiveStrategy = new CommandReceiveStrategy();
+
+        final Receive receive = ReceiveBuilder
+                .create().match(Command.class, command -> {
+                    final ImmutableContext context = new ImmutableContext(thingId, thing(), nextRevision(), log);
+                    final ReceiveStrategy.Result result = commandReceiveStrategy.handle(context, command);
+
+                    if (result.getEventToPersist().isPresent() && result.getResponse().isPresent()) {
+                        final ThingModifiedEvent eventToPersist = result.getEventToPersist().get();
+                        final WithDittoHeaders response = result.getResponse().get();
+                        persistAndApplyEvent(eventToPersist, event -> notifySender(response));
+                    }
+                    if (result.getResponse().isPresent()) {
+                        notifySender(result.getResponse().get());
+                    }
+                    if (result.getException().isPresent()) {
+                        notifySender(result.getException().get());
+                    }
+                    if (result.isBecomeCreated()) {
+                        becomeThingCreatedHandler();
+                    }
+                    if (result.isBecomeDeleted()) {
+                        becomeThingDeletedHandler();
+                    }
+                })
+                .matchAny(unhandled -> {
+                    log.warning("Unknown message: {}", unhandled);
+                    unhandled(unhandled);
+                })
+                .build();
         getContext().become(receive, true);
         getContext().getParent().tell(ThingSupervisorActor.ManualReset.INSTANCE, getSelf());
 

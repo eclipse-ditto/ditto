@@ -15,9 +15,9 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 import akka.event.DiagnosticLoggingAdapter;
 
@@ -62,11 +62,15 @@ public interface ReceiveStrategy<T> {
 
     interface Result {
 
-        Optional<ThingEvent> getEventToPersist();
+        Optional<ThingModifiedEvent> getEventToPersist();
 
-        Optional<AbstractCommandResponse> getResponse();
+        Optional<WithDittoHeaders> getResponse();
 
         Optional<DittoRuntimeException> getException();
+
+        boolean isBecomeCreated();
+
+        boolean isBecomeDeleted();
     }
 
     interface Context {

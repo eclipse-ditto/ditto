@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
@@ -85,7 +85,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
         }
     }
 
-    private ThingCommandResponse<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
+    private CommandResponse<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
             final Thing snapshotThing) {
 
         final JsonObject thingJson = command.getSelectedFields()

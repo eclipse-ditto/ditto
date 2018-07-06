@@ -39,10 +39,7 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
         final ThingDeleted thingDeleted = ThingDeleted.of(thingId, nextRevision, eventTimestamp(), dittoHeaders);
 
         context.log().info("Deleted Thing with ID <{}>.", thingId);
-        return result(thingDeleted, DeleteThingResponse.of(thingId, dittoHeaders));
-
-        // TODO include in result???
-        // becomeThingDeletedHandler();
+        return ImmutableResult.of(thingDeleted, DeleteThingResponse.of(thingId, dittoHeaders), null, false, true);
     }
 
 }

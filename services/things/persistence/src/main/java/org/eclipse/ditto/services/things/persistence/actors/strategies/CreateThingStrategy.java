@@ -94,9 +94,6 @@ public final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThi
 
         context.log().debug("Created new Thing with ID <{}>.", thingId);
         return ImmutableResult.of(thingCreated, CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
-
-        //TODO include in result
-        // becomeThingCreatedHandler();
     }
 
     private Thing handleCommandVersion(final JsonSchemaVersion version, final String thingId, final Thing thing,

@@ -25,8 +25,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
-import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
@@ -150,11 +150,11 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
         return ImmutableResult.of(exception);
     }
 
-    protected static Result result(final AbstractCommandResponse response) {
+    protected static Result result(final CommandResponse response) {
         return ImmutableResult.of(response);
     }
 
-    protected static Result result(final ThingEvent eventToPersist, final AbstractCommandResponse response) {
+    protected static Result result(final ThingEvent eventToPersist, final CommandResponse response) {
         return ImmutableResult.of(eventToPersist, response);
     }
 }
