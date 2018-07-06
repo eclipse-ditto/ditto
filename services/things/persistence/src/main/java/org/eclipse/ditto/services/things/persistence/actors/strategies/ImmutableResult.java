@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 class ImmutableResult implements ReceiveStrategy.Result {
@@ -99,5 +100,4 @@ class ImmutableResult implements ReceiveStrategy.Result {
     public Optional<DittoRuntimeException> getException() {
         return Optional.ofNullable(exception);
     }
-
 }

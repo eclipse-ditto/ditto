@@ -71,6 +71,10 @@ public interface ReceiveStrategy<T> {
         boolean isBecomeCreated();
 
         boolean isBecomeDeleted();
+
+        static Result empty() {
+            return ResultFactory.emptyResult();
+        }
     }
 
     interface Context {
