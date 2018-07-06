@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -23,25 +22,17 @@ import java.util.function.Consumer;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureDefinition;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.ThingNotFoundStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
@@ -50,56 +41,6 @@ import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
-import org.eclipse.ditto.signals.events.things.FeatureCreated;
-import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
-import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.FeaturesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
@@ -109,6 +50,7 @@ import akka.ConfigurationException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Cancellable;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
@@ -539,850 +481,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     /**
-     * Message the ThingPersistenceActor can send to itself to check for activity of the Actor and terminate itself
-     * if there was no activity since the last check.
-     */
-    static final class CheckForActivity {
-
-        private final long currentSequenceNr;
-        private final long currentAccessCounter;
-
-        /**
-         * Constructs a new {@code CheckForActivity} message containing the current "lastSequenceNo" of the
-         * ThingPersistenceActor.
-         *
-         * @param currentSequenceNr the current {@code lastSequenceNr()} of the ThingPersistenceActor.
-         * @param currentAccessCounter the current {@code accessCounter} of the ThingPersistenceActor.
-         */
-        public CheckForActivity(final long currentSequenceNr, final long currentAccessCounter) {
-            this.currentSequenceNr = currentSequenceNr;
-            this.currentAccessCounter = currentAccessCounter;
-        }
-
-        /**
-         * Returns the current {@code ThingsModelFactory.lastSequenceNr()} of the ThingPersistenceActor.
-         *
-         * @return the current {@code ThingsModelFactory.lastSequenceNr()} of the ThingPersistenceActor.
-         */
-        public long getCurrentSequenceNr() {
-            return currentSequenceNr;
-        }
-
-        /**
-         * Returns the current {@code accessCounter} of the ThingPersistenceActor.
-         *
-         * @return the current {@code accessCounter} of the ThingPersistenceActor.
-         */
-        public long getCurrentAccessCounter() {
-            return currentAccessCounter;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final CheckForActivity that = (CheckForActivity) o;
-            return Objects.equals(currentSequenceNr, that.currentSequenceNr) &&
-                    Objects.equals(currentAccessCounter, that.currentAccessCounter);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(currentSequenceNr, currentAccessCounter);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" + "currentSequenceNr=" + currentSequenceNr +
-                    ", currentAccessCounter=" + currentAccessCounter + "]";
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveAttributes} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<RetrieveAttributes> {
-
-        /**
-         * Constructs a new {@code RetrieveAttributesStrategy} object.
-         */
-        public RetrieveAttributesStrategy() {
-            super(RetrieveAttributes.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveAttributes command) {
-            final Optional<Attributes> optionalAttributes = thing().getAttributes();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            if (optionalAttributes.isPresent()) {
-                final Attributes attributes = optionalAttributes.get();
-                final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                final JsonObject attributesJson = selectedFields
-                        .map(sf -> attributes.toJson(command.getImplementedSchemaVersion(), sf))
-                        .orElseGet(() -> attributes.toJson(command.getImplementedSchemaVersion()));
-                notifySender(RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders));
-            } else {
-                attributesNotFound(dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveAttribute} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<RetrieveAttribute> {
-
-        /**
-         * Constructs a new {@code RetrieveAttributeStrategy} object.
-         */
-        public RetrieveAttributeStrategy() {
-            super(RetrieveAttribute.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveAttribute command) {
-            final Optional<Attributes> optionalAttributes = thing().getAttributes();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            if (optionalAttributes.isPresent()) {
-                final Attributes attributes = optionalAttributes.get();
-                final JsonPointer jsonPointer = command.getAttributePointer();
-                final Optional<JsonValue> jsonValue = attributes.getValue(jsonPointer);
-                if (jsonValue.isPresent()) {
-                    notifySender(RetrieveAttributeResponse.of(thingId, jsonPointer, jsonValue.get(), dittoHeaders));
-                } else {
-                    attributeNotFound(jsonPointer, dittoHeaders);
-                }
-            } else {
-                attributesNotFound(dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyFeatures} command.
-     */
-    @NotThreadSafe
-    private final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFeatures> {
-
-        /**
-         * Constructs a new {@code ModifyFeaturesStrategy} object.
-         */
-        public ModifyFeaturesStrategy() {
-            super(ModifyFeatures.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyFeatures command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final ThingModifiedEvent eventToPersist;
-            final ThingModifyCommandResponse response;
-
-            if (thing().getFeatures().isPresent()) {
-                eventToPersist = FeaturesModified.of(command.getId(), command.getFeatures(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyFeaturesResponse.modified(thingId, dittoHeaders);
-            } else {
-                eventToPersist = FeaturesCreated.of(command.getId(), command.getFeatures(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyFeaturesResponse.created(thingId, command.getFeatures(), dittoHeaders);
-            }
-
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyFeature} command.
-     */
-    @NotThreadSafe
-    private final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFeature> {
-
-        /**
-         * Constructs a new {@code ModifyFeatureStrategy} object.
-         */
-        public ModifyFeatureStrategy() {
-            super(ModifyFeature.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyFeature command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-            final ThingModifiedEvent eventToPersist;
-            final ThingModifyCommandResponse response;
-
-            if (features.isPresent() && features.get().getFeature(command.getFeatureId()).isPresent()) {
-                eventToPersist = FeatureModified.of(command.getId(), command.getFeature(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyFeatureResponse.modified(thingId, command.getFeatureId(), dittoHeaders);
-            } else {
-                eventToPersist = FeatureCreated.of(command.getId(), command.getFeature(), nextRevision(),
-                        eventTimestamp(), dittoHeaders);
-                response = ModifyFeatureResponse.created(thingId, command.getFeature(), dittoHeaders);
-            }
-
-            persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteFeatures} command.
-     */
-    @NotThreadSafe
-    private final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFeatures> {
-
-        /**
-         * Constructs a new {@code DeleteFeaturesStrategy} object.
-         */
-        public DeleteFeaturesStrategy() {
-            super(DeleteFeatures.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteFeatures command) {
-            if (thing().getFeatures().isPresent()) {
-                final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final FeaturesDeleted featuresDeleted =
-                        FeaturesDeleted.of(thingId, nextRevision(), eventTimestamp(), dittoHeaders);
-
-                persistAndApplyEvent(featuresDeleted,
-                        event -> notifySender(DeleteFeaturesResponse.of(thingId, dittoHeaders)));
-            } else {
-                featuresNotFound(command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteFeature} command.
-     */
-    @NotThreadSafe
-    private final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFeature> {
-
-        /**
-         * Constructs a new {@code DeleteFeatureStrategy} object.
-         */
-        public DeleteFeatureStrategy() {
-            super(DeleteFeature.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteFeature command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<String> featureIdOptional = thing().getFeatures()
-                    .flatMap(features -> features.getFeature(command.getFeatureId()))
-                    .map(Feature::getId);
-
-            if (featureIdOptional.isPresent()) {
-                final FeatureDeleted featureDeleted = FeatureDeleted.of(thingId, featureIdOptional.get(),
-                        nextRevision(), eventTimestamp(), dittoHeaders);
-                persistAndApplyEvent(featureDeleted,
-                        event -> notifySender(DeleteFeatureResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
-            } else {
-                featureNotFound(command.getFeatureId(), dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveFeatures} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<RetrieveFeatures> {
-
-        /**
-         * Constructs a new {@code RetrieveFeaturesStrategy} object.
-         */
-        public RetrieveFeaturesStrategy() {
-            super(RetrieveFeatures.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveFeatures command) {
-            final Optional<Features> optionalFeatures = thing().getFeatures();
-            if (optionalFeatures.isPresent()) {
-                final Features features = optionalFeatures.get();
-                final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                final JsonObject featuresJson = selectedFields
-                        .map(sf -> features.toJson(command.getImplementedSchemaVersion(), sf))
-                        .orElseGet(() -> features.toJson(command.getImplementedSchemaVersion()));
-                notifySender(getSender(),
-                        RetrieveFeaturesResponse.of(thingId, featuresJson, command.getDittoHeaders()));
-            } else {
-                featuresNotFound(command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveFeature} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<RetrieveFeature> {
-
-        /**
-         * Constructs a new {@code RetrieveFeatureStrategy} object.
-         */
-        public RetrieveFeatureStrategy() {
-            super(RetrieveFeature.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveFeature command) {
-            final Optional<Feature> feature =
-                    thing().getFeatures().flatMap(fs -> fs.getFeature(command.getFeatureId()));
-            if (feature.isPresent()) {
-                final Feature f = feature.get();
-                final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                final JsonObject featureJson = selectedFields
-                        .map(sf -> f.toJson(command.getImplementedSchemaVersion(), sf))
-                        .orElseGet(() -> f.toJson(command.getImplementedSchemaVersion()));
-                notifySender(getSender(), RetrieveFeatureResponse.of(thingId, command.getFeatureId(), featureJson,
-                        command.getDittoHeaders()));
-            } else {
-                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyFeatureDefinition} command.
-     */
-    @NotThreadSafe
-    private final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
-
-        /**
-         * Constructs a new {@code ModifyFeatureDefinitionStrategy} object.
-         */
-        public ModifyFeatureDefinitionStrategy() {
-            super(ModifyFeatureDefinition.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyFeatureDefinition command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
-
-                if (feature.isPresent()) {
-                    final ThingModifiedEvent eventToPersist;
-                    final ThingModifyCommandResponse response;
-
-                    if (feature.get().getDefinition().isPresent()) {
-                        eventToPersist = FeatureDefinitionModified.of(command.getId(), command.getFeatureId(),
-                                command.getDefinition(), nextRevision(), eventTimestamp(), dittoHeaders);
-                        response =
-                                ModifyFeatureDefinitionResponse.modified(thingId, command.getFeatureId(), dittoHeaders);
-                    } else {
-                        eventToPersist = FeatureDefinitionCreated.of(command.getId(), command.getFeatureId(),
-                                command.getDefinition(), nextRevision(), eventTimestamp(), dittoHeaders);
-                        response = ModifyFeatureDefinitionResponse.created(thingId, command.getFeatureId(),
-                                command.getDefinition(), dittoHeaders);
-                    }
-
-                    persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-                } else {
-                    featureNotFound(command.getFeatureId(), command.getDittoHeaders());
-                }
-            } else {
-                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteFeatureDefinition} command.
-     */
-    @NotThreadSafe
-    private final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy<DeleteFeatureDefinition> {
-
-        /**
-         * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
-         */
-        public DeleteFeatureDefinitionStrategy() {
-            super(DeleteFeatureDefinition.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteFeatureDefinition command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
-
-                if (feature.isPresent()) {
-                    if (feature.get().getDefinition().isPresent()) {
-                        final FeatureDefinitionDeleted definitionDeleted =
-                                FeatureDefinitionDeleted.of(command.getThingId(), command.getFeatureId(),
-                                        nextRevision(), eventTimestamp(), dittoHeaders);
-                        persistAndApplyEvent(definitionDeleted, event -> notifySender(
-                                DeleteFeatureDefinitionResponse.of(thingId, command.getFeatureId(), dittoHeaders)));
-                    } else {
-                        featureDefinitionNotFound(command.getFeatureId(), dittoHeaders);
-                    }
-                } else {
-                    featureNotFound(command.getFeatureId(), dittoHeaders);
-                }
-            } else {
-                featureNotFound(command.getFeatureId(), dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveFeatureDefinition} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveFeatureDefinitionStrategy
-            extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
-
-        /**
-         * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
-         */
-        public RetrieveFeatureDefinitionStrategy() {
-            super(RetrieveFeatureDefinition.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveFeatureDefinition command) {
-            final Optional<Features> optionalFeatures = thing().getFeatures();
-
-            if (optionalFeatures.isPresent()) {
-                final Optional<FeatureDefinition> optionalDefinition = optionalFeatures.flatMap(features -> features
-                        .getFeature(command.getFeatureId()))
-                        .flatMap(Feature::getDefinition);
-                if (optionalDefinition.isPresent()) {
-                    final FeatureDefinition definition = optionalDefinition.get();
-                    notifySender(RetrieveFeatureDefinitionResponse.of(thingId, command.getFeatureId(), definition,
-                            command.getDittoHeaders()));
-                } else {
-                    featureDefinitionNotFound(command.getFeatureId(), command.getDittoHeaders());
-                }
-            } else {
-                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyFeatureProperties} command.
-     */
-    @NotThreadSafe
-    private final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
-
-        /**
-         * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
-         */
-        public ModifyFeaturePropertiesStrategy() {
-            super(ModifyFeatureProperties.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyFeatureProperties command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-
-            final String featureId = command.getFeatureId();
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(featureId);
-
-                if (feature.isPresent()) {
-                    final ThingModifiedEvent eventToPersist;
-                    final ThingModifyCommandResponse response;
-
-                    final FeatureProperties featureProperties = command.getProperties();
-                    if (feature.get().getProperties().isPresent()) {
-                        eventToPersist = FeaturePropertiesModified.of(command.getId(), featureId, featureProperties,
-                                nextRevision(), eventTimestamp(), dittoHeaders);
-                        response = ModifyFeaturePropertiesResponse.modified(thingId, featureId, dittoHeaders);
-                    } else {
-                        eventToPersist = FeaturePropertiesCreated.of(command.getId(), featureId, featureProperties,
-                                nextRevision(), eventTimestamp(), dittoHeaders);
-                        response = ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties,
-                                dittoHeaders);
-                    }
-
-                    persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-                } else {
-                    featureNotFound(featureId, command.getDittoHeaders());
-                }
-            } else {
-                featureNotFound(featureId, command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link ModifyFeatureProperty} command.
-     */
-    @NotThreadSafe
-    private final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperty> {
-
-        /**
-         * Constructs a new {@code ModifyFeaturePropertyStrategy} object.
-         */
-        public ModifyFeaturePropertyStrategy() {
-            super(ModifyFeatureProperty.class, log);
-        }
-
-        @Override
-        protected void doApply(final ModifyFeatureProperty command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-
-            final String featureId = command.getFeatureId();
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(featureId);
-
-                if (feature.isPresent()) {
-                    final Optional<FeatureProperties> optionalProperties = feature.get().getProperties();
-                    final ThingModifiedEvent eventToPersist;
-                    final ThingModifyCommandResponse response;
-
-                    final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                    final JsonValue propertyValue = command.getPropertyValue();
-                    if (optionalProperties.isPresent() && optionalProperties.get().contains(propertyJsonPointer)) {
-                        eventToPersist = FeaturePropertyModified.of(command.getId(), featureId, propertyJsonPointer,
-                                propertyValue, nextRevision(), eventTimestamp(), dittoHeaders);
-                        response = ModifyFeaturePropertyResponse.modified(thingId, featureId, propertyJsonPointer,
-                                dittoHeaders);
-                    } else {
-                        eventToPersist = FeaturePropertyCreated.of(command.getId(), featureId, propertyJsonPointer,
-                                propertyValue, nextRevision(), eventTimestamp(), dittoHeaders);
-                        response = ModifyFeaturePropertyResponse.created(thingId, featureId, propertyJsonPointer,
-                                propertyValue, dittoHeaders);
-                    }
-
-                    persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-                } else {
-                    featureNotFound(featureId, command.getDittoHeaders());
-                }
-            } else {
-                featureNotFound(featureId, command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteFeatureProperties} command.
-     */
-    @NotThreadSafe
-    private final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperties> {
-
-        /**
-         * Constructs a new {@code DeleteFeaturePropertiesStrategy} object.
-         */
-        public DeleteFeaturePropertiesStrategy() {
-            super(DeleteFeatureProperties.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteFeatureProperties command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> features = thing().getFeatures();
-
-            final String featureId = command.getFeatureId();
-            if (features.isPresent()) {
-                final Optional<Feature> feature = features.get().getFeature(featureId);
-
-                if (feature.isPresent()) {
-                    if (feature.get().getProperties().isPresent()) {
-                        final FeaturePropertiesDeleted propertiesDeleted =
-                                FeaturePropertiesDeleted.of(command.getThingId(), featureId, nextRevision(),
-                                        eventTimestamp(), dittoHeaders);
-                        persistAndApplyEvent(propertiesDeleted, event -> notifySender(
-                                DeleteFeaturePropertiesResponse.of(thingId, featureId, dittoHeaders)));
-                    } else {
-                        featurePropertiesNotFound(featureId, dittoHeaders);
-                    }
-                } else {
-                    featureNotFound(featureId, dittoHeaders);
-                }
-            } else {
-                featureNotFound(featureId, dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link DeleteFeatureProperty} command.
-     */
-    @NotThreadSafe
-    private final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperty> {
-
-        /**
-         * Constructs a new {@code DeleteFeaturePropertyStrategy} object.
-         */
-        public DeleteFeaturePropertyStrategy() {
-            super(DeleteFeatureProperty.class, log);
-        }
-
-        @Override
-        protected void doApply(final DeleteFeatureProperty command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            final Optional<Features> featuresOptional = thing().getFeatures();
-
-            final String featureId = command.getFeatureId();
-            if (featuresOptional.isPresent()) {
-                final Optional<Feature> featureOptional =
-                        featuresOptional.flatMap(features -> features.getFeature(featureId));
-
-                if (featureOptional.isPresent()) {
-                    final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                    final Feature feature = featureOptional.get();
-                    final boolean containsProperty = feature.getProperties()
-                            .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
-                            .isPresent();
-
-                    if (containsProperty) {
-                        final FeaturePropertyDeleted propertyDeleted = FeaturePropertyDeleted.of(command.getThingId(),
-                                featureId, propertyJsonPointer, nextRevision(), eventTimestamp(), dittoHeaders);
-
-                        persistAndApplyEvent(propertyDeleted, event -> notifySender(
-                                DeleteFeaturePropertyResponse.of(thingId, featureId, propertyJsonPointer,
-                                        dittoHeaders)));
-                    } else {
-                        featurePropertyNotFound(featureId, propertyJsonPointer, dittoHeaders);
-                    }
-                } else {
-                    featureNotFound(featureId, dittoHeaders);
-                }
-            } else {
-                featureNotFound(featureId, dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveFeatureProperties} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveFeaturePropertiesStrategy
-            extends AbstractThingCommandStrategy<RetrieveFeatureProperties> {
-
-        /**
-         * Constructs a new {@code RetrieveFeaturePropertiesStrategy} object.
-         */
-        public RetrieveFeaturePropertiesStrategy() {
-            super(RetrieveFeatureProperties.class, log);
-        }
-
-        @Override
-        protected Result doApply(final RetrieveFeatureProperties command) {
-            final Optional<Features> optionalFeatures = thing().getFeatures();
-
-            final String featureId = command.getFeatureId();
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-            if (optionalFeatures.isPresent()) {
-                final Optional<FeatureProperties> optionalProperties = optionalFeatures.flatMap(features -> features
-                        .getFeature(featureId))
-                        .flatMap(Feature::getProperties);
-                if (optionalProperties.isPresent()) {
-                    final FeatureProperties properties = optionalProperties.get();
-                    final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-                    final JsonObject propertiesJson = selectedFields
-                            .map(sf -> properties.toJson(command.getImplementedSchemaVersion(), sf))
-                            .orElseGet(() -> properties.toJson(command.getImplementedSchemaVersion()));
-                    notifySender(
-                            RetrieveFeaturePropertiesResponse.of(thingId, featureId, propertiesJson, dittoHeaders));
-                } else {
-                    featurePropertiesNotFound(featureId, dittoHeaders);
-                }
-            } else {
-                featureNotFound(featureId, dittoHeaders);
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link RetrieveFeatureProperty} command.
-     */
-    @NotThreadSafe
-    private final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy<RetrieveFeatureProperty> {
-
-        /**
-         * Constructs a new {@code RetrieveFeaturePropertyStrategy} object.
-         */
-        public RetrieveFeaturePropertyStrategy() {
-            super(RetrieveFeatureProperty.class, log);
-        }
-
-        @Override
-        protected void doApply(final RetrieveFeatureProperty command) {
-            final Optional<Feature> featureOptional = thing().getFeatures()
-                    .flatMap(features -> features.getFeature(command.getFeatureId()));
-            if (featureOptional.isPresent()) {
-                final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final Optional<FeatureProperties> optionalProperties = featureOptional.flatMap(Feature::getProperties);
-                if (optionalProperties.isPresent()) {
-                    final FeatureProperties properties = optionalProperties.get();
-                    final JsonPointer jsonPointer = command.getPropertyPointer();
-                    final Optional<JsonValue> propertyJson = properties.getValue(jsonPointer);
-                    if (propertyJson.isPresent()) {
-                        notifySender(RetrieveFeaturePropertyResponse.of(thingId, command.getFeatureId(), jsonPointer,
-                                propertyJson.get(), dittoHeaders));
-                    } else {
-                        featurePropertyNotFound(command.getFeatureId(), jsonPointer, dittoHeaders);
-                    }
-                } else {
-                    featurePropertiesNotFound(command.getFeatureId(), command.getDittoHeaders());
-                }
-            } else {
-                featureNotFound(command.getFeatureId(), command.getDittoHeaders());
-            }
-        }
-
-    }
-
-    /**
-     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
-     * unknown messages and are marked as unhandled.
-     */
-    @NotThreadSafe
-    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
-
-        /**
-         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
-         */
-        public MatchAnyAfterInitializeStrategy() {
-            super(Object.class, log);
-        }
-
-        @Override
-        protected void doApply(final Object message) {
-            log.warning("Unknown message: {}", message);
-            unhandled(message);
-        }
-
-    }
-
-    /**
-     * This strategy handles all messages which were received before the Thing was initialized. Those messages are
-     * logged as unexpected messages and cause the actor to be stopped.
-     */
-    @NotThreadSafe
-    private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
-
-        /**
-         * Constructs a new {@code MatchAnyDuringInitializeStrategy} object.
-         */
-        public MatchAnyDuringInitializeStrategy() {
-            super(Object.class);
-        }
-
-        @Override
-        protected void doApply(final Object message) {
-            log.debug("Unexpected message after initialization of actor received: {} - "
-                            + "Terminating this actor and sending <{}> to requester ...", message,
-                    ThingNotAccessibleException.class.getName());
-            final ThingNotAccessibleException.Builder builder = ThingNotAccessibleException.newBuilder(thingId);
-            if (message instanceof WithDittoHeaders) {
-                builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
-            }
-            notifySender(builder.build());
-            scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
-        }
-
-    }
-
-    /**
-     * This strategy handles any messages for a previous deleted Thing.
-     */
-    @NotThreadSafe
-    private final class ThingNotFoundStrategy extends AbstractReceiveStrategy<Object> {
-
-        /**
-         * Constructs a new {@code ThingNotFoundStrategy} object.
-         */
-        public ThingNotFoundStrategy() {
-            super(Object.class, log);
-        }
-
-        @Override
-        protected void doApply(final Object message) {
-            final ThingNotAccessibleException.Builder builder = ThingNotAccessibleException.newBuilder(thingId);
-            if (message instanceof WithDittoHeaders) {
-                builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
-            }
-            notifySender(builder.build());
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link CheckForActivity} message which checks for activity of the Actor and
-     * terminates itself if there was no activity since the last check.
-     */
-    @NotThreadSafe
-    private final class CheckForActivityStrategy extends AbstractReceiveStrategy<CheckForActivity> {
-
-        /**
-         * Constructs a new {@code CheckForActivityStrategy} object.
-         */
-        public CheckForActivityStrategy() {
-            super(CheckForActivity.class, log);
-        }
-
-        @Override
-        protected void doApply(final CheckForActivity message) {
-            if (isThingDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
-                // take a snapshot after a period of inactivity if:
-                // - thing is deleted,
-                // - the latest snapshot is out of date or is still ongoing.
-                thingSnapshotter.takeSnapshotInternal();
-                scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
-            } else if (accessCounter > message.getCurrentAccessCounter()) {
-                // if the Thing was accessed in any way since the last check
-                scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
-            } else {
-                // safe to shutdown after a period of inactivity if:
-                // - thing is active (and taking regular snapshots of itself), or
-                // - thing is deleted and the latest snapshot is up to date
-                if (isThingActive()) {
-                    shutdown("Thing <{}> was not accessed in a while. Shutting Actor down ...", thingId);
-                } else {
-                    shutdown("Thing <{}> was deleted recently. Shutting Actor down ...", thingId);
-                }
-            }
-        }
-
-        private void shutdown(final String shutdownLogTemplate, final String thingId) {
-            log.debug(shutdownLogTemplate, thingId);
-            // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
-            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
-        }
-
-    }
-
-    /**
      * This consumer logs the correlation ID, the thing ID as well as the type of any incoming message.
      */
     private final class LogIncomingMessagesConsumer implements Consumer<Object> {
@@ -1432,6 +530,106 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         private void logInfoAboutIncomingMessage(final String messageType) {
             log.debug("<{}> got <{}>.", thingId, messageType);
+        }
+
+    }
+
+    /**
+     * This strategy handles the {@link CheckForActivity} message
+     * which checks for activity of the Actor and
+     * terminates itself if there was no activity since the last check.
+     */
+    @NotThreadSafe
+    private final class CheckForActivityStrategy extends AbstractReceiveStrategy<CheckForActivity> {
+
+        /**
+         * Constructs a new {@code CheckForActivityStrategy} object.
+         */
+        CheckForActivityStrategy() {
+            super(CheckForActivity.class);
+        }
+
+        @Override
+        protected Result doApply(final Context context, final CheckForActivity message) {
+            if (isThingDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
+                // take a snapshot after a period of inactivity if:
+                // - thing is deleted,
+                // - the latest snapshot is out of date or is still ongoing.
+                thingSnapshotter.takeSnapshotInternal();
+                scheduleCheckForThingActivity(activityCheckDeletedInterval.getSeconds());
+            } else if (accessCounter > message.getCurrentAccessCounter()) {
+                // if the Thing was accessed in any way since the last check
+                scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
+            } else {
+                // safe to shutdown after a period of inactivity if:
+                // - thing is active (and taking regular snapshots of itself), or
+                // - thing is deleted and the latest snapshot is up to date
+                if (isThingActive()) {
+                    shutdown("Thing <{}> was not accessed in a while. Shutting Actor down ...", thingId);
+                } else {
+                    shutdown("Thing <{}> was deleted recently. Shutting Actor down ...", thingId);
+                }
+            }
+            return ReceiveStrategy.Result.empty();
+        }
+
+        private void shutdown(final String shutdownLogTemplate, final String thingId) {
+            log.debug(shutdownLogTemplate, thingId);
+            // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
+            getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+        }
+
+    }
+
+    /**
+     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
+     * unknown messages and are marked as unhandled.
+     */
+    @NotThreadSafe
+    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
+
+        /**
+         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
+         */
+        MatchAnyAfterInitializeStrategy() {
+            super(Object.class);
+        }
+
+        @Override
+        protected Result doApply(final Context context, final Object message) {
+            context.log().warning("Unknown message: {}", message);
+            unhandled(message);
+            return ReceiveStrategy.Result.empty();
+        }
+
+    }
+
+    /**
+     * This strategy handles all messages which were received before the Thing was initialized. Those messages are
+     * logged as unexpected messages and cause the actor to be stopped.
+     */
+    @NotThreadSafe
+    private final class MatchAnyDuringInitializeStrategy extends AbstractReceiveStrategy<Object> {
+
+        /**
+         * Constructs a new {@code MatchAnyDuringInitializeStrategy} object.
+         */
+        MatchAnyDuringInitializeStrategy() {
+            super(Object.class);
+        }
+
+        @Override
+        protected Result doApply(final Context context, final Object message) {
+            context.log().debug("Unexpected message after initialization of actor received: {} - "
+                            + "Terminating this actor and sending <{}> to requester ...", message,
+                    ThingNotAccessibleException.class.getName());
+            final ThingNotAccessibleException.Builder builder =
+                    ThingNotAccessibleException.newBuilder(context.getThingId());
+            if (message instanceof WithDittoHeaders) {
+                builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
+            }
+            scheduleCheckForThingActivity(activityCheckInterval.getSeconds());
+            return ReceiveStrategy.Result.empty();
         }
 
     }

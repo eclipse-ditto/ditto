@@ -1526,7 +1526,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // WHEN: CheckForActivity is sent to a persistence actor of nonexistent thing after startup
                 final ActorRef underTest = actorSystem.actorOf(props);
 
-                final Object checkForActivity = new ThingPersistenceActor.CheckForActivity(1L, 1L);
+                final Object checkForActivity = new CheckForActivity(1L, 1L);
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());

@@ -30,7 +30,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
@@ -72,16 +71,27 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
         };
     }
 
-    protected DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
+    protected DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+        return AttributesNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+    }
+
+    protected DittoRuntimeException featureNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        return FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
+        final FeatureNotAccessibleException featureNotAccessibleException =
+                FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
+
+        return featureNotAccessibleException;
+    }
+
+    protected DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+        return FeaturesNotAccessibleException.newBuilder(thingId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected DittoRuntimeException featurePropertiesNotFound(final String thingId, final String featureId,
+    protected DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
+        return FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
@@ -95,28 +105,9 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
                 .build();
     }
 
-
-    protected DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
-        return AttributesNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
-    }
-
-    protected DittoRuntimeException attributeNotFound(final String thingId, final JsonPointer attributeKey,
+    protected DittoRuntimeException featurePropertiesNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        return AttributeNotAccessibleException.newBuilder(thingId, attributeKey)
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    protected DittoRuntimeException featureNotFound(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-        final FeatureNotAccessibleException featureNotAccessibleException =
-                FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
-
-        return featureNotAccessibleException;
-    }
-
-    protected DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
-        return FeaturesNotAccessibleException.newBuilder(thingId)
+        return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
