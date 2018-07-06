@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 class ImmutableResult implements CommandStrategy.Result {
@@ -38,7 +37,7 @@ class ImmutableResult implements CommandStrategy.Result {
     }
 
     private ImmutableResult(@Nullable final ThingModifiedEvent eventToPersist,
-            @Nullable final CommandResponse response,
+            @Nullable final WithDittoHeaders response,
             @Nullable final DittoRuntimeException exception,
             final boolean becomeDeleted) {
         this.eventToPersist = eventToPersist;
@@ -48,13 +47,13 @@ class ImmutableResult implements CommandStrategy.Result {
     }
 
     static CommandStrategy.Result of(final ThingModifiedEvent eventToPersist,
-            final CommandResponse response,
+            final WithDittoHeaders response,
             final DittoRuntimeException dittoRuntimeException,
             final boolean becomeDeleted) {
         return new ImmutableResult(eventToPersist, response, dittoRuntimeException, becomeDeleted);
     }
 
-    static CommandStrategy.Result of(final ThingModifiedEvent eventToPersist, final CommandResponse response) {
+    static CommandStrategy.Result of(final ThingModifiedEvent eventToPersist, final WithDittoHeaders response) {
         return new ImmutableResult(eventToPersist, response, null);
     }
 

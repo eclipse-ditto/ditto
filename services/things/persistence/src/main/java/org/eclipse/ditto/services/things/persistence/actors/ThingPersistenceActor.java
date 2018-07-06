@@ -490,13 +490,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
             final ThingModifiedEvent eventToPersist = result.getEventToPersist().get();
             final WithDittoHeaders response = result.getResponse().get();
             persistAndApplyEvent(eventToPersist, event -> notifySender(response));
-        }
-        if (result.getResponse().isPresent()) {
+        } else if (result.getResponse().isPresent()) {
             notifySender(result.getResponse().get());
-        }
-        if (result.getException().isPresent()) {
+        } else if (result.getException().isPresent()) {
             notifySender(result.getException().get());
         }
+
         if (result.isBecomeDeleted()) {
             becomeThingDeletedHandler();
         }
