@@ -11,12 +11,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -28,10 +26,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.AbstractThingCommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.ImmutableContext;
@@ -57,7 +52,6 @@ import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ClusterSharding;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -102,7 +96,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private final long snapshotThreshold;
     private long accessCounter;
     private Cancellable activityChecker;
-    private final AtomicReference<Thing> thing = new AtomicReference<>();
+    private Thing thing;
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
@@ -131,20 +125,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
                         snapshotInterval);
 
-        handleThingEvents = ReceiveBuilder.create().matchAny(event -> {
-            final Thing modified = thingEventHandlers.handle(event, thing(), getRevisionNumber());
+        handleThingEvents = ReceiveBuilder.create().match(ThingEvent.class, event -> {
+            final Thing modified = thingEventHandlers.handle(event, thing, getRevisionNumber());
             if (modified != null) {
-                thing.set(modified);
+                thing = modified;
             }
         }).build();
-    }
-
-    private Thing thing() {
-        return thing.get();
-    }
-
-    private void setThing(final Thing thing) {
-        this.thing.set(thing);
     }
 
     /**
@@ -188,20 +174,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         });
     }
 
-    /**
-     * Retrieves the ShardRegion of "Things". ThingCommands can be sent to this region which handles dispatching them
-     * in the cluster (onto the cluster node containing the shard).
-     *
-     * @param system the ActorSystem in which to lookup the ShardRegion.
-     * @return the ActorRef to the ShardRegion.
-     */
-    public static ActorRef getShardRegion(final ActorSystem system) {
-        return ClusterSharding.get(system).shardRegion(ThingsMessagingConstants.SHARD_REGION);
-    }
-
-    private static Instant eventTimestamp() {
-        return Instant.now();
-    }
+//    /**
+//     * Retrieves the ShardRegion of "Things". ThingCommands can be sent to this region which handles dispatching them
+//     * in the cluster (onto the cluster node containing the shard).
+//     *
+//     * @param system the ActorSystem in which to lookup the ShardRegion.
+//     * @return the ActorRef to the ShardRegion.
+//     */
+//    public static ActorRef getShardRegion(final ActorSystem system) {
+//        return ClusterSharding.get(system).shardRegion(ThingsMessagingConstants.SHARD_REGION);
+//    }
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
         final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
@@ -219,7 +201,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @Nonnull
     @Override
     public Thing getThing() {
-        return thing();
+        return thing;
     }
 
     @Nonnull
@@ -282,18 +264,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @Override
     public Receive createReceiveRecover() {
         // defines how state is updated during recovery
-        return ReceiveBuilder.create()
+        return handleThingEvents.orElse(ReceiveBuilder.create()
 
                 // # Snapshot handling
                 .match(SnapshotOffer.class, ss -> {
                     log.debug("Got SnapshotOffer: {}", ss);
-                    setThing(thingSnapshotter.recoverThingFromSnapshotOffer(ss));
+                    thing = thingSnapshotter.recoverThingFromSnapshotOffer(ss);
                 })
 
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
-                    if (thing() != null) {
-                        setThing(enhanceThingWithLifecycle(thing()));
+                    if (thing != null) {
+                        thing = enhanceThingWithLifecycle(thing);
                         log.debug("Thing <{}> was recovered.", thingId);
 
                         if (isThingActive()) {
@@ -302,7 +284,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                             // expect life cycle to be DELETED. if it's not, then act as if this thing is deleted.
                             if (!isThingDeleted()) {
                                 // life cycle isn't known, act as
-                                log.error("Unknown lifecycle state <{}> for Thing <{}>.", thing().getLifecycle(),
+                                log.error("Unknown lifecycle state <{}> for Thing <{}>.", thing.getLifecycle(),
                                         thingId);
                             }
                             becomeThingDeletedHandler();
@@ -310,11 +292,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
                     }
                 })
-
-//                // # Handle unknown
-//                .matchAny(m -> log.warning("Unknown recover message: {}", m))
-
-                .build().orElse(handleThingEvents);
+                .matchAny(m -> log.warning("Unknown recover message: {}", m))
+                .build());
     }
 
     /*
@@ -327,7 +306,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         final Receive receive = ReceiveBuilder
                 .create().match(Command.class, command -> {
-                    final ImmutableContext context = new ImmutableContext(thingId, thing(), nextRevision(), log);
+                    final ImmutableContext context = new ImmutableContext(thingId, thing, nextRevision(), log);
                     final ReceiveStrategy.Result result = commandReceiveStrategy.handle(context, command);
 
                     if (result.getEventToPersist().isPresent() && result.getResponse().isPresent()) {
@@ -395,10 +374,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
 
         final A modifiedEvent;
-        if (thing() != null) {
+        if (thing != null) {
             // set version of event to the version of the thing
             final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
-                    .schemaVersion(thing().getImplementedSchemaVersion())
+                    .schemaVersion(thing.getImplementedSchemaVersion())
                     .build();
             modifiedEvent = (A) event.setDittoHeaders(newHeaders);
         } else {
@@ -460,12 +439,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @return Whether the lifecycle of the Thing is active.
      */
     public boolean isThingActive() {
-        return thing().hasLifecycle(ThingLifecycle.ACTIVE);
+        return thing.hasLifecycle(ThingLifecycle.ACTIVE);
     }
 
     @Override
     public boolean isThingDeleted() {
-        return null == thing() || thing().hasLifecycle(ThingLifecycle.DELETED);
+        return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
     private void notifySubscribers(final ThingEvent event) {
@@ -606,28 +585,28 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     }
 
-    /**
-     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
-     * unknown messages and are marked as unhandled.
-     */
-    @NotThreadSafe
-    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
-
-        /**
-         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
-         */
-        MatchAnyAfterInitializeStrategy() {
-            super(Object.class);
-        }
-
-        @Override
-        protected Result doApply(final Context context, final Object message) {
-            context.log().warning("Unknown message: {}", message);
-            unhandled(message);
-            return ReceiveStrategy.Result.empty();
-        }
-
-    }
+//    /**
+//     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
+//     * unknown messages and are marked as unhandled.
+//     */
+//    @NotThreadSafe
+//    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
+//
+//        /**
+//         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
+//         */
+//        MatchAnyAfterInitializeStrategy() {
+//            super(Object.class);
+//        }
+//
+//        @Override
+//        protected Result doApply(final Context context, final Object message) {
+//            context.log().warning("Unknown message: {}", message);
+//            unhandled(message);
+//            return ReceiveStrategy.Result.empty();
+//        }
+//
+//    }
 
     /**
      * This strategy handles all messages which were received before the Thing was initialized. Those messages are
