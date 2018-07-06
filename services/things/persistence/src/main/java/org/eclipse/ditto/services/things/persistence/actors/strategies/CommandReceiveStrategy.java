@@ -11,13 +11,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.signals.commands.base.Command;
 
 public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
 
-    private Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies;
+    private final Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies = new HashMap<>();
 
 
     private static class LazyHolder {
