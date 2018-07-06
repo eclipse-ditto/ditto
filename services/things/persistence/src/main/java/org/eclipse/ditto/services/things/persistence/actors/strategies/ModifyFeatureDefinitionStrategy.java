@@ -20,19 +20,20 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition} command.
  */
 @NotThreadSafe
-final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy<ModifyFeatureDefinition> {
+final class ModifyFeatureDefinitionStrategy extends AbstractCommandStrategy<ModifyFeatureDefinition> {
 
     /**
      * Constructs a new {@code ModifyFeatureDefinitionStrategy} object.
      */
-    public ModifyFeatureDefinitionStrategy() {
+    ModifyFeatureDefinitionStrategy() {
         super(ModifyFeatureDefinition.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatureDefinition command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final ModifyFeatureDefinition command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Features> features = context.getThing().getFeatures();
         if (features.isPresent()) {
@@ -44,12 +45,12 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
 
                 if (feature.get().getDefinition().isPresent()) {
                     eventToPersist = FeatureDefinitionModified.of(command.getId(), command.getFeatureId(),
-                            command.getDefinition(), context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            command.getDefinition(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response = ModifyFeatureDefinitionResponse.modified(context.getThingId(), command.getFeatureId(),
                             dittoHeaders);
                 } else {
                     eventToPersist = FeatureDefinitionCreated.of(command.getId(), command.getFeatureId(),
-                            command.getDefinition(), context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            command.getDefinition(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response = ModifyFeatureDefinitionResponse.created(context.getThingId(), command.getFeatureId(),
                             command.getDefinition(), dittoHeaders);
                 }

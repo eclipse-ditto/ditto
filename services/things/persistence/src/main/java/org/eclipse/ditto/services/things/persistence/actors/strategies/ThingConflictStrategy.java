@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -25,32 +24,30 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
 @NotThreadSafe
-public final class ThingConflictStrategy extends AbstractReceiveStrategy<CreateThing> {
+public final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
      */
-    public ThingConflictStrategy() {
+    ThingConflictStrategy() {
         super(CreateThing.class);
     }
 
     @Override
-    public BiFunction<Context, CreateThing, Boolean> getPredicate() {
-        return (ctx, command) -> Objects.equals(ctx.getThingId(), command.getId());
+    protected boolean isDefined(final Context context, final CreateThing command) {
+        return Objects.equals(context.getThingId(), command.getId());
     }
 
     @Override
-    protected Result doApply(final Context context, final CreateThing command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final CreateThing command) {
         return ImmutableResult.of(ThingConflictException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
     }
 
     @Override
-    public BiFunction<Context, CreateThing, Result> getUnhandledFunction() {
-        return (ctx, command) -> {
-            throw new IllegalArgumentException(
-                    MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-        };
+    protected Result unhandled(final Context context, final CreateThing command) {
+        throw new IllegalArgumentException(
+                MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
     }
 }

@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -27,17 +29,17 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesRespons
  * This strategy handles the {@link RetrieveAttributes} command.
  */
 @NotThreadSafe
-final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<RetrieveAttributes> {
+final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveAttributes> {
 
     /**
      * Constructs a new {@code RetrieveAttributesStrategy} object.
      */
-    public RetrieveAttributesStrategy() {
+    RetrieveAttributesStrategy() {
         super(RetrieveAttributes.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveAttributes command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAttributes command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
         final Optional<Attributes> optionalAttributes = thing.getAttributes();
@@ -49,9 +51,9 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
             final JsonObject attributesJson = selectedFields
                     .map(sf -> attributes.toJson(command.getImplementedSchemaVersion(), sf))
                     .orElseGet(() -> attributes.toJson(command.getImplementedSchemaVersion()));
-            return result(RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders));
+            return newResult(RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders));
         } else {
-            return result(attributesNotFound(thingId, dittoHeaders));
+            return newResult(attributesNotFound(thingId, dittoHeaders));
         }
     }
 

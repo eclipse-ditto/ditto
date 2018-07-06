@@ -15,27 +15,27 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures} command.
  */
 @NotThreadSafe
-final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFeatures> {
+final class ModifyFeaturesStrategy extends AbstractCommandStrategy<ModifyFeatures> {
 
     /**
      * Constructs a new {@code ModifyFeaturesStrategy} object.
      */
-    public ModifyFeaturesStrategy() {
+    ModifyFeaturesStrategy() {
         super(ModifyFeatures.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatures command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingModifiedEvent eventToPersist;
         final ThingModifyCommandResponse response;
 
         if (context.getThing().getFeatures().isPresent()) {
-            eventToPersist = FeaturesModified.of(command.getId(), command.getFeatures(), context.nextRevision(),
+            eventToPersist = FeaturesModified.of(command.getId(), command.getFeatures(), context.getNextRevision(),
                     eventTimestamp(), dittoHeaders);
             response = ModifyFeaturesResponse.modified(context.getThingId(), dittoHeaders);
         } else {
-            eventToPersist = FeaturesCreated.of(command.getId(), command.getFeatures(), context.nextRevision(),
+            eventToPersist = FeaturesCreated.of(command.getId(), command.getFeatures(), context.getNextRevision(),
                     eventTimestamp(), dittoHeaders);
             response = ModifyFeaturesResponse.created(context.getThingId(), command.getFeatures(), dittoHeaders);
         }

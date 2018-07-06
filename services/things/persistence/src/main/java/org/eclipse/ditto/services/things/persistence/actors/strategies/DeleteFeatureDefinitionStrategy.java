@@ -17,19 +17,20 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
  */
 @NotThreadSafe
-final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy<DeleteFeatureDefinition> {
+final class DeleteFeatureDefinitionStrategy extends AbstractCommandStrategy<DeleteFeatureDefinition> {
 
     /**
      * Constructs a new {@code DeleteFeatureDefinitionStrategy} object.
      */
-    public DeleteFeatureDefinitionStrategy() {
+    DeleteFeatureDefinitionStrategy() {
         super(DeleteFeatureDefinition.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteFeatureDefinition command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final DeleteFeatureDefinition command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Features> features = context.getThing().getFeatures();
         if (features.isPresent()) {
@@ -38,7 +39,7 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy
             if (feature.isPresent()) {
                 if (feature.get().getDefinition().isPresent()) {
                     final FeatureDefinitionDeleted eventToPersist = FeatureDefinitionDeleted.of(command.getThingId(),
-                            command.getFeatureId(), context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            command.getFeatureId(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     final DeleteFeatureDefinitionResponse response = DeleteFeatureDefinitionResponse.of(context
                             .getThingId(), command.getFeatureId(), dittoHeaders);
                     result = ImmutableResult.of(eventToPersist, response);

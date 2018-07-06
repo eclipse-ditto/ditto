@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -24,25 +26,25 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
  * This strategy handles the {@link RetrievePolicyId} command.
  */
 @NotThreadSafe
-public final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<RetrievePolicyId> {
+public final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
      */
-    public RetrievePolicyIdStrategy() {
+    RetrievePolicyIdStrategy() {
         super(RetrievePolicyId.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrievePolicyId command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrievePolicyId command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
         final Optional<String> optPolicyId = thing.getPolicyId();
         if (optPolicyId.isPresent()) {
             final String policyId = optPolicyId.get();
-            return result(RetrievePolicyIdResponse.of(thingId, policyId, command.getDittoHeaders()));
+            return newResult(RetrievePolicyIdResponse.of(thingId, policyId, command.getDittoHeaders()));
         } else {
-            return result(PolicyIdNotAccessibleException.newBuilder(thingId)
+            return newResult(PolicyIdNotAccessibleException.newBuilder(thingId)
                     .dittoHeaders(command.getDittoHeaders())
                     .build());
         }

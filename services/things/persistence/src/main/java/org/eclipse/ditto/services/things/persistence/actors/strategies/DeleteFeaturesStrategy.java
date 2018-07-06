@@ -15,23 +15,23 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures} command.
  */
 @NotThreadSafe
-final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFeatures> {
+final class DeleteFeaturesStrategy extends AbstractCommandStrategy<DeleteFeatures> {
 
     /**
      * Constructs a new {@code DeleteFeaturesStrategy} object.
      */
-    public DeleteFeaturesStrategy() {
+    DeleteFeaturesStrategy() {
         super(DeleteFeatures.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteFeatures command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         if (context.getThing().getFeatures().isPresent()) {
             final ThingModifiedEvent eventToPersist =
-                    FeaturesDeleted.of(context.getThingId(), context.nextRevision(), eventTimestamp(), dittoHeaders);
+                    FeaturesDeleted.of(context.getThingId(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
             final ThingModifyCommandResponse response = DeleteFeaturesResponse.of(context.getThingId(), dittoHeaders);
             result = ImmutableResult.of(eventToPersist, response);
         } else {

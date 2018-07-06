@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.common.Validator;
@@ -30,20 +32,20 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link ModifyAclEntry} command.
  */
 @NotThreadSafe
-final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAclEntry> {
+final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntry> {
 
     /**
      * Constructs a new {@code ModifyAclEntryStrategy} object.
      */
-    public ModifyAclEntryStrategy() {
+    ModifyAclEntryStrategy() {
         super(ModifyAclEntry.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyAclEntry command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAclEntry command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
         final AclEntry modifiedAclEntry = command.getAclEntry();
         final Validator aclValidator = AclValidator.newInstance(acl.setEntry(modifiedAclEntry),
@@ -63,9 +65,9 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
                 response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
             }
 
-            return result(eventToPersist, response);
+            return newResult(eventToPersist, response);
         } else {
-            return result(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
+            return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
                     dittoHeaders));
         }
     }

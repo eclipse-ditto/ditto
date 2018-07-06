@@ -5,16 +5,13 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies;
+package org.eclipse.ditto.services.things.persistence.actors;
 
 import static java.util.Objects.requireNonNull;
-
-import java.time.Instant;
-import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -22,6 +19,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
+import akka.japi.pf.FI;
 
 /**
  * This {@link ReceiveStrategy} provides already an implementation of {@link #getMatchingClass()} as well as a default
@@ -35,19 +33,21 @@ import akka.event.DiagnosticLoggingAdapter;
 public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
 
     private final Class<T> matchingClass;
+    private final DiagnosticLoggingAdapter logger;
 
     /**
      * Constructs a new {@code AbstractReceiveStrategy} object.
      *
      * @param theMatchingClass the class of the message this strategy reacts to.
+     * @param theLogger the logger to use for logging.
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractReceiveStrategy(final Class<T> theMatchingClass) {
+    protected AbstractReceiveStrategy(final Class<T> theMatchingClass, final DiagnosticLoggingAdapter theLogger) {
         matchingClass = requireNonNull(theMatchingClass, "The matching class must not be null!");
+        logger = requireNonNull(theLogger, "The logger must not be null!");
     }
 
-    protected Result preApply(final Context context, final T message) {
-        final DiagnosticLoggingAdapter logger = context.log();
+    protected void preApply(final T message) {
         if (message instanceof Command) {
             final Command command = (Command) message;
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
@@ -55,10 +55,10 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
                 logger.debug("Applying command '{}': {}", command.getType(), command.toJsonString());
             }
         }
-        return doApply(context, message);
+        doApply(message);
     }
 
-    protected abstract Result doApply(final Context context, T message);
+    protected abstract void doApply(T message);
 
     @Override
     public Class<T> getMatchingClass() {
@@ -66,21 +66,20 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     }
 
     @Override
-    public BiFunction<Context, T, Boolean> getPredicate() {
-        return (context, command) -> true;
+    public FI.TypedPredicate<T> getPredicate() {
+        return command -> true;
     }
 
     @Override
-    public BiFunction<Context, T, Result> getApplyFunction() {
+    public FI.UnitApply<T> getApplyFunction() {
         return this::preApply;
     }
 
     @Override
-    public BiFunction<Context, T, Result> getUnhandledFunction() {
-        return (ctx, msg) -> ImmutableResult.empty();
+    public FI.UnitApply<T> getUnhandledFunction() {
+        return msg -> {
+            // unhandled
+        };
     }
 
-    protected static Instant eventTimestamp() {
-        return Instant.now();
-    }
 }

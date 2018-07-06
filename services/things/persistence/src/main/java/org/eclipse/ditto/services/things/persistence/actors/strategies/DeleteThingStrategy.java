@@ -22,24 +22,24 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
  * This strategy handles the {@link DeleteThing} command.
  */
 @NotThreadSafe
-final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing> {
+final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
 
     /**
      * Constructs a new {@code DeleteThingStrategy} object.
      */
-    public DeleteThingStrategy() {
+    DeleteThingStrategy() {
         super(DeleteThing.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteThing command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteThing command) {
         final String thingId = context.getThingId();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final ThingDeleted thingDeleted = ThingDeleted.of(thingId, nextRevision, eventTimestamp(), dittoHeaders);
 
-        context.log().info("Deleted Thing with ID <{}>.", thingId);
-        return ImmutableResult.of(thingDeleted, DeleteThingResponse.of(thingId, dittoHeaders), null, false, true);
+        context.getLog().info("Deleted Thing with ID <{}>.", thingId);
+        return ResultFactory.newResult(thingDeleted, DeleteThingResponse.of(thingId, dittoHeaders), true);
     }
 
 }

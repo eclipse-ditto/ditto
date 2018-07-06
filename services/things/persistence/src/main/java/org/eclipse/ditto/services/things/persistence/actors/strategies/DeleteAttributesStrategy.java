@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -23,28 +25,28 @@ import org.eclipse.ditto.signals.events.things.AttributesDeleted;
  * This strategy handles the {@link DeleteAttributes} command.
  */
 @NotThreadSafe
-public final class DeleteAttributesStrategy extends AbstractThingCommandStrategy<DeleteAttributes> {
+public final class DeleteAttributesStrategy extends AbstractCommandStrategy<DeleteAttributes> {
 
     /**
      * Constructs a new {@code DeleteAttributesStrategy} object.
      */
-    public DeleteAttributesStrategy() {
+    DeleteAttributesStrategy() {
         super(DeleteAttributes.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteAttributes command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteAttributes command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         if (thing.getAttributes().isPresent()) {
             final AttributesDeleted attributesDeleted = AttributesDeleted.of(command.getThingId(), nextRevision,
                     eventTimestamp(), dittoHeaders);
-            return result(attributesDeleted, DeleteAttributesResponse.of(thingId, dittoHeaders));
+            return newResult(attributesDeleted, DeleteAttributesResponse.of(thingId, dittoHeaders));
         } else {
-            return result(attributesNotFound(thingId, dittoHeaders));
+            return newResult(attributesNotFound(thingId, dittoHeaders));
         }
     }
 }

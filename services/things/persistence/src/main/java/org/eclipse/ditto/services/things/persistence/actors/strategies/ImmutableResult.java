@@ -19,71 +19,60 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
-class ImmutableResult implements ReceiveStrategy.Result {
+class ImmutableResult implements CommandStrategy.Result {
 
     @Nullable private final ThingModifiedEvent eventToPersist;
-    @Nullable private final CommandResponse response;
+    @Nullable private final WithDittoHeaders response;
     @Nullable private final DittoRuntimeException exception;
-    private final boolean becomeCreated;
     private final boolean becomeDeleted;
 
     private ImmutableResult(@Nullable final ThingModifiedEvent eventToPersist,
-            @Nullable final CommandResponse response,
+            @Nullable final WithDittoHeaders response,
             @Nullable final DittoRuntimeException exception) {
         this.eventToPersist = eventToPersist;
         this.response = response;
         this.exception = exception;
-        this.becomeCreated = false;
         this.becomeDeleted = false;
     }
 
     private ImmutableResult(@Nullable final ThingModifiedEvent eventToPersist,
             @Nullable final CommandResponse response,
             @Nullable final DittoRuntimeException exception,
-            final boolean becomeCreated,
             final boolean becomeDeleted) {
         this.eventToPersist = eventToPersist;
         this.response = response;
         this.exception = exception;
-        this.becomeCreated = becomeCreated;
         this.becomeDeleted = becomeDeleted;
     }
 
-    static ReceiveStrategy.Result of(final ThingModifiedEvent eventToPersist,
+    static CommandStrategy.Result of(final ThingModifiedEvent eventToPersist,
             final CommandResponse response,
             final DittoRuntimeException dittoRuntimeException,
-            final boolean becomeCreated,
             final boolean becomeDeleted) {
-        return new ImmutableResult(eventToPersist, response, dittoRuntimeException, becomeCreated, becomeDeleted);
+        return new ImmutableResult(eventToPersist, response, dittoRuntimeException, becomeDeleted);
     }
 
-    static ReceiveStrategy.Result of(final ThingModifiedEvent eventToPersist, final CommandResponse response) {
+    static CommandStrategy.Result of(final ThingModifiedEvent eventToPersist, final CommandResponse response) {
         return new ImmutableResult(eventToPersist, response, null);
     }
 
-    static ReceiveStrategy.Result of(final DittoRuntimeException dittoRuntimeException) {
+    static CommandStrategy.Result of(final DittoRuntimeException dittoRuntimeException) {
         return new ImmutableResult(null, null, dittoRuntimeException);
     }
 
-    static ReceiveStrategy.Result of(final CommandResponse response) {
+    static CommandStrategy.Result of(final WithDittoHeaders response) {
         return new ImmutableResult(null, response, null);
     }
 
-    static ReceiveStrategy.Result empty() {
+    static CommandStrategy.Result empty() {
         return new ImmutableResult(null, null, null);
     }
 
     @Override
-    public boolean isBecomeCreated() {
-        return isBecomeCreated();
-    }
-
-    @Override
     public boolean isBecomeDeleted() {
-        return isBecomeDeleted();
+        return becomeDeleted;
     }
 
     @Override

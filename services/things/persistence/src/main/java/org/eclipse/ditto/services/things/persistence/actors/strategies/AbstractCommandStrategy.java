@@ -12,10 +12,8 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Optional;
-import java.util.function.BiFunction;
-
-import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -26,61 +24,59 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
-/**
- * This extension of {@link AbstractReceiveStrategy} is for handling {@link ThingCommand}.
- *
- * @param <T> type of the class this strategy matches against.
- */
-@NotThreadSafe
-public abstract class AbstractThingCommandStrategy<T extends Command> extends AbstractReceiveStrategy<T> {
+abstract class AbstractCommandStrategy<T extends Command> implements CommandStrategy<T> {
 
-    /**
-     * Constructs a new {@code AbstractThingCommandStrategy} object.
-     *
-     * @param theMatchingClass the class of the message this strategy reacts to.
-     * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
-     */
-    AbstractThingCommandStrategy(final Class<T> theMatchingClass) {
-        super(theMatchingClass);
+    private final Class<T> theMatchingClass;
+
+    protected AbstractCommandStrategy(final Class<T> theMatchingClass) {this.theMatchingClass = theMatchingClass;}
+
+    @Override
+    public Result apply(final Context context, final T command) {
+        return isDefined(context, command) ? apply(context, command) : unhandled(context, command);
     }
 
     @Override
-    public BiFunction<Context, T, Boolean> getPredicate() {
-        return (ctx, command) -> null != ctx.getThing() && ctx.getThing().getId()
-                .filter(command.getId()::equals)
-                .isPresent();
+    public Class<T> getMatchingClass() {
+        return theMatchingClass;
     }
 
-    @Override
-    public BiFunction<Context, T, Result> getUnhandledFunction() {
-        return (context, command) -> {
-            throw new IllegalArgumentException(
-                    MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-        };
+    protected boolean isDefined(final Context context, final T command) {
+        return null != context
+                && null != context.getThing()
+                && context.getThing().getId().filter(command.getId()::equals).isPresent();
     }
+
+    protected Result unhandled(final Context context, final T command) {
+        throw new IllegalArgumentException(
+                MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
+    }
+
+    protected abstract Result doApply(final Context context, final T command);
 
     protected DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
         return AttributesNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
     }
 
+    protected DittoRuntimeException attributeNotFound(final String thingId, final JsonPointer attributeKey,
+            final DittoHeaders dittoHeaders) {
+        return AttributeNotAccessibleException.newBuilder(thingId, attributeKey)
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     protected DittoRuntimeException featureNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        final FeatureNotAccessibleException featureNotAccessibleException =
-                FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
-
-        return featureNotAccessibleException;
+        return FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
     }
 
     protected DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
@@ -137,15 +133,7 @@ public abstract class AbstractThingCommandStrategy<T extends Command> extends Ab
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
-    protected static Result result(final DittoRuntimeException exception) {
-        return ImmutableResult.of(exception);
-    }
-
-    protected static Result result(final CommandResponse response) {
-        return ImmutableResult.of(response);
-    }
-
-    protected static Result result(final ThingModifiedEvent eventToPersist, final CommandResponse response) {
-        return ImmutableResult.of(eventToPersist, response);
+    protected static Instant eventTimestamp() {
+        return Instant.now();
     }
 }

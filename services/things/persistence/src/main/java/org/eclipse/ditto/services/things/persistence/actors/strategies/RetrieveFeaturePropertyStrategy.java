@@ -18,18 +18,19 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyRe
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty} command.
  */
 @NotThreadSafe
-final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy<RetrieveFeatureProperty> {
+final class RetrieveFeaturePropertyStrategy extends AbstractCommandStrategy<RetrieveFeatureProperty> {
 
     /**
      * Constructs a new {@code RetrieveFeaturePropertyStrategy} object.
      */
-    public RetrieveFeaturePropertyStrategy() {
+    RetrieveFeaturePropertyStrategy() {
         super(RetrieveFeatureProperty.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveFeatureProperty command) {
-        final Result result;
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final RetrieveFeatureProperty command) {
+        final CommandStrategy.Result result;
 
         final Optional<Feature> featureOptional = context.getThing().getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));

@@ -15,92 +15,112 @@ import java.util.Map;
 
 import org.eclipse.ditto.signals.commands.base.Command;
 
-public class CommandReceiveStrategy {
+public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
 
-    private Map<Class<? extends Command>, ReceiveStrategy<? extends Command>> strategies;
+    private Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies;
+
+
+    private static class LazyHolder {
+
+        static final CommandReceiveStrategy INSTANCE = new CommandReceiveStrategy();
+    }
+
+    public static CommandReceiveStrategy getInstance() {
+        return LazyHolder.INSTANCE;
+    }
 
     /**
      * Constructs a new {@code ThingCommandReceiveStrategy} object.
      */
-    public CommandReceiveStrategy() {
+    private CommandReceiveStrategy() {
+        super(Command.class);
+        addThingStrategies();
+        addPolicyStrategies();
+        addAclStrategies();
+        addAttributesStrategies();
+        addFeaturesStrategies();
+        addFeatureDefinitionStrategies();
+        addFeatureStrategies();
+        addSudoStrategies();
+    }
 
-        addStrategy(new ThingConflictStrategy());
+    private void addSudoStrategies() {
+        addStrategy(new SudoRetrieveThingStrategy());
+    }
 
-        addStrategy(new ModifyThingStrategy());
-        addStrategy(new RetrieveThingStrategy());
-        addStrategy(new DeleteThingStrategy());
+    private void addFeatureStrategies() {
+        addStrategy(new ModifyFeaturePropertiesStrategy());
+        addStrategy(new ModifyFeaturePropertyStrategy());
+        addStrategy(new RetrieveFeaturePropertiesStrategy());
+        addStrategy(new RetrieveFeaturePropertyStrategy());
+        addStrategy(new DeleteFeaturePropertiesStrategy());
+        addStrategy(new DeleteFeaturePropertyStrategy());
+    }
 
-        // Policy ID
-        addStrategy(new RetrievePolicyIdStrategy());
-        addStrategy(new ModifyPolicyIdStrategy());
+    private void addFeatureDefinitionStrategies() {
+        addStrategy(new ModifyFeatureDefinitionStrategy());
+        addStrategy(new RetrieveFeatureDefinitionStrategy());
+        addStrategy(new DeleteFeatureDefinitionStrategy());
+    }
 
-        // ACL
+    private void addFeaturesStrategies() {
+        addStrategy(new ModifyFeaturesStrategy());
+        addStrategy(new ModifyFeatureStrategy());
+        addStrategy(new RetrieveFeaturesStrategy());
+        addStrategy(new RetrieveFeatureStrategy());
+        addStrategy(new DeleteFeaturesStrategy());
+        addStrategy(new DeleteFeatureStrategy());
+    }
+
+    private void addAttributesStrategies() {
+        addStrategy(new ModifyAttributesStrategy());
+        addStrategy(new ModifyAttributeStrategy());
+        addStrategy(new RetrieveAttributesStrategy());
+        addStrategy(new RetrieveAttributeStrategy());
+        addStrategy(new DeleteAttributesStrategy());
+        addStrategy(new DeleteAttributeStrategy());
+    }
+
+    private void addAclStrategies() {
         addStrategy(new ModifyAclStrategy());
         addStrategy(new RetrieveAclStrategy());
         addStrategy(new ModifyAclEntryStrategy());
         addStrategy(new RetrieveAclEntryStrategy());
         addStrategy(new DeleteAclEntryStrategy());
-
-        // Attributes
-        addStrategy(new ModifyAttributesStrategy());
-        addStrategy(new ModifyAttributeStrategy());
-//        addStrategy(new RetrieveAttributesStrategy());
-//        addStrategy(new RetrieveAttributeStrategy());
-        addStrategy(new DeleteAttributesStrategy());
-        addStrategy(new DeleteAttributeStrategy());
-
-        // Features
-//        addStrategy(new ModifyFeaturesStrategy());
-//        addStrategy(new ModifyFeatureStrategy());
-//        addStrategy(new RetrieveFeaturesStrategy());
-//        addStrategy(new RetrieveFeatureStrategy());
-//        addStrategy(new DeleteFeaturesStrategy());
-//        addStrategy(new DeleteFeatureStrategy());
-//
-//        // Feature Definition
-//        addStrategy(new ModifyFeatureDefinitionStrategy());
-//        addStrategy(new RetrieveFeatureDefinitionStrategy());
-//        addStrategy(new DeleteFeatureDefinitionStrategy());
-//
-//        // Feature Properties
-//        addStrategy(new ModifyFeaturePropertiesStrategy());
-//        addStrategy(new ModifyFeaturePropertyStrategy());
-//        addStrategy(new RetrieveFeaturePropertiesStrategy());
-//        addStrategy(new RetrieveFeaturePropertyStrategy());
-//        addStrategy(new DeleteFeaturePropertiesStrategy());
-//        addStrategy(new DeleteFeaturePropertyStrategy());
-
-        // sudo
-        addStrategy(new SudoRetrieveThingStrategy());
-
-        // Persistence specific
-//        addStrategy(new CheckForActivityStrategy());
-
     }
 
-    private void addStrategy(ReceiveStrategy<? extends Command> strategy) {
+    private void addPolicyStrategies() {
+        addStrategy(new RetrievePolicyIdStrategy());
+        addStrategy(new ModifyPolicyIdStrategy());
+    }
+
+    private void addThingStrategies() {
+        addStrategy(new ThingConflictStrategy());
+        addStrategy(new ModifyThingStrategy());
+        addStrategy(new RetrieveThingStrategy());
+        addStrategy(new DeleteThingStrategy());
+    }
+
+    private void addStrategy(final CommandStrategy<? extends Command> strategy) {
         final Class<? extends Command> matchingClass = strategy.getMatchingClass();
         strategies.put(matchingClass, strategy);
     }
 
-    public boolean isDefinedAt(Class<?> cls) {
-        return strategies.containsKey(cls);
+    @Override
+    protected Result unhandled(final Context context, final Command command) {
+        context.getLog().info("Command of type '{}' cannot be handled by this strategy.", command.getClass().getName());
+        return ImmutableResult.empty();
     }
 
-    public <T extends Command<?>> ReceiveStrategy.Result handle(final ReceiveStrategy.Context context,
-            final T message) {
-        final Class<? extends Command> aClass = message.getClass();
-        final ReceiveStrategy<? extends Command> receiveStrategy = strategies.get(aClass);
-        if (receiveStrategy != null) {
-            if (receiveStrategy.getPredicate().apply(context, message)) {
-                return receiveStrategy.getApplyFunction().apply(context, message);
-            } else {
-                return receiveStrategy.getUnhandledFunction().apply(context, message);
-            }
-
-        } else {
-            context.log().info("Command of type '{}' cannot be handled by this strategy.", aClass.getName());
-            return ImmutableResult.empty();
-        }
+    @Override
+    protected boolean isDefined(final Context context, final Command command) {
+        return strategies.containsKey(command.getClass());
     }
+
+    @Override
+    protected Result doApply(final Context context, final Command command) {
+        final CommandStrategy<Command> commandStrategy = (CommandStrategy<Command>) strategies.get(command.getClass());
+        return commandStrategy.apply(context, command);
+    }
+
 }

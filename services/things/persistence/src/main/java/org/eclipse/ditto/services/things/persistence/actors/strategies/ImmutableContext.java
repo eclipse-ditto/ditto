@@ -12,41 +12,51 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 
 import akka.event.DiagnosticLoggingAdapter;
 
-public class ImmutableContext implements ReceiveStrategy.Context {
+public class ImmutableContext implements CommandStrategy.Context {
 
-    public final String thingId;
-    public final Thing thing;
-    public final long nextRevision;
-    public final DiagnosticLoggingAdapter log;
+    private final String thingId;
+    private final Thing thing;
+    private final long nextRevision;
+    private final DiagnosticLoggingAdapter log;
+    private final ThingSnapshotter<?, ?> thingSnapshotter;
 
     public ImmutableContext(final String thingId, final Thing thing, final long nextRevision,
-            final DiagnosticLoggingAdapter log) {
+            final DiagnosticLoggingAdapter log,
+            final ThingSnapshotter<?, ?> thingSnapshotter) {
         this.thingId = thingId;
         this.thing = thing;
         this.nextRevision = nextRevision;
         this.log = log;
+        this.thingSnapshotter = thingSnapshotter;
     }
 
     @Override
     public String getThingId() {
-        return null;
+        return thingId;
     }
 
     @Override
     public Thing getThing() {
-        return null;
+        return thing;
     }
 
     @Override
-    public long nextRevision() {
-        return 0;
+    public long getNextRevision() {
+        return nextRevision;
     }
 
     @Override
-    public DiagnosticLoggingAdapter log() {
-        return null;
+    public DiagnosticLoggingAdapter getLog() {
+        return log;
     }
+
+    @Override
+    public ThingSnapshotter<?, ?> getThingSnapshotter() {
+        return thingSnapshotter;
+    }
+
 }

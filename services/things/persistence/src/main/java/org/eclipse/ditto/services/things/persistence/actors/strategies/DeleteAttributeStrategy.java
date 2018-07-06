@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -27,20 +29,20 @@ import org.eclipse.ditto.signals.events.things.AttributeDeleted;
  * This strategy handles the {@link DeleteAttribute} command.
  */
 @NotThreadSafe
-public final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteAttribute> {
+public final class DeleteAttributeStrategy extends AbstractCommandStrategy<DeleteAttribute> {
 
     /**
      * Constructs a new {@code DeleteAttributeStrategy} object.
      */
-    public DeleteAttributeStrategy() {
+    DeleteAttributeStrategy() {
         super(DeleteAttribute.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteAttribute command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteAttribute command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final JsonPointer attributeJsonPointer = command.getAttributePointer();
         final Optional<Attributes> attributesOptional = thing.getAttributes();
@@ -50,13 +52,13 @@ public final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<
                 final AttributeDeleted attributeDeleted = AttributeDeleted.of(command.getThingId(),
                         attributeJsonPointer, nextRevision, eventTimestamp(), dittoHeaders);
 
-                return result(attributeDeleted,
+                return newResult(attributeDeleted,
                         DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders));
             } else {
-                return result(attributeNotFound(thingId, attributeJsonPointer, command.getDittoHeaders()));
+                return newResult(attributeNotFound(thingId, attributeJsonPointer, command.getDittoHeaders()));
             }
         } else {
-            return result(attributeNotFound(thingId, attributeJsonPointer, command.getDittoHeaders()));
+            return newResult(attributeNotFound(thingId, attributeJsonPointer, command.getDittoHeaders()));
         }
     }
 }

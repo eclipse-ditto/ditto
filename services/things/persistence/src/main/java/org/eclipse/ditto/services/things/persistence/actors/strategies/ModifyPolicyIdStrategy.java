@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.things.Thing;
@@ -25,20 +27,20 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @NotThreadSafe
-final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
      */
-    public ModifyPolicyIdStrategy() {
+    ModifyPolicyIdStrategy() {
         super(ModifyPolicyId.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyPolicyId command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyPolicyId command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final ThingModifiedEvent eventToPersist;
         final ThingModifyCommandResponse response;
 
@@ -52,6 +54,6 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
             response = ModifyPolicyIdResponse.created(thingId, command.getPolicyId(), command.getDittoHeaders());
         }
 
-        return result(eventToPersist, response);
+        return newResult(eventToPersist, response);
     }
 }

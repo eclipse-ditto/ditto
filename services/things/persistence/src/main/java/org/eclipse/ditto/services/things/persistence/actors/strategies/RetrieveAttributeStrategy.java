@@ -17,19 +17,19 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute} command.
  */
 @NotThreadSafe
-final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<RetrieveAttribute> {
+final class RetrieveAttributeStrategy extends AbstractCommandStrategy<RetrieveAttribute> {
 
     /**
      * Constructs a new {@code RetrieveAttributeStrategy} object.
      */
-    public RetrieveAttributeStrategy() {
+    RetrieveAttributeStrategy() {
         super(RetrieveAttribute.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveAttribute command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAttribute command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Attributes> optionalAttributes = context.getThing().getAttributes();
         if (optionalAttributes.isPresent()) {

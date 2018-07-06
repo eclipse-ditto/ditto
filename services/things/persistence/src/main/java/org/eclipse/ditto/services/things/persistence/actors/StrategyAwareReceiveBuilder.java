@@ -18,8 +18,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.things.persistence.actors.strategies.ReceiveStrategy;
-
 import akka.actor.AbstractActor;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;

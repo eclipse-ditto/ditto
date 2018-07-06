@@ -11,18 +11,19 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
@@ -31,61 +32,57 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @NotThreadSafe
-final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
+final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
      */
-    public RetrieveThingStrategy() {
+    RetrieveThingStrategy() {
         super(RetrieveThing.class);
     }
 
-    // TODO pass in constructor??
-    ThingSnapshotter<?, ?> thingSnapshotter;
-
     @Override
-    public BiFunction<Context, RetrieveThing, Boolean> getPredicate() {
-
-        return (ctx, command) ->
-                Objects.equals(ctx.getThingId(), command.getId())
-                        && null != ctx.getThing()
-                        && !isThingDeleted(ctx.getThing());
+    protected boolean isDefined(final Context context, final RetrieveThing command) {
+        return Objects.equals(context.getThingId(), command.getId())
+                && null != context.getThing()
+                && !isThingDeleted(context.getThing());
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveThing command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveThing command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
         final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
         if (snapshotRevisionOptional.isPresent()) {
 
             try {
+                final ThingSnapshotter<?, ?> thingSnapshotter = context.getThingSnapshotter();
                 final Optional<Thing> thingOptional = thingSnapshotter.loadSnapshot(snapshotRevisionOptional.get())
                         // any better way to do this??
                         .toCompletableFuture().get();
                 if (thingOptional.isPresent()) {
-                    return result(respondWithLoadSnapshotResult(command, thingOptional.get()));
+                    return newResult(respondWithLoadSnapshotResult(command, thingOptional.get()));
                 } else {
-                    return result(respondWithNotAccessibleException(command));
+                    return newResult(respondWithNotAccessibleException(command));
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 // TODO better exception
-                return result(respondWithNotAccessibleException(command));
+                return newResult(respondWithNotAccessibleException(command));
             } catch (ExecutionException e) {
                 // TODO better exception
-                return result(respondWithNotAccessibleException(command));
+                return newResult(respondWithNotAccessibleException(command));
             }
         } else {
             final JsonObject thingJson = command.getSelectedFields()
                     .map(sf -> thing.toJson(command.getImplementedSchemaVersion(), sf))
                     .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
 
-            return result(RetrieveThingResponse.of(thingId, thingJson, command.getDittoHeaders()));
+            return newResult(RetrieveThingResponse.of(thingId, thingJson, command.getDittoHeaders()));
         }
     }
 
-    private CommandResponse<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
+    private WithDittoHeaders<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
             final Thing snapshotThing) {
 
         final JsonObject thingJson = command.getSelectedFields()
@@ -101,9 +98,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     @Override
-    public BiFunction<Context, RetrieveThing, Result> getUnhandledFunction() {
-        return (context, command) -> result(
-                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
+    protected Result unhandled(final Context context, final RetrieveThing command) {
+        return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
-
 }

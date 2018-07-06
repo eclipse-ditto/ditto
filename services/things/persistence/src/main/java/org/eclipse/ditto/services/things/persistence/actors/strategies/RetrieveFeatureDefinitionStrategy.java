@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import java.util.Optional;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -27,20 +29,21 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition
  */
 @NotThreadSafe
 public final class RetrieveFeatureDefinitionStrategy
-        extends AbstractThingCommandStrategy<RetrieveFeatureDefinition> {
+        extends AbstractCommandStrategy<RetrieveFeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
      */
-    public RetrieveFeatureDefinitionStrategy() {
+    RetrieveFeatureDefinitionStrategy() {
         super(RetrieveFeatureDefinition.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveFeatureDefinition command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final RetrieveFeatureDefinition command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final Optional<Features> optionalFeatures = thing.getFeatures();
 
         if (optionalFeatures.isPresent()) {
@@ -49,13 +52,13 @@ public final class RetrieveFeatureDefinitionStrategy
                     .flatMap(Feature::getDefinition);
             if (optionalDefinition.isPresent()) {
                 final FeatureDefinition definition = optionalDefinition.get();
-                return result(RetrieveFeatureDefinitionResponse.of(thingId, command.getFeatureId(), definition,
+                return newResult(RetrieveFeatureDefinitionResponse.of(thingId, command.getFeatureId(), definition,
                         command.getDittoHeaders()));
             } else {
-                return result(featureDefinitionNotFound(thingId, command.getFeatureId(), command.getDittoHeaders()));
+                return newResult(featureDefinitionNotFound(thingId, command.getFeatureId(), command.getDittoHeaders()));
             }
         } else {
-            return result(featureNotFound(thingId, command.getFeatureId(), command.getDittoHeaders()));
+            return newResult(featureNotFound(thingId, command.getFeatureId(), command.getDittoHeaders()));
         }
     }
 

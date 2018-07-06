@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -30,25 +29,24 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @NotThreadSafe
-final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
+final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
      */
-    public SudoRetrieveThingStrategy() {
+    SudoRetrieveThingStrategy() {
         super(SudoRetrieveThing.class);
     }
 
     @Override
-    public BiFunction<Context, SudoRetrieveThing, Boolean> getPredicate() {
-        return (ctx, command) ->
-                Objects.equals(ctx.getThingId(), command.getId())
-                        && null != ctx.getThing()
-                        && !isThingDeleted(ctx.getThing());
+    protected boolean isDefined(final Context context, final SudoRetrieveThing command) {
+        return Objects.equals(context.getThingId(), command.getId())
+                && null != context.getThing()
+                && !isThingDeleted(context.getThing());
     }
 
     @Override
-    protected Result doApply(final Context context, final SudoRetrieveThing command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final SudoRetrieveThing command) {
         final Thing thing = context.getThing();
         final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
         final JsonSchemaVersion versionToUse = determineSchemaVersion(command, thing);
@@ -70,8 +68,8 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
     }
 
     @Override
-    public BiFunction<Context, SudoRetrieveThing, Result> getUnhandledFunction() {
-        return (ctx, command) -> ImmutableResult.of(
-                new ThingNotAccessibleException(ctx.getThingId(), command.getDittoHeaders()));
+    protected Result unhandled(final Context context, final SudoRetrieveThing command) {
+        return ResultFactory.newResult(
+                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 }

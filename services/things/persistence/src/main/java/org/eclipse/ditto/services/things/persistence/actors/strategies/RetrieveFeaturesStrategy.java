@@ -16,18 +16,18 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures} command.
  */
 @NotThreadSafe
-final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<RetrieveFeatures> {
+final class RetrieveFeaturesStrategy extends AbstractCommandStrategy<RetrieveFeatures> {
 
     /**
      * Constructs a new {@code RetrieveFeaturesStrategy} object.
      */
-    public RetrieveFeaturesStrategy() {
+    RetrieveFeaturesStrategy() {
         super(RetrieveFeatures.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveFeatures command) {
-        final Result result;
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveFeatures command) {
+        final CommandStrategy.Result result;
 
         final Optional<Features> optionalFeatures = context.getThing().getFeatures();
         if (optionalFeatures.isPresent()) {

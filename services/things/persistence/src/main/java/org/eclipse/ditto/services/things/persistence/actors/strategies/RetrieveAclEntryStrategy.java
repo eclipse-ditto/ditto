@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -26,17 +28,17 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
  * This strategy handles the {@link RetrieveAclEntry} command.
  */
 @NotThreadSafe
-final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<RetrieveAclEntry> {
+final class RetrieveAclEntryStrategy extends AbstractCommandStrategy<RetrieveAclEntry> {
 
     /**
      * Constructs a new {@code RetrieveAclEntryStrategy} object.
      */
-    public RetrieveAclEntryStrategy() {
+    RetrieveAclEntryStrategy() {
         super(RetrieveAclEntry.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveAclEntry command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAclEntry command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
@@ -46,9 +48,9 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
             final AclEntry aclEntry = acl.getEntryFor(authorizationSubject)
                     .orElseGet(
                             () -> AclEntry.newInstance(authorizationSubject, ThingsModelFactory.noPermissions()));
-            return result(RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders));
+            return newResult(RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders));
         } else {
-            return result(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
+            return newResult(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
         }
     }
 

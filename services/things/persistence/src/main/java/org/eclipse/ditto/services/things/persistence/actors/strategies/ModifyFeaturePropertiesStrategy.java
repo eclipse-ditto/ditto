@@ -21,19 +21,20 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties} command.
  */
 @NotThreadSafe
-final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperties> {
+final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<ModifyFeatureProperties> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
      */
-    public ModifyFeaturePropertiesStrategy() {
+    ModifyFeaturePropertiesStrategy() {
         super(ModifyFeatureProperties.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatureProperties command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final ModifyFeatureProperties command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Features> features = context.getThing().getFeatures();
         final String featureId = command.getFeatureId();
@@ -47,11 +48,11 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                 final FeatureProperties featureProperties = command.getProperties();
                 if (feature.get().getProperties().isPresent()) {
                     eventToPersist = FeaturePropertiesModified.of(command.getId(), featureId, featureProperties,
-                            context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response = ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders);
                 } else {
                     eventToPersist = FeaturePropertiesCreated.of(command.getId(), featureId, featureProperties,
-                            context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response =
                             ModifyFeaturePropertiesResponse.created(context.getThingId(), featureId, featureProperties,
                                     dittoHeaders);

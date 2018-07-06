@@ -18,19 +18,20 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty} command.
  */
 @NotThreadSafe
-final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperty> {
+final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<DeleteFeatureProperty> {
 
     /**
      * Constructs a new {@code DeleteFeaturePropertyStrategy} object.
      */
-    public DeleteFeaturePropertyStrategy() {
+    DeleteFeaturePropertyStrategy() {
         super(DeleteFeatureProperty.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteFeatureProperty command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final DeleteFeatureProperty command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Features> featuresOptional = context.getThing().getFeatures();
         final String featureId = command.getFeatureId();
@@ -45,7 +46,7 @@ final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<D
                         .isPresent();
                 if (containsProperty) {
                     final FeaturePropertyDeleted eventToPersist = FeaturePropertyDeleted.of(command.getThingId(),
-                            featureId, propertyJsonPointer, context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            featureId, propertyJsonPointer, context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     final DeleteFeaturePropertyResponse response =
                             DeleteFeaturePropertyResponse.of(context.getThingId(), featureId, propertyJsonPointer,
                                     dittoHeaders);

@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies;
 
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.ResultFactory.newResult;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -28,20 +30,20 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
  * This strategy handles the {@link DeleteAclEntry} command.
  */
 @NotThreadSafe
-public final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAclEntry> {
+public final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntry> {
 
     /**
      * Constructs a new {@code DeleteAclEntryStrategy} object.
      */
-    public DeleteAclEntryStrategy() {
+    DeleteAclEntryStrategy() {
         super(DeleteAclEntry.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteAclEntry command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteAclEntry command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.nextRevision();
+        final long nextRevision = context.getNextRevision();
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -53,13 +55,14 @@ public final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<D
             if (aclValidator.isValid()) {
                 final AclEntryDeleted aclEntryDeleted =
                         AclEntryDeleted.of(thingId, authorizationSubject, nextRevision, eventTimestamp(), dittoHeaders);
-                return result(aclEntryDeleted, DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders));
+                return newResult(aclEntryDeleted,
+                        DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders));
             } else {
-                return result(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
+                return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
                         dittoHeaders));
             }
         } else {
-            return result(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
+            return newResult(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
         }
     }
 }

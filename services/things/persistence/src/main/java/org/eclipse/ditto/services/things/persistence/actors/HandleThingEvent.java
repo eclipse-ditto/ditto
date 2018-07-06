@@ -12,9 +12,10 @@
 package org.eclipse.ditto.services.things.persistence.actors;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 @FunctionalInterface
-interface HandleThingEvent<T> {
+interface HandleThingEvent<T extends ThingEvent> {
 
     Thing handle(T event, Thing thing, long revisionNumber);
 }

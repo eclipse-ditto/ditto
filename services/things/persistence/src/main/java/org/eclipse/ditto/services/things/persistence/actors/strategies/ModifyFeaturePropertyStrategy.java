@@ -23,19 +23,20 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty} command.
  */
 @NotThreadSafe
-final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<ModifyFeatureProperty> {
+final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<ModifyFeatureProperty> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertyStrategy} object.
      */
-    public ModifyFeaturePropertyStrategy() {
+    ModifyFeaturePropertyStrategy() {
         super(ModifyFeatureProperty.class);
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatureProperty command) {
+    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+            final ModifyFeatureProperty command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Result result;
+        final CommandStrategy.Result result;
 
         final Optional<Features> features = context.getThing().getFeatures();
         final String featureId = command.getFeatureId();
@@ -51,13 +52,13 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
                 final JsonValue propertyValue = command.getPropertyValue();
                 if (optionalProperties.isPresent() && optionalProperties.get().contains(propertyJsonPointer)) {
                     eventToPersist = FeaturePropertyModified.of(command.getId(), featureId, propertyJsonPointer,
-                            propertyValue, context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            propertyValue, context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response =
                             ModifyFeaturePropertyResponse.modified(context.getThingId(), featureId, propertyJsonPointer,
                                     dittoHeaders);
                 } else {
                     eventToPersist = FeaturePropertyCreated.of(command.getId(), featureId, propertyJsonPointer,
-                            propertyValue, context.nextRevision(), eventTimestamp(), dittoHeaders);
+                            propertyValue, context.getNextRevision(), eventTimestamp(), dittoHeaders);
                     response =
                             ModifyFeaturePropertyResponse.created(context.getThingId(), featureId, propertyJsonPointer,
                                     propertyValue, dittoHeaders);
