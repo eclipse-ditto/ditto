@@ -70,6 +70,7 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceRespons
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -891,6 +892,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    @Ignore
     public void checkForActivityOfNonexistentPolicy() {
         new TestKit(actorSystem) {
             {
