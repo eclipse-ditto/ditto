@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
@@ -19,7 +19,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeaturePropertiesModified} event.
  */
-@ThreadSafe
+@Immutable
 final class FeaturePropertiesModifiedStrategy implements EventStrategy<FeaturePropertiesModified> {
 
     @Override

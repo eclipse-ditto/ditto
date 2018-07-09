@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
@@ -19,7 +19,7 @@ import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributeDeleted} event.
  */
-@ThreadSafe
+@Immutable
 final class AttributeDeletedStrategy implements EventStrategy<AttributeDeleted> {
 
     @Override

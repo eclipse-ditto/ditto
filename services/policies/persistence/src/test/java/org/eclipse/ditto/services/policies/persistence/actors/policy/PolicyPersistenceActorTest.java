@@ -892,7 +892,6 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    @Ignore
     public void checkForActivityOfNonexistentPolicy() {
         new TestKit(actorSystem) {
             {

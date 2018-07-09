@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
@@ -52,7 +52,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 /**
  * This strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
-@ThreadSafe
+@Immutable
 public class EventHandleStrategy implements EventStrategy {
 
     private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies = new HashMap<>();
