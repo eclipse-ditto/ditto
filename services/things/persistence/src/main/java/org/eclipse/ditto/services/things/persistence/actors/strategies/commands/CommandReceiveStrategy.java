@@ -21,11 +21,8 @@ public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
 
     private final Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies = new HashMap<>();
 
-
     private static class LazyHolder {
-
         static final CommandReceiveStrategy INSTANCE = new CommandReceiveStrategy();
-
     }
 
     public static CommandReceiveStrategy getInstance() {

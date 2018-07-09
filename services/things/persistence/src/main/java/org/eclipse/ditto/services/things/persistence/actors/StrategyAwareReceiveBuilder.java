@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -58,7 +56,7 @@ final class StrategyAwareReceiveBuilder {
         if (strategy instanceof ReceiveStrategy.WithUnhandledFunction) {
             final ReceiveStrategy.WithUnhandledFunction<T> withUnhandled =
                     (ReceiveStrategy.WithUnhandledFunction<T>) strategy;
-            delegationTarget.match(strategy.getMatchingClass(), withUnhandled::isDefined, strategy::apply);
+            delegationTarget.match(strategy.getMatchingClass(), withUnhandled::isDefined, withUnhandled::apply);
             delegationTarget.match(strategy.getMatchingClass(), withUnhandled::unhandled);
         }
         if (strategy instanceof ReceiveStrategy.WithDefined) {
@@ -66,21 +64,6 @@ final class StrategyAwareReceiveBuilder {
             delegationTarget.match(withDefined.getMatchingClass(), withDefined::isDefined, withDefined::apply);
         } else {
             delegationTarget.match(strategy.getMatchingClass(), strategy::apply);
-        }
-        return this;
-    }
-
-    /**
-     * Adds all given new case strategies to this builder.
-     *
-     * @param strategies the strategies which provide an action to apply to the argument if the type matches and the
-     * predicate returns {@code true}.
-     * @return this builder with the strategies added.
-     */
-    StrategyAwareReceiveBuilder matchEach(final Iterable<ReceiveStrategy<?>> strategies) {
-        checkNotNull(strategies, "strategies to be matched");
-        for (final ReceiveStrategy<?> strategy : strategies) {
-            match(strategy);
         }
         return this;
     }
@@ -115,13 +98,6 @@ final class StrategyAwareReceiveBuilder {
         }
 
         return this;
-    }
-
-    /**
-     * @return the created receive builder to further customize it
-     */
-    ReceiveBuilder toReceiveBuilder() {
-        return delegationTarget;
     }
 
     /**

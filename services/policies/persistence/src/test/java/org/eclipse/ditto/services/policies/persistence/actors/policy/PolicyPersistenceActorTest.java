@@ -70,7 +70,6 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceRespons
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;

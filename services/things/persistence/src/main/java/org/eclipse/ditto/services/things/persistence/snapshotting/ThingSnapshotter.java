@@ -71,8 +71,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandResponse<?>> {
 
-    private final SnapshotterStrategies
-            snapshotterStrategies;
+    private final SnapshotterStrategies snapshotterStrategies;
 
     // Messages to send to self.
     private static final class TakeSnapshotInternal {}

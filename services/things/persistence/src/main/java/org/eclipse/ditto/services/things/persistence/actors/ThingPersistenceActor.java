@@ -325,18 +325,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder)
                 .match(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
-                .matchAny(new ReceiveStrategy<Object>() {
-                    @Override
-                    public Class<Object> getMatchingClass() {
-                        return Object.class;
-                    }
-
-                    @Override
-                    public void apply(final Object message) {
-                        log.warning("Unknown message: {}", message);
-                        unhandled(message);
-                    }
-                })
+                .matchAny(new MatchAnyAfterInitializeStrategy())
                 .build();
 
         getContext().become(receive, true);
@@ -481,24 +470,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void handleCommand(final Command command) {
-        final ImmutableContext context = new ImmutableContext(thingId, thing, nextRevision(), log,
-                thingSnapshotter);
+        final ImmutableContext context = new ImmutableContext(thingId, thing, nextRevision(), log, thingSnapshotter);
         final CommandStrategy.Result result = commandReceiveStrategy.apply(context, command);
-
-        if (result.getEventToPersist().isPresent() && result.getResponse().isPresent()) {
-            final ThingModifiedEvent eventToPersist = result.getEventToPersist().get();
-            persistAndApplyEvent(eventToPersist, event -> {
-                final WithDittoHeaders response = result.getResponse().get();
-                notifySender(response);
-                if (result.isBecomeDeleted()) {
-                    becomeThingDeletedHandler();
-                }
-            });
-        } else if (result.getResponse().isPresent()) {
-            notifySender(result.getResponse().get());
-        } else if (result.getException().isPresent()) {
-            notifySender(result.getException().get());
-        }
+        result.apply(this::persistAndApplyEvent, this::notifySender, this::becomeThingDeletedHandler);
     }
 
     /**
@@ -755,28 +729,27 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     }
 
-//    /**
-//     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
-//     * unknown messages and are marked as unhandled.
-//     */
-//    @NotThreadSafe
-//    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
-//
-//        /**
-//         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
-//         */
-//        MatchAnyAfterInitializeStrategy() {
-//            super(Object.class);
-//        }
-//
-//        @Override
-//        protected Result doApply(final Context context, final Object message) {
-//            context.log().warning("Unknown message: {}", message);
-//            unhandled(message);
-//            return ReceiveStrategy.Result.empty();
-//        }
-//
-//    }
+    /**
+     * This strategy handles all commands which were not explicitly handled beforehand. Those commands are logged as
+     * unknown messages and are marked as unhandled.
+     */
+    @NotThreadSafe
+    private final class MatchAnyAfterInitializeStrategy extends AbstractReceiveStrategy<Object> {
+
+        /**
+         * Constructs a new {@code MatchAnyAfterInitializeStrategy} object.
+         */
+        MatchAnyAfterInitializeStrategy() {
+            super(Object.class, log);
+        }
+
+        @Override
+        protected void doApply(final Object message) {
+            log.warning("Unknown message: {}", message);
+            unhandled(message);
+        }
+
+    }
 
     /**
      * This strategy handles all messages which were received before the Thing was initialized. Those messages are

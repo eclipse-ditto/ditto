@@ -16,6 +16,9 @@ import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshott
 
 import akka.event.DiagnosticLoggingAdapter;
 
+/**
+ * Holds the context required to execute the {@link CommandStrategy}s.
+ */
 public class ImmutableContext implements CommandStrategy.Context {
 
     private final String thingId;

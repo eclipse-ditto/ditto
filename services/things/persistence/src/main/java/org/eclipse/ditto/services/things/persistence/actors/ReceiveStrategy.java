@@ -46,7 +46,7 @@ public interface ReceiveStrategy<T> {
          * @param message the message
          * @return the boolean
          */
-        default boolean isDefined(T message) {
+        default boolean isDefined(final T message) {
             return true;
         }
     }
