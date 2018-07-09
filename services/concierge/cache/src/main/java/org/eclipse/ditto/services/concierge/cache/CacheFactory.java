@@ -46,12 +46,7 @@ public final class CacheFactory {
         requireNonNull(cacheConfigReader);
         requireNonNull(metricName);
 
-        return createCache(cacheConfigReader, cacheLoader, metricName);
-    }
-
-    private static <K, V> CaffeineCache<K, V> createCache(final CacheConfigReader cacheConfigReader,
-            final AsyncCacheLoader<K, V> loader, final String metricName) {
-        return CaffeineCache.of(caffeine(cacheConfigReader), loader, metricName);
+        return CaffeineCache.of(caffeine(cacheConfigReader), cacheLoader, metricName);
     }
 
     private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {

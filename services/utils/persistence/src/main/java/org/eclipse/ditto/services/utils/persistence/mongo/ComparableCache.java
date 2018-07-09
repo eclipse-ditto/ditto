@@ -49,13 +49,13 @@ final class ComparableCache<K, V extends Comparable<V>> {
     /**
      * Constructor.
      *
-     * @param size the (maximum) size of this cache
-     * @param metricsPrefix the prefix of the metrics name.
+     * @param size the (maximum) size of this cache.
+     * @param cacheName The name of the cache. Will be used for metrics.
      */
-    public ComparableCache(final int size, @Nullable String metricsPrefix) {
+    public ComparableCache(final int size, @Nullable String cacheName) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
 
-        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, metricsPrefix);
+        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, cacheName);
         this.internalCache = caffeineCache.asMap();
     }
 

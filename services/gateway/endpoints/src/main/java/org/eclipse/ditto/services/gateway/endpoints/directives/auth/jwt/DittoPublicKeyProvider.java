@@ -74,12 +74,12 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient, final int maxCacheEntries, final Duration expiry,
-            final String metricsPrefix) {
+            final String cacheName) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
         argumentNotNull(expiry);
-        argumentNotNull(metricsPrefix);
+        argumentNotNull(cacheName);
 
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
 
@@ -87,7 +87,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 .maximumSize(maxCacheEntries)
                 .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
                 .removalListener(new CacheRemovalListener());
-        this.publicKeyCache = CaffeineCache.of(caffeine, loader, metricsPrefix);
+        this.publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
     }
 
     /**
@@ -97,16 +97,16 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      * @param httpClient the http client.
      * @param maxCacheEntries the max amount of public keys to cache.
      * @param expiry the expiry of cache entries in minutes.
-     * @param metricsPrefix the prefix of the metrics name.
+     * @param cacheName The name of the cache.
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
             final HttpClientFacade httpClient,
             final int maxCacheEntries, final Duration expiry,
-            final String metricsPrefix) {
+            final String cacheName) {
         return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, maxCacheEntries, expiry,
-                metricsPrefix);
+                cacheName);
     }
 
     @Override

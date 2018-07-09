@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import static com.codahale.metrics.MetricRegistry.name;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CompletableFuture;
@@ -34,26 +33,39 @@ import com.github.benmanes.caffeine.cache.Caffeine;
  */
 public final class MetricsStatsCounterTest {
 
-    private static final String METRICS_PREFIX = "myPrefix";
+    private static final String TEST_CACHE_NAME = "myCache";
     private static final long MAXIMUM_SIZE = 20;
 
-    private final Counter hitCount = DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.HITS));
-    private final Counter missCount = DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.MISSES));
-    private final PreparedTimer totalLoadTime =
-            DittoMetrics.timer(createMetricName(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME));
-    private final Counter loadSuccessCount =
-            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_SUCCESS));
-    private final Counter loadFailureCount =
-            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.LOADS_FAILURE));
-    private final Counter evictionCount =
-            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS));
-    private final Counter evictionWeight =
-            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT));
-    private final Gauge estimatedSize =
-            DittoMetrics.gauge(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_SIZE));
-    private final Gauge maxSize = DittoMetrics.gauge(createMetricName(MetricsStatsCounter.MetricName.MAX_SIZE));
-    private final Counter estimatedInvalidations =
-            DittoMetrics.counter(createMetricName(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS));
+    private final Counter hitCount = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.HITS.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter missCount = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.MISSES.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final PreparedTimer totalLoadTime = DittoMetrics
+            .timer(MetricsStatsCounter.MetricName.TOTAL_LOAD_TIME.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter loadSuccessCount = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.LOADS_SUCCESS.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter loadFailureCount = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.LOADS_FAILURE.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter evictionCount = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.EVICTIONS.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter evictionWeight = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.EVICTIONS_WEIGHT.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Gauge estimatedSize = DittoMetrics
+            .gauge(MetricsStatsCounter.MetricName.ESTIMATED_SIZE.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Gauge maxSize = DittoMetrics
+            .gauge(MetricsStatsCounter.MetricName.MAX_SIZE.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
+    private final Counter estimatedInvalidations = DittoMetrics
+            .counter(MetricsStatsCounter.MetricName.ESTIMATED_INVALIDATIONS.getValue())
+            .tag("cache_name", TEST_CACHE_NAME);
 
     @Before
     public void resetMetrics() {
@@ -161,16 +173,12 @@ public final class MetricsStatsCounterTest {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(MAXIMUM_SIZE);
         final AsyncCacheLoader<Integer, Integer> loader = (key, executor) -> CompletableFuture.completedFuture(key);
 
-        return CaffeineCache.of(caffeine, loader, METRICS_PREFIX);
+        return CaffeineCache.of(caffeine, loader, TEST_CACHE_NAME);
     }
 
     private <K, V> void requestNTimes(final Cache<K, V> cache, final K key, final long requests) {
         for (int i = 0; i < requests; i++) {
             cache.get(key);
         }
-    }
-
-    private String createMetricName(final MetricsStatsCounter.MetricName metricName) {
-        return name(METRICS_PREFIX, metricName.getValue());
     }
 }
