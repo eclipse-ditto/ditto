@@ -44,8 +44,8 @@ import akka.actor.Props;
  */
 public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
 
-    private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
-    private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
+    private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
+    private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
     @Override
     public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfigReader configReader,
