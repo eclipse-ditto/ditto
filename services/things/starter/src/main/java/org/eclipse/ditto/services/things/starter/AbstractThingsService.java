@@ -43,8 +43,6 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
 
     private final ThingSnapshotter.Create thingSnapshotterCreate;
 
-    private final Logger logger;
-
     /**
      * Constructs a new {@code AbstractThingsService} object.
      *
@@ -54,12 +52,12 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
      */
     protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
-        this.logger = logger;
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     @Override
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem,
+            final ServiceConfigReader configReader) {
         DropwizardMetricsPrometheusReporter.addMetricRegistry(
                 MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
