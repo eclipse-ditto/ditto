@@ -6,7 +6,7 @@ permalink: basic-connections.html
 ---
 
   {%
-    include note.html content="To get started with connections right away, consolidate the [Manage connections](connectivity-manage-connections.html) 
+    include tip.html content="To get started with connections right away, consult the [Manage connections](connectivity-manage-connections.html) 
                                page. "
   %}
 
