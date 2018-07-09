@@ -627,6 +627,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          */
         return new StrategyAwareReceiveBuilder()
                 .match(new CreateThingStrategy())
+                .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
@@ -848,12 +849,16 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @return Whether the lifecycle of the Thing is active.
      */
     public boolean isThingActive() {
-        return thing.hasLifecycle(ThingLifecycle.ACTIVE);
+        return null != thing && thing.hasLifecycle(ThingLifecycle.ACTIVE);
     }
 
     @Override
     public boolean isThingDeleted() {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
+    }
+
+    private boolean thingExistsAsDeleted() {
+        return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
     private void notifySubscribers(final ThingEvent event) {
@@ -2596,7 +2601,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         protected void doApply(final CheckForActivity message) {
-            if (isThingDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
+            if (thingExistsAsDeleted() && !thingSnapshotter.lastSnapshotCompletedAndUpToDate()) {
                 // take a snapshot after a period of inactivity if:
                 // - thing is deleted,
                 // - the latest snapshot is out of date or is still ongoing.

@@ -1515,6 +1515,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     public void checkForActivityOfNonexistentThing() {
         new TestKit(actorSystem) {
             {
+                watch(actorSystem.guardian());
+
                 // GIVEN: props increments counter whenever a ThingPersistenceActor is created
                 final AtomicInteger restartCounter = new AtomicInteger(0);
                 final String thingId = "test.ns:nonexistent.thing";
@@ -1530,9 +1532,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
-                // ensure processing of check-for-activity messages by waiting for 1 message roundtrip
-                underTest.tell(RetrieveThing.of(thingId, DittoHeaders.empty()), getRef());
-                expectMsgClass(ThingNotAccessibleException.class);
+
+                // THEN: persistence actor shuts down parent (user guardian)
+                expectTerminated(actorSystem.guardian());
 
                 // THEN: actor should not restart itself.
                 assertThat(restartCounter.get()).isEqualTo(1);
