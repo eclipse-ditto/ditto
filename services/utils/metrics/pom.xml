@@ -35,6 +35,7 @@
         <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.kamon</groupId>
