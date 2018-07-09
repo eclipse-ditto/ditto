@@ -89,7 +89,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(jvm_gc_seconds_sum[1m]) / rate(jvm_gc_seconds_count[1m])",
+          "expr": "increase(jvm_gc_seconds_sum[1m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -116,7 +116,7 @@
       },
       "yaxes": [
         {
-          "format": "ns",
+          "format": "s",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -178,7 +178,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "jvm_gc_seconds_count  - (jvm_gc_seconds_count offset 1m)",
+          "expr": "increase(jvm_gc_seconds_count[1m])",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{instance}}",
@@ -264,10 +264,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(jvm_memory_bytes_count{segment=\"heap\"}) by (measure)",
+          "expr": "sum(increase(jvm_memory_bytes_sum{segment=\"heap\"}[1m])) by (measure, instance)\n/\nsum(increase(jvm_memory_bytes_count{segment=\"heap\"}[1m])) by (measure, instance)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{measure}}",
+          "legendFormat": "{{measure}} ({{instance}})",
           "refId": "A"
         }
       ],
@@ -352,10 +352,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(jvm_memory_bytes_count{segment=\"non-heap\"}) by (measure)",
+          "expr": "sum(increase(jvm_memory_bytes_sum{segment=\"non-heap\"}[1m])) by (measure, instance)\n/\nsum(increase(jvm_memory_bytes_count{segment=\"non-heap\"}[1m])) by (measure, instance)",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{measure}}",
+          "legendFormat": "{{measure}} ({{instance}})",
           "refId": "A"
         }
       ],
@@ -627,5 +627,5 @@
   "timezone": "",
   "title": "[ditto] JVM Metrics",
   "uid": "OmHEz77mk",
-  "version": 7
+  "version": 3
 }
