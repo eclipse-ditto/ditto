@@ -13,8 +13,8 @@ package org.eclipse.ditto.services.things.persistence.snapshotting;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -70,8 +70,6 @@ import scala.concurrent.duration.FiniteDuration;
  * </ol>
  */
 public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandResponse<?>> {
-
-    private final SnapshotterStrategies snapshotterStrategies;
 
     // Messages to send to self.
     private static final class TakeSnapshotInternal {}
@@ -143,7 +141,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         scheduledMaintenanceSnapshot = null;
         scheduledSnapshotTimeout = null;
         shouldTakeMaintenanceSnapshot = false;
-        snapshotterStrategies = new SnapshotterStrategies(log);
     }
 
     /**
@@ -334,8 +331,17 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      * @return The strategies.
      */
     @Nonnull
-    public ReceiveStrategy.WithDefined<Object> strategies() {
-        return snapshotterStrategies;
+    public Collection<ReceiveStrategy<?>> strategies() {
+        return Arrays.asList(
+                new TakeSnapshotExternalStrategy(),
+                new TakeSnapshotInternalStrategy(),
+                new SaveSnapshotSuccessStrategy(),
+                new SaveSnapshotFailureStrategy(),
+                new SaveSnapshotTimeoutStrategy(),
+                new DeleteSnapshotSuccessStrategy(),
+                new DeleteSnapshotFailureStrategy(),
+                new DeleteMessagesSuccessStrategy(),
+                new DeleteMessagesFailureStrategy());
     }
 
     // Bookkeeping after saving a snapshot in the snapshot store. Timeout message is scheduled.
@@ -471,7 +477,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final T message) {
+        protected void doApply(final T message) {
             final boolean isDryrun = message.getDittoHeaders().isDryRun();
             doLog(logger -> logger.debug("Received request to SaveSnapshot{}. Message: {}",
                     isDryrun ? " (dryrun)" : "",
@@ -506,7 +512,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final TakeSnapshotInternal message) {
+        protected void doApply(final TakeSnapshotInternal message) {
             doLog(logger -> logger.debug("Received request to SaveSnapshot. Message: {}", message));
             // if there was any modifying activity since the last taken snapshot:
             if (snapshotterState.isInProgress()) {
@@ -549,7 +555,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final SaveSnapshotSuccess message) {
+        protected void doApply(final SaveSnapshotSuccess message) {
             final String thingId = persistenceActor.getThingId();
             final SnapshotMetadata snapshotMetadata = message.metadata();
             final long newSnapshotSequenceNr = snapshotMetadata.sequenceNr();
@@ -629,7 +635,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final SaveSnapshotFailure message) {
+        protected void doApply(final SaveSnapshotFailure message) {
             final long newSnapshotSequenceNr = message.metadata().sequenceNr();
             final String thingId = persistenceActor.getThingId();
             if (saveSnapshotResponseArrivedOutOfOrder(newSnapshotSequenceNr)) {
@@ -665,7 +671,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final SaveSnapshotTimeout message) {
+        protected void doApply(final SaveSnapshotTimeout message) {
             final String thingId = persistenceActor.getThingId();
             final long failedSequenceNr = message.sequenceNr;
             if (saveSnapshotResponseArrivedOutOfOrder(message.sequenceNr)) {
@@ -700,7 +706,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final DeleteSnapshotSuccess message) {
+        protected void doApply(final DeleteSnapshotSuccess message) {
             doLog(logger -> logger.debug("Deleting snapshot with sequence number '{}' for Thing '{}' was successful",
                     message.metadata().sequenceNr(), persistenceActor.getThingId()));
         }
@@ -720,7 +726,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final DeleteSnapshotFailure message) {
+        protected void doApply(final DeleteSnapshotFailure message) {
             final Throwable cause = message.cause();
             doLog(logger -> logger.error(cause,
                     "Deleting snapshot with sequence number '{}' for Thing '{}' failed. Cause {}: {}",
@@ -743,7 +749,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final DeleteMessagesSuccess message) {
+        protected void doApply(final DeleteMessagesSuccess message) {
             doLog(logger -> logger.debug("Deleting messages up to seqNr '{}' for Thing '{}' was successful",
                     message.toSequenceNr(), persistenceActor.getThingId()));
         }
@@ -763,51 +769,12 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         }
 
         @Override
-        public void doApply(final DeleteMessagesFailure message) {
+        protected void doApply(final DeleteMessagesFailure message) {
             final Throwable cause = message.cause();
             doLog(logger -> logger.error(cause,
                     "Deleting messages up to seqNo '{}' for Thing '{}' failed. Cause {}: {}",
                     persistenceActor.getThingId(), message.toSequenceNr(), cause.getClass().getSimpleName(),
                     cause.getMessage()));
-        }
-    }
-
-    private class SnapshotterStrategies extends AbstractReceiveStrategy<Object>
-            implements ReceiveStrategy.WithDefined<Object> {
-
-        private final Map<Class<?>, ReceiveStrategy> strategies = new HashMap<>();
-
-        private SnapshotterStrategies(final DiagnosticLoggingAdapter theLogger) {
-            super(Object.class, theLogger);
-            addStrategy(new TakeSnapshotExternalStrategy());
-            addStrategy(new TakeSnapshotInternalStrategy());
-            addStrategy(new SaveSnapshotSuccessStrategy());
-            addStrategy(new SaveSnapshotFailureStrategy());
-            addStrategy(new SaveSnapshotTimeoutStrategy());
-            addStrategy(new DeleteSnapshotSuccessStrategy());
-            addStrategy(new DeleteSnapshotFailureStrategy());
-            addStrategy(new DeleteMessagesSuccessStrategy());
-            addStrategy(new DeleteMessagesFailureStrategy());
-        }
-
-        private void addStrategy(final ReceiveStrategy strategy) {
-            strategies.put(strategy.getMatchingClass(), strategy);
-        }
-
-        @Override
-        public boolean isDefined(final Object object) {
-            return strategies.containsKey(object.getClass());
-        }
-
-        @Override
-        protected void doApply(final Object message) {
-            final ReceiveStrategy<Object> receiveStrategy =
-                    (ReceiveStrategy<Object>) strategies.get(message.getClass());
-            if (receiveStrategy != null) {
-                receiveStrategy.apply(message);
-            } else {
-                logger.info("No strategy for type '{}' found.", message.getClass());
-            }
         }
     }
 }

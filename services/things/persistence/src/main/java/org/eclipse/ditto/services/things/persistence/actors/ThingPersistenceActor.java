@@ -190,17 +190,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         });
     }
 
-//    /**
-//     * Retrieves the ShardRegion of "Things". ThingCommands can be sent to this region which handles dispatching them
-//     * in the cluster (onto the cluster node containing the shard).
-//     *
-//     * @param system the ActorSystem in which to lookup the ShardRegion.
-//     * @return the ActorRef to the ShardRegion.
-//     */
-//    public static ActorRef getShardRegion(final ActorSystem system) {
-//        return ClusterSharding.get(system).shardRegion(ThingsMessagingConstants.SHARD_REGION);
-//    }
-
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
         final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
         if (!thing.getLifecycle().isPresent()) {
@@ -270,7 +259,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
          * This behaviour changes as soon as a Thing was created.
          */
-        return new StrategyAwareReceiveBuilder()
+        return new StrategyAwareReceiveBuilder(log)
                 .match(new CreateThingStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
@@ -322,8 +311,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .match(Command.class, command -> commandReceiveStrategy.isDefined(ImmutableContext.empty(), command),
                         this::handleCommand);
 
-        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder)
-                .match(thingSnapshotter.strategies())
+        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
+                .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyAfterInitializeStrategy())
                 .build();
@@ -337,9 +326,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private void becomeThingDeletedHandler() {
 
-        final Receive receive = new StrategyAwareReceiveBuilder()
+        final Receive receive = new StrategyAwareReceiveBuilder(log)
                 .match(new CreateThingStrategy())
-                .match(thingSnapshotter.strategies())
+                .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())

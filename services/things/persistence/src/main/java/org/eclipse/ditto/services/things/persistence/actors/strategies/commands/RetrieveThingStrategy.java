@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 
@@ -54,24 +55,24 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
         final Thing thing = context.getThing();
         final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
         if (snapshotRevisionOptional.isPresent()) {
-
             try {
                 final ThingSnapshotter<?, ?> thingSnapshotter = context.getThingSnapshotter();
+
                 final Optional<Thing> thingOptional = thingSnapshotter.loadSnapshot(snapshotRevisionOptional.get())
-                        // any better way to do this??
+                        // TODO timeout???
                         .toCompletableFuture().get();
                 if (thingOptional.isPresent()) {
                     return newResult(respondWithLoadSnapshotResult(command, thingOptional.get()));
                 } else {
                     return newResult(respondWithNotAccessibleException(command));
                 }
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                // TODO better exception
-                return newResult(respondWithNotAccessibleException(command));
-            } catch (ExecutionException e) {
-                // TODO better exception
-                return newResult(respondWithNotAccessibleException(command));
+                context.getLog().info("Retrieving thing with id '{}' was interrupted.", thingId);
+                return newResult(respondWithUnavailableException(command));
+            } catch (final ExecutionException e) {
+                context.getLog().info("Failed to retrieve thing with id '{}': {}", thingId, e.getMessage());
+                return newResult(respondWithUnavailableException(command));
             }
         } else {
             final JsonObject thingJson = command.getSelectedFields()
@@ -95,6 +96,13 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     private DittoRuntimeException respondWithNotAccessibleException(final RetrieveThing command) {
         // reset command headers so that correlationId etc. are preserved
         return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
+    }
+
+    private DittoRuntimeException respondWithUnavailableException(final RetrieveThing command) {
+        // reset command headers so that correlationId etc. are preserved
+        return ThingUnavailableException.newBuilder(command.getThingId())
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
     }
 
     @Override

@@ -141,10 +141,9 @@ public final class ThingSupervisorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         final Collection<ReceiveStrategy<?>> receiveStrategies = initReceiveStrategies();
-        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
-        receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
+        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder(log);
+        strategyAwareReceiveBuilder.matchEach(receiveStrategies);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
-
         return strategyAwareReceiveBuilder.build();
     }
 
