@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
@@ -34,6 +35,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertiesNot
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 
+import akka.event.DiagnosticLoggingAdapter;
+
 abstract class AbstractCommandStrategy<T extends Command> implements CommandStrategy<T> {
 
     private final Class<T> theMatchingClass;
@@ -42,8 +45,16 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
     @Override
     public Result apply(final Context context, final T command) {
-        // TODO log
-        return isDefined(context, command) ? doApply(context, command) : unhandled(context, command);
+        if (isDefined(context, command)) {
+            final DiagnosticLoggingAdapter logger = context.getLog();
+            LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying command '{}': {}", command.getType(), command.toJsonString());
+            }
+            return doApply(context, command);
+        } else {
+            return unhandled(context, command);
+        }
     }
 
     @Override
