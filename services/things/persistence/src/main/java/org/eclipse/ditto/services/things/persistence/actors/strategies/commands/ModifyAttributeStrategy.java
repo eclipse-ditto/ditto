@@ -15,7 +15,7 @@ import static org.eclipse.ditto.services.things.persistence.actors.strategies.co
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link ModifyAttribute} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttribute> {
 
     /**

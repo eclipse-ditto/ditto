@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<ModifyFeatureProperty> {
 
     /**

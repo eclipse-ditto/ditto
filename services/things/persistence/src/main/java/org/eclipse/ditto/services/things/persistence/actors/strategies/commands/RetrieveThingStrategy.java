@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 /**
  * This strategy handles the {@link RetrieveThing} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
 
     /**

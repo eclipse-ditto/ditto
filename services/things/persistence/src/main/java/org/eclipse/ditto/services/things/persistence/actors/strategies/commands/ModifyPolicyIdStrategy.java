@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link ModifyPolicyId} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyId> {
 
     /**

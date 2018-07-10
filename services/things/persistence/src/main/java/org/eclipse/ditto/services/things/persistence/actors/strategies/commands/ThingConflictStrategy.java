@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import java.text.MessageFormat;
 import java.util.Objects;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 /**
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
-@NotThreadSafe
+@ThreadSafe
 public final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
 
     /**

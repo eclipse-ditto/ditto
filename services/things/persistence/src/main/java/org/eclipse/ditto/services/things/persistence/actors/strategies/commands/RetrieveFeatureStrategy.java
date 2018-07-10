@@ -13,22 +13,19 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ImmutableResult;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class RetrieveFeatureStrategy extends AbstractCommandStrategy<RetrieveFeature> {
 
     /**

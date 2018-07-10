@@ -15,7 +15,7 @@ import static org.eclipse.ditto.services.things.persistence.actors.strategies.co
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition
 /**
  * This strategy handles the {@link RetrieveFeatureDefinition} command.
  */
-@NotThreadSafe
+@ThreadSafe
 public final class RetrieveFeatureDefinitionStrategy
         extends AbstractCommandStrategy<RetrieveFeatureDefinition> {
 

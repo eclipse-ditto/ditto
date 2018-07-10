@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import java.util.Objects;
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 /**
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrieveThing> {
 
     /**

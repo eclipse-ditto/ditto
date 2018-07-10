@@ -15,11 +15,9 @@ import static org.eclipse.ditto.services.things.persistence.actors.strategies.co
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
@@ -27,7 +25,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
 /**
  * This strategy handles the {@link RetrievePolicyId} command.
  */
-@NotThreadSafe
+@ThreadSafe
 public final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePolicyId> {
 
     /**

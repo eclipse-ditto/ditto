@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.events.things.AttributesDeleted;
 /**
  * This strategy handles the {@link DeleteAttributes} command.
  */
-@NotThreadSafe
+@ThreadSafe
 public final class DeleteAttributesStrategy extends AbstractCommandStrategy<DeleteAttributes> {
 
     /**

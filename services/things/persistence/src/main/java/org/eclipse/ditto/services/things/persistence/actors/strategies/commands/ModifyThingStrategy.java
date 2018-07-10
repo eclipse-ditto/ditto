@@ -15,7 +15,7 @@ import static org.eclipse.ditto.services.things.persistence.actors.strategies.co
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
 /**
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
-@NotThreadSafe
+@ThreadSafe
 final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
 
     /**

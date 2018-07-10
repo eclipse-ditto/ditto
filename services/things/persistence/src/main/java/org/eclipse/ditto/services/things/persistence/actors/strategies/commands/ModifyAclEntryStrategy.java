@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link ModifyAclEntry} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntry> {
 
     /**
@@ -67,8 +67,7 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
 
             return newResult(eventToPersist, response);
         } else {
-            return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
-                    dittoHeaders));
+            return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
         }
     }
 

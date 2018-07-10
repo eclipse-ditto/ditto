@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 /**
  * This strategy handles the {@link DeleteAclEntry} command.
  */
-@NotThreadSafe
+@ThreadSafe
 public final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntry> {
 
     /**
@@ -58,8 +58,7 @@ public final class DeleteAclEntryStrategy extends AbstractCommandStrategy<Delete
                 return newResult(aclEntryDeleted,
                         DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders));
             } else {
-                return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders.getAuthorizationContext(),
-                        dittoHeaders));
+                return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
             }
         } else {
             return newResult(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));

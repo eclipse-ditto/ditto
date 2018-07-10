@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 /**
  * This strategy handles the {@link DeleteThing} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
 
     /**

@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -76,36 +75,36 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
     protected abstract Result doApply(final Context context, final T command);
 
-    protected DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+    DittoRuntimeException attributesNotFound(final String thingId, final DittoHeaders dittoHeaders) {
         return AttributesNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
     }
 
-    protected DittoRuntimeException attributeNotFound(final String thingId, final JsonPointer attributeKey,
+    DittoRuntimeException attributeNotFound(final String thingId, final JsonPointer attributeKey,
             final DittoHeaders dittoHeaders) {
         return AttributeNotAccessibleException.newBuilder(thingId, attributeKey)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected DittoRuntimeException featureNotFound(final String thingId, final String featureId,
+    DittoRuntimeException featureNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return FeatureNotAccessibleException.newBuilder(thingId, featureId).dittoHeaders(dittoHeaders).build();
     }
 
-    protected DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
+    DittoRuntimeException featuresNotFound(final String thingId, final DittoHeaders dittoHeaders) {
         return FeaturesNotAccessibleException.newBuilder(thingId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
+    DittoRuntimeException featureDefinitionNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return FeatureDefinitionNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected DittoRuntimeException featurePropertyNotFound(final String thingId, final String featureId,
+    DittoRuntimeException featurePropertyNotFound(final String thingId, final String featureId,
             final JsonPointer jsonPointer,
             final DittoHeaders dittoHeaders) {
 
@@ -114,7 +113,7 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
                 .build();
     }
 
-    protected DittoRuntimeException featurePropertiesNotFound(final String thingId, final String featureId,
+    DittoRuntimeException featurePropertiesNotFound(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
         return FeaturePropertiesNotAccessibleException.newBuilder(thingId, featureId)
                 .dittoHeaders(dittoHeaders)
@@ -123,26 +122,22 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    protected DittoRuntimeException aclInvalid(final String thingId, final Optional<String> message,
-            final AuthorizationContext authContext,
+    DittoRuntimeException aclInvalid(final String thingId, final Optional<String> message,
             final DittoHeaders dittoHeaders) {
-
-//        log.debug("ACL could not be modified by Authorization Context <{}> due to: {}", authContext,
-//                message.orElse(null));
         return AclModificationInvalidException.newBuilder(thingId)
                 .description(message.orElse(null))
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected DittoRuntimeException aclEntryNotFound(final String thingId,
+    DittoRuntimeException aclEntryNotFound(final String thingId,
             final AuthorizationSubject authorizationSubject, final DittoHeaders dittoHeaders) {
         return AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    protected boolean isThingDeleted(final Thing thing) {
+    boolean isThingDeleted(final Thing thing) {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 

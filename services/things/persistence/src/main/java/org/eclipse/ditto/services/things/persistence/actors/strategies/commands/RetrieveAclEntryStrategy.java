@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 /**
  * This strategy handles the {@link RetrieveAclEntry} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class RetrieveAclEntryStrategy extends AbstractCommandStrategy<RetrieveAclEntry> {
 
     /**

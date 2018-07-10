@@ -15,7 +15,7 @@ import static org.eclipse.ditto.services.things.persistence.actors.strategies.co
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.NotThreadSafe;
+import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesRespons
 /**
  * This strategy handles the {@link RetrieveAttributes} command.
  */
-@NotThreadSafe
+@ThreadSafe
 final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveAttributes> {
 
     /**
