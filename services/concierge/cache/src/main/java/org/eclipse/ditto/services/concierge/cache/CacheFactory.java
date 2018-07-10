@@ -34,19 +34,19 @@ public final class CacheFactory {
      *
      * @param cacheLoader the cache loader.
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
-     * @param metricName the name of the metric provided for the cache.
+     * @param cacheName the name of the cache. Used as metric label.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
             final CacheConfigReader cacheConfigReader,
-            final String metricName) {
+            final String cacheName) {
         requireNonNull(cacheLoader);
         requireNonNull(cacheConfigReader);
-        requireNonNull(metricName);
+        requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader), cacheLoader, metricName);
+        return CaffeineCache.of(caffeine(cacheConfigReader), cacheLoader, cacheName);
     }
 
     private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
