@@ -80,17 +80,17 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * The prefix of the persistenceId for Things.
      */
-    public static final String PERSISTENCE_ID_PREFIX = "thing:";
+    static final String PERSISTENCE_ID_PREFIX = "thing:";
 
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    public static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-journal";
+    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
+    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
     public static final String UNHANDLED_MESSAGE_TEMPLATE =
             "This Thing Actor did not handle the requested Thing with ID <{0}>!";
@@ -110,7 +110,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private long accessCounter;
     private Cancellable activityChecker;
     private Thing thing;
-    private final CheckForActivityStrategy checkForActivityStrategy;
 
     ThingPersistenceActor(final String thingId,
             final ActorRef pubSubMediator,
@@ -146,7 +145,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         thing = modified;
                     }
                 }).build();
-        checkForActivityStrategy = new CheckForActivityStrategy();
     }
 
     /**
@@ -179,7 +177,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param pubSubMediator the PubSub mediator actor.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId, final ActorRef pubSubMediator) {
+    static Props props(final String thingId, final ActorRef pubSubMediator) {
         return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -533,7 +531,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         /**
          * Constructs a new {@code CreateThingStrategy} object.
          */
-        public CreateThingStrategy() {
+        CreateThingStrategy() {
             super(CreateThing.class, log);
         }
 
@@ -662,7 +660,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         /**
          * Constructs a new {@code ThingNotFoundStrategy} object.
          */
-        public ThingNotFoundStrategy() {
+        ThingNotFoundStrategy() {
             super(Object.class, log);
         }
 
@@ -688,7 +686,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         /**
          * Constructs a new {@code CheckForActivityStrategy} object.
          */
-        public CheckForActivityStrategy() {
+        CheckForActivityStrategy() {
             super(CheckForActivity.class, log);
         }
 
@@ -755,7 +753,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         /**
          * Constructs a new {@code MatchAnyDuringInitializeStrategy} object.
          */
-        public MatchAnyDuringInitializeStrategy() {
+        MatchAnyDuringInitializeStrategy() {
             super(Object.class, log);
         }
 

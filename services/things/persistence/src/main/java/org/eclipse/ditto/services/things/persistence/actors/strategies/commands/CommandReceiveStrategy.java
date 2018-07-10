@@ -17,16 +17,14 @@ import java.util.Map;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
-public class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
+public final class CommandReceiveStrategy extends AbstractCommandStrategy<Command> {
 
     private final Map<Class<? extends Command>, CommandStrategy<? extends Command>> strategies = new HashMap<>();
 
-    private static class LazyHolder {
-        static final CommandReceiveStrategy INSTANCE = new CommandReceiveStrategy();
-    }
+    private static final CommandReceiveStrategy INSTANCE = new CommandReceiveStrategy();
 
     public static CommandReceiveStrategy getInstance() {
-        return LazyHolder.INSTANCE;
+        return INSTANCE;
     }
 
     /**
