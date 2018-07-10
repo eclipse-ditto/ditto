@@ -71,6 +71,21 @@ There are some pre-defined headers which have a special meaning for Ditto:
 | `version` | Determines in which schema version the sent along `payload` should be interpreted. | `Number` - currently: \[1,2\] |
 | `response-required` | Configures for a sent **command** whether a **response** should be sent back. | `Boolean` - default: `true` |
 
+Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
+custom headers, it is best to attach a prefix specific to your application that does not conflict with Ditto or
+HTTP protocol, for example the prefix `ditto-*`.
+* [Permanent HTTP headers](https://www.iana.org/assignments/message-headers/message-headers.xml) are to be avoided.
+* Ditto uses the following headers internally. If these headers are set in a Protocol message, they will be ignored 
+  and will not be delivered.
+  ```
+  channel
+  raw-request-url
+  read-subjects
+  source
+  subject
+  timeout-access
+  ```
+
 ## Path
 
 Contains a JSON pointer of where to apply the [value](#value) of the Protocol message.
