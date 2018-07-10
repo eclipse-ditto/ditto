@@ -67,10 +67,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-tracing</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -126,11 +122,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
 
         <dependency>

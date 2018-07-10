@@ -35,7 +35,7 @@ import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.services.utils.devops.prometheus.PrometheusReporterRoute;
+import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.slf4j.Logger;
 

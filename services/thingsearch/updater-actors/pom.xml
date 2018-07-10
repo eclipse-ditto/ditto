@@ -64,10 +64,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-persistence</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-tracing</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
@@ -88,11 +84,6 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
 
         <!-- ## Testing ## -->
