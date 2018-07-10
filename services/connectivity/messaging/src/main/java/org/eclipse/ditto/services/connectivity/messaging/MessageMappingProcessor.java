@@ -27,6 +27,8 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -53,17 +55,18 @@ public final class MessageMappingProcessor {
     private static final String PAYLOAD_SEGMENT_NAME = "payload";
     private static final String PROTOCOL_SEGMENT_NAME = "protocol";
     private static final String DIRECTION_TAG_NAME = "direction";
-    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final String connectionId;
     private final MessageMapperRegistry registry;
     private final DiagnosticLoggingAdapter log;
+    private final ProtocolAdapter protocolAdapter;
 
     private MessageMappingProcessor(final String connectionId, final MessageMapperRegistry registry,
-            final DiagnosticLoggingAdapter log) {
+            final DiagnosticLoggingAdapter log, final ProtocolAdapter protocolAdapter) {
         this.connectionId = connectionId;
         this.registry = registry;
         this.log = log;
+        this.protocolAdapter = protocolAdapter;
     }
 
     /**
@@ -83,7 +86,10 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        return new MessageMappingProcessor(connectionId, registry, log);
+        final boolean compatibilityMode =
+                HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).compatibilityMode();
+        final DittoProtocolAdapter protocolAdapter = DittoProtocolAdapter.of(!compatibilityMode);
+        return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 
     /**
@@ -115,7 +121,7 @@ public final class MessageMappingProcessor {
     public Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
-                () -> convertToExternalMessage(() -> PROTOCOL_ADAPTER.toAdaptable(signal), overAllProcessingTimer));
+                () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
     }
 
     private Optional<Signal<?>> convertMessage(final ExternalMessage message,
@@ -132,7 +138,7 @@ public final class MessageMappingProcessor {
 
                 return withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> {
-                            final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(adaptable);
+                            final Signal<?> signal = protocolAdapter.fromAdaptable(adaptable);
                             final DittoHeadersBuilder dittoHeadersBuilder =
                                     DittoHeaders.newBuilder(message.getHeaders());
                             dittoHeadersBuilder.putHeaders(signal.getDittoHeaders());

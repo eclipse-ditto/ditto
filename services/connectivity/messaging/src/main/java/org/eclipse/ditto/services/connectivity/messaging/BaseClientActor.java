@@ -50,6 +50,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
@@ -117,7 +118,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
-        headerBlacklist = config.getStringList(ConfigKeys.Message.HEADER_BLACKLIST);
+        headerBlacklist = HeadersConfigReader.fromRawConfig(config).blacklist();
         this.conciergeForwarder = conciergeForwarder;
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
@@ -176,12 +177,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final java.time.Duration initTimeout) {
         final List<Object> closeOrDeleteConnection = Arrays.asList(CloseConnection.class, DeleteConnection.class);
         return matchEvent(closeOrDeleteConnection, BaseClientData.class, (event, data) -> {
-                    final BaseClientData nextStateData = data
-                            .setOrigin(getSender())
-                            .setDesiredConnectionStatus(ConnectionStatus.CLOSED);
-                    return stay().using(nextStateData)
-                            .replying(new Status.Success(DISCONNECTED));
-                })
+            final BaseClientData nextStateData = data
+                    .setOrigin(getSender())
+                    .setDesiredConnectionStatus(ConnectionStatus.CLOSED);
+            return stay().using(nextStateData)
+                    .replying(new Status.Success(DISCONNECTED));
+        })
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
                     if (data.getDesiredConnectionStatus() == ConnectionStatus.OPEN) {
                         log.info("Did not receive connect command within {}, trying to go to CONNECTING",
@@ -207,7 +208,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         final ActorRef sender = getSender();
                         connectionStatusStage.toCompletableFuture()
                                 .thenCombine(mappingStatusStage, (connectionStatus, mappingStatus) -> {
-                                    if (connectionStatus instanceof Status.Success && mappingStatus instanceof Status.Success) {
+                                    if (connectionStatus instanceof Status.Success &&
+                                            mappingStatus instanceof Status.Success) {
                                         return new Status.Success("successfully connected + initialized mapper");
                                     } else if (connectionStatus instanceof Status.Failure) {
                                         return connectionStatus;
@@ -411,7 +413,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
         if (this.isConsuming()) {
-          stopMessageMappingProcessorActor();
+            stopMessageMappingProcessorActor();
         }
         onClientDisconnected(event, data);
         return goTo(DISCONNECTED).using(data

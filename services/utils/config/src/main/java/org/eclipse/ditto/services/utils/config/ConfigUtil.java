@@ -58,6 +58,11 @@ public final class ConfigUtil {
      */
     static final String AKKA_PERSISTENCE_MONGO_URI = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
+    /**
+     * Resource name of base service configuration.
+     */
+    private static final String DITTO_BASE_CONFIG_NAME = "ditto-service-base";
+
     private static final String HOSTING_ENVIRONMENT_DOCKER = "docker";
     private static final String HOSTING_ENVIRONMENT_FILEBASED = "filebased";
 
@@ -127,8 +132,12 @@ public final class ConfigUtil {
                     .withValue(HOSTING_ENVIRONMENT, ConfigValueFactory.fromAnyRef(environment));
         }
 
-        final Config loadedConfig = setAkkaPersistenceMongoUri(
-                ConfigFactory.load(config.withFallback(ConfigFactory.parseResourcesAnySyntax(resourceBasename))));
+        final Config configWithFallbacks =
+                config.withFallback(ConfigFactory.parseResourcesAnySyntax(resourceBasename))
+                        .withFallback(ConfigFactory.parseResourcesAnySyntax(DITTO_BASE_CONFIG_NAME));
+
+        final Config loadedConfig = setAkkaPersistenceMongoUri(ConfigFactory.load(configWithFallbacks));
+
         LOGGER.debug("Using config: {}", loadedConfig.root().render(ConfigRenderOptions.concise()));
         // resolve all properties with default config at the end:
         return loadedConfig;

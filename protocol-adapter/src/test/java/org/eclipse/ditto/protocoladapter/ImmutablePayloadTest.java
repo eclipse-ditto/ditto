@@ -36,7 +36,6 @@ public final class ImmutablePayloadTest {
     private static final long KNOWN_REVISION = 1337;
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutablePayload.class)
@@ -44,23 +43,21 @@ public final class ImmutablePayloadTest {
                 .verify();
     }
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutablePayload.class,
                 areImmutable(),
-                provided(JsonPointer.class, JsonValue.class, JsonFieldSelector.class).areAlsoImmutable());
+                provided(MessagePath.class, JsonValue.class, JsonFieldSelector.class).areAlsoImmutable());
     }
 
-    /** */
     @Test
     public void jsonSerializationWorksAsExpected() {
-        final JsonObject expected = JsonObject.newBuilder() //
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString()) //
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE) //
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt()) //
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION) //
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString()) //
+        final JsonObject expected = JsonObject.newBuilder()
+                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
+                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
         final ImmutablePayload payload =
@@ -71,18 +68,17 @@ public final class ImmutablePayloadTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /** */
     @Test
     public void jsonDeserializationWorksAsExpected() {
         final ImmutablePayload expected =
                 ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
 
-        final JsonObject payloadJsonObject = JsonObject.newBuilder() //
-                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString()) //
-                .set(Payload.JsonFields.VALUE, KNOWN_VALUE) //
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt()) //
-                .set(Payload.JsonFields.REVISION, KNOWN_REVISION) //
-                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString()) //
+        final JsonObject payloadJsonObject = JsonObject.newBuilder()
+                .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
+                .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
         final ImmutablePayload actual = ImmutablePayload.fromJson(payloadJsonObject);
