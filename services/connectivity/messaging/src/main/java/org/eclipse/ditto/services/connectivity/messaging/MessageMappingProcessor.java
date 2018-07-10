@@ -236,7 +236,6 @@ public final class MessageMappingProcessor {
         return DittoMetrics
                 .expiringTimer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
-                .maximumDuration(5, TimeUnit.MINUTES)
                 .expirationHandling(expiredTimer -> expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false))
                 .build();
     }

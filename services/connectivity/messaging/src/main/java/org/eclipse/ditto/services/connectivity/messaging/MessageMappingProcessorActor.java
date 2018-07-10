@@ -255,11 +255,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private void startTrace(final Signal<?> command) {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
-            final HashMap<String, String> additionalTags = new HashMap<>();
             final StartedTimer timer = TraceUtils
                     .newAmqpRoundTripTimer(command)
-                    .maximumDuration(5, TimeUnit.MINUTES)
-                    .tags(additionalTags)
                     .expirationHandling(startedTimer -> this.timers.remove(correlationId))
                     .build();
             this.timers.put(correlationId, timer);
