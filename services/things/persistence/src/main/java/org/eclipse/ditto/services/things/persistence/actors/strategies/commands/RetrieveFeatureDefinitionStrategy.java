@@ -28,8 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition
  * This strategy handles the {@link RetrieveFeatureDefinition} command.
  */
 @ThreadSafe
-public final class RetrieveFeatureDefinitionStrategy
-        extends AbstractCommandStrategy<RetrieveFeatureDefinition> {
+public final class RetrieveFeatureDefinitionStrategy extends AbstractCommandStrategy<RetrieveFeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
@@ -43,7 +42,6 @@ public final class RetrieveFeatureDefinitionStrategy
             final RetrieveFeatureDefinition command) {
         final String thingId = context.getThingId();
         final Thing thing = context.getThing();
-        final long nextRevision = context.getNextRevision();
         final Optional<Features> optionalFeatures = thing.getFeatures();
 
         if (optionalFeatures.isPresent()) {
@@ -61,5 +59,4 @@ public final class RetrieveFeatureDefinitionStrategy
             return newResult(featureNotFound(thingId, command.getFeatureId(), command.getDittoHeaders()));
         }
     }
-
 }
