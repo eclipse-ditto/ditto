@@ -55,6 +55,12 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
      */
     private final Duration syncOutdatedWarningOffset;
 
+    /**
+     * Creation time of this actor. No ERROR state is reported a period of time after actor starts so that the stream
+     * has a chance to complete.
+     */
+    private final Instant startUpInstant;
+
     static final String NO_SUCCESSFUL_STREAM_YET_MESSAGE = "No successful stream, yet.";
 
     static final String SYNC_DISABLED_MESSAGE = "Sync is currently disabled. No status will be retrieved";
@@ -73,11 +79,30 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
      */
     private LastSuccessfulStreamCheckingActor(final boolean syncEnabled,
             final StreamMetadataPersistence streamMetadataPersistence, final Duration syncOutdatedWarningOffset,
-            final Duration syncOutdatedErrorOffset) {
+            final Duration syncOutdatedErrorOffset,
+            final Instant startUpInstant) {
         this.syncEnabled = syncEnabled;
         this.streamMetadataPersistence = requireNonNull(streamMetadataPersistence);
         this.syncOutdatedWarningOffset = requireNonNull(syncOutdatedWarningOffset);
         this.syncOutdatedErrorOffset = requireNonNull(syncOutdatedErrorOffset);
+        this.startUpInstant = requireNonNull(startUpInstant);
+    }
+
+    /**
+     * Package-private constructor for unit tests.
+     *
+     * @param streamHealthCheckConfigurationProperties Holds the configuration properties of this health check.
+     * @param startUpInstant When this actor was supposed to be created.
+     */
+    LastSuccessfulStreamCheckingActor(
+            final LastSuccessfulStreamCheckingActorConfigurationProperties streamHealthCheckConfigurationProperties,
+            final Instant startUpInstant) {
+
+        this(streamHealthCheckConfigurationProperties.isSyncEnabled(),
+                streamHealthCheckConfigurationProperties.getStreamMetadataPersistence(),
+                streamHealthCheckConfigurationProperties.getWarningOffset(),
+                streamHealthCheckConfigurationProperties.getErrorOffset(),
+                startUpInstant);
     }
 
     /**
@@ -93,11 +118,7 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
 
             @Override
             public LastSuccessfulStreamCheckingActor create() {
-                return new LastSuccessfulStreamCheckingActor(
-                        streamHealthCheckConfigurationProperties.isSyncEnabled(),
-                        streamHealthCheckConfigurationProperties.getStreamMetadataPersistence(),
-                        streamHealthCheckConfigurationProperties.getWarningOffset(),
-                        streamHealthCheckConfigurationProperties.getErrorOffset());
+                return new LastSuccessfulStreamCheckingActor(streamHealthCheckConfigurationProperties, Instant.now());
             }
         });
     }
@@ -170,8 +191,16 @@ public class LastSuccessfulStreamCheckingActor extends AbstractHealthCheckingAct
         return Duration.between(instantOfLastSuccessfulStream, now);
     }
 
+    /**
+     * Test if status should be ERROR. It will not return {@code true} within {@code syncOutdatedWarningOffset} of
+     * actor startup to give the stream a chance to complete no matter how outdated the database is.
+     *
+     * @param durationSinceLastSuccessfulStream How long ago was the last successful sync from now.
+     * @return whether the status should be ERROR.
+     */
     private boolean syncErrorOffsetExceeded(final Duration durationSinceLastSuccessfulStream) {
-        return durationSinceLastSuccessfulStream.compareTo(syncOutdatedErrorOffset) > 0;
+        return startUpInstant.plus(syncOutdatedErrorOffset).isBefore(Instant.now()) &&
+                durationSinceLastSuccessfulStream.compareTo(syncOutdatedErrorOffset) > 0;
     }
 
     private boolean syncWarningOffsetExceeded(final Duration durationSinceLastSuccessfulStream) {

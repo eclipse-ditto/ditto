@@ -273,6 +273,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     becomeEventProcessing();
                 })
                 .match(ActorInitializationComplete.class, msg -> becomeEventProcessing())
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
@@ -549,8 +550,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     }
 
-    private void processWriteResult(final boolean success, final Throwable throwable) {
+    private void processWriteResult(final Boolean boxedSuccess, final Throwable throwable) {
         // send result as message to process the result in the actor context
+        final boolean success = isTrue(boxedSuccess);
         getSelf().tell(new PersistenceWriteResult(success, throwable), null);
     }
 
@@ -673,6 +675,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(SudoRetrievePolicyResponse.class, response -> handleSyncPolicyResponse(syncedThing, response))
                 .match(PolicyErrorResponse.class, this::handleErrorResponse)
                 .match(DittoRuntimeException.class, this::handleException)
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(message -> stashWithErrorsIgnored())
                 .build();
     }
@@ -695,6 +698,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     becomeEventProcessing();
                 })
                 .match(SyncFailure.class, f -> triggerSynchronization())
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
@@ -920,9 +924,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 }));
     }
 
-    private void handleInsertOrUpdateResult(final boolean indexChanged, final Thing entity, final Throwable throwable) {
+    private void handleInsertOrUpdateResult(final Boolean indexChanged, final Thing entity, final Throwable throwable) {
+
         if (throwable == null) {
-            if (indexChanged) {
+            if (isTrue(indexChanged)) {
                 log.debug("The thing <{}> was successfully updated in search index", thingId);
                 getSelf().tell(SyncSuccess.INSTANCE, null);
             } else {
