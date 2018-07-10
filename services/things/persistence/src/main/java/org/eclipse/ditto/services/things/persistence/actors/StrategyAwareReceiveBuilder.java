@@ -36,7 +36,7 @@ final class StrategyAwareReceiveBuilder {
     private final ReceiveBuilder delegationTarget;
     private final DiagnosticLoggingAdapter theLogger;
     private PartialFunction<Object, Object> peekStep = null;
-    private ReceiveStrategy matchAny = null;
+    private ReceiveStrategy<Object> matchAny = null;
     private final Map<Class<?>, ReceiveStrategy> strategies = new HashMap<>();
 
 
@@ -113,7 +113,7 @@ final class StrategyAwareReceiveBuilder {
      * @param strategy the strategy that should ne applied for any message
      * @return this builder.
      */
-    <T> StrategyAwareReceiveBuilder matchAny(final ReceiveStrategy<T> strategy) {
+    StrategyAwareReceiveBuilder matchAny(final ReceiveStrategy<Object> strategy) {
         checkNotNull(strategy, "consumer");
         if (matchAny != null) {
             throw new IllegalArgumentException("Only one matchAny consumer allowed.");

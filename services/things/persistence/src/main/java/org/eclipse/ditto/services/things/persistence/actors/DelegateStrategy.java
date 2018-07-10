@@ -20,8 +20,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * A generic strategy that holds a mapping class -> strategy and applies the correct strategy for given messages.
  * This avoids the use of orElse() statements which is applied when calling {@link akka.japi.pf.ReceiveBuilder#match}.
  */
-class DelegateStrategy extends AbstractReceiveStrategy<Object>
-        implements ReceiveStrategy.WithDefined<Object> {
+class DelegateStrategy extends AbstractReceiveStrategy<Object> implements ReceiveStrategy.WithDefined<Object> {
 
     private final Map<Class<?>, ReceiveStrategy> strategies;
 
