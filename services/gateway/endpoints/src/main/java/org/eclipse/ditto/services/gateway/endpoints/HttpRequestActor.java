@@ -118,6 +118,7 @@ public final class HttpRequestActor extends AbstractActor {
                     completeWithResult(httpResponse);
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.debug("Got 'CommandResponse' 'WithEntity' message");
                     final WithEntity withEntity = (WithEntity) commandResponse;
 
@@ -130,6 +131,7 @@ public final class HttpRequestActor extends AbstractActor {
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity,
                         commandResponse -> {
+                            LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                             logger.debug("Got 'CommandResponse' 'WithOptionalEntity' message");
                             final WithOptionalEntity withOptionalEntity = (WithOptionalEntity) commandResponse;
 
@@ -138,12 +140,14 @@ public final class HttpRequestActor extends AbstractActor {
                             completeWithResult(response);
                         })
                 .match(ErrorResponse.class, errorResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, errorResponse);
                     logger.info("Got 'ErrorResponse': {}", errorResponse);
                     final DittoRuntimeException cre = errorResponse.getDittoRuntimeException();
                     completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
                             .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
                 })
                 .match(CommandResponse.class, commandResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.warning("Got 'CommandResponse' message which did not implement the required interfaces "
                             + "'WithEntity' / 'WithOptionalEntity': {}", commandResponse);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
@@ -297,6 +301,7 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void logDittoRuntimeException(final DittoRuntimeException cre) {
+        LogUtil.enhanceLogWithCorrelationId(logger, cre);
         logger.info("DittoRuntimeException '{}': {}", cre.getErrorCode(), cre.getMessage());
     }
 
