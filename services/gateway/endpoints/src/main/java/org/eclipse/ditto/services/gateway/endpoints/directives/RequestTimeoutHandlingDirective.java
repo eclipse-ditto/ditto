@@ -47,9 +47,9 @@ import akka.util.ByteString;
 public final class RequestTimeoutHandlingDirective {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestTimeoutHandlingDirective.class);
+
     private static final Duration SEARCH_WARN_TIMEOUT_MS = Duration.ofMillis(5_000);
     private static final Duration HTTP_WARN_TIMEOUT_MS = Duration.ofMillis(1_000);
-    private static final String TRACING_ENTITY_SEARCH = "search/things";
 
     private RequestTimeoutHandlingDirective() {
         // no op
@@ -67,29 +67,28 @@ public final class RequestTimeoutHandlingDirective {
         return Directives.extractActorSystem(actorSystem -> {
             final Config config = actorSystem.settings().config();
 
-            return extractRequestContext(requestContext -> {
+            return extractRequestContext(requestContext ->
+                enhanceLogWithCorrelationId(correlationId, () -> {
 
+                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
+                    LOGGER.debug("Started mutable timer <{}>", timer);
 
-                final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                LOGGER.debug("Started mutable timer <{}>", timer);
+                    final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
 
-                final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
+                        final int statusCode = response.status().intValue();
+                        final StoppedTimer stoppedTimer = timer
+                                .tag(TracingTags.STATUS_CODE, statusCode)
+                                .stop();
+                        LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
+                        checkDurationWarning(stoppedTimer);
+                        return response;
+                    }, inner);
 
-                    final int statusCode = response.status().intValue();
-                    final StoppedTimer stoppedTimer = timer
-                            .tag(TracingTags.STATUS_CODE, statusCode)
-                            .stop();
-                    LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
-                    checkDurationWarning(stoppedTimer);
-                    return response;
-                }, inner);
-
-                return Directives.withRequestTimeoutResponse(
-                        request ->
-                                enhanceLogWithCorrelationId(correlationId, () ->
-                                        doHandleRequestTimeout(correlationId, config, requestContext, timer)),
-                        innerWithTimer);
-            });
+                    return Directives.withRequestTimeoutResponse(request ->
+                                    doHandleRequestTimeout(correlationId, config, requestContext, timer),
+                            innerWithTimer);
+                })
+            );
         });
     }
 

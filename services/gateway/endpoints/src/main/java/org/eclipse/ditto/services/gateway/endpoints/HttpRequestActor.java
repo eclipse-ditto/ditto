@@ -82,10 +82,6 @@ public final class HttpRequestActor extends AbstractActor {
 
     private static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = "akka.http.server.request-timeout";
 
-    private static final double NANO_TO_MS_DIVIDER = 1_000_000.0;
-    private static final double HTTP_WARN_TIMEOUT_MS = 1_000.0;
-    private static final double SEARCH_WARN_TIMEOUT_MS = 5_000.0;
-
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final ActorRef proxyActor;
