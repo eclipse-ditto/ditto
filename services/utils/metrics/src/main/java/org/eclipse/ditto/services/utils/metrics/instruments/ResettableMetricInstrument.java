@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments;
 
+/**
+ * {@link MetricInstrument} which is able to be reset.
+ */
 public interface ResettableMetricInstrument extends MetricInstrument {
 
     /**

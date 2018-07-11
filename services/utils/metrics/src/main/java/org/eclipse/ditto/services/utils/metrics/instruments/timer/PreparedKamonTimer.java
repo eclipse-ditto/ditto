@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +32,13 @@ import kamon.metric.Timer;
 import kamon.metric.TimerImpl;
 import scala.collection.Seq;
 
+/**
+ * Kamon based implementation of {@link PreparedTimer}.
+ */
 public class PreparedKamonTimer implements PreparedTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PreparedKamonTimer.class);
+
     private final String name;
     private final Map<String, String> tags;
 
@@ -104,14 +109,6 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public String toString() {
-        return "KamonTimerImpl{" +
-                "name='" + name + '\'' +
-                ", tags=" + tags +
-                '}';
-    }
-
-    @Override
     public boolean reset() {
         try {
             getSnapshot(true);
@@ -147,5 +144,16 @@ public class PreparedKamonTimer implements PreparedTimer {
             values.add(bucket.value());
         }
         return values;
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                ", getNumberOfRecords()=" + getNumberOfRecords() +
+                ", getRecords()=" + Arrays.toString(getRecords()) +
+                "]";
     }
 }

@@ -17,7 +17,7 @@ import java.util.Map;
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
 
 /**
- * A Timer metric. New instances are always built as started timers. No manual start is possible/required.
+ * A started Timer metric. New instances are always built as started timers. No manual start is possible/required.
  */
 public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer> {
 
@@ -44,13 +44,14 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      * @param segmentName The name that will be stored in the segment tag.
      * @return The started timer.
      */
-    StartedTimer startNewSegment(final String segmentName);
+    StartedTimer startNewSegment(String segmentName);
 
     /**
+     * Registers the passed {@code onStopHandler} to be invoked when this timer stops.
      *
-     * @param onStopHandler
+     * @param onStopHandler the handler to invoke when this timer stops.
      */
-    StartedTimer onStop(final OnStopHandler onStopHandler);
+    StartedTimer onStop(OnStopHandler onStopHandler);
 
     /**
      * Returns the start timestamp in nanos.

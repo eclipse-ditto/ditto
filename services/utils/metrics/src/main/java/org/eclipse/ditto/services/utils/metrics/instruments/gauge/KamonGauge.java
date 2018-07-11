@@ -16,13 +16,16 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.metrics.instruments.histogram.KamonHistogram;
+import org.eclipse.ditto.services.utils.metrics.instruments.histogram.Histogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
 import kamon.metric.AtomicLongGauge;
 
+/**
+ * Kamon based implementation of {@link Gauge}.
+ */
 public class KamonGauge implements Gauge {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonGauge.class);
@@ -101,5 +104,15 @@ public class KamonGauge implements Gauge {
 
     private kamon.metric.Gauge getKamonInternalGauge() {
         return Kamon.gauge(name).refine(tags);
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                ", get()=" + get() +
+                "]";
     }
 }

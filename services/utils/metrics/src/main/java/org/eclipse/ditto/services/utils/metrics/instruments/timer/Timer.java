@@ -13,6 +13,9 @@ package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
 import org.eclipse.ditto.services.utils.metrics.instruments.MetricInstrument;
 
+/**
+ * A Timer metric measures the duration of something.
+ */
 public interface Timer extends MetricInstrument {
 
     /**

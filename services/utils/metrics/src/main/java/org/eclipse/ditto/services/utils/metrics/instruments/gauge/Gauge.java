@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.utils.metrics.instruments.gauge;
 import org.eclipse.ditto.services.utils.metrics.instruments.ResettableMetricInstrument;
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
 
+/**
+ * A gauge metric is an instantaneous measurement of a long value. You can increment and decrement its value.
+ */
 public interface Gauge extends ResettableMetricInstrument, TaggedMetricInstrument<Gauge> {
 
     /**

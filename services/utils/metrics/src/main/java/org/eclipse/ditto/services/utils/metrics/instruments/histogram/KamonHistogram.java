@@ -27,9 +27,13 @@ import kamon.metric.Bucket;
 import kamon.metric.MetricDistribution;
 import scala.collection.Seq;
 
+/**
+ * Kamon based implementation of {@link Histogram}.
+ */
 public class KamonHistogram implements Histogram {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonHistogram.class);
+
     private final Map<String, String> tags;
     private final String name;
 
@@ -111,5 +115,15 @@ public class KamonHistogram implements Histogram {
 
     private kamon.metric.Histogram getKamonInternalHistogram() {
         return Kamon.histogram(name).refine(tags);
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "tags=" + tags +
+                ", name=" + name +
+                ", getRecordedValues()=" + getRecordedValues()+
+                "]";
     }
 }

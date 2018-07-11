@@ -16,6 +16,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,9 @@ import kamon.Kamon;
 import kamon.metric.LongAdderCounter;
 import kamon.metric.MetricValue;
 
+/**
+ * Kamon based implementation of {@link Gauge}.
+ */
 public class KamonCounter implements Counter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);
@@ -101,5 +105,15 @@ public class KamonCounter implements Counter {
         }
 
         throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>", name));
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                ", getCount()=" + getCount() +
+                "]";
     }
 }

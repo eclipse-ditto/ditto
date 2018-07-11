@@ -23,6 +23,9 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
 import io.prometheus.client.exporter.common.TextFormat;
 
+/**
+ * Helps reporting dropwizard metrics to prometheus.
+ */
 public class DropwizardMetricsPrometheusReporter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DropwizardMetricsPrometheusReporter.class);
