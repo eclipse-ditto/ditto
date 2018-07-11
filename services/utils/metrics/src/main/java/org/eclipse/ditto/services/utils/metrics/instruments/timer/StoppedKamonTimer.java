@@ -23,12 +23,17 @@ import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
 
+/**
+ * Kamon based implementation of {@link StoppedTimer}.
+ */
 public class StoppedKamonTimer implements StoppedTimer {
 
     private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StoppedKamonTimer.class);
+
     private final String name;
     private final Map<String, String> tags;
+
     private long startTimestamp;
     private long endTimestamp;
 

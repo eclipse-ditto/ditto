@@ -27,9 +27,13 @@ import kamon.metric.Bucket;
 import kamon.metric.MetricDistribution;
 import scala.collection.Seq;
 
+/**
+ * Kamon based implementation of {@link Histogram}.
+ */
 public class KamonHistogram implements Histogram {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonHistogram.class);
+
     private final Map<String, String> tags;
     private final String name;
 

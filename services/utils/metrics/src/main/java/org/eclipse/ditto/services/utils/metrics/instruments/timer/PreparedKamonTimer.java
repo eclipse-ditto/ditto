@@ -31,9 +31,13 @@ import kamon.metric.Timer;
 import kamon.metric.TimerImpl;
 import scala.collection.Seq;
 
+/**
+ * Kamon based implementation of {@link PreparedTimer}.
+ */
 public class PreparedKamonTimer implements PreparedTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PreparedKamonTimer.class);
+
     private final String name;
     private final Map<String, String> tags;
 

@@ -23,6 +23,9 @@ import kamon.Kamon;
 import kamon.metric.LongAdderCounter;
 import kamon.metric.MetricValue;
 
+/**
+ * Kamon based implementation of {@link Counter}.
+ */
 public class KamonCounter implements Counter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonCounter.class);

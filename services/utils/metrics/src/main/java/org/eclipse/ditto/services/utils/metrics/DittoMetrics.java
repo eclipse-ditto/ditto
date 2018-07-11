@@ -21,6 +21,9 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.DefaultTimerBu
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 
+/**
+ * Contains static method factories in order to build Ditto MetricInstruments.
+ */
 public final class DittoMetrics {
 
     private DittoMetrics() {}

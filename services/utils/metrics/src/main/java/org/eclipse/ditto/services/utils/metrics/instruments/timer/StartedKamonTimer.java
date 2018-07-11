@@ -21,16 +21,21 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Kamon based implementation of {@link StartedTimer}.
+ */
 public class StartedKamonTimer implements StartedTimer {
 
 
     private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StartedKamonTimer.class);
+
     private final String name;
     private final Map<String, String> tags;
     private final List<OnStopHandler> onStopHandlers;
     private final Map<String, StartedTimer> segments;
     private final long startTimestamp;
+
     private boolean stopped;
 
     private StartedKamonTimer(final String name, final Map<String, String> tags) {
@@ -141,6 +146,7 @@ public class StartedKamonTimer implements StartedTimer {
     public List<OnStopHandler> getOnStopHandlers() {
         return new ArrayList<>(onStopHandlers);
     }
+
 
     @Override
     public String toString() {

@@ -11,5 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments;
 
+/**
+ * Marker interface for different metric instruments like Gauge, Timer, Counter, etc.
+ */
 public interface MetricInstrument {
 }

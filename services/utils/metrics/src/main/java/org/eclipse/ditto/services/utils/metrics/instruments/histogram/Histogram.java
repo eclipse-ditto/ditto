@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.utils.metrics.instruments.histogram;
 import org.eclipse.ditto.services.utils.metrics.instruments.ResettableMetricInstrument;
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
 
+/**
+ * A histogram metric measures the statistical distribution of values in a stream of data.
+ */
 public interface Histogram extends ResettableMetricInstrument, TaggedMetricInstrument<Histogram> {
 
     /**

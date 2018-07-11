@@ -16,6 +16,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+/**
+ * A stopped Timer metric.
+ */
 public interface StoppedTimer extends Timer {
 
     /**
@@ -40,5 +43,5 @@ public interface StoppedTimer extends Timer {
      * @return The value of the tag with the given key.
      */
     @Nullable
-    String getTag(final String key);
+    String getTag(String key);
 }

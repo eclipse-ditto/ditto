@@ -13,6 +13,12 @@ package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
 import java.util.Map;
 
+/**
+ * Builder for {@link Timer}s.
+ *
+ * @param <T> the type of the TimerBuilder itself
+ * @param <B> the type of the Timer to build
+ */
 public interface TimerBuilder<T extends TimerBuilder, B extends Timer> {
 
     /**
@@ -22,7 +28,7 @@ public interface TimerBuilder<T extends TimerBuilder, B extends Timer> {
      * @param additionalTags Additional tags for this tracing.
      * @return The TracingTimerBuilder.
      */
-    T tags(final Map<String, String> additionalTags);
+    T tags(Map<String, String> additionalTags);
 
     /**
      * Adds the given tag to the timer.
@@ -32,7 +38,7 @@ public interface TimerBuilder<T extends TimerBuilder, B extends Timer> {
      * @param value The value of the tag.
      * @return The TracingTimerBuilder.
      */
-    T tag(final String key, final String value);
+    T tag(String key, String value);
 
     /**
      * Builds the timer.

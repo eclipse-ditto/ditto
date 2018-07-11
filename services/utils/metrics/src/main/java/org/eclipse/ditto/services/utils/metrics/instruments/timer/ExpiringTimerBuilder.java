@@ -25,8 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Builds a {@link org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer} and guarantees that no timer will run without a timeout, because the timer is always
- * returned started.
+ * Builds a {@link org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer} and guarantees that no
+ * timer will run without a timeout, because the timer is always returned started.
  */
 public final class ExpiringTimerBuilder implements TimerBuilder<ExpiringTimerBuilder, StartedTimer> {
 

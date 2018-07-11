@@ -15,6 +15,11 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+/**
+ * {@link MetricInstrument} which is able to be tagged with keys and values.
+ *
+ * @param <T> the type of the MetricInstrument itself
+ */
 public interface TaggedMetricInstrument<T extends MetricInstrument> extends MetricInstrument {
 
     /**

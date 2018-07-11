@@ -17,7 +17,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.ResettableMetricInst
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
 
 /**
- * A Timer metric.
+ * A Timer metric which is prepared to be {@link #start() started}.
  */
 public interface PreparedTimer extends Timer, ResettableMetricInstrument, TaggedMetricInstrument<PreparedTimer> {
 
