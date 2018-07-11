@@ -39,6 +39,11 @@ public final class TraceUtils {
         throw new AssertionError();
     }
 
+    /**
+     * Prepares an {@link ExpiringTimerBuilder} with default {@link #HTTP_ROUNDTRIP_METRIC_NAME} and tags.
+     * @param request The request to extract tags and request method.
+     * @return The prepared {@link ExpiringTimerBuilder}
+     */
     public static ExpiringTimerBuilder newHttpRoundTripTimer(final HttpRequest request) {
         final String requestMethod = request.method().name();
         final String requestPath = request.getUri().toRelative().path();
@@ -50,6 +55,11 @@ public final class TraceUtils {
                 .tag(TracingTags.REQUEST_METHOD, requestMethod);
     }
 
+    /**
+     * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     * @param command The command to extract tags.
+     * @return The prepared {@link ExpiringTimerBuilder}
+     */
     public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
         return newExpiringTimer(AMQP_ROUNDTRIP_METRIC_NAME)
                 .tag(TracingTags.COMMAND_TYPE, command.getType())
@@ -57,6 +67,11 @@ public final class TraceUtils {
                 .tag(TracingTags.COMMAND_CATEGORY, command.getCategory().name());
     }
 
+    /**
+     * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     * @param command The command to extract tags.
+     * @return The prepared {@link ExpiringTimerBuilder}
+     */
     public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Signal<?> command) {
         if (command instanceof Command) {
             return newAmqpRoundTripTimer((Command) command);
@@ -67,10 +82,21 @@ public final class TraceUtils {
                 .tag(TracingTags.COMMAND_TYPE, command.getType());
     }
 
+    /**
+     * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     * @param authenticationType The name of the authentication type (i.e. jwt, ..)
+     * @return The prepared {@link ExpiringTimerBuilder}
+     */
     public static ExpiringTimerBuilder newAuthFilterTimer(final String authenticationType) {
         return newAuthFilterTimer(authenticationType, new HashMap<>());
     }
 
+    /**
+     * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     * @param authenticationType The name of the authentication type (i.e. jwt,...)
+     * @param request The HttpRequest used to extract required tags.
+     * @return The prepared {@link ExpiringTimerBuilder}
+     */
     public static ExpiringTimerBuilder newAuthFilterTimer(final String authenticationType, final HttpRequest request) {
         final String requestPath = request.getUri().toRelative().path();
 
