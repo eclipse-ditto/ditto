@@ -83,13 +83,14 @@ public class StoppedKamonTimer implements StoppedTimer {
         return this.name;
     }
 
+
     @Override
     public String toString() {
-        return "KamonTimerImpl{" +
-                "name='" + name + '\'' +
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
                 ", startTimestamp=" + startTimestamp +
                 ", endTimestamp=" + endTimestamp +
-                ", tags=" + tags +
-                '}';
+                "]";
     }
 }

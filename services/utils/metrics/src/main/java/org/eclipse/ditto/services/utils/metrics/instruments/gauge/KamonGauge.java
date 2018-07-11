@@ -102,4 +102,13 @@ public class KamonGauge implements Gauge {
     private kamon.metric.Gauge getKamonInternalGauge() {
         return Kamon.gauge(name).refine(tags);
     }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                "]";
+    }
 }

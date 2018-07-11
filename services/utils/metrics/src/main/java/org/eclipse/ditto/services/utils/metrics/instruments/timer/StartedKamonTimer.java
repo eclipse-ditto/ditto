@@ -144,11 +144,13 @@ public class StartedKamonTimer implements StartedTimer {
 
     @Override
     public String toString() {
-        return "KamonTimerImpl{" +
-                "name='" + name + '\'' +
-                ", startTimestamp=" + startTimestamp +
-                ", running=" + !stopped +
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
                 ", tags=" + tags +
-                '}';
+                ", onStopHandlers=" + onStopHandlers +
+                ", segments=" + segments +
+                ", startTimestamp=" + startTimestamp +
+                ", stopped=" + stopped +
+                "]";
     }
 }

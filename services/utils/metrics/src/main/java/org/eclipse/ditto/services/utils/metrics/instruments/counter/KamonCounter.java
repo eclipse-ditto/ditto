@@ -102,4 +102,13 @@ public class KamonCounter implements Counter {
 
         throw new IllegalStateException(String.format("Could not get snapshot of Kamon counter with name <%s>", name));
     }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                "]";
+    }
 }

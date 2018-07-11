@@ -104,14 +104,6 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public String toString() {
-        return "KamonTimerImpl{" +
-                "name='" + name + '\'' +
-                ", tags=" + tags +
-                '}';
-    }
-
-    @Override
     public boolean reset() {
         try {
             getSnapshot(true);
@@ -147,5 +139,14 @@ public class PreparedKamonTimer implements PreparedTimer {
             values.add(bucket.value());
         }
         return values;
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "name=" + name +
+                ", tags=" + tags +
+                "]";
     }
 }

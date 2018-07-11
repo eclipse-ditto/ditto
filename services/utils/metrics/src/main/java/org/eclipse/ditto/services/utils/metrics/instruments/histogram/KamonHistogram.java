@@ -112,4 +112,13 @@ public class KamonHistogram implements Histogram {
     private kamon.metric.Histogram getKamonInternalHistogram() {
         return Kamon.histogram(name).refine(tags);
     }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "tags=" + tags +
+                ", name=" + name +
+                "]";
+    }
 }
