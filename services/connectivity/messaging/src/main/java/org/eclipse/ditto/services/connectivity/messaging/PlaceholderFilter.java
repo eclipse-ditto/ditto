@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -71,9 +72,15 @@ final class PlaceholderFilter {
         final ThingPlaceholder thingPlaceholder = new ThingPlaceholder(thingId);
         return targets.stream()
                 .map(target -> {
-                    final String address = apply(target.getAddress(), thingPlaceholder);
-                    return ConnectivityModelFactory.newTarget(target, address);
+                    try {
+                        final String address = apply(target.getAddress(), thingPlaceholder);
+                        return ConnectivityModelFactory.newTarget(target, address);
+                    } catch (UnresolvedPlaceholderException e) {
+                        // TODO log the dropping of adresses with unresolved placeholders
+                        return null;
+                    }
                 })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 

@@ -335,7 +335,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
                 placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
+        if (subscribedAndAuthorizedTargets.size() != filteredTargets.size()) {
+            log.warning("Failed to substitute placeholders in all targets, some targets were dropped.");
+        }
+
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
+
         final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
         clientActor.tell(outbound, getSelf());
     }
