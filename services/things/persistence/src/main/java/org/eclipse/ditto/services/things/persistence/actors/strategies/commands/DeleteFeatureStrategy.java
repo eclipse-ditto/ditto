@@ -11,13 +11,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
@@ -27,7 +24,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeature} command.
  */
-@ThreadSafe
+@Immutable
 final class DeleteFeatureStrategy extends AbstractCommandStrategy<DeleteFeature> {
 
     /**
@@ -39,25 +36,28 @@ final class DeleteFeatureStrategy extends AbstractCommandStrategy<DeleteFeature>
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteFeature command) {
+        final Thing thing = context.getThingOrThrow();
+        final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .map(feature -> ResultFactory.newResult(getEventToPersist(context, featureId, dittoHeaders),
+                        getResponse(context, featureId, dittoHeaders)))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders)));
+    }
 
-        final Optional<String> featureIdOptional = context.getThing().getFeatures()
-                .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .map(Feature::getId);
-        if (featureIdOptional.isPresent()) {
-            final ThingModifiedEvent eventToPersist = FeatureDeleted.of(context.getThingId(), featureIdOptional.get(),
-                    context.getNextRevision(), eventTimestamp(), dittoHeaders);
-            final ThingModifyCommandResponse response =
-                    DeleteFeatureResponse.of(context.getThingId(), command.getFeatureId(), dittoHeaders);
-            result = ImmutableResult.of(eventToPersist, response);
-        } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), command.getFeatureId(), dittoHeaders);
-            result = ImmutableResult.of(exception);
-        }
+    private static ThingModifiedEvent getEventToPersist(final Context context, final String featureId,
+            final DittoHeaders dittoHeaders) {
 
-        return result;
+        return FeatureDeleted.of(context.getThingId(), featureId, context.getNextRevision(), getEventTimestamp(),
+                dittoHeaders);
+    }
+
+    private static ThingModifyCommandResponse getResponse(final Context context, final String featureId,
+            final DittoHeaders dittoHeaders) {
+
+        return DeleteFeatureResponse.of(context.getThingId(), featureId, dittoHeaders);
     }
 
 }

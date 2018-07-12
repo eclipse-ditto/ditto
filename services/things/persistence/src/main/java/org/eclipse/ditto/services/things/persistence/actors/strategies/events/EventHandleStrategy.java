@@ -53,23 +53,19 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
 @Immutable
-public class EventHandleStrategy implements EventStrategy {
+public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
+
+    private static final EventHandleStrategy INSTANCE = new EventHandleStrategy();
 
     private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies = new HashMap<>();
 
-    private static class LazyHolder {
-
-        static final EventHandleStrategy INSTANCE = new EventHandleStrategy();
-
-    }
-
     /**
-     * Returns the {@code EventHandleStrategy} instance.
+     * Returns the <em>singleton</em> {@code EventHandleStrategy} instance.
      *
      * @return the instance.
      */
     public static EventHandleStrategy getInstance() {
-        return LazyHolder.INSTANCE;
+        return INSTANCE;
     }
 
     /**

@@ -11,22 +11,19 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute} command.
  */
-@ThreadSafe
+@Immutable
 final class RetrieveAttributeStrategy extends AbstractCommandStrategy<RetrieveAttribute> {
 
     /**
@@ -37,27 +34,26 @@ final class RetrieveAttributeStrategy extends AbstractCommandStrategy<RetrieveAt
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAttribute command) {
+    protected Result doApply(final Context context, final RetrieveAttribute command) {
+        final Thing thing = context.getThingOrThrow();
+
+        return thing.getAttributes()
+                .map(attributes -> getAttributeValueResult(attributes, context.getThingId(), command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
+    }
+
+    private static Result getAttributeValueResult(final JsonObject attributes, final String thingId,
+            final RetrieveAttribute command) {
+
+        final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
 
-        final Optional<Attributes> optionalAttributes = context.getThing().getAttributes();
-        if (optionalAttributes.isPresent()) {
-            final Attributes attributes = optionalAttributes.get();
-            final JsonPointer jsonPointer = command.getAttributePointer();
-            final Optional<JsonValue> jsonValue = attributes.getValue(jsonPointer);
-            if (jsonValue.isPresent()) {
-                final ThingQueryCommandResponse response =
-                        RetrieveAttributeResponse.of(context.getThingId(), jsonPointer, jsonValue.get(), dittoHeaders);
-                result = ImmutableResult.of(response);
-            } else {
-                result = ImmutableResult.of(attributeNotFound(context.getThingId(), jsonPointer, dittoHeaders));
-            }
-        } else {
-            result = ImmutableResult.of(attributesNotFound(context.getThingId(), dittoHeaders));
-        }
-
-        return result;
+        return attributes.getValue(attributePointer)
+                .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value, dittoHeaders))
+                .map(ResultFactory::newResult)
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders)));
     }
 
 }

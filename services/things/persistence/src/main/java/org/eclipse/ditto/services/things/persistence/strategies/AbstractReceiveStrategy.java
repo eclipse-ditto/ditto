@@ -9,9 +9,9 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.things.persistence.actors;
+package org.eclipse.ditto.services.things.persistence.strategies;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -40,22 +40,9 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
     protected AbstractReceiveStrategy(final Class<T> theMatchingClass, final DiagnosticLoggingAdapter theLogger) {
-        matchingClass = requireNonNull(theMatchingClass, "The matching class must not be null!");
-        logger = requireNonNull(theLogger, "The logger must not be null!");
+        matchingClass = checkNotNull(theMatchingClass, "matching class");
+        logger = checkNotNull(theLogger, "logger");
     }
-
-    protected void preApply(final T message) {
-        if (message instanceof Command) {
-            final Command command = (Command) message;
-            LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying command '{}': {}", command.getType(), command.toJsonString());
-            }
-        }
-        doApply(message);
-    }
-
-    protected abstract void doApply(T message);
 
     @Override
     public Class<T> getMatchingClass() {
@@ -66,5 +53,18 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
     public void apply(final T message) {
         preApply(message);
     }
+
+    protected void preApply(final T message) {
+        if (message instanceof Command) {
+            final Command command = (Command) message;
+            LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
+            }
+        }
+        doApply(message);
+    }
+
+    protected abstract void doApply(T message);
 
 }

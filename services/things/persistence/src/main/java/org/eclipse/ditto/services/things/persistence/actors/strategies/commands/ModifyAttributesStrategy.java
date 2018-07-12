@@ -11,23 +11,20 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
 import org.eclipse.ditto.signals.events.things.AttributesModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link ModifyAttributes} command.
  */
-@ThreadSafe
+@Immutable
 public final class ModifyAttributesStrategy extends AbstractCommandStrategy<ModifyAttributes> {
 
     /**
@@ -39,25 +36,30 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAttributes command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final ThingModifiedEvent eventToPersist;
-        final ThingModifyCommandResponse response;
+        final Thing thing = context.getThingOrThrow();
 
+        return thing.getAttributes()
+                .map(attributes -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
+    }
+
+    private static CommandStrategy.Result getModifyResult(final Context context, final ModifyAttributes command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
-        final long nextRevision = context.getNextRevision();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (thing.getAttributes().isPresent()) {
-            eventToPersist = AttributesModified.of(thingId, command.getAttributes(), nextRevision,
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyAttributesResponse.modified(thingId, dittoHeaders);
-        } else {
-            eventToPersist = AttributesCreated.of(thingId, command.getAttributes(), nextRevision,
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyAttributesResponse.created(thingId, command.getAttributes(), dittoHeaders);
-        }
+        return ResultFactory.newResult(
+                AttributesModified.of(thingId, command.getAttributes(), context.getNextRevision(), getEventTimestamp(),
+                        dittoHeaders), ModifyAttributesResponse.modified(thingId, dittoHeaders));
+    }
 
-        return newResult(eventToPersist, response);
+    private static CommandStrategy.Result getCreateResult(final Context context, final ModifyAttributes command) {
+        final String thingId = context.getThingId();
+        final Attributes attributes = command.getAttributes();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AttributesCreated.of(thingId, attributes, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyAttributesResponse.created(thingId, attributes, dittoHeaders));
     }
 
 }

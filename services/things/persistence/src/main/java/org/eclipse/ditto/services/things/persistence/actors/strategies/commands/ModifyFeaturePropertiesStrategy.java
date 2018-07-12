@@ -11,26 +11,21 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<ModifyFeatureProperties> {
 
     /**
@@ -41,46 +36,44 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
-            final ModifyFeatureProperties command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
-
-        final Optional<Features> features = context.getThing().getFeatures();
+    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureProperties command) {
+        final Thing thing = context.getThingOrThrow();
         final String featureId = command.getFeatureId();
-        if (features.isPresent()) {
-            final Optional<Feature> feature = features.get().getFeature(featureId);
 
-            if (feature.isPresent()) {
-                final ThingModifiedEvent eventToPersist;
-                final ThingModifyCommandResponse response;
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .map(feature -> getModifyOrCreateResult(feature, context, command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+    }
 
-                final FeatureProperties featureProperties = command.getProperties();
-                if (feature.get().getProperties().isPresent()) {
-                    eventToPersist = FeaturePropertiesModified.of(command.getId(), featureId, featureProperties,
-                            context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response = ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders);
-                } else {
-                    eventToPersist = FeaturePropertiesCreated.of(command.getId(), featureId, featureProperties,
-                            context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response =
-                            ModifyFeaturePropertiesResponse.created(context.getThingId(), featureId, featureProperties,
-                                    dittoHeaders);
-                }
+    private static Result getModifyOrCreateResult(final Feature feature, final Context context,
+            final ModifyFeatureProperties command) {
 
-                result = ImmutableResult.of(eventToPersist, response);
-            } else {
-                final DittoRuntimeException exception =
-                        featureNotFound(context.getThingId(), featureId, command.getDittoHeaders());
-                result = ImmutableResult.of(exception);
-            }
-        } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), featureId, command.getDittoHeaders());
-            result = ImmutableResult.of(exception);
-        }
+        return feature.getProperties()
+                .map(properties -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
+    }
 
-        return result;
+    private static Result getModifyResult(final Context context, final ModifyFeatureProperties command) {
+        final String featureId = command.getFeatureId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(FeaturePropertiesModified.of(command.getId(), featureId, command.getProperties(),
+                context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders));
+    }
+
+    private static Result getCreateResult(final Context context, final ModifyFeatureProperties command) {
+        final String featureId = command.getFeatureId();
+        final FeatureProperties featureProperties = command.getProperties();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                FeaturePropertiesCreated.of(command.getId(), featureId, featureProperties, context.getNextRevision(),
+                        getEventTimestamp(), dittoHeaders),
+                ModifyFeaturePropertiesResponse.created(context.getThingId(), featureId, featureProperties,
+                        dittoHeaders));
     }
 
 }

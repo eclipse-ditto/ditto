@@ -38,7 +38,7 @@ public final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<Retr
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrievePolicyId command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
+        final Thing thing = context.getThingOrThrow();
         final Optional<String> optPolicyId = thing.getPolicyId();
         if (optPolicyId.isPresent()) {
             final String policyId = optPolicyId.get();

@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -37,10 +38,13 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
-import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ImmutableContext;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
@@ -92,19 +96,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      */
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
-    public static final String UNHANDLED_MESSAGE_TEMPLATE =
-            "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final CommandReceiveStrategy commandReceiveStrategy = CommandReceiveStrategy.getInstance();
-    private final EventHandleStrategy eventHandleStrategy = EventHandleStrategy.getInstance();
     private final String thingId;
     private final ActorRef pubSubMediator;
+    private final ThingSnapshotter<?, ?> thingSnapshotter;
+    private final DiagnosticLoggingAdapter log;
     private final java.time.Duration activityCheckInterval;
     private final java.time.Duration activityCheckDeletedInterval;
     private final Receive handleThingEvents;
-    private final ThingSnapshotter<?, ?> thingSnapshotter;
     private final long snapshotThreshold;
 
     private long accessCounter;
@@ -117,34 +115,45 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         this.thingId = thingId;
         this.pubSubMediator = pubSubMediator;
+        log = LogUtil.obtain(this);
+        thing = null;
 
         final Config config = getContext().system().settings().config();
         activityCheckInterval = config.getDuration(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL);
         activityCheckDeletedInterval = config.getDuration(ConfigKeys.Thing.ACTIVITY_CHECK_DELETED_INTERVAL);
 
         // Activity checking
-        final long configuredSnapshotThreshold = config.getLong(ConfigKeys.Thing.SNAPSHOT_THRESHOLD);
-        if (configuredSnapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Thing.SNAPSHOT_THRESHOLD, configuredSnapshotThreshold));
-        }
-        snapshotThreshold = configuredSnapshotThreshold;
+        snapshotThreshold = getSnapshotThreshold(config);
 
         // Snapshotting
-        final java.time.Duration snapshotInterval = config.getDuration(ConfigKeys.Thing.SNAPSHOT_INTERVAL);
-        final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
-        final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
-        thingSnapshotter =
-                thingSnapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log,
-                        snapshotInterval);
+        thingSnapshotter = getSnapshotter(config, thingSnapshotterCreate);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
+                    final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
                     final Thing modified = eventHandleStrategy.handle(event, thing, getRevisionNumber());
                     if (modified != null) {
                         thing = modified;
                     }
                 }).build();
+    }
+
+    private static long getSnapshotThreshold(final Config config) {
+        final long result = config.getLong(ConfigKeys.Thing.SNAPSHOT_THRESHOLD);
+        if (result < 0) {
+            throw new ConfigurationException(String.format("Config setting <%s> must be positive but is <%d>!",
+                    ConfigKeys.Thing.SNAPSHOT_THRESHOLD, result));
+        }
+        return result;
+    }
+
+    private ThingSnapshotter<?, ?> getSnapshotter(final Config config,
+            final ThingSnapshotter.Create snapshotterCreate) {
+
+        final java.time.Duration snapshotInterval = config.getDuration(ConfigKeys.Thing.SNAPSHOT_INTERVAL);
+        final boolean snapshotDeleteOld = config.getBoolean(ConfigKeys.Thing.SNAPSHOT_DELETE_OLD);
+        final boolean eventsDeleteOld = config.getBoolean(ConfigKeys.Thing.EVENTS_DELETE_OLD);
+        return snapshotterCreate.apply(this, pubSubMediator, snapshotDeleteOld, eventsDeleteOld, log, snapshotInterval);
     }
 
     /**
@@ -197,10 +206,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         return thingBuilder.build();
     }
 
-    private long getRevisionNumber() {
-        return lastSequenceNr();
-    }
-
     @Nonnull
     @Override
     public Thing getThing() {
@@ -225,6 +230,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .scheduler()
                 .scheduleOnce(Duration.apply(intervalInSeconds, TimeUnit.SECONDS), getSelf(),
                         new CheckForActivity(getRevisionNumber(), accessCounter), getContext().dispatcher(), null);
+    }
+
+    private long getRevisionNumber() {
+        return lastSequenceNr();
     }
 
     @Override
@@ -263,6 +272,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 .matchAny(new MatchAnyDuringInitializeStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
                 .build();
+    }
+
+    @Nullable
+    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
+        if (isLogIncomingMessages()) {
+            return new LogIncomingMessagesConsumer();
+        }
+        return null;
     }
 
     @Override
@@ -305,10 +322,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     private void becomeThingCreatedHandler() {
-
+        final CommandStrategy<Command> commandReceiveStrategy = CommandReceiveStrategy.getInstance();
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
-                .match(Command.class, command -> commandReceiveStrategy.isDefined(ImmutableContext.empty(), command),
-                        this::handleCommand);
+                .match(Command.class, commandReceiveStrategy::isDefined, this::handleCommand);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .matchEach(thingSnapshotter.strategies())
@@ -323,8 +339,19 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         thingSnapshotter.startMaintenanceSnapshots();
     }
 
-    private void becomeThingDeletedHandler() {
+    private void handleCommand(final Command command) {
+        final CommandStrategy.Context ctx = DefaultContext.getInstance(thingId, thing, getNextRevisionNumber(), log,
+                thingSnapshotter);
+        final CommandStrategy<Command> commandReceiveStrategy = CommandReceiveStrategy.getInstance();
+        final CommandStrategy.Result result = commandReceiveStrategy.apply(ctx, command);
+        result.apply(this::persistAndApplyEvent, this::notifySender, this::becomeThingDeletedHandler);
+    }
 
+    private long getNextRevisionNumber() {
+        return getRevisionNumber() + 1;
+    }
+
+    private void becomeThingDeletedHandler() {
         final Receive receive = new StrategyAwareReceiveBuilder(log)
                 .match(new CreateThingStrategy())
                 .matchEach(thingSnapshotter.strategies())
@@ -345,7 +372,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
-
         final A modifiedEvent;
         if (thing != null) {
             // set version of event to the version of the thing
@@ -371,11 +397,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private <A extends ThingModifiedEvent> void persistEvent(final A event, final Consumer<A> handler) {
         LogUtil.enhanceLogWithCorrelationId(log, event.getDittoHeaders().getCorrelationId());
-        log.debug("About to persist Event <{}>", event.getType());
+        log.debug("Persisting Event <{}>.", event.getType());
 
         persist(event, persistedEvent -> {
             LogUtil.enhanceLogWithCorrelationId(log, event.getDittoHeaders().getCorrelationId());
-            log.info("Successfully persisted Event <{}>", event.getType());
+            log.info("Successfully persisted Event <{}>.", event.getType());
 
             /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
                sequence no (e.g. 2), but old thing revision no (e.g. 1) will be created -> can lead to serious
@@ -404,10 +430,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         notifySubscribers(event);
     }
 
-    private long nextRevision() {
-        return getRevisionNumber() + 1;
-    }
-
     /**
      * @return Whether the lifecycle of the Thing is active.
      */
@@ -418,10 +440,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     @Override
     public boolean isThingDeleted() {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
-    }
-
-    private boolean thingExistsAsDeleted() {
-        return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
     }
 
     private void notifySubscribers(final ThingEvent event) {
@@ -441,13 +459,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         sender.tell(message, getSelf());
     }
 
-    private Consumer<Object> getIncomingMessagesLoggerOrNull() {
-        if (isLogIncomingMessages()) {
-            return new LogIncomingMessagesConsumer();
-        }
-        return null;
-    }
-
     /**
      * Indicates whether the logging of incoming messages is enabled by config or not.
      *
@@ -459,12 +470,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         return config.hasPath(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES) &&
                 config.getBoolean(ConfigKeys.THINGS_LOG_INCOMING_MESSAGES);
-    }
-
-    private void handleCommand(final Command command) {
-        final ImmutableContext context = new ImmutableContext(thingId, thing, nextRevision(), log, thingSnapshotter);
-        final CommandStrategy.Result result = commandReceiveStrategy.apply(context, command);
-        result.apply(this::persistAndApplyEvent, this::notifySender, this::becomeThingDeletedHandler);
     }
 
     /**
@@ -525,8 +530,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * This strategy handles the {@link CreateThing} command.
      */
     @NotThreadSafe
-    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing> implements
-            ReceiveStrategy.WithUnhandledFunction<CreateThing> {
+    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing>
+            implements ReceiveStrategy.WithUnhandledFunction<CreateThing> {
 
         /**
          * Constructs a new {@code CreateThingStrategy} object.
@@ -561,13 +566,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
             final ThingCreated thingCreated;
             if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                thingCreated = ThingCreated.of(newThing, nextRevision(), Instant.now(), commandHeaders);
+                thingCreated = ThingCreated.of(newThing, getNextRevisionNumber(), Instant.now(), commandHeaders);
             }
             // default case handle as v2 and upwards:
             else {
-                thingCreated =
-                        ThingCreated.of(newThing.setPolicyId(newThing.getPolicyId().orElse(thingId)), nextRevision(),
-                                Instant.now(), commandHeaders);
+                thingCreated = ThingCreated.of(newThing.setPolicyId(newThing.getPolicyId().orElse(thingId)),
+                        getNextRevisionNumber(), Instant.now(), commandHeaders);
             }
 
             persistAndApplyEvent(thingCreated, event -> {
@@ -647,8 +651,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         @Override
         public void unhandled(final CreateThing command) {
-            throw new IllegalArgumentException(MessageFormat.format(UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
+            final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
+            throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getId()));
         }
+
     }
 
     /**
@@ -711,6 +717,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     shutdown("Thing <{}> was deleted recently. Shutting Actor down ...", thingId);
                 }
             }
+        }
+
+        private boolean thingExistsAsDeleted() {
+            return null != thing && thing.hasLifecycle(ThingLifecycle.DELETED);
         }
 
         private void shutdown(final String shutdownLogTemplate, final String thingId) {

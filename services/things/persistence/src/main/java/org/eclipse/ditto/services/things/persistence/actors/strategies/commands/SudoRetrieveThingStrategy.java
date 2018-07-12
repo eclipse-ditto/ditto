@@ -41,20 +41,20 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
     @Override
     public boolean isDefined(final Context context, final SudoRetrieveThing command) {
         return Objects.equals(context.getThingId(), command.getId())
-                && null != context.getThing()
-                && !isThingDeleted(context.getThing());
+                && null != context.getThingOrThrow()
+                && !isThingDeleted(context.getThingOrThrow());
     }
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final SudoRetrieveThing command) {
-        final Thing thing = context.getThing();
+        final Thing thing = context.getThingOrThrow();
         final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
         final JsonSchemaVersion versionToUse = determineSchemaVersion(command, thing);
         final JsonObject thingJson = selectedFields
                 .map(sf -> thing.toJson(versionToUse, sf, FieldType.regularOrSpecial()))
                 .orElseGet(() -> thing.toJson(versionToUse, FieldType.regularOrSpecial()));
 
-        return ImmutableResult.of(SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
+        return ResultFactory.newResult(SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
     }
 
     private JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {

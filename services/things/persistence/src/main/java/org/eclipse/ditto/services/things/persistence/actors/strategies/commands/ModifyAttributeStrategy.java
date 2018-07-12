@@ -11,28 +11,21 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
-import java.util.Optional;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link ModifyAttribute} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttribute> {
 
     /**
@@ -43,28 +36,36 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAttribute command) {
-        final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
-        final long nextRevision = context.getNextRevision();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Optional<Attributes> optionalAttributes = thing.getAttributes();
+    protected Result doApply(final CommandStrategy.Context context, final ModifyAttribute command) {
+        final Thing thing = context.getThingOrThrow();
 
-        final ThingModifiedEvent eventToPersist;
-        final ThingModifyCommandResponse response;
-
-        final JsonPointer attributeJsonPointer = command.getAttributePointer();
-        final JsonValue attributeValue = command.getAttributeValue();
-        if (optionalAttributes.isPresent() && optionalAttributes.get().contains(attributeJsonPointer)) {
-            eventToPersist = AttributeModified.of(thingId, attributeJsonPointer, attributeValue, nextRevision,
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyAttributeResponse.modified(thingId, attributeJsonPointer, dittoHeaders);
-        } else {
-            eventToPersist = AttributeCreated.of(thingId, attributeJsonPointer, attributeValue, nextRevision,
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyAttributeResponse.created(thingId, attributeJsonPointer, attributeValue, dittoHeaders);
-        }
-
-        return newResult(eventToPersist, response);
+        return thing.getAttributes()
+                .filter(attributes -> attributes.contains(command.getAttributePointer()))
+                .map(attributes -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
     }
+
+    private static Result getModifyResult(final Context context, final ModifyAttribute command) {
+        final String thingId = context.getThingId();
+        final JsonPointer attributePointer = command.getAttributePointer();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AttributeModified.of(thingId, attributePointer, command.getAttributeValue(), context.getNextRevision(),
+                        getEventTimestamp(), dittoHeaders),
+                ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders));
+    }
+
+    private static Result getCreateResult(final Context context, final ModifyAttribute command) {
+        final String thingId = context.getThingId();
+        final JsonPointer attributePointer = command.getAttributePointer();
+        final JsonValue attributeValue = command.getAttributeValue();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AttributeCreated.of(thingId, attributePointer, attributeValue, context.getNextRevision(),
+                        getEventTimestamp(), dittoHeaders),
+                ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders));
+    }
+
 }

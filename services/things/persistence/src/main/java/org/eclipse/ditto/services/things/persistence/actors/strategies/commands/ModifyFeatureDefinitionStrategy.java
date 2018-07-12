@@ -11,25 +11,20 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyFeatureDefinitionStrategy extends AbstractCommandStrategy<ModifyFeatureDefinition> {
 
     /**
@@ -40,44 +35,42 @@ final class ModifyFeatureDefinitionStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureDefinition command) {
+        final Thing thing = context.getThingOrThrow();
+        final String featureId = command.getFeatureId();
+
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .map(feature -> getModifyOrCreateResult(feature, context, command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+    }
+
+    private static Result getModifyOrCreateResult(final Feature feature, final Context context,
             final ModifyFeatureDefinition command) {
+
+        return feature.getDefinition()
+                .map(definition -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
+    }
+
+    private static Result getModifyResult(final Context context, final ModifyFeatureDefinition command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
+        final String featureId = command.getFeatureId();
 
-        final Optional<Features> features = context.getThing().getFeatures();
-        if (features.isPresent()) {
-            final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+        return ResultFactory.newResult(FeatureDefinitionModified.of(command.getId(), featureId, command.getDefinition(),
+                context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyFeatureDefinitionResponse.modified(context.getThingId(), featureId, dittoHeaders));
+    }
 
-            if (feature.isPresent()) {
-                final ThingModifiedEvent eventToPersist;
-                final ThingModifyCommandResponse response;
+    private static Result getCreateResult(final Context context, final ModifyFeatureDefinition command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final String featureId = command.getFeatureId();
 
-                if (feature.get().getDefinition().isPresent()) {
-                    eventToPersist = FeatureDefinitionModified.of(command.getId(), command.getFeatureId(),
-                            command.getDefinition(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response = ModifyFeatureDefinitionResponse.modified(context.getThingId(), command.getFeatureId(),
-                            dittoHeaders);
-                } else {
-                    eventToPersist = FeatureDefinitionCreated.of(command.getId(), command.getFeatureId(),
-                            command.getDefinition(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response = ModifyFeatureDefinitionResponse.created(context.getThingId(), command.getFeatureId(),
-                            command.getDefinition(), dittoHeaders);
-                }
-
-                result = ImmutableResult.of(eventToPersist, response);
-            } else {
-                final DittoRuntimeException exception =
-                        featureNotFound(context.getThingId(), command.getFeatureId(), command.getDittoHeaders());
-                result = ImmutableResult.of(exception);
-            }
-        } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), command.getFeatureId(), command.getDittoHeaders());
-            result = ImmutableResult.of(exception);
-        }
-
-        return result;
+        return ResultFactory.newResult(FeatureDefinitionCreated.of(command.getId(), featureId, command.getDefinition(),
+                context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyFeatureDefinitionResponse.created(context.getThingId(), featureId, command.getDefinition(),
+                        dittoHeaders));
     }
 
 }

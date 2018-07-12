@@ -11,23 +11,20 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeature} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature> {
 
     /**
@@ -39,22 +36,31 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyFeature command) {
+        final Thing thing = context.getThingOrThrow();
+
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .map(feature -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
+    }
+
+    private static Result getModifyResult(final Context context, final ModifyFeature command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final ThingModifiedEvent eventToPersist;
-        final ThingModifyCommandResponse response;
 
-        final Optional<Features> features = context.getThing().getFeatures();
-        if (features.isPresent() && features.get().getFeature(command.getFeatureId()).isPresent()) {
-            eventToPersist = FeatureModified.of(command.getId(), command.getFeature(), context.getNextRevision(),
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyFeatureResponse.modified(context.getThingId(), command.getFeatureId(), dittoHeaders);
-        } else {
-            eventToPersist = FeatureCreated.of(command.getId(), command.getFeature(), context.getNextRevision(),
-                    eventTimestamp(), dittoHeaders);
-            response = ModifyFeatureResponse.created(context.getThingId(), command.getFeature(), dittoHeaders);
-        }
+        return ResultFactory.newResult(
+                FeatureModified.of(command.getId(), command.getFeature(), context.getNextRevision(),
+                        getEventTimestamp(), dittoHeaders),
+                ModifyFeatureResponse.modified(context.getThingId(), command.getFeatureId(), dittoHeaders));
+    }
 
-        return ImmutableResult.of(eventToPersist, response);
+    private static Result getCreateResult(final Context context, final ModifyFeature command) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Feature feature = command.getFeature();
+
+        return ResultFactory.newResult(
+                FeatureCreated.of(command.getId(), feature, context.getNextRevision(), getEventTimestamp(),
+                        dittoHeaders),
+                ModifyFeatureResponse.created(context.getThingId(), feature, dittoHeaders));
     }
 
 }

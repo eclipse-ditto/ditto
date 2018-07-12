@@ -20,6 +20,9 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.things.persistence.strategies.DelegateStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
+
 import akka.actor.AbstractActor;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
@@ -28,29 +31,31 @@ import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
 /**
- * A simple wrapper for {@link ReceiveBuilder} which accepts {@link ReceiveStrategy} objects.
+ * A simple wrapper for {@link ReceiveBuilder} which accepts
+ * {@link org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy} objects.
  */
 @NotThreadSafe
 final class StrategyAwareReceiveBuilder {
 
     private final ReceiveBuilder delegationTarget;
-    private final DiagnosticLoggingAdapter theLogger;
-    private PartialFunction<Object, Object> peekStep = null;
-    private ReceiveStrategy<Object> matchAny = null;
-    private final Map<Class<?>, ReceiveStrategy> strategies = new HashMap<>();
-
+    private final DiagnosticLoggingAdapter logger;
+    private final Map<Class<?>, ReceiveStrategy> strategies;
+    @Nullable private PartialFunction<Object, Object> peekStep;
+    @Nullable private ReceiveStrategy<Object> matchAny;
 
     /**
      * Constructs a new {@code StrategyAwareReceiveBuilder} object.
      */
     StrategyAwareReceiveBuilder(final DiagnosticLoggingAdapter theLogger) {
-        this.theLogger = theLogger;
-        delegationTarget = ReceiveBuilder.create();
+        this(ReceiveBuilder.create(), theLogger);
     }
 
     StrategyAwareReceiveBuilder(final ReceiveBuilder receiveBuilder, final DiagnosticLoggingAdapter theLogger) {
-        this.delegationTarget = receiveBuilder;
-        this.theLogger = theLogger;
+        delegationTarget = receiveBuilder;
+        logger = theLogger;
+        strategies = new HashMap<>();
+        peekStep = null;
+        matchAny = null;
     }
 
     /**
@@ -63,8 +68,7 @@ final class StrategyAwareReceiveBuilder {
      */
     <T> StrategyAwareReceiveBuilder match(final ReceiveStrategy<T> strategy) {
         if (strategies.containsKey(strategy.getMatchingClass())) {
-            throw new IllegalArgumentException(
-                    "Strategy for type '" + strategy.getMatchingClass() + "' already exists.");
+            throw new IllegalArgumentException("Strategy for type <" + strategy.getMatchingClass() + "> already exists!");
         }
         strategies.put(strategy.getMatchingClass(), strategy);
         return this;
@@ -106,7 +110,6 @@ final class StrategyAwareReceiveBuilder {
         return this;
     }
 
-
     /**
      * Sets a consumer that is called for any message. There can only be one such consumer.
      *
@@ -128,7 +131,7 @@ final class StrategyAwareReceiveBuilder {
      * @return a PartialFunction from this builder.
      */
     public AbstractActor.Receive build() {
-        final DelegateStrategy delegateStrategy = new DelegateStrategy(strategies, theLogger);
+        final DelegateStrategy delegateStrategy = new DelegateStrategy(strategies, logger);
         delegationTarget.match(delegateStrategy.getMatchingClass(), delegateStrategy::isDefined,
                 delegateStrategy::apply);
         if (matchAny != null) {
@@ -144,4 +147,5 @@ final class StrategyAwareReceiveBuilder {
         }
         return receive;
     }
+
 }

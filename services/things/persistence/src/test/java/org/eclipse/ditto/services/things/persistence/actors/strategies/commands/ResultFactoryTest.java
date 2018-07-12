@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -33,59 +34,73 @@ import org.mockito.ArgumentCaptor;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link ImmutableResult}.
+ * Unit tests for {@link ResultFactory}.
  */
-public class ImmutableResultTest {
+public final class ResultFactoryTest {
 
     private final Dummy mock = mock(Dummy.class);
     private final ThingModifiedEvent thingModifiedEvent = mock(ThingModifiedEvent.class);
-    private final WithDittoHeaders response = mock(WithDittoHeaders.class);
+    private final ThingCommandResponse response = mock(ThingCommandResponse.class);
     private final DittoRuntimeException exception = mock(DittoRuntimeException.class);
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableResult.class,
-                areImmutable(),
-                provided(ThingModifiedEvent.class, WithDittoHeaders.class,
-                        DittoRuntimeException.class).areAlsoImmutable()
-        );
+        assertInstancesOf(ResultFactory.class, areImmutable());
     }
 
     @Test
-    public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableResult.class)
+    public void assertImmutabilityOfImmutableResult() {
+        assertInstancesOf(ResultFactory.ImmutableResult.class,
+                areImmutable(),
+                provided(ThingModifiedEvent.class, WithDittoHeaders.class,
+                        DittoRuntimeException.class).areAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEqualsOfImmutableResult() {
+        EqualsVerifier.forClass(ResultFactory.ImmutableResult.class)
+                .usingGetClass()
                 .verify();
     }
 
     @Test
-    public void testNotifyResponse() {
-        ImmutableResult.of(response).apply(mock::persist, mock::notify, mock::becomeDeleted);
+    public void notifyResponse() {
+        final CommandStrategy.Result result = ResultFactory.newResult(response);
+
+        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+
         verify(mock).notify(response);
         verify(mock, never()).persist(any(), any());
         verify(mock, never()).becomeDeleted();
     }
 
     @Test
-    public void testNotifyException() {
-        ImmutableResult.of(exception).apply(mock::persist, mock::notify, mock::becomeDeleted);
+    public void notifyException() {
+        final CommandStrategy.Result result = ResultFactory.newResult(exception);
+
+        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+
         verify(mock).notify(exception);
         verify(mock, never()).persist(any(), any());
         verify(mock, never()).becomeDeleted();
     }
 
     @Test
-    public void testPersistAndNotify() {
-        testPersistAndNotify(false);
+    public void persistAndNotify() {
+        persistAndNotify(false);
     }
 
     @Test
-    public void testPersistAndNotifyAndBecomeDeleted() {
-        testPersistAndNotify(true);
+    public void persistAndNotifyAndBecomeDeleted() {
+        persistAndNotify(true);
     }
 
-    private void testPersistAndNotify(final boolean becomeDeleted) {
-        ImmutableResult.of(thingModifiedEvent, response, null, becomeDeleted)
-                .apply(mock::persist, mock::notify, mock::becomeDeleted);
+    private void persistAndNotify(final boolean becomeDeleted) {
+        final CommandStrategy.Result result = ResultFactory.newResult(thingModifiedEvent, response, becomeDeleted);
+
+        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+
+        @SuppressWarnings("unchecked")
         final ArgumentCaptor<Consumer<ThingModifiedEvent>> consumer = ArgumentCaptor.forClass(Consumer.class);
         verify(mock).persist(same(thingModifiedEvent), consumer.capture());
         consumer.getValue().accept(thingModifiedEvent);
@@ -101,5 +116,7 @@ public class ImmutableResultTest {
         void notify(WithDittoHeaders response);
 
         void becomeDeleted();
+
     }
+
 }

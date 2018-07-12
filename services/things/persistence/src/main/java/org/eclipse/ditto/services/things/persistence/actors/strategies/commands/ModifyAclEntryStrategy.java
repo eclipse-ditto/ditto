@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -31,7 +31,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link ModifyAclEntry} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntry> {
 
     /**
@@ -44,7 +44,7 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAclEntry command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
+        final Thing thing = context.getThingOrThrow();
         final long nextRevision = context.getNextRevision();
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
         final AclEntry modifiedAclEntry = command.getAclEntry();
@@ -57,17 +57,17 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
 
             if (acl.contains(modifiedAclEntry.getAuthorizationSubject())) {
                 eventToPersist = AclEntryModified.of(command.getId(), modifiedAclEntry, nextRevision,
-                        eventTimestamp(), dittoHeaders);
+                        getEventTimestamp(), dittoHeaders);
                 response = ModifyAclEntryResponse.modified(thingId, modifiedAclEntry, dittoHeaders);
             } else {
                 eventToPersist = AclEntryCreated.of(command.getId(), modifiedAclEntry, nextRevision,
-                        eventTimestamp(), dittoHeaders);
+                        getEventTimestamp(), dittoHeaders);
                 response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
             }
 
             return newResult(eventToPersist, response);
         } else {
-            return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
+            return newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
         }
     }
 

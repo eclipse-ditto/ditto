@@ -11,13 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
+import javax.annotation.concurrent.Immutable;
 
-import java.util.Optional;
-
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
@@ -28,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesRespons
 /**
  * This strategy handles the {@link RetrieveAttributes} command.
  */
-@ThreadSafe
+@Immutable
 final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveAttributes> {
 
     /**
@@ -41,20 +36,20 @@ final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveA
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAttributes command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
-        final Optional<Attributes> optionalAttributes = thing.getAttributes();
+        final Thing thing = context.getThingOrThrow();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (optionalAttributes.isPresent()) {
-            final Attributes attributes = optionalAttributes.get();
-            final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-            final JsonObject attributesJson = selectedFields
-                    .map(sf -> attributes.toJson(command.getImplementedSchemaVersion(), sf))
-                    .orElseGet(() -> attributes.toJson(command.getImplementedSchemaVersion()));
-            return newResult(RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders));
-        } else {
-            return newResult(attributesNotFound(thingId, dittoHeaders));
-        }
+        return thing.getAttributes()
+                .map(attributes -> getAttributesJson(attributes, command))
+                .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
+                .map(ResultFactory::newResult)
+                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders)));
+    }
+
+    private static JsonObject getAttributesJson(final Attributes attributes, final RetrieveAttributes command) {
+        return command.getSelectedFields()
+                .map(selectedFields -> attributes.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .orElseGet(() -> attributes.toJson(command.getImplementedSchemaVersion()));
     }
 
 }

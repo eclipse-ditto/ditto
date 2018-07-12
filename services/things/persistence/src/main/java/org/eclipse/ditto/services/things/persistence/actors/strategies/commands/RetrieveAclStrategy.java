@@ -11,21 +11,18 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 
 /**
  * This strategy handles the {@link RetrieveAcl} command.
  */
-@ThreadSafe
+@Immutable
 final class RetrieveAclStrategy extends AbstractCommandStrategy<RetrieveAcl> {
 
     /**
@@ -36,12 +33,15 @@ final class RetrieveAclStrategy extends AbstractCommandStrategy<RetrieveAcl> {
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAcl command) {
-        final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
-        final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-        final JsonObject aclJson = acl.toJson(command.getImplementedSchemaVersion());
-        return newResult(RetrieveAclResponse.of(thingId, aclJson, command.getDittoHeaders()));
+    protected Result doApply(final Context context, final RetrieveAcl command) {
+        final Thing thing = context.getThingOrThrow();
+
+        final JsonObject aclJson = thing.getAccessControlList()
+                .map(acl -> acl.toJson(command.getImplementedSchemaVersion()))
+                .orElseGet(JsonFactory::newObject);
+
+        return ResultFactory.newResult(
+                RetrieveAclResponse.of(context.getThingId(), aclJson, command.getDittoHeaders()));
     }
 
 }

@@ -13,10 +13,9 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
@@ -27,7 +26,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty} command.
  */
-@ThreadSafe
+@Immutable
 final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<DeleteFeatureProperty> {
 
     /**
@@ -40,10 +39,11 @@ final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<Delete
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
             final DeleteFeatureProperty command) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final CommandStrategy.Result result;
 
-        final Optional<Features> featuresOptional = context.getThing().getFeatures();
+        final Optional<Features> featuresOptional = context.getThingOrThrow().getFeatures();
         final String featureId = command.getFeatureId();
         if (featuresOptional.isPresent()) {
             final Optional<Feature> featureOptional =
@@ -56,25 +56,24 @@ final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<Delete
                         .isPresent();
                 if (containsProperty) {
                     final FeaturePropertyDeleted eventToPersist = FeaturePropertyDeleted.of(command.getThingId(),
-                            featureId, propertyJsonPointer, context.getNextRevision(), eventTimestamp(), dittoHeaders);
+                            featureId, propertyJsonPointer, context.getNextRevision(), getEventTimestamp(),
+                            dittoHeaders);
                     final DeleteFeaturePropertyResponse response =
                             DeleteFeaturePropertyResponse.of(context.getThingId(), featureId, propertyJsonPointer,
                                     dittoHeaders);
-                    result = ImmutableResult.of(eventToPersist, response);
+                    result = ResultFactory.newResult(eventToPersist, response);
                 } else {
-                    final DittoRuntimeException exception =
-                            featurePropertyNotFound(context.getThingId(), featureId, propertyJsonPointer, dittoHeaders);
-                    result = ImmutableResult.of(exception);
+                    result = ResultFactory.newResult(
+                            ExceptionFactory.featurePropertyNotFound(context.getThingId(), featureId,
+                                    propertyJsonPointer, dittoHeaders));
                 }
             } else {
-                final DittoRuntimeException exception =
-                        featureNotFound(context.getThingId(), featureId, dittoHeaders);
-                result = ImmutableResult.of(exception);
+                result = ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
             }
         } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), featureId, dittoHeaders);
-            result = ImmutableResult.of(exception);
+            result = ResultFactory.newResult(
+                    ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
         }
 
         return result;

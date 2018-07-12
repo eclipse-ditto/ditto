@@ -11,9 +11,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -25,7 +27,7 @@ import akka.event.DiagnosticLoggingAdapter;
 /**
  * The CommandStrategy interface.
  *
- * @param <T> type of command
+ * @param <T> type of handled command.
  */
 public interface CommandStrategy<T extends Command> {
 
@@ -37,16 +39,28 @@ public interface CommandStrategy<T extends Command> {
     /**
      * Applies the strategy to the given command using the given context.
      *
-     * @param context the context
-     * @param command the command
+     * @param context the context.
+     * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
     Result apply(Context context, T command);
 
     /**
-     * @param context the context
-     * @param command the command
+     * Indicates whether this strategy is defined for the specified command and can be applied.
+     *
+     * @param command the command.
      * @return {@code true} if the strategy is defined for the given command and can be applied.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     */
+    boolean isDefined(T command);
+
+    /**
+     * Indicates whether this strategy is defined for the specified command and context and can be applied.
+     *
+     * @param context the context.
+     * @param command the command.
+     * @return {@code true} if the strategy is defined for the given command and can be applied.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     boolean isDefined(Context context, T command);
 
@@ -61,8 +75,7 @@ public interface CommandStrategy<T extends Command> {
          * @param becomeDeletedRunnable runnable that is called if the actor should now act as deleted handler
          */
         void apply(BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                Consumer<WithDittoHeaders> notifyConsumer,
-                Runnable becomeDeletedRunnable);
+                Consumer<WithDittoHeaders> notifyConsumer, Runnable becomeDeletedRunnable);
 
         /**
          * @return the empty result
@@ -70,6 +83,15 @@ public interface CommandStrategy<T extends Command> {
         static Result empty() {
             return ResultFactory.emptyResult();
         }
+
+        Optional<ThingModifiedEvent> getEventToPersist();
+
+        Optional<WithDittoHeaders> getCommandResponse();
+
+        Optional<DittoRuntimeException> getException();
+
+        boolean isBecomeDeleted();
+
     }
 
     /**
@@ -78,28 +100,41 @@ public interface CommandStrategy<T extends Command> {
     interface Context {
 
         /**
-         * @return the thing id
+         * @return the thing ID.
          */
         String getThingId();
 
         /**
-         * @return the thing
+         * Returns the Thing of this context or throws an exception if this context does not have a Thing.
+         *
+         * @return the thing.
+         * @throws java.util.NoSuchElementException if this context does not have a Thing.
          */
-        Thing getThing();
+        Thing getThingOrThrow();
 
         /**
-         * @return the next revision
+         * Returns the Thing of this context of an empty Optional.
+         *
+         * @return an Optional containing the Thing of this context or an empty Optional if this context does not
+         * have a Thing.
+         */
+        Optional<Thing> getThing();
+
+        /**
+         * @return the next revision.
          */
         long getNextRevision();
 
         /**
-         * @return the log
+         * @return the log.
          */
         DiagnosticLoggingAdapter getLog();
 
         /**
-         * @return the thing snapshotter
+         * @return the thing snapshotter.
          */
-        ThingSnapshotter<?, ?> getThingSnapshotter();
+        ThingSnapshotter getThingSnapshotter();
+
     }
+
 }

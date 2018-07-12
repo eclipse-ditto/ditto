@@ -23,8 +23,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.services.things.persistence.actors.ReceiveStrategy.WithDefined;
-import org.eclipse.ditto.services.things.persistence.actors.ReceiveStrategy.WithUnhandledFunction;
+import org.eclipse.ditto.services.things.persistence.strategies.DelegateStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy.WithDefined;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy.WithUnhandledFunction;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
@@ -32,7 +34,7 @@ import org.mockito.stubbing.Answer;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * Tests {@link DelegateStrategy}.
+ * Tests {@link org.eclipse.ditto.services.things.persistence.strategies.DelegateStrategy}.
  */
 @SuppressWarnings("unchecked")
 public class DelegateStrategyTest {

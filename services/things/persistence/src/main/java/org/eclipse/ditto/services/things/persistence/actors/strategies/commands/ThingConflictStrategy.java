@@ -11,20 +11,18 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.text.MessageFormat;
 import java.util.Objects;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActor;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
 /**
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
-@ThreadSafe
-public final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
+@Immutable
+final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
@@ -40,14 +38,9 @@ public final class ThingConflictStrategy extends AbstractCommandStrategy<CreateT
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final CreateThing command) {
-        return ImmutableResult.of(ThingConflictException.newBuilder(command.getId())
+        return ResultFactory.newResult(ThingConflictException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
     }
 
-    @Override
-    protected Result unhandled(final Context context, final CreateThing command) {
-        throw new IllegalArgumentException(
-                MessageFormat.format(ThingPersistenceActor.UNHANDLED_MESSAGE_TEMPLATE, command.getId()));
-    }
 }

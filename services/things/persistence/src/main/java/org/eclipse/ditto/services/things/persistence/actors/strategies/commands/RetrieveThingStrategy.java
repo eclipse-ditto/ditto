@@ -44,15 +44,15 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
 
     @Override
     public boolean isDefined(final Context context, final RetrieveThing command) {
-        return Objects.equals(context.getThingId(), command.getId())
-                && null != context.getThing()
-                && !isThingDeleted(context.getThing());
+        final Thing thing = context.getThing().orElse(null);
+
+        return Objects.equals(context.getThingId(), command.getId()) && null != thing && !isThingDeleted(thing);
     }
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveThing command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
+        final Thing thing = context.getThingOrThrow();
         final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
         if (snapshotRevisionOptional.isPresent()) {
             try {
@@ -61,17 +61,14 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
                 final Optional<Thing> thingOptional = thingSnapshotter.loadSnapshot(snapshotRevisionOptional.get())
                         // TODO timeout???
                         .toCompletableFuture().get();
-                if (thingOptional.isPresent()) {
-                    return newResult(respondWithLoadSnapshotResult(command, thingOptional.get()));
-                } else {
-                    return newResult(respondWithNotAccessibleException(command));
-                }
+                return thingOptional.map(thing1 -> newResult(respondWithLoadSnapshotResult(command, thing1)))
+                        .orElseGet(() -> newResult(respondWithNotAccessibleException(command)));
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
-                context.getLog().info("Retrieving thing with id '{}' was interrupted.", thingId);
+                context.getLog().info("Retrieving thing with ID <{}> was interrupted.", thingId);
                 return newResult(respondWithUnavailableException(command));
             } catch (final ExecutionException e) {
-                context.getLog().info("Failed to retrieve thing with id '{}': {}", thingId, e.getMessage());
+                context.getLog().info("Failed to retrieve thing with ID <{}>: {}", thingId, e.getMessage());
                 return newResult(respondWithUnavailableException(command));
             }
         } else {
@@ -83,7 +80,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
         }
     }
 
-    private WithDittoHeaders<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
+    private static WithDittoHeaders<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
             final Thing snapshotThing) {
 
         final JsonObject thingJson = command.getSelectedFields()
@@ -93,12 +90,12 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
         return RetrieveThingResponse.of(command.getThingId(), thingJson, command.getDittoHeaders());
     }
 
-    private DittoRuntimeException respondWithNotAccessibleException(final RetrieveThing command) {
+    private static DittoRuntimeException respondWithNotAccessibleException(final RetrieveThing command) {
         // reset command headers so that correlationId etc. are preserved
         return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
     }
 
-    private DittoRuntimeException respondWithUnavailableException(final RetrieveThing command) {
+    private static DittoRuntimeException respondWithUnavailableException(final RetrieveThing command) {
         // reset command headers so that correlationId etc. are preserved
         return ThingUnavailableException.newBuilder(command.getThingId())
                 .dittoHeaders(command.getDittoHeaders())
@@ -109,4 +106,5 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     protected Result unhandled(final Context context, final RetrieveThing command) {
         return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
+
 }

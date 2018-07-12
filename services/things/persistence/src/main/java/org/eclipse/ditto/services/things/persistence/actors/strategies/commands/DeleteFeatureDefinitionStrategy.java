@@ -13,12 +13,12 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Optional;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition} command.
  */
-@ThreadSafe
+@Immutable
 final class DeleteFeatureDefinitionStrategy extends AbstractCommandStrategy<DeleteFeatureDefinition> {
 
     /**
@@ -39,34 +39,37 @@ final class DeleteFeatureDefinitionStrategy extends AbstractCommandStrategy<Dele
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
             final DeleteFeatureDefinition command) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final CommandStrategy.Result result;
 
-        final Optional<Features> features = context.getThing().getFeatures();
+        final Thing thing = context.getThingOrThrow();
+        final String featureId = command.getFeatureId();
+
+        final Optional<Features> features = thing.getFeatures();
         if (features.isPresent()) {
-            final Optional<Feature> feature = features.get().getFeature(command.getFeatureId());
+            final Optional<Feature> feature = features.get().getFeature(featureId);
 
             if (feature.isPresent()) {
                 if (feature.get().getDefinition().isPresent()) {
                     final FeatureDefinitionDeleted eventToPersist = FeatureDefinitionDeleted.of(command.getThingId(),
-                            command.getFeatureId(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
+                            featureId, context.getNextRevision(), getEventTimestamp(), dittoHeaders);
                     final DeleteFeatureDefinitionResponse response = DeleteFeatureDefinitionResponse.of(context
-                            .getThingId(), command.getFeatureId(), dittoHeaders);
-                    result = ImmutableResult.of(eventToPersist, response);
+                            .getThingId(), featureId, dittoHeaders);
+
+                    result = ResultFactory.newResult(eventToPersist, response);
                 } else {
-                    final DittoRuntimeException exception =
-                            featureDefinitionNotFound(context.getThingId(), command.getFeatureId(), dittoHeaders);
-                    result = ImmutableResult.of(exception);
+                    result = ResultFactory.newResult(
+                            ExceptionFactory.featureDefinitionNotFound(context.getThingId(), featureId,
+                                    dittoHeaders));
                 }
             } else {
-                final DittoRuntimeException exception =
-                        featureNotFound(context.getThingId(), command.getFeatureId(), dittoHeaders);
-                result = ImmutableResult.of(exception);
+                result = ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
             }
         } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), command.getFeatureId(), dittoHeaders);
-            result = ImmutableResult.of(exception);
+            result = ResultFactory.newResult(ExceptionFactory.featureNotFound(context.getThingId(),
+                    featureId, dittoHeaders));
         }
 
         return result;

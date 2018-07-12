@@ -24,6 +24,8 @@ import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 

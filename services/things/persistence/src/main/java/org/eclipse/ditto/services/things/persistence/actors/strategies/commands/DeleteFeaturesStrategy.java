@@ -11,10 +11,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures} command.
  */
-@ThreadSafe
+@Immutable
 final class DeleteFeaturesStrategy extends AbstractCommandStrategy<DeleteFeatures> {
 
     /**
@@ -36,20 +36,21 @@ final class DeleteFeaturesStrategy extends AbstractCommandStrategy<DeleteFeature
 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteFeatures command) {
+        final Thing thing = context.getThingOrThrow();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
+        return thing.getFeatures()
+                .map(features -> ResultFactory.newResult(getEventToPersist(context, dittoHeaders),
+                        getResponse(context, dittoHeaders)))
+                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featuresNotFound(context.getThingId(),
+                        dittoHeaders)));
+    }
 
-        if (context.getThing().getFeatures().isPresent()) {
-            final ThingModifiedEvent eventToPersist =
-                    FeaturesDeleted.of(context.getThingId(), context.getNextRevision(), eventTimestamp(), dittoHeaders);
-            final ThingModifyCommandResponse response = DeleteFeaturesResponse.of(context.getThingId(), dittoHeaders);
-            result = ImmutableResult.of(eventToPersist, response);
-        } else {
-            final DittoRuntimeException exception = featuresNotFound(context.getThingId(), dittoHeaders);
-            result = ImmutableResult.of(exception);
-        }
+    private static ThingModifiedEvent getEventToPersist(final Context context, final DittoHeaders dittoHeaders) {
+        return FeaturesDeleted.of(context.getThingId(), context.getNextRevision(), getEventTimestamp(), dittoHeaders);
+    }
 
-        return result;
+    private static ThingModifyCommandResponse getResponse(final Context context, final DittoHeaders dittoHeaders) {
+        return DeleteFeaturesResponse.of(context.getThingId(), dittoHeaders);
     }
 
 }

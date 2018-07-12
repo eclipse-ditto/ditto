@@ -11,21 +11,20 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
  */
-@ThreadSafe
+@Immutable
 final class RetrieveFeatureStrategy extends AbstractCommandStrategy<RetrieveFeature> {
 
     /**
@@ -36,28 +35,34 @@ final class RetrieveFeatureStrategy extends AbstractCommandStrategy<RetrieveFeat
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveFeature command) {
-        final CommandStrategy.Result result;
+    protected Result doApply(final Context context, final RetrieveFeature command) {
+        final Thing thing = context.getThingOrThrow();
+        final String thingId = context.getThingId();
 
-        final Optional<Feature> feature =
-                context.getThing().getFeatures().flatMap(fs -> fs.getFeature(command.getFeatureId()));
-        if (feature.isPresent()) {
-            final Feature f = feature.get();
-            final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-            final JsonObject featureJson = selectedFields
-                    .map(sf -> f.toJson(command.getImplementedSchemaVersion(), sf))
-                    .orElseGet(() -> f.toJson(command.getImplementedSchemaVersion()));
-            final RetrieveFeatureResponse response =
-                    RetrieveFeatureResponse.of(context.getThingId(), command.getFeatureId(), featureJson,
-                            command.getDittoHeaders());
-            result = ImmutableResult.of(response);
-        } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), command.getFeatureId(), command.getDittoHeaders());
-            result = ImmutableResult.of(exception);
-        }
+        return thing.getFeatures()
+                .map(features -> getFeatureResult(features, thingId, command))
+                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featureNotFound(thingId,
+                        command.getFeatureId(), command.getDittoHeaders())));
+    }
 
-        return result;
+    private static Result getFeatureResult(final Features features, final String thingId,
+            final RetrieveFeature command) {
+
+        final String featureId = command.getFeatureId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return features.getFeature(featureId)
+                .map(feature -> getFeatureJson(feature, command))
+                .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
+                .map(ResultFactory::newResult)
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
+    }
+
+    private static JsonObject getFeatureJson(final Feature feature, final RetrieveFeature command) {
+        return command.getSelectedFields()
+                .map(selectedFields -> feature.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .orElseGet(() -> feature.toJson(command.getImplementedSchemaVersion()));
     }
 
 }

@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
@@ -29,8 +29,8 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 /**
  * This strategy handles the {@link DeleteAclEntry} command.
  */
-@ThreadSafe
-public final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntry> {
+@Immutable
+final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntry> {
 
     /**
      * Constructs a new {@code DeleteAclEntryStrategy} object.
@@ -42,26 +42,27 @@ public final class DeleteAclEntryStrategy extends AbstractCommandStrategy<Delete
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteAclEntry command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
+        final Thing thing = context.getThingOrThrow();
         final long nextRevision = context.getNextRevision();
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        if (acl.contains(authorizationSubject)) {
-            final Validator aclValidator =
-                    AclValidator.newInstance(acl.removeAllPermissionsOf(authorizationSubject),
-                            Thing.MIN_REQUIRED_PERMISSIONS);
-            if (aclValidator.isValid()) {
-                final AclEntryDeleted aclEntryDeleted =
-                        AclEntryDeleted.of(thingId, authorizationSubject, nextRevision, eventTimestamp(), dittoHeaders);
-                return newResult(aclEntryDeleted,
-                        DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders));
-            } else {
-                return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
-            }
-        } else {
-            return newResult(aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
+        if (!acl.contains(authorizationSubject)) {
+            return newResult(ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders));
         }
+
+        final Validator aclValidator =
+                AclValidator.newInstance(acl.removeAllPermissionsOf(authorizationSubject),
+                        Thing.MIN_REQUIRED_PERMISSIONS);
+        if (!aclValidator.isValid()) {
+            return newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
+        }
+
+        final AclEntryDeleted aclEntryDeleted =
+                AclEntryDeleted.of(thingId, authorizationSubject, nextRevision, getEventTimestamp(), dittoHeaders);
+
+        return newResult(aclEntryDeleted, DeleteAclEntryResponse.of(thingId, authorizationSubject, dittoHeaders));
     }
+
 }

@@ -11,28 +11,22 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<ModifyFeatureProperty> {
 
     /**
@@ -43,50 +37,48 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
-            final ModifyFeatureProperty command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
-
-        final Optional<Features> features = context.getThing().getFeatures();
+    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureProperty command) {
+        final Thing thing = context.getThingOrThrow();
         final String featureId = command.getFeatureId();
-        if (features.isPresent()) {
-            final Optional<Feature> feature = features.get().getFeature(featureId);
 
-            if (feature.isPresent()) {
-                final Optional<FeatureProperties> optionalProperties = feature.get().getProperties();
-                final ThingModifiedEvent eventToPersist;
-                final ThingModifyCommandResponse response;
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .map(feature -> getModifyOrCreateResult(feature, context, command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
+    }
 
-                final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                final JsonValue propertyValue = command.getPropertyValue();
-                if (optionalProperties.isPresent() && optionalProperties.get().contains(propertyJsonPointer)) {
-                    eventToPersist = FeaturePropertyModified.of(command.getId(), featureId, propertyJsonPointer,
-                            propertyValue, context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response =
-                            ModifyFeaturePropertyResponse.modified(context.getThingId(), featureId, propertyJsonPointer,
-                                    dittoHeaders);
-                } else {
-                    eventToPersist = FeaturePropertyCreated.of(command.getId(), featureId, propertyJsonPointer,
-                            propertyValue, context.getNextRevision(), eventTimestamp(), dittoHeaders);
-                    response =
-                            ModifyFeaturePropertyResponse.created(context.getThingId(), featureId, propertyJsonPointer,
-                                    propertyValue, dittoHeaders);
-                }
+    private static Result getModifyOrCreateResult(final Feature feature, final Context context,
+            final ModifyFeatureProperty command) {
 
-                result = ImmutableResult.of(eventToPersist, response);
-            } else {
-                final DittoRuntimeException exception =
-                        featureNotFound(context.getThingId(), featureId, command.getDittoHeaders());
-                result = ImmutableResult.of(exception);
-            }
-        } else {
-            final DittoRuntimeException exception =
-                    featureNotFound(context.getThingId(), featureId, command.getDittoHeaders());
-            result = ImmutableResult.of(exception);
-        }
+        return feature.getProperties()
+                .filter(featureProperties -> featureProperties.contains(command.getFeatureId()))
+                .map(featureProperties -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
+    }
 
-        return result;
+    private static Result getModifyResult(final Context context, final ModifyFeatureProperty command) {
+        final String featureId = command.getFeatureId();
+        final JsonPointer propertyPointer = command.getPropertyPointer();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                FeaturePropertyModified.of(command.getId(), featureId, propertyPointer, command.getPropertyValue(),
+                        context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyFeaturePropertyResponse.modified(context.getThingId(), featureId, propertyPointer, dittoHeaders));
+    }
+
+    private static Result getCreateResult(final Context context, final ModifyFeatureProperty command) {
+        final String featureId = command.getFeatureId();
+        final JsonPointer propertyPointer = command.getPropertyPointer();
+        final JsonValue propertyValue = command.getPropertyValue();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                FeaturePropertyCreated.of(command.getId(), featureId, propertyPointer, propertyValue,
+                        context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyFeaturePropertyResponse.created(context.getThingId(), featureId, propertyPointer, propertyValue,
+                        dittoHeaders));
     }
 
 }

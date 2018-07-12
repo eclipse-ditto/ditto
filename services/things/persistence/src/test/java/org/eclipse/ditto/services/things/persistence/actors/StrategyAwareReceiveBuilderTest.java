@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.junit.Before;
 import org.junit.Test;
 

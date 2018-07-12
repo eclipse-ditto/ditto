@@ -11,22 +11,19 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
+import javax.annotation.concurrent.Immutable;
 
-import javax.annotation.concurrent.ThreadSafe;
-
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
-import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link ModifyPolicyId} command.
  */
-@ThreadSafe
+@Immutable
 final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyId> {
 
     /**
@@ -37,23 +34,32 @@ final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyI
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyPolicyId command) {
-        final String thingId = context.getThingId();
-        final Thing thing = context.getThing();
-        final long nextRevision = context.getNextRevision();
-        final ThingModifiedEvent eventToPersist;
-        final ThingModifyCommandResponse response;
+    protected Result doApply(final Context context, final ModifyPolicyId command) {
+        final Thing thing = context.getThingOrThrow();
 
-        if (thing.getPolicyId().isPresent()) {
-            eventToPersist = PolicyIdModified.of(thingId, command.getPolicyId(), nextRevision, eventTimestamp(),
-                    command.getDittoHeaders());
-            response = ModifyPolicyIdResponse.modified(thingId, command.getDittoHeaders());
-        } else {
-            eventToPersist = PolicyIdCreated.of(thingId, command.getPolicyId(), nextRevision, eventTimestamp(),
-                    command.getDittoHeaders());
-            response = ModifyPolicyIdResponse.created(thingId, command.getPolicyId(), command.getDittoHeaders());
-        }
-
-        return newResult(eventToPersist, response);
+        return thing.getPolicyId()
+                .map(policyId -> getModifyResult(context, command))
+                .orElseGet(() -> getCreateResult(context, command));
     }
+
+    private static Result getModifyResult(final Context context, final ModifyPolicyId command) {
+        final String thingId = context.getThingId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                PolicyIdModified.of(thingId, command.getPolicyId(), context.getNextRevision(), getEventTimestamp(),
+                        dittoHeaders),
+                ModifyPolicyIdResponse.modified(thingId, dittoHeaders));
+    }
+
+    private static Result getCreateResult(final Context context, final ModifyPolicyId command) {
+        final String thingId = context.getThingId();
+        final String policyId = command.getPolicyId();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                PolicyIdCreated.of(thingId, policyId, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyPolicyIdResponse.created(thingId, policyId, dittoHeaders));
+    }
+
 }

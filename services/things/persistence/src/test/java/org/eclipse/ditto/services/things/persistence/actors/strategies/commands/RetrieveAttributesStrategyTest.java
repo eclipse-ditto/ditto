@@ -1,0 +1,112 @@
+/*
+ * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * Contributors:
+ *    Bosch Software Innovations GmbH - initial contribution
+ */
+package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import akka.event.DiagnosticLoggingAdapter;
+
+/**
+ * Unit test for {@link RetrieveAttributesStrategy}.
+ */
+public final class RetrieveAttributesStrategyTest {
+
+    private static final long NEXT_REVISION = 42L;
+
+    private static DiagnosticLoggingAdapter logger;
+    private static ThingSnapshotter thingSnapshotter;
+
+    private RetrieveAttributesStrategy underTest;
+
+    @BeforeClass
+    public static void initTestConstants() {
+        logger = Mockito.mock(DiagnosticLoggingAdapter.class);
+        thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
+    }
+
+    @Before
+    public void setUp() {
+        underTest = new RetrieveAttributesStrategy();
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(RetrieveAttributesStrategy.class, areImmutable());
+    }
+
+    @Test
+    public void retrieveAttributesWithoutSelectedFields() {
+        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, DittoHeaders.empty());
+
+        final CommandStrategy.Result result = underTest.doApply(context, command);
+
+        assertThat(result.getEventToPersist()).isEmpty();
+        assertThat(result.getCommandResponse()).contains(
+                RetrieveAttributesResponse.of(THING_ID, ATTRIBUTES.toJson(command.getImplementedSchemaVersion()),
+                        DittoHeaders.empty()));
+        assertThat(result.getException()).isEmpty();
+        assertThat(result.isBecomeDeleted()).isFalse();
+    }
+
+    @Test
+    public void retrieveAttributesWithSelectedFields() {
+        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
+        final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, selectedFields, DittoHeaders.empty());
+
+        final CommandStrategy.Result result = underTest.doApply(context, command);
+
+        assertThat(result.getEventToPersist()).isEmpty();
+        assertThat(result.getCommandResponse()).contains(
+                RetrieveAttributesResponse.of(THING_ID,
+                        ATTRIBUTES.toJson(command.getImplementedSchemaVersion(), selectedFields),
+                        DittoHeaders.empty()));
+        assertThat(result.getException()).isEmpty();
+        assertThat(result.isBecomeDeleted()).isFalse();
+    }
+
+    @Test
+    public void retrieveAttributesFromThingWithoutAttributes() {
+        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeAttributes());
+        final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, DittoHeaders.empty());
+
+        final CommandStrategy.Result result = underTest.doApply(context, command);
+
+        assertThat(result.getEventToPersist()).isEmpty();
+        assertThat(result.getCommandResponse()).isEmpty();
+        assertThat(result.getException()).contains(ExceptionFactory.attributesNotFound(THING_ID, DittoHeaders.empty()));
+        assertThat(result.isBecomeDeleted()).isFalse();
+    }
+
+    private static CommandStrategy.Context getDefaultContext(final Thing thing) {
+        return DefaultContext.getInstance(THING_ID, thing, NEXT_REVISION, logger, thingSnapshotter);
+    }
+
+}

@@ -11,9 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -27,7 +25,7 @@ import org.eclipse.ditto.signals.events.things.AclModified;
 /**
  * This strategy handles the {@link ModifyAcl} command.
  */
-@ThreadSafe
+@Immutable
 public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> {
 
     /**
@@ -40,20 +38,19 @@ public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> 
     @Override
     protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAcl command) {
         final String thingId = context.getThingId();
-        final long nextRevision = context.getNextRevision();
         final AccessControlList newAccessControlList = command.getAccessControlList();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
         final Validator aclValidator = AclValidator.newInstance(newAccessControlList,
                 Thing.MIN_REQUIRED_PERMISSIONS);
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        if (aclValidator.isValid()) {
-            final AclModified aclModified = AclModified.of(thingId, newAccessControlList, nextRevision,
-                    eventTimestamp(), dittoHeaders);
-
-            return newResult(aclModified,
-                    ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()));
-        } else {
-            return newResult(aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
+        if (!aclValidator.isValid()) {
+            return ResultFactory.newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
+                    dittoHeaders));
         }
+
+        return ResultFactory.newResult(AclModified.of(thingId, newAccessControlList, context.getNextRevision(),
+                getEventTimestamp(), dittoHeaders),
+                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()));
     }
 
 }
