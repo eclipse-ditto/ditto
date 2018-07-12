@@ -17,14 +17,13 @@ import static org.mockito.Mockito.mock;
 import java.util.Collections;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Tests unlimited instances of {@link MongoQueryBuilder}.

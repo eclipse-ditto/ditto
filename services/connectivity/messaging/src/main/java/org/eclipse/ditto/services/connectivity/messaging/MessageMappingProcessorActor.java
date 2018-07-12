@@ -13,8 +13,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -32,13 +35,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -48,9 +50,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 
 /**
  * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -67,7 +66,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
-    private final Cache<String, TraceContext> traces;
+    private final Map<String, StartedTimer> timers;
 
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
@@ -85,9 +84,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
-        final Caffeine caffeine = Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES);
-        traces = CaffeineCache.of(caffeine);
+
+        timers = new ConcurrentHashMap<>();
     }
 
     /**
@@ -256,9 +254,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void startTrace(final Signal<?> command) {
-        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
-                traces.put(correlationId, createRoundtripContext(correlationId, connectionId, command.getType()))
-        );
+        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
+            final StartedTimer timer = TraceUtils
+                    .newAmqpRoundTripTimer(command)
+                    .expirationHandling(startedTimer -> this.timers.remove(correlationId))
+                    .build();
+            this.timers.put(correlationId, timer);
+        });
     }
 
     private void finishTrace(final Signal<?> response) {
@@ -280,25 +282,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final Optional<TraceContext> ctxOpt = traces.getBlocking(correlationId);
-        if (!ctxOpt.isPresent()) {
+        final StartedTimer timer = timers.remove(correlationId);
+        if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        final TraceContext ctx = ctxOpt.get();
-        traces.invalidate(correlationId);
-        if (Objects.isNull(cause)) {
-            ctx.finish();
-        } else {
-            ctx.finishWithError(cause);
-        }
-    }
 
-    private static TraceContext createRoundtripContext(final String correlationId, final String connectionId,
-            final String type) {
-        final Option<String> token = Option.apply(correlationId);
-        final TraceContext ctx = Kamon.tracer().newContext("roundtrip." + connectionId + "." + type,
-                token);
-        ctx.addMetadata("command", type);
-        return ctx;
+        if (Objects.isNull(cause)) {
+            timer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
+        } else {
+            timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
+        }
     }
 }

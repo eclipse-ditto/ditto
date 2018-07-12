@@ -15,8 +15,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 
 /**
  * Criteria implementation which can handle arbitrary field existence filters.

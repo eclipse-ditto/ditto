@@ -39,6 +39,7 @@ import akka.util.ByteString;
 public final class ResponseRewritingDirective {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResponseRewritingDirective.class);
+
     static final Complete UNAVAILABLE_ROUT_RESULT = createUnavailableRouteResult();
     static final Complete INTERNAL_SERVER_ERROR_RESULT = createInternalServerErrorResult();
 

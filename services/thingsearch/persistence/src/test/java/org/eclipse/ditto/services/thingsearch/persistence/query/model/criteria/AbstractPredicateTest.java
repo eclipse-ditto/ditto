@@ -15,11 +15,9 @@ import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
+import org.junit.Test;
 
 /**
  * Common base implementation for predicate unit tests.

@@ -11,22 +11,24 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import static com.codahale.metrics.MetricRegistry.name;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.github.benmanes.caffeine.cache.stats.StatsCounter;
+
 
 /**
  * <p>
@@ -40,52 +42,55 @@ import com.github.benmanes.caffeine.cache.stats.StatsCounter;
  */
 public final class MetricsStatsCounter implements StatsCounter {
 
+    private static final String CACHE_PREFIX = "cache";
+
     /**
      * The names of the Metrics provided by this counter.
      */
     public enum MetricName {
+
         /**
          * Cache hits.
          */
-        HITS("hits"),
+        HITS(CACHE_PREFIX + "_hits"),
         /**
          * Cache misses.
          */
-        MISSES("misses"),
+        MISSES(CACHE_PREFIX + "_misses"),
         /**
          * The total load time in nanoseconds.
          */
-        TOTAL_LOAD_TIME("loads"),
+        TOTAL_LOAD_TIME(CACHE_PREFIX + "_loads"),
         /**
          * Number of successful loads.
          */
-        LOADS_SUCCESS("loads-success"),
+        LOADS_SUCCESS(CACHE_PREFIX + "_loads-success"),
         /**
          * Number of failed loads.
          */
-        LOADS_FAILURE("loads-failure"),
+        LOADS_FAILURE(CACHE_PREFIX + "_loads-failure"),
         /**
          * Number of cache evictions, e.g. when the cache grows to large. Manual cache invalidation is NOT included,
          * it is counted by {@link #ESTIMATED_INVALIDATIONS}.
          */
-        EVICTIONS("evictions"),
+        EVICTIONS(CACHE_PREFIX + "_evictions"),
         /**
          * Sum of the weights of the cache evictions.
          */
-        EVICTIONS_WEIGHT("evictions-weight"),
+        EVICTIONS_WEIGHT(CACHE_PREFIX + "_evictions-weight"),
         /**
          * The estimated size of the cache.
          */
-        ESTIMATED_SIZE("estimated-size"),
+        ESTIMATED_SIZE(CACHE_PREFIX + "_estimated-size"),
         /**
          * The maximum size of the cache.
          */
-        MAX_SIZE("max-size"),
+        MAX_SIZE(CACHE_PREFIX + "_max-size"),
         /**
          * Estimated cache invalidations (manual, in contrast to {@link #EVICTIONS}). The value is estimated, it may
          * be not completely correct in case of parallel loads or evictions.
          */
-        ESTIMATED_INVALIDATIONS("estimated-invalidations");
+        ESTIMATED_INVALIDATIONS(CACHE_PREFIX + "_estimated-invalidations");
 
         private final String name;
 
@@ -109,51 +114,45 @@ public final class MetricsStatsCounter implements StatsCounter {
     }
 
     private static final int DEFAULT_EVICTION_WEIGHT = 1;
+    private static final String CACHE_NAME_TAG = "cache_name";
 
-    private final Meter hitCount;
-    private final Meter missCount;
-    private final Meter loadSuccessCount;
-    private final Meter loadFailureCount;
-    private final Timer totalLoadTime;
-    private final Meter evictionCount;
-    private final Meter evictionWeight;
-    private final SimpleGauge<Long> estimatedSize;
-    private final SimpleGauge<Long> maxSize;
-    private final Meter estimatedInvalidations;
+    private final Counter hitCount;
+    private final Counter missCount;
+    private final Counter loadSuccessCount;
+    private final Counter loadFailureCount;
+    private final PreparedTimer totalLoadTime;
+    private final Counter evictionCount;
+    private final Counter evictionWeight;
+    private final Gauge estimatedSize;
+    private final Gauge maxSize;
+    private final Counter estimatedInvalidations;
 
     private volatile @Nullable Cache cache;
 
-    private MetricsStatsCounter(final MetricRegistry registry, final String metricsPrefix) {
-        hitCount = registry.meter(createMetricName(metricsPrefix, MetricName.HITS));
-        missCount = registry.meter(createMetricName(metricsPrefix, MetricName.MISSES));
-        totalLoadTime = registry.timer(createMetricName(metricsPrefix, MetricName.TOTAL_LOAD_TIME));
-        loadSuccessCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_SUCCESS));
-        loadFailureCount = registry.meter(createMetricName(metricsPrefix, MetricName.LOADS_FAILURE));
-        evictionCount = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS));
-        evictionWeight = registry.meter(createMetricName(metricsPrefix, MetricName.EVICTIONS_WEIGHT));
-        estimatedSize = registry.register(createMetricName(metricsPrefix, MetricName.ESTIMATED_SIZE),
-                new SimpleGauge<>(null));
-        maxSize = registry.register(createMetricName(metricsPrefix, MetricName.MAX_SIZE),
-                new SimpleGauge<>(null));
-        estimatedInvalidations = registry.meter(createMetricName(metricsPrefix, MetricName.ESTIMATED_INVALIDATIONS));
-    }
-
-    private String createMetricName(final String metricsPrefix, final MetricName metricName) {
-        return name(metricsPrefix, metricName.getValue());
+    private MetricsStatsCounter(final String cacheName) {
+        hitCount = DittoMetrics.counter(MetricName.HITS.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        missCount = DittoMetrics.counter(MetricName.MISSES.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        totalLoadTime = DittoMetrics.timer(MetricName.TOTAL_LOAD_TIME.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        loadSuccessCount = DittoMetrics.counter(MetricName.LOADS_SUCCESS.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        loadFailureCount = DittoMetrics.counter(MetricName.LOADS_FAILURE.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        evictionCount = DittoMetrics.counter(MetricName.EVICTIONS.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        evictionWeight = DittoMetrics.counter(MetricName.EVICTIONS_WEIGHT.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        estimatedSize = DittoMetrics.gauge(MetricName.ESTIMATED_SIZE.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        maxSize = DittoMetrics.gauge(MetricName.MAX_SIZE.getValue()).tag(CACHE_NAME_TAG, cacheName);
+        estimatedInvalidations =
+                DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS.getValue()).tag(CACHE_NAME_TAG, cacheName);
     }
 
     /**
      * Creates an instance to be used by a single cache.
      *
-     * @param metricsPrefix the prefix name for the metrics.
-     * @param registry the {@link MetricRegistry}.
+     * @param cacheName The name of the cache.
      * @return the instance.
      */
-    static MetricsStatsCounter of(final String metricsPrefix, final MetricRegistry registry) {
-        requireNonNull(metricsPrefix);
-        requireNonNull(registry);
+    static MetricsStatsCounter of(final String cacheName) {
+        requireNonNull(cacheName);
 
-        return new MetricsStatsCounter(registry, metricsPrefix);
+        return new MetricsStatsCounter(cacheName);
     }
 
     /**
@@ -170,25 +169,25 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Override
     public void recordHits(int count) {
-        hitCount.mark(count);
+        hitCount.increment(count);
     }
 
     @Override
     public void recordMisses(int count) {
-        missCount.mark(count);
+        missCount.increment(count);
     }
 
     @Override
-    public void recordLoadSuccess(long loadTime) {
-        loadSuccessCount.mark();
-        totalLoadTime.update(loadTime, TimeUnit.NANOSECONDS);
+    public void recordLoadSuccess(long loadTimeInNanos) {
+        loadSuccessCount.increment();
+        totalLoadTime.record(loadTimeInNanos, TimeUnit.NANOSECONDS);
         updateCacheSizeMetrics();
     }
 
     @Override
-    public void recordLoadFailure(long loadTime) {
-        loadFailureCount.mark();
-        totalLoadTime.update(loadTime, TimeUnit.NANOSECONDS);
+    public void recordLoadFailure(long loadTimeInNanos) {
+        loadFailureCount.increment();
+        totalLoadTime.record(loadTimeInNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -199,8 +198,8 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Override
     public void recordEviction(int weight) {
-        evictionCount.mark();
-        evictionWeight.mark(weight);
+        evictionCount.increment();
+        evictionWeight.increment(weight);
         updateCacheSizeMetrics();
     }
 
@@ -208,7 +207,7 @@ public final class MetricsStatsCounter implements StatsCounter {
      * Records the invalidation of an entry in the cache.
      */
     public void recordInvalidation() {
-        estimatedInvalidations.mark();
+        estimatedInvalidations.increment();
         updateCacheSizeMetrics();
     }
 
@@ -219,7 +218,7 @@ public final class MetricsStatsCounter implements StatsCounter {
                 missCount.getCount(),
                 loadSuccessCount.getCount(),
                 loadFailureCount.getCount(),
-                totalLoadTime.getCount(),
+                Arrays.stream(totalLoadTime.getRecords()).mapToLong(Long::longValue).sum(),
                 evictionCount.getCount(),
                 evictionWeight.getCount());
     }
@@ -233,46 +232,22 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     private void updateCacheSizeMetrics() {
         if (cache != null) {
-            estimatedSize.setValue(getRequiredCache().estimatedSize());
+            estimatedSize.set(getRequiredCache().estimatedSize());
             final Long currentMaxCacheSize = getMaxSize();
             if (currentMaxCacheSize != null) {
-                maxSize.setValue(currentMaxCacheSize);
+                maxSize.set(currentMaxCacheSize);
             }
         }
     }
 
     @Nullable
     private Long getMaxSize() {
-        @SuppressWarnings("unchecked")
-        final Optional<Policy.Eviction> evictionOptional = getRequiredCache().policy().eviction();
+        @SuppressWarnings("unchecked") final Optional<Policy.Eviction> evictionOptional =
+                getRequiredCache().policy().eviction();
         return evictionOptional.map(Policy.Eviction::getMaximum).orElse(null);
     }
 
     private Cache getRequiredCache() {
         return requireNonNull(cache);
-    }
-
-    /**
-     * Simple {@link Gauge} implementation.
-     */
-    private static final class SimpleGauge<T> implements Gauge<T> {
-
-        @Nullable
-        private volatile T value;
-
-        private SimpleGauge(@Nullable T value) {
-            this.value = value;
-        }
-
-        @Nullable
-        @Override
-        public T getValue() {
-            return this.value;
-        }
-
-        public void setValue(T value) {
-            this.value = value;
-        }
-
     }
 }
