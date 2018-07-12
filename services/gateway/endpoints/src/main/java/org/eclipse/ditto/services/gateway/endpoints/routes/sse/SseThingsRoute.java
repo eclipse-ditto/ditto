@@ -40,8 +40,8 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParamete
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
-import org.eclipse.ditto.services.gateway.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;

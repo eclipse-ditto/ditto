@@ -21,6 +21,9 @@ import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
  */
 public class LikePredicateImpl extends AbstractSinglePredicate {
 
+    private static final String LEADING_WILDCARD = "\\Q\\E.*";
+    private static final String TRAILING_WILDCARD = ".*\\Q\\E";
+
     public LikePredicateImpl(final Object value) {
         super(value);
     }
@@ -32,24 +35,19 @@ public class LikePredicateImpl extends AbstractSinglePredicate {
         if ("*".equals(valueString)) {
             return ".*";
         }
-        // remove leading or trailing wildcard because queries like /^a/ are much faster than /^a.*$/ or /^a.*/
-        // from mongodb docs:
-        // "Additionally, while /^a/, /^a.*/, and /^a.*$/ match equivalent strings, they have different performance
-        // characteristics. All of these expressions use an index if an appropriate index exists;
-        // however, /^a.*/, and /^a.*$/ are slower. /^a/ can stop scanning after matching the prefix."
-        final String valueWithoutLeadingOrTrailingWildcard = removeLeadingOrTrailingWildcard(valueString);
+
         // first escape the whole string
-        String escapedString = Pattern.compile(Pattern.quote(valueWithoutLeadingOrTrailingWildcard)).toString();
+        String escapedString = Pattern.compile(Pattern.quote(valueString)).toString();
         // then enable allowed wildcards (* and ?) again
         escapedString = escapedString.replaceAll("\\*", "\\\\E.*\\\\Q");
         escapedString = escapedString.replaceAll("\\?", "\\\\E.\\\\Q"); // escape Char wild cards for ?
 
         // prepend ^ if is a prefix match (no * at the beginning of the string, much faster)
-        if (!valueString.startsWith("*")) {
+        if (!valueString.startsWith(LEADING_WILDCARD)) {
             escapedString = "^" + escapedString;
         }
         // append $ if is a postfix match  (no * at the end of the string, much faster)
-        if (!valueString.endsWith("*")) {
+        if (!valueString.endsWith(TRAILING_WILDCARD)) {
             escapedString = escapedString + "$";
         }
         return escapedString;
@@ -57,20 +55,6 @@ public class LikePredicateImpl extends AbstractSinglePredicate {
 
     private String replaceRepeatingWildcards(final String value) {
         return value.replaceAll("\\*{2,}", "*");
-    }
-
-    private String removeLeadingOrTrailingWildcard(final String valueString) {
-        String valueWithoutLeadingOrTrailingWildcard = valueString;
-        if (valueString.startsWith("*")) {
-            valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard.substring(1);
-        }
-        if (valueString.endsWith("*")) {
-            final int endIndex = valueWithoutLeadingOrTrailingWildcard.length() - 1;
-            if (endIndex > 0) {
-                valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard.substring(0, endIndex);
-            }
-        }
-        return valueWithoutLeadingOrTrailingWildcard;
     }
 
     @Override
