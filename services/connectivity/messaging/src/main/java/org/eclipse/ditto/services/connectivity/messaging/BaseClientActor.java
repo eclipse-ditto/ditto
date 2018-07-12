@@ -34,6 +34,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -586,7 +587,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         }
                     }).toCompletableFuture();
         } else {
-            log.warning("Consumer actor child <{}> was not found", childActorName);
+            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorName,
+                    StreamSupport
+                            .stream(getContext().getChildren().spliterator(), false)
+                            .map(ref -> ref.path().name())
+                            .collect(Collectors.toList()));
             return CompletableFuture.completedFuture(Pair.create(addressIdentifier,
                     ConnectivityModelFactory.newAddressMetric(
                             ConnectionStatus.FAILED,

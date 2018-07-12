@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.jms.ExceptionListener;
@@ -85,12 +84,24 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private Session jmsSession;
     @Nullable private ActorRef amqpPublisherActor;
 
+    /*
+     * This constructor is called via reflection by the static method propsForTest.
+     */
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final JmsConnectionFactory jmsConnectionFactory, final ActorRef conciergeForwarder) {
         super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new ConnectionListener();
         consumers = new LinkedList<>();
+    }
+
+    /*
+     * This constructor is called via reflection by the static method props(Connection, ActorRef).
+     */
+    @SuppressWarnings("unused") // called via reflection
+    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef conciergeForwarder) {
+        this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
     }
 
     /**
@@ -102,7 +113,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
+                conciergeForwarder);
     }
 
     /**
@@ -114,7 +125,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
-    public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
+    static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef conciergeForwarder, final JmsConnectionFactory jmsConnectionFactory) {
         return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
                 jmsConnectionFactory, conciergeForwarder);
@@ -154,7 +165,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                                 ex.getClass().getSimpleName() + ": " + ex.getMessage() + "'")
                                         .cause(ex).build();
                         return new Status.Failure(failedException);
-                    } else if (response instanceof ConnectionFailure){
+                    } else if (response instanceof ConnectionFailure) {
                         return ((ConnectionFailure) response).getFailure();
                     } else {
                         return new Status.Success(response);
@@ -184,22 +195,22 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected Map<String, AddressMetric> getSourceConnectionStatus(final Source source) {
-
         try {
-            return collectAsList(source.getAddresses().stream()
-                    .flatMap(sourceAddress -> IntStream.range(0, source.getConsumerCount())
-                            .mapToObj(idx -> {
-                                final String addressWithIndex = sourceAddress + "-" + idx;
-                                final String actorName =
-                                        escapeActorName(AmqpConsumerActor.ACTOR_NAME_PREFIX + addressWithIndex);
-                                return retrieveAddressMetric(addressWithIndex, actorName);
-                            })
-                    ).collect(Collectors.toList()))
-                    .thenApply((entries) ->
-                            entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
+            return collectAsList(consumers.stream()
+                    .map(consumerData -> retrieveAddressMetric(consumerData.getAddressWithIndex(),
+                            consumerData.getActorName()))
+                    .collect(Collectors.toList())).thenApply(
+                    entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e, "Aggregating ConnectionStatus for sources was interrupted: {}", e.getMessage());
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
+            return Collections.emptyMap();
+        } catch (final TimeoutException e) {
+            log.error(e, "Aggregating ConnectionStatus for sources timed out: {}", e.getMessage());
             return Collections.emptyMap();
         }
     }
@@ -215,8 +226,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                             TimeUnit.SECONDS);
             targetStatus.put(targetEntry.first(), targetEntry.second());
             return targetStatus;
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e, "Aggregating ConnectionStatus for targets was interrupted: {}", e.getMessage());
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
+            return Collections.emptyMap();
+        } catch (final TimeoutException e) {
+            log.error(e, "Aggregating ConnectionStatus for targets timed out: {}", e.getMessage());
             return Collections.emptyMap();
         }
     }

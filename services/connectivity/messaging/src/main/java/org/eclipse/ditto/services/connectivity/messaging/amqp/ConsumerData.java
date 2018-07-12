@@ -43,6 +43,10 @@ public class ConsumerData {
         return address;
     }
 
+    String getAddressWithIndex() {
+        return addressWithIndex;
+    }
+
     MessageConsumer getMessageConsumer() {
         return messageConsumer;
     }
