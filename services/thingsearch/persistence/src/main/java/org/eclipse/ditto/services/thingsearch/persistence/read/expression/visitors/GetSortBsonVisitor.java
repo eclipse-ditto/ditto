@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Sorts;
 
+import com.mongodb.client.model.Sorts;
+
 /**
  * Creates a Bson sort option based on an expression.
  */

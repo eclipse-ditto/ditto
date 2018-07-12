@@ -288,8 +288,11 @@ public final class IndexInitializerIT {
     private static <T> T runBlocking(final CompletionStage<T> completionStage) {
         try {
             return completionStage.toCompletableFuture().get();
-        } catch (final InterruptedException | ExecutionException e) {
-            if (e instanceof ExecutionException && e.getCause() != null) {
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw mapToRuntimeException(e);
+        } catch (final ExecutionException e) {
+            if (e.getCause() != null) {
                 throw mapToRuntimeException(e.getCause());
             }
             throw mapToRuntimeException(e);

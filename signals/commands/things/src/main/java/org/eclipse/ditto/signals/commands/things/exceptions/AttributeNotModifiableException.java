@@ -40,6 +40,8 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of your requested Thing was correct and you have sufficient permissions.";
+    
+    private static final long serialVersionUID = 2892397125359904460L;
 
     private AttributeNotModifiableException(final DittoHeaders dittoHeaders, final String message,
             final String description, final Throwable cause, final URI href) {

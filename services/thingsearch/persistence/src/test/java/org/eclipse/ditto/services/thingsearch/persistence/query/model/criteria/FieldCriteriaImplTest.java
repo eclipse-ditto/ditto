@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_FEATURE_ID;
+
+import org.bson.BsonDocument;
+import org.bson.BsonNull;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
@@ -20,7 +24,6 @@ import org.eclipse.ditto.model.query.model.expression.AttributeExpressionImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Tests class {@link FieldCriteriaImpl}.
  */
@@ -33,9 +36,9 @@ public class FieldCriteriaImplTest extends AbstractCriteriaTestBase {
     @Test
     public void fieldCriteriaValid() {
         final Bson expectedBson = Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters
-                .and(Filters.eq(
-                        PersistenceConstants.FIELD_INTERNAL_KEY,
-                        PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_ATTR_KEY),
+                .and(new BsonDocument().append(FIELD_INTERNAL_FEATURE_ID, BsonNull.VALUE),
+                        Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY,
+                                PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KNOWN_ATTR_KEY),
                         Filters.eq(PersistenceConstants.FIELD_INTERNAL_VALUE, KNOWN_ATTR_VALUE)));
 
         final Criteria actualCriteria =

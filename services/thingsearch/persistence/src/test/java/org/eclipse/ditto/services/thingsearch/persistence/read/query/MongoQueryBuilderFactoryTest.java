@@ -14,11 +14,10 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
-
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
+import org.junit.Test;
 
 /**
  * Unit test for {@link MongoQueryBuilderFactory}.

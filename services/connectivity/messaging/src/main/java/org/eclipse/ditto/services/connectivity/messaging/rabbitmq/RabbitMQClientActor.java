@@ -85,43 +85,53 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private final Map<String, String> consumedTagsToAddresses;
 
+    /*
+     * This constructor is called via reflection by the static method propsForTest.
+     */
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        this(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
-    }
-
-    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            @Nullable final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        super(connection, connectionStatus, commandRouter);
+            final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
+            final ActorRef conciergeForwarder) {
+        super(connection, connectionStatus, conciergeForwarder);
 
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
     }
 
-    /**
-     * Creates Akka configuration object for this actor.
-     *
-     * @param connection the connection
-     * @return the Akka configuration Props object
+    /*
+     * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
-    public static Props props(final Connection connection) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                ConnectionBasedRabbitConnectionFactoryFactory.getInstance());
+    private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef conciergeForwarder) {
+        this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),
+                conciergeForwarder);
+
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection the connection
-     * @param connectionStatus the desired status of the
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use
-     * @return the Akka configuration Props object
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
+                conciergeForwarder);
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param connectionStatus the desired status of the.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param rabbitConnectionFactoryFactory the ConnectionFactory Factory to use.
+     * @return the Akka configuration Props object.
      */
     public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
-        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
-                rabbitConnectionFactoryFactory);
+            final ActorRef conciergeForwarder, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+        return Props.create(RabbitMQClientActor.class, validateConnection(connection), connectionStatus,
+                rabbitConnectionFactoryFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -260,6 +270,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     .thenApply((entries) ->
                             entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
+
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
@@ -275,7 +286,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
             targetStatus.put(targetEntry.first(), targetEntry.second());
             return targetStatus;
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }

@@ -14,3 +14,4 @@ dependencies.txt
 /docker/sandbox/.env
 /docker/sandbox/postgres
 /docker/sandbox/graphite/storage
+ajcore.*.txt

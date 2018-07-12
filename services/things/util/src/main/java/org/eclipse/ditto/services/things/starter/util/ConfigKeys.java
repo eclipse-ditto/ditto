@@ -36,128 +36,6 @@ public final class ConfigKeys {
     public static final String THINGS_TAGS_STREAMING_CACHE_SIZE = THINGS_TAGS_PREFIX +
             "streaming-cache-size";
 
-    private static final String ENABLED_SUFFIX = "enabled";
-
-    public static final class Http {
-
-        private static final String PREFIX = THINGS_PREFIX + "http.";
-
-        /**
-         * Key of the hostname value of a HTTP service.
-         */
-        public static final String HOSTNAME = PREFIX + "hostname";
-
-        /**
-         * Key of the port number value of a HTTP service.
-         */
-        public static final String PORT = PREFIX + "port";
-
-        private Http() {
-            throw new AssertionError();
-        }
-
-    }
-
-    public static final class Cluster {
-
-        private static final String PREFIX = THINGS_PREFIX + "cluster.";
-
-        private static final String MAJORITY_CHECK_PREFIX = PREFIX + "majority-check.";
-
-        /**
-         * Key of the majority check delay.
-         */
-        public static final String MAJORITY_CHECK_DELAY = MAJORITY_CHECK_PREFIX + "delay";
-
-        /**
-         * Key of the majority check enabled configuration.
-         */
-        public static final String MAJORITY_CHECK_ENABLED = MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
-
-        /**
-         * Key of the how many shards should be used in the cluster.
-         */
-        public static final String NUMBER_OF_SHARDS = PREFIX + "number-of-shards";
-
-        private Cluster() {
-            throw new AssertionError();
-        }
-
-    }
-
-    public static final class WebSocket {
-
-        private static final String PREFIX = THINGS_PREFIX + "websocket.";
-
-        /**
-         * Key of the web socket publisher backpressure config.
-         */
-        public static final String PUBLISHER_BACKPRESSURE = PREFIX + "publisher.backpressure-buffer-size";
-
-        /**
-         * Key of the web socket subscriber backpressure config.
-         */
-        public static final String SOCKET_SUBSCRIBER_BACKPRESSURE = PREFIX + "subscriber.backpressure-queue-size";
-
-        private WebSocket() {
-            throw new AssertionError();
-        }
-
-    }
-
-    public static final class HealthCheck {
-
-        private static final String PREFIX = THINGS_PREFIX + "health-check.";
-
-        private static final String PERSISTENCE_PREFIX = PREFIX + "persistence.";
-
-        /**
-         * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
-         * considered "DOWN".
-         */
-        public static final String PERSISTENCE_TIMEOUT = PERSISTENCE_PREFIX + "timeout";
-
-        /**
-         * Whether the health check for persistence should be enabled or not.
-         */
-        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + ENABLED_SUFFIX;
-
-        /**
-         * The interval of the health check.
-         */
-        public static final String INTERVAL = PREFIX + "interval";
-
-        /**
-         * Whether the health check should be enabled (globally) or not.
-         */
-        public static final String ENABLED = PREFIX + ENABLED_SUFFIX;
-
-        private HealthCheck() {
-            throw new AssertionError();
-        }
-
-    }
-
-    public static final class StatsD {
-
-        private static final String PREFIX = THINGS_PREFIX + "statsd.";
-
-        /**
-         * The StatsD hostname used for sending metrics to.
-         */
-        public static final String HOSTNAME = PREFIX + "hostname";
-
-        /**
-         * The StatsD port used for sending metrics to.
-         */
-        public static final String PORT = PREFIX + "port";
-
-        private StatsD() {
-            throw new AssertionError();
-        }
-
-    }
-
     public static final class Thing {
 
         private static final String PREFIX = THINGS_PREFIX + "thing.";
@@ -200,7 +78,7 @@ public final class ConfigKeys {
          * Every amount of changes (configured by this key), this Actor will create a snapshot of the thing.
          */
         public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
-        
+
         /**
          * The interval when to do snapshot for a Thing which had changes to it.
          */

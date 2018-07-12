@@ -43,17 +43,9 @@ public final class ConfigKeys {
             GATEWAY_PREFIX + "redirect-to-https-blacklist-pattern";
 
     private static final String ENABLED_SUFFIX = "enabled";
-    private static final String HOSTNAME = "hostname";
 
     private static final String HTTP_PREFIX = GATEWAY_PREFIX + "http.";
-    /**
-     * Key of the hostname value of a HTTP service.
-     */
-    public static final String HTTP_HOSTNAME = HTTP_PREFIX + HOSTNAME;
-    /**
-     * Key of the port number value of a HTTP service.
-     */
-    public static final String HTTP_PORT = HTTP_PREFIX + "port";
+
     /**
      * The supported SchemaVersions the API Gateway should support (Array of Integers).
      */
@@ -81,12 +73,6 @@ public final class ConfigKeys {
      */
     public static final String MESSAGE_MAX_TIMEOUT = MESSAGE_PREFIX + "max-timeout";
 
-    /**
-     * The blacklist of which HTTP headers NOT to forward when forwarding a HTTP message to websockets.
-     * This is an array of Strings.
-     */
-    public static final String MESSAGE_HEADER_BLACKLIST = MESSAGE_PREFIX + "http-header-blacklist";
-
     private static final String CLAIMMESSAGE_PREFIX = GATEWAY_PREFIX + "claim-message.";
     /**
      * The default timeout of claim messages initiated via /claim resource.
@@ -96,21 +82,6 @@ public final class ConfigKeys {
      * The maximum possible timeout of claim messages initiated via /claim resource.
      */
     public static final String CLAIMMESSAGE_MAX_TIMEOUT = CLAIMMESSAGE_PREFIX + "max-timeout";
-
-    private static final String CLUSTER_PREFIX = GATEWAY_PREFIX + "cluster.";
-    /**
-     * Key of the how many shards should be used in the cluster.
-     */
-    public static final String CLUSTER_NUMBER_OF_SHARDS = CLUSTER_PREFIX + "number-of-shards";
-    private static final String CLUSTER_MAJORITY_CHECK_PREFIX = CLUSTER_PREFIX + "majority-check.";
-    /**
-     * Key of the majority check enabled configuration.
-     */
-    public static final String CLUSTER_MAJORITY_CHECK_ENABLED = CLUSTER_MAJORITY_CHECK_PREFIX + ENABLED_SUFFIX;
-    /**
-     * Key of the majority check delay.
-     */
-    public static final String CLUSTER_MAJORITY_CHECK_DELAY = CLUSTER_MAJORITY_CHECK_PREFIX + "delay";
 
     private static final String AUTHENTICATION_PREFIX = GATEWAY_PREFIX + "authentication.";
     private static final String AUTHENTICATION_DUMMY_PREFIX = AUTHENTICATION_PREFIX + "dummy.";
@@ -146,29 +117,9 @@ public final class ConfigKeys {
     private static final String HEALTH_CHECK_PREFIX = GATEWAY_PREFIX + "health-check.";
 
     /**
-     * Whether the health check should be enabled (globally) or not.
-     */
-    public static final String HEALTH_CHECK_ENABLED = HEALTH_CHECK_PREFIX + ENABLED_SUFFIX;
-    /**
-     * The interval of the health check.
-     */
-    public static final String HEALTH_CHECK_INTERVAL = HEALTH_CHECK_PREFIX + "interval";
-    /**
      * The timeout used by the health check for determining the health of a single service.
      */
     public static final String HEALTH_CHECK_SERVICE_TIMEOUT = HEALTH_CHECK_PREFIX + "service.timeout";
-
-    private static final String HEALTH_CHECK_PERSISTENCE_PREFIX = HEALTH_CHECK_PREFIX + "persistence.";
-
-    /**
-     * Whether the health check for persistence should be enabled or not.
-     */
-    public static final String HEALTH_CHECK_PERSISTENCE_ENABLED = HEALTH_CHECK_PERSISTENCE_PREFIX + ENABLED_SUFFIX;
-    /**
-     * The timeout of the health check for persistence. If the persistence takes longer than that to respond, it is
-     * considered "DOWN".
-     */
-    public static final String HEALTH_CHECK_PERSISTENCE_TIMEOUT = HEALTH_CHECK_PERSISTENCE_PREFIX + "timeout";
 
     private static final String HEALTH_CHECK_CLUSTER_ROLES_PREFIX = HEALTH_CHECK_PREFIX + "cluster-roles.";
 
@@ -181,19 +132,6 @@ public final class ConfigKeys {
      * Whether the health check for presence of all cluster roles should be enabled or not.
      */
     public static final String HEALTH_CHECK_CLUSTER_ROLES_EXPECTED = HEALTH_CHECK_CLUSTER_ROLES_PREFIX + "expected";
-
-
-    private static final String STATSD_PREFIX = GATEWAY_PREFIX + "statsd.";
-
-    /**
-     * The StatsD hostname used for sending metrics to.
-     */
-    public static final String STATSD_HOSTNAME = STATSD_PREFIX + "hostname";
-
-    /**
-     * The StatsD port used for sending metrics to.
-     */
-    public static final String STATSD_PORT = STATSD_PREFIX + "port";
 
     private static final String DEVOPS_PREFIX = GATEWAY_PREFIX + "devops.";
     /**
@@ -262,6 +200,7 @@ public final class ConfigKeys {
      * Key for the Akka HTTP Server's request timeout.
      */
     public static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = AKKA_HTTP_PREFIX + "server.request-timeout";
+
     /*
      * This class is not designed for instantiation.
      */

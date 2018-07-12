@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.query.model.query.SortDirection;
 import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
-
 /**
  * Tests unlimited instances of {@link MongoQueryBuilder}.
  */

@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.TagThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
@@ -110,6 +111,8 @@ public final class ThingCommandResponseRegistry extends AbstractCommandResponseR
 
         parseStrategies.put(RetrieveFeaturePropertiesResponse.TYPE, RetrieveFeaturePropertiesResponse::fromJson);
         parseStrategies.put(RetrieveFeaturePropertyResponse.TYPE, RetrieveFeaturePropertyResponse::fromJson);
+
+        parseStrategies.put(TagThingResponse.TYPE, TagThingResponse::fromJson);
 
         parseStrategies.put(ThingErrorResponse.TYPE, ThingErrorResponse::fromJson);
 

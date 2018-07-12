@@ -38,13 +38,14 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
+import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.write.EventToPersistenceStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -139,7 +140,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     protected final Source<Boolean, NotUsed> save(final Thing thing, final long revision, final long policyRevision) {
         log.debug("Saving Thing with revision <{}> and policy revision <{}>: <{}>", revision, policyRevision, thing);
-        final Bson filter = filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
+        final Bson filter =
+                filterWithLowerThingRevisionOrLowerPolicyRevision(getThingId(thing), revision, policyRevision);
         final Document document = toUpdate(ThingDocumentMapper.toDocument(thing), revision, policyRevision);
         return Source.fromPublisher(collection.updateOne(filter, document, new UpdateOptions().upsert(true)))
                 .map(updateResult -> updateResult.getMatchedCount() > 0 || null != updateResult.getUpsertedId());
@@ -219,7 +221,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     @Override
     public Source<Boolean, NotUsed> executeCombinedWrites(final String thingId,
             final List<ThingEvent> thingEvents,
-            final PolicyEnforcer policyEnforcer, final long targetRevision) {
+            final Enforcer policyEnforcer, final long targetRevision) {
         log.debug("Executing <{}> combined writes for Thing <{}> with target revision <{}>",
                 thingEvents.size(), thingId, targetRevision);
         if (!thingEvents.isEmpty()) {
@@ -257,7 +259,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
             final T thingEvent) {
         final List<Bson> updates = persistenceStrategyFactory
                 .getStrategy(thingEvent)
-                .thingUpdates(thingEvent, indexLengthRestrictionEnforcer);
+                .thingUpdates(thingEvent, IndexLengthRestrictionEnforcer.newInstance(log, thingEvent.getThingId()));
         return updates
                 .stream()
                 .map(update -> new UpdateOneModel<Document>(filter, update, new UpdateOptions().upsert(true)))
@@ -265,7 +267,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     private <T extends ThingEvent> List<WriteModel<Document>> createPolicyUpdates(final T thingEvent,
-            final PolicyEnforcer policyEnforcer) {
+            final Enforcer policyEnforcer) {
         final List<PolicyUpdate> updates = persistenceStrategyFactory
                 .getStrategy(thingEvent)
                 .policyUpdates(thingEvent, policyEnforcer);
@@ -308,7 +310,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      * {@inheritDoc}
      */
     @Override
-    public final Source<Boolean, NotUsed> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
+    public final Source<Boolean, NotUsed> updatePolicy(final Thing thing, final Enforcer policyEnforcer) {
         log.debug("Updating policy for Thing: <{}>", thing);
         final PolicyUpdate policyUpdate = PolicyUpdateFactory.createPolicyIndexUpdate(thing, policyEnforcer);
         return Source.fromPublisher(updatePolicy(thing, policyUpdate))

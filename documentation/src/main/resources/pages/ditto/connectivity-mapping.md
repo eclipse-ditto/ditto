@@ -571,7 +571,7 @@ Your digital twin is updated by applying the specified script and extracting the
 Beside the JavaScript based mapping - which can be configured/changed at runtime without the need of restarting the
 connectivity service - there is also the possibility to implement a custom Java based mapper.
 
-The interface to be implemented is `org.eclipse.ditto.services.connectivity.mapping.MessageMapper` (TODO insert link to GitHub)
+The interface to be implemented is `org.eclipse.ditto.services.connectivity.mapping.MessageMapper` ([find the source here](https://github.com/eclipse/ditto/blob/master/services/connectivity/mapping/src/main/java/org/eclipse/ditto/services/connectivity/mapping/MessageMapper.java))
 with the following signature to implement (this is only for experts, the sources contain JavaDoc):
 
 ```java

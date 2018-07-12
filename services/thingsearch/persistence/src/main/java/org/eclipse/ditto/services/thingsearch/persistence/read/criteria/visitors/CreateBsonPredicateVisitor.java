@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Creates Bson of a predicate.
  */

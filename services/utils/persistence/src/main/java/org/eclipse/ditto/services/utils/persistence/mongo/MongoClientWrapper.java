@@ -17,6 +17,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 
 import com.mongodb.ConnectionString;
@@ -26,6 +28,9 @@ import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.connection.SslSettings;
+import com.mongodb.event.CommandListener;
+import com.mongodb.event.ConnectionPoolListener;
+import com.mongodb.management.JMXConnectionPoolListener;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -55,12 +60,17 @@ public class MongoClientWrapper implements Closeable {
      * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
      *
      * @param config Config containing mongoDB settings including the URI.
+     * @param customCommandListener the custom {@link CommandListener}
+     * @param customConnectionPoolListener the custom {@link ConnectionPoolListener}
      * @return a new {@code MongoClientWrapper} object.
      */
-    public static MongoClientWrapper newInstance(final Config config) {
+    public static MongoClientWrapper newInstance(final Config config,
+            @Nullable final CommandListener customCommandListener,
+            @Nullable final ConnectionPoolListener customConnectionPoolListener) {
         final int maxPoolSize = MongoConfig.getPoolMaxSize(config);
         final int maxPoolWaitQueueSize = MongoConfig.getPoolMaxWaitQueueSize(config);
         final Duration maxPoolWaitTime = MongoConfig.getPoolMaxWaitTime(config);
+        final boolean jmxListenerEnabled = MongoConfig.getJmxListenerEnabled(config);
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
@@ -70,13 +80,28 @@ public class MongoClientWrapper implements Closeable {
                         .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
                         .credentialList(connectionString.getCredentialList())
                         .sslSettings(SslSettings.builder().applyConnectionString(connectionString).build());
+
+        if (customCommandListener != null) {
+            builder.addCommandListener(customCommandListener);
+        }
+
         if (connectionString.getWriteConcern() != null) {
             builder.writeConcern(connectionString.getWriteConcern());
         }
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
-                maxPoolWaitQueueSize, maxPoolWaitTime);
+                maxPoolWaitQueueSize, maxPoolWaitTime, jmxListenerEnabled, customConnectionPoolListener);
 
         return new MongoClientWrapper(database, mongoClientSettings);
+    }
+
+    /**
+     * Initializes the persistence with a passed in {@code config} containing the {@code uri}.
+     *
+     * @param config Config containing mongoDB settings including the URI.
+     * @return a new {@code MongoClientWrapper} object.
+     */
+    public static MongoClientWrapper newInstance(final Config config) {
+        return newInstance(config, null, null);
     }
 
     /**
@@ -103,7 +128,7 @@ public class MongoClientWrapper implements Closeable {
                         .build());
 
         final MongoClientSettings mongoClientSettings = buildClientSettings(builder, maxPoolSize,
-                maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS));
+                maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS), false, null);
         return new MongoClientWrapper(dbName, mongoClientSettings);
     }
 
@@ -111,12 +136,23 @@ public class MongoClientWrapper implements Closeable {
     private static MongoClientSettings buildClientSettings(final MongoClientSettings.Builder builder,
             final int maxPoolSize,
             final int maxPoolWaitQueueSize,
-            final Duration maxPoolWaitTime) {
+            final Duration maxPoolWaitTime,
+            final boolean jmxListenerEnabled,
+            @Nullable final ConnectionPoolListener customConnectionPoolListener) {
 
-        builder.connectionPoolSettings(
+        final ConnectionPoolSettings.Builder connectionPoolSettingsBuilder =
                 ConnectionPoolSettings.builder().maxSize(maxPoolSize).maxWaitQueueSize(maxPoolWaitQueueSize)
-                        .maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS)
-                        .build());
+                        .maxWaitTime(maxPoolWaitTime.toMillis(), TimeUnit.MILLISECONDS);
+
+        if (jmxListenerEnabled) {
+            connectionPoolSettingsBuilder.addConnectionPoolListener(new JMXConnectionPoolListener());
+        }
+
+        if (customConnectionPoolListener != null) {
+            connectionPoolSettingsBuilder.addConnectionPoolListener(customConnectionPoolListener);
+        }
+
+        builder.connectionPoolSettings(connectionPoolSettingsBuilder.build());
 
         return builder.build();
     }

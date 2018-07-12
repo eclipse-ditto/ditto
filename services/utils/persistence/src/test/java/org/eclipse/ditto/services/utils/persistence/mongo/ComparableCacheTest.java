@@ -78,30 +78,4 @@ public class ComparableCacheTest {
         assertThat(underTest.get(KNOWN_KEY)).isEqualTo(HIGHER_VALUE);
     }
 
-    @Test
-    public void cacheIsLimitedByConfiguredSize() {
-        // fill the cache completely, test that each entry is correctly created
-        final String keyPrefix = "key-";
-        for (long i = 0; i < CACHE_SIZE; i++) {
-            final String key = keyPrefix + i;
-
-            assertThat(underTest.updateIfNewOrGreater(key, i)).isTrue();
-            assertThat(underTest.get(key)).isEqualTo(i);
-        }
-
-        // exceed the cacheSize by adding one more entry
-        assertThat(underTest.updateIfNewOrGreater(keyPrefix + CACHE_SIZE, CACHE_SIZE)).isTrue();
-        assertThat(underTest.get(keyPrefix + CACHE_SIZE)).isEqualTo(CACHE_SIZE);
-
-        // make sure that the first (oldest) entry has been removed from cache and the other ones are still available
-        for (long i = 0; i < CACHE_SIZE; i++) {
-            final String key = keyPrefix + i;
-
-            if (i == 0) {
-                assertThat(underTest.get(key)).isNull();
-            } else {
-                assertThat(underTest.get(key)).isEqualTo(i);
-            }
-        }
-    }
 }

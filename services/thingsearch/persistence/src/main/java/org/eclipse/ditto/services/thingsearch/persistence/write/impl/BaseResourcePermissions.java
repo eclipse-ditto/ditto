@@ -40,8 +40,8 @@ final class BaseResourcePermissions implements ResourcePermissions {
      * @param readGrantedSubjectIds IDs of subjects which are granted READ permission on {@code resource}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    BaseResourcePermissions(@Nonnull final CharSequence resource,
-            @Nonnull final Set<String> readGrantedSubjectIds, @Nonnull final Set<String> readRevokedSubjectIds) {
+    BaseResourcePermissions(final CharSequence resource,
+            final Set<String> readGrantedSubjectIds, final Set<String> readRevokedSubjectIds) {
         argumentNotEmpty(resource, "resource");
         checkNotNull(readGrantedSubjectIds, "read granted subjects");
         checkNotNull(readRevokedSubjectIds, "read revoked subjects");
@@ -51,19 +51,16 @@ final class BaseResourcePermissions implements ResourcePermissions {
         this.readRevokedSubjectIds = Collections.unmodifiableSet(new HashSet<>(readRevokedSubjectIds));
     }
 
-    @Nonnull
     @Override
     public String getResource() {
         return resource;
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadGrantedSubjectIds() {
         return readGrantedSubjectIds;
     }
 
-    @Nonnull
     @Override
     public Set<String> getReadRevokedSubjectIds() {
         return readRevokedSubjectIds;
@@ -71,7 +68,7 @@ final class BaseResourcePermissions implements ResourcePermissions {
 
     @Nonnull
     @Override
-    public String createPolicyEntryId(@Nonnull final CharSequence thingId) {
+    public String createPolicyEntryId(final CharSequence thingId) {
         argumentNotEmpty(thingId, "thing ID");
         return thingId + ":" + resource;
     }

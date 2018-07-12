@@ -11,14 +11,12 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import org.eclipse.ditto.services.base.BaseConfigKey;
-import org.eclipse.ditto.services.base.BaseConfigKeys;
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.StatsdMongoDbMetricsStarter;
-import org.eclipse.ditto.services.policies.util.ConfigKeys;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -29,21 +27,12 @@ import akka.actor.ActorSystem;
  * <li>Sets up ActorSystem</li>
  * </ul>
  */
-public abstract class AbstractPoliciesService extends DittoService {
+public abstract class AbstractPoliciesService extends DittoService<ServiceConfigReader> {
 
     /**
      * Name for the Akka Actor System of the Policies Service.
      */
     private static final String SERVICE_NAME = "policies";
-
-    private static final BaseConfigKeys CONFIG_KEYS = BaseConfigKeys.getBuilder()
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_ENABLED, ConfigKeys.Cluster.MAJORITY_CHECK_ENABLED)
-            .put(BaseConfigKey.Cluster.MAJORITY_CHECK_DELAY, ConfigKeys.Cluster.MAJORITY_CHECK_DELAY)
-            .put(BaseConfigKey.StatsD.HOSTNAME, ConfigKeys.StatsD.HOSTNAME)
-            .put(BaseConfigKey.StatsD.PORT, ConfigKeys.StatsD.PORT)
-            .build();
-
-    private final Logger logger;
 
     /**
      * Constructs a new {@code AbstractPoliciesService}.
@@ -51,13 +40,13 @@ public abstract class AbstractPoliciesService extends DittoService {
      * @param logger the logger to use.
      */
     protected AbstractPoliciesService(final Logger logger) {
-        super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, CONFIG_KEYS);
-        this.logger = logger;
+        super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final Config config) {
-        StatsdMongoDbMetricsStarter.newInstance(config, CONFIG_KEYS, actorSystem, SERVICE_NAME, logger).run();
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(
+                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
 
 }

@@ -29,41 +29,47 @@
         <binary-compatibility-check.version>${project.version}</binary-compatibility-check.version>
 
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.12.3</scala.full.version>
+        <scala.full.version>2.12.6</scala.full.version>
+
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.1</typesafe-config.version>
-        <akka.version>2.5.12</akka.version>
-        <akka-http.version>10.1.1</akka-http.version>
+        <akka.version>2.5.13</akka.version>
+        <akka-http.version>10.1.3</akka-http.version>
         <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
+        <akka-management.version>0.14.0</akka-management.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
-        <guava.version>21.0</guava.version>
         <jjwt.version>0.7.0</jjwt.version>
-        <jackson-databind.version>2.8.10</jackson-databind.version>
+        <jackson.version>2.9.5</jackson.version>
         <asm.version>5.2</asm.version>
-        <javax-jms-api.version>2.0.1</javax-jms-api.version>
-        <qpid-jms-client.version>0.31.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.33.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
-        <reactive-streams.version>1.0.1</reactive-streams.version>
+        <amqp-client.version>5.2.0</amqp-client.version>
+        <reactive-streams.version>1.0.2</reactive-streams.version>
 
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.2.3</logback.version>
-        <logstash-logback-encoder.version>4.11</logstash-logback-encoder.version>
-        <janino.version>2.7.8</janino.version>
 
-        <kamon.version>0.6.7</kamon.version>
-        <kamon-core.version>0.6.7</kamon-core.version>
+        <!-- ### Metrics and Tracing -->
         <metrics.version>3.1.2</metrics.version>
-        <metrics-statsd.version>1.0.0</metrics-statsd.version>
+
+        <kamon-core.version>1.1.2</kamon-core.version>
+        <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
+        <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
+        <prometheus.java-client.version>0.4.0</prometheus.java-client.version>
+
         <jsr302.version>3.0.1</jsr302.version>
 
-        <rhino.version>1.7.8</rhino.version>
+        <rhino.version>1.7.10</rhino.version>
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
+        <caffeine.version>2.6.2</caffeine.version>
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -72,6 +78,7 @@
         <equals-verifier.version>2.3</equals-verifier.version>
         <mockito.version>2.9.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
+        <awaitility.version>3.1.0</awaitility.version>
         <akka-persistence-inmemory.version>2.5.1.1</akka-persistence-inmemory.version>
 
         <jmh.version>1.4.1</jmh.version>
@@ -117,11 +124,6 @@
             </dependency>
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
-                <artifactId>akka-distributed-data_${scala.version}</artifactId>
-                <version>${akka.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-slf4j_${scala.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
@@ -134,6 +136,21 @@
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-http_${scala.version}</artifactId>
+                <version>${akka-http.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-http-core_${scala.version}</artifactId>
+                <version>${akka-http.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-parsing_${scala.version}</artifactId>
+                <version>${akka-http.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-http-spray-json_${scala.version}</artifactId>
                 <version>${akka-http.version}</version>
             </dependency>
 
@@ -170,6 +187,27 @@
             </dependency>
 
             <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-management_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.management</groupId>
+                <artifactId>akka-management-cluster-bootstrap_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.discovery</groupId>
+                <artifactId>akka-discovery-dns_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lightbend.akka.discovery</groupId>
+                <artifactId>akka-discovery-kubernetes-api_${scala.version}</artifactId>
+                <version>${akka-management.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>bson</artifactId>
                 <version>${mongo-java-driver.version}</version>
@@ -184,11 +222,6 @@
                 <groupId>org.parboiled</groupId>
                 <artifactId>parboiled_${scala.version}</artifactId>
                 <version>${parboiled.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
@@ -216,7 +249,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
@@ -245,11 +283,6 @@
             </dependency>
 
             <dependency>
-                <groupId>javax.jms</groupId>
-                <artifactId>javax.jms-api</artifactId>
-                <version>${javax-jms-api.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.qpid</groupId>
                 <artifactId>qpid-jms-client</artifactId>
                 <version>${qpid-jms-client.version}</version>
@@ -259,6 +292,11 @@
                 <groupId>com.newmotion</groupId>
                 <artifactId>akka-rabbitmq_${scala.version}</artifactId>
                 <version>${newmotion-akka-rabbitmq.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>${amqp-client.version}</version>
             </dependency>
 
             <dependency>
@@ -277,71 +315,38 @@
                 <artifactId>logback-classic</artifactId>
                 <version>${logback.version}</version>
             </dependency>
-            <dependency>
-                <groupId>net.logstash.logback</groupId>
-                <artifactId>logstash-logback-encoder</artifactId>
-                <version>${logstash-logback-encoder.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.janino</groupId>
-                <artifactId>janino</artifactId>
-                <version>${janino.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
                 <version>${kamon-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-scala_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-remote-2.4_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>io.kamon</groupId>
-                        <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-remote_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-cluster_${scala.version}</artifactId>
+                        <!-- this is a dependency not required by kamon - they'll remove it in a future version -->
+                        <groupId>com.lihaoyi</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
+                <version>${kamon-system-metrics.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.kamon</groupId>
+                        <artifactId>sigar-loader</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-statsd_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.github.jjagged</groupId>
-                <artifactId>metrics-statsd</artifactId>
-                <version>${metrics-statsd.version}</version>
+                <artifactId>kamon-prometheus_${scala.version}</artifactId>
+                <version>${kamon-prometheus.version}</version>
                 <exclusions>
-                    <!-- replaced by io.dropwizard.metrics:metrics-core -->
                     <exclusion>
-                        <groupId>com.codahale.metrics</groupId>
-                        <artifactId>metrics-core</artifactId>
+                        <groupId>org.nanohttpd</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -349,6 +354,22 @@
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient</artifactId>
+                <version>${prometheus.java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_dropwizard</artifactId>
+                <version>${prometheus.java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_common</artifactId>
+                <version>${prometheus.java-client.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
@@ -380,7 +401,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-model-policies-enforcers</artifactId>
+                <artifactId>ditto-model-enforcers</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -426,6 +447,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-commands-batch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-devops</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -453,6 +479,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-events-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-events-batch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -490,6 +521,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-cache</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-cluster</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -515,18 +551,23 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-distributed-cache-model</artifactId>
+                <artifactId>ditto-services-utils-tracing</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-services-utils-distributed-cache-actors</artifactId>
+                <artifactId>ditto-services-utils-metrics</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-models-concierge</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -561,11 +602,15 @@
                 <artifactId>rhino</artifactId>
                 <version>${rhino.version}</version>
             </dependency>
-
             <dependency>
                 <groupId>org.webjars.npm</groupId>
                 <artifactId>bytebuffer</artifactId>
                 <version>${js.bytebuffer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
 
             <!-- ### Provided - own artifacts ### -->
@@ -611,6 +656,12 @@
                 <groupId>org.skyscreamer</groupId>
                 <artifactId>jsonassert</artifactId>
                 <version>${jsonassert.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
 
@@ -759,8 +810,8 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-test</artifactId>
-                <type>test-jar</type>
                 <version>${project.version}</version>
+                <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
         </dependencies>

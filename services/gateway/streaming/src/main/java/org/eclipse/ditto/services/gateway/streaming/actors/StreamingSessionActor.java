@@ -34,7 +34,7 @@ import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
-import org.eclipse.ditto.services.gateway.streaming.StreamingType;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -64,7 +64,7 @@ final class StreamingSessionActor extends AbstractActor {
      * If too small, we might miss some events which the client expects once the "ack" message is received as the
      * messages via distributed pub/sub are not yet received.
      */
-    private static final int MAX_SUBSCRIBE_TIMEOUT_MS = 2500;
+    private static final int MAX_SUBSCRIBE_TIMEOUT_MS = 5000;
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 

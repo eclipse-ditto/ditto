@@ -38,13 +38,13 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
@@ -136,7 +136,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
 
     private static abstract class BaseClass extends AbstractThingSearchPersistenceITBase {
 
-        PolicyEnforcer policyEnforcer;
+        Enforcer policyEnforcer;
 
         MongoCollection<Document> writeThingsCollectionSpy;
         MongoCollection<Document> writePoliciesCollectionSpy;
@@ -175,7 +175,7 @@ public final class MongoThingsSearchUpdaterPersistenceIT extends AbstractThingSe
          */
         void insertBlockingAndResetMocks(final boolean isV2, final Thing thing, final long thingRevision, final long
                 policyRevision,
-                final PolicyEnforcer policyEnforcer, final Object... mocks) {
+                final Enforcer policyEnforcer, final Object... mocks) {
             if (isV2) {
                 checkNotNull(this.policyEnforcer, "policyEnforcer");
                 runBlocking(writePersistence.insertOrUpdate(thing, thingRevision, policyRevision)

@@ -19,14 +19,13 @@ import java.util.stream.Stream;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.CreateUnwoundBsonFieldVisitor;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates the Bson object to filter out irrelevant fields.

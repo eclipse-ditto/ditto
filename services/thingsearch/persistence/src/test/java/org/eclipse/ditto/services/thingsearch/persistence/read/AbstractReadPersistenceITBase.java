@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -29,8 +31,6 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
@@ -47,7 +47,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
 
     static final String POLICY_ID = "global:policy";
 
-    private PolicyEnforcer policyEnforcer;
+    private Enforcer policyEnforcer;
 
     @Before
     public void initTestDataPersistence() {
@@ -152,12 +152,12 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     /**
-     * Get the PolicyEnforcer that is used by the Test. If not overridden by subclass, it will allow the {@link
+     * Get the Enforcer that is used by the Test. If not overridden by subclass, it will allow the {@link
      * #KNOWN_SUBJECTS} {@code READ} access to {@code thing:/}.
      *
      * @param thingId The thingId for which the policy enforcer should be got
      */
-    PolicyEnforcer getPolicyEnforcer(final String thingId) {
+    Enforcer getPolicyEnforcer(final String thingId) {
         return policyEnforcer;
     }
 

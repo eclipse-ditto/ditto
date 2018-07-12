@@ -29,26 +29,22 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcer;
-import org.eclipse.ditto.model.policiesenforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
-import org.eclipse.ditto.services.models.policies.PolicyCacheEntry;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.services.models.things.ThingCacheEntry;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
@@ -57,8 +53,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.cluster.ShardedMessageEnvelope;
-import org.eclipse.ditto.services.utils.distributedcache.actors.RegisterForCacheUpdates;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -78,9 +75,6 @@ import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Scheduler;
-import akka.cluster.ddata.LWWRegister;
-import akka.cluster.ddata.ReplicatedData;
-import akka.cluster.ddata.Replicator;
 import akka.dispatch.DequeBasedMessageQueueSemantics;
 import akka.dispatch.RequiresMessageQueue;
 import akka.event.DiagnosticLoggingAdapter;
@@ -95,7 +89,6 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import kamon.Kamon;
-import kamon.trace.TraceContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
@@ -133,11 +126,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      */
     private static final String NO_SYNC_SESSION_ID = "<no-sync-session-id>";
 
-    private static final String TRACE_THING_MODIFIED = "thing.modified";
-    private static final String TRACE_THING_BULK_UPDATE = "thing.bulkUpdate";
-    private static final String COUNT_THING_BULK_UPDATE = "thing.bulkUpdate.count";
-    private static final String TRACE_THING_DELETE = "thing.delete";
-    private static final String TRACE_POLICY_UPDATE = "policy.update";
+    private static final String TRACE_THING_MODIFIED = "things_search_thing_modified";
+    private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
+    private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
+    private static final String TRACE_THING_DELETE = "things_search_thing_delete";
+    private static final String TRACE_POLICY_UPDATE = "things_search_policy_update";
+    private static final String UPDATE_TYPE_TAG = "update_type";
 
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
 
@@ -150,8 +144,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
-    private final ActorRef thingCacheFacade;
-    private final ActorRef policyCacheFacade;
     private final Materializer materializer;
 
     // transducer state-transition table
@@ -169,7 +161,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private JsonSchemaVersion schemaVersion;
     private String policyId;
     private long policyRevision = -1L;
-    private PolicyEnforcer policyEnforcer;
+    private Enforcer policyEnforcer;
 
     // required for acking of synchronization
     private SyncMetadata activeSyncMetadata = null;
@@ -184,9 +176,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final java.time.Duration activityCheckInterval,
-            final int maxBulkSize,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final int maxBulkSize) {
 
         this.maxBulkSize = maxBulkSize;
         this.thingsTimeout = Duration.create(thingsTimeout.toNanos(), TimeUnit.NANOSECONDS);
@@ -195,16 +185,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
-        this.thingCacheFacade = thingCacheFacade;
-        this.policyCacheFacade = policyCacheFacade;
         this.gatheredEvents = new ArrayList<>();
 
         thingId = tryToGetThingId(StandardCharsets.UTF_8);
         materializer = ActorMaterializer.create(getContext());
         transactionActive = false;
         syncAttempts = 0;
-
-        registerForThingCacheUpdates(thingId);
 
         scheduleCheckForThingActivity();
         searchUpdaterPersistence.getThingMetadata(thingId)
@@ -250,10 +236,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
      * @param maxBulkSize maximum number of events to update in a bulk.
-     * @param thingCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor} for
-     * accessing the Thing cache in cluster, may be {@code null}.
-     * @param policyCacheFacade the {@link org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor}
-     * for accessing the Policy cache in cluster, may be {@code null}.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -262,18 +244,15 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ActorRef policiesShardRegion,
             final java.time.Duration activityCheckInterval,
             final java.time.Duration thingsTimeout,
-            final int maxBulkSize,
-            final ActorRef thingCacheFacade,
-            final ActorRef policyCacheFacade) {
+            final int maxBulkSize) {
 
         return Props.create(ThingUpdater.class, new Creator<ThingUpdater>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ThingUpdater create() throws Exception {
+            public ThingUpdater create() {
                 return new ThingUpdater(thingsTimeout, thingsShardRegion, policiesShardRegion,
-                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize, thingCacheFacade,
-                        policyCacheFacade);
+                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize);
             }
         });
     }
@@ -291,33 +270,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
                     policyRevision = retrievedThingMetadata.getPolicyRevision();
-                    if (Objects.nonNull(policyId)) {
-                        registerForPolicyCacheUpdates(policyId);
-                    }
+
                     becomeEventProcessing();
                 })
                 .match(ActorInitializationComplete.class, msg -> becomeEventProcessing())
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
-
-    private void registerForPolicyCacheUpdates(final String policyIdForRegistration) {
-        registerForCacheUpdates(policyIdForRegistration, policyCacheFacade);
-    }
-
-    private void registerForThingCacheUpdates(final String thingIdForRegistration) {
-        registerForCacheUpdates(thingIdForRegistration, thingCacheFacade);
-    }
-
-    private void registerForCacheUpdates(final String id, final @Nullable ActorRef cacheFacade) {
-        if (cacheFacade == null) {
-            return;
-        }
-
-        log.debug("Registering for cache updates with id <{}> at <{}>.", id, cacheFacade);
-        cacheFacade.tell(new RegisterForCacheUpdates(id, getSelf()), getSelf());
-    }
-
 
     private void scheduleCheckForThingActivity() {
         log.debug("Scheduling for activity check in <{}> seconds.", activityCheckInterval.getSeconds());
@@ -386,7 +346,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
-                .match(Replicator.Changed.class, this::processChangedCacheEntry)
                 .match(CheckForActivity.class, this::checkActivity)
                 .match(PersistenceWriteResult.class, this::handlePersistenceUpdateResult)
                 .matchAny(m -> {
@@ -464,63 +423,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             triggerSynchronization();
         } else {
             ackSync(true);
-        }
-    }
-
-    @SuppressWarnings("unchecked") // ignore unchecked warning due to scala type parameter bound on changed.get
-    private void processChangedCacheEntry(final Replicator.Changed changed) {
-        final ReplicatedData replicatedData = changed.get(changed.key());
-        if (replicatedData instanceof LWWRegister) {
-            final LWWRegister<?> lwwRegister = (LWWRegister<?>) replicatedData;
-            final Object value = lwwRegister.getValue();
-            if (value instanceof ThingCacheEntry) {
-                processThingCacheEntry((ThingCacheEntry) value);
-            } else if (value instanceof PolicyCacheEntry) {
-                processPolicyCacheEntry((PolicyCacheEntry) value);
-            } else {
-                log.warning("Received unknown changed CacheEntry: {}", value);
-            }
-        }
-    }
-
-    private void processThingCacheEntry(final ThingCacheEntry cacheEntry) {
-        LogUtil.enhanceLogWithCorrelationId(log, "thing-cache-sync");
-
-        log.debug("Received new ThingCacheEntry for thing <{}> with revision <{}>.", thingId,
-                cacheEntry.getRevision());
-
-        if (cacheEntry.getRevision() > sequenceNumber) {
-            if (cacheEntry.isDeleted()) {
-                log.info("ThingCacheEntry was deleted, therefore deleting the Thing from search index: {}", cacheEntry);
-                deleteThingFromSearchIndex();
-            } else {
-                log.info(
-                        "The ThingCacheEntry for the thing <{}> has the revision {} with is greater than the current actor's"
-                                + " sequence number <{}>.", thingId, cacheEntry.getRevision(), sequenceNumber);
-                triggerSynchronization();
-            }
-        }
-    }
-
-    private void processPolicyCacheEntry(final PolicyCacheEntry cacheEntry) {
-        LogUtil.enhanceLogWithCorrelationId(log, "policy-cache-sync");
-
-        log.debug("Received new PolicyCacheEntry for policy <{}> with revision <{}>.", policyId,
-                cacheEntry.getRevision());
-
-        if (cacheEntry.getRevision() > policyRevision) {
-            if (cacheEntry.isDeleted()) {
-                log.info("PolicyCacheEntry was deleted, therefore deleting the Thing from search index: {}",
-                        cacheEntry);
-                policyEnforcer = null;
-                policyRevision = cacheEntry.getRevision();
-                deleteThingFromSearchIndex();
-            } else {
-                log.info(
-                        "The PolicyCacheEntry for the policy <{}> has the revision {} with is greater than the current actor's"
-                                + " sequence number <{}>.", policyId, cacheEntry.getRevision(), policyRevision);
-                triggerSynchronization();
-            }
         }
     }
 
@@ -629,11 +531,14 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         log.debug("Executing bulk write operation with <{}> updates.", thingEvents.size());
         if (!thingEvents.isEmpty()) {
             transactionActive = true;
-            Kamon.metrics().histogram(COUNT_THING_BULK_UPDATE).record(thingEvents.size());
-            final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_BULK_UPDATE);
+
+            Kamon.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record(thingEvents.size());
+
+            final StartedTimer bulkUpdate =
+                    DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").build();
             circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                     .executeCombinedWrites(thingId, thingEvents, policyEnforcer, targetRevision)
-                    .via(finishTrace(traceContext))
+                    .via(stopTimer(bulkUpdate))
                     .runWith(Sink.last(), materializer)
                     .whenComplete(this::processWriteResult))
                     .exceptionally(t -> {
@@ -647,8 +552,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     }
 
-    private void processWriteResult(final boolean success, final Throwable throwable) {
+    private void processWriteResult(final Boolean boxedSuccess, final Throwable throwable) {
         // send result as message to process the result in the actor context
+        final boolean success = isTrue(boxedSuccess);
         getSelf().tell(new PersistenceWriteResult(success, throwable), null);
     }
 
@@ -771,6 +677,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(SudoRetrievePolicyResponse.class, response -> handleSyncPolicyResponse(syncedThing, response))
                 .match(PolicyErrorResponse.class, this::handleErrorResponse)
                 .match(DittoRuntimeException.class, this::handleException)
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(message -> stashWithErrorsIgnored())
                 .build();
     }
@@ -793,6 +700,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     becomeEventProcessing();
                 })
                 .match(SyncFailure.class, f -> triggerSynchronization())
+                .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
     }
@@ -849,7 +757,6 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 policyRevision = -1L; // reset policyRevision
                 policyEnforcer = null; // reset policyEnforcer
                 policyId = policyIdOfThing;
-                registerForPolicyCacheUpdates(policyIdOfThing);
             }
         } else if (hasNonEmptyAcl(thing)) {
             policyRevision = -1L; // reset policyRevision
@@ -896,7 +803,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .isPresent();
         if (isExpectedPolicyId) {
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
-            final PolicyEnforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+            final Enforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
             this.policyEnforcer = thePolicyEnforcer;
             updateSearchIndexWithPolicy(syncedThing, thePolicyEnforcer);
         } else {
@@ -919,10 +826,12 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private void deleteThingFromSearchIndex() {
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_DELETE);
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer(TRACE_THING_DELETE).tag(UPDATE_TYPE_TAG, "delete").build();
+
         circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .delete(thingId)
-                .via(finishTrace(traceContext))
+                .via(stopTimer(timer))
                 .runWith(Sink.last(), materializer)
                 .whenComplete(this::handleDeletion));
     }
@@ -961,7 +870,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     // eventually writes the Thing to the persistence, updates policy, then ends the synchronization cycle.
     // keeps stashing messages in the mean time.
-    private void updateSearchIndexWithPolicy(final Thing newThing, final PolicyEnforcer thePolicyEnforcer) {
+    private void updateSearchIndexWithPolicy(final Thing newThing, final Enforcer thePolicyEnforcer) {
         becomeSyncResultAwaiting();
         updateThing(newThing)
                 .whenComplete((thingIndexChanged, thingError) ->
@@ -984,27 +893,28 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                     return new IllegalArgumentException(message);
                 });
 
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_THING_MODIFIED);
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer(TRACE_THING_MODIFIED).tag(UPDATE_TYPE_TAG, "modified").build();
 
         return circuitBreaker.callWithCircuitBreakerCS(
                 () -> searchUpdaterPersistence
                         .insertOrUpdate(thing, currentSequenceNumber, policyRevision)
-                        .via(finishTrace(traceContext))
+                        .via(stopTimer(timer))
                         .runWith(Sink.last(), materializer));
     }
 
-    private CompletionStage<Boolean> updatePolicy(final Thing thing, final PolicyEnforcer policyEnforcer) {
+    private CompletionStage<Boolean> updatePolicy(final Thing thing, final Enforcer policyEnforcer) {
 
         if (policyEnforcer == null) {
-            log.warning("PolicyEnforcer was null when trying to update Policy search index - resyncing Policy!");
+            log.warning("Enforcer was null when trying to update Policy search index - resyncing Policy!");
             syncPolicy(thing);
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_POLICY_UPDATE);
+        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_POLICY_UPDATE).tag(UPDATE_TYPE_TAG, "update").build();
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
-                .via(finishTrace(traceContext))
+                .via(stopTimer(timer))
                 .runWith(Sink.last(), materializer)
                 .whenComplete((isPolicyUpdated, throwable) -> {
                     if (null != throwable) {
@@ -1018,9 +928,10 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 }));
     }
 
-    private void handleInsertOrUpdateResult(final boolean indexChanged, final Thing entity, final Throwable throwable) {
+    private void handleInsertOrUpdateResult(final Boolean indexChanged, final Thing entity, final Throwable throwable) {
+
         if (throwable == null) {
-            if (indexChanged) {
+            if (isTrue(indexChanged)) {
                 log.debug("The thing <{}> was successfully updated in search index", thingId);
                 getSelf().tell(SyncSuccess.INSTANCE, null);
             } else {
@@ -1097,9 +1008,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         }
     }
 
-    private static Flow<Boolean, Boolean, NotUsed> finishTrace(final TraceContext traceContext) {
+    private static Flow<Boolean, Boolean, NotUsed> stopTimer(final StartedTimer timer) {
         return Flow.fromFunction(foo -> {
-            traceContext.finish(); // finish kamon trace
+            timer.stop(); // stop timer
             return foo;
         });
     }

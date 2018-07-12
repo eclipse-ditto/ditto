@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.query.model.criteria.OrCriteriaImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Unit test for {@link OrCriteriaImpl}.
  */

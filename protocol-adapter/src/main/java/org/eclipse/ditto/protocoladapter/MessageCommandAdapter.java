@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -26,8 +25,12 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
-    private MessageCommandAdapter(final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies) {
+    private final boolean removeInternalHeaders;
+
+    private MessageCommandAdapter(final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
+            final boolean removeInternalMessageHeaders) {
         super(mappingStrategies);
+        this.removeInternalHeaders = removeInternalMessageHeaders;
     }
 
     /**
@@ -36,7 +39,17 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
      * @return the adapter.
      */
     public static MessageCommandAdapter newInstance() {
-        return new MessageCommandAdapter(mappingStrategies());
+        return of(Boolean.TRUE);
+    }
+
+    /**
+     * Returns a new MessageCommandAdapter.
+     *
+     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
+     * @return the adapter.
+     */
+    public static MessageCommandAdapter of(final boolean removeInternalMessageHeaders) {
+        return new MessageCommandAdapter(mappingStrategies(), removeInternalMessageHeaders);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies() {
@@ -64,7 +77,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     protected String getType(final Adaptable adaptable) {
         if (adaptable.getTopicPath().getSubject().filter(KnownMessageSubjects.CLAIM_SUBJECT::equals).isPresent()) {
             return SendClaimMessage.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
+        } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessage.TYPE;
         } else {
             return SendThingMessage.TYPE;
@@ -74,7 +87,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     @Override
     public Adaptable toAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
     }
 
 }

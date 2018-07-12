@@ -23,8 +23,6 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
@@ -32,7 +30,6 @@ import nl.jqno.equalsverifier.Warning;
 /**
  * Unit test for {@link ModifyPolicyId}.
  */
-@RunWith(MockitoJUnitRunner.class)
 public final class ModifyPolicyIdTest {
 
     private static final String KNOWN_POLICY_ID = "foo:barpolicy";

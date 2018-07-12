@@ -41,7 +41,7 @@ Create a new connection by sending the following DevOps command:
 ```
 
 The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
-For protocol specific examples consolidate the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html) and
+For protocol specific examples follow the description for the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html) or
 the [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) respectively.
 
 ### Modify connection
@@ -154,9 +154,9 @@ necessary for retrieving the connection metrics is the `connectionId`:
 
 ## Payload mapping configuration
 
-To enable a custom [payload mapping](/connectivity-mapping.html) for a specific connection, you have to configure a
+To enable a custom [payload mapping](connectivity-mapping.html) for a specific connection, you have to configure a
 mapping context in the connection configuration object. The following snippet shows an example `mappingContext`. This
-configuration must be embedded in the connection configuration as shown in the [Connections](/basic-connections.html) section.
+configuration must be embedded in the connection configuration as shown in the [Connections](basic-connections.html) section.
 
 ```json
 "mappingContext": {

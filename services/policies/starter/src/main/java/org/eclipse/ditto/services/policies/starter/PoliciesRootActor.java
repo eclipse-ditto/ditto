@@ -21,6 +21,9 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.config.HealthConfigReader;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
@@ -29,8 +32,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheFacadeActor;
-import org.eclipse.ditto.services.utils.distributedcache.actors.CacheRole;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -86,6 +87,9 @@ public final class PoliciesRootActor extends AbstractActor {
             }).match(IllegalArgumentException.class, e -> {
                 log.warning("Illegal Argument in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
+            }).match(IndexOutOfBoundsException.class, e -> {
+                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
             }).match(IllegalStateException.class, e -> {
                 log.warning("Illegal State in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
@@ -121,14 +125,12 @@ public final class PoliciesRootActor extends AbstractActor {
 
     private final ActorRef policiesShardRegion;
 
-    private PoliciesRootActor(final Config config,
+    private PoliciesRootActor(final ServiceConfigReader configReader,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
-
-        final ActorRef policyCacheFacade = startChildActor(CacheFacadeActor.actorNameFor(CacheRole.POLICY),
-                CacheFacadeActor.props(CacheRole.POLICY, config));
+        final int numberOfShards = configReader.cluster().numberOfShards();
+        final Config config = configReader.getRawConfig();
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system()).withRole(PoliciesMessagingConstants.CLUSTER_ROLE);
@@ -137,7 +139,7 @@ public final class PoliciesRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
         final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, minBackoff, maxBackoff,
-                randomFactor, policyCacheFacade, snapshotAdapter);
+                randomFactor, snapshotAdapter);
 
         final int tagsStreamingCacheSize = config.getInt(ConfigKeys.POLICIES_TAGS_STREAMING_CACHE_SIZE);
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
@@ -150,16 +152,18 @@ public final class PoliciesRootActor extends AbstractActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
+        final HealthConfigReader healthConfig = configReader.health();
+
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
+                        healthConfig.getPersistenceTimeout()));
 
-        final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
-        final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.CHECK_INTERVAL);
+        final boolean healthCheckEnabled = healthConfig.enabled();
+        final Duration healthCheckInterval = healthConfig.getInterval();
 
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckEnabled, healthCheckInterval);
-        if (config.getBoolean(ConfigKeys.HealthCheck.PERSISTENCE_ENABLED)) {
+        if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
@@ -169,16 +173,16 @@ public final class PoliciesRootActor extends AbstractActor {
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
-        String hostname = config.getString(ConfigKeys.HTTP_HOSTNAME);
+        final HttpConfigReader httpConfig = configReader.http();
+        String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
             log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
         }
 
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system()).bindAndHandle( //
-                createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(), materializer),
-                ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.HTTP_PORT)),
-                materializer);
+        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
+                .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
+                        materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         binding.thenAccept(this::logServerBinding)
                 .exceptionally(failure -> {
@@ -191,22 +195,23 @@ public final class PoliciesRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this PoliciesRootActor.
      *
-     * @param config the configuration settings of the Things Service.
+     * @param configReader the configuration reader of this service.
      * @param snapshotAdapter serializer and deserializer of the Policies snapshot store.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config,
+    public static Props props(final ServiceConfigReader configReader,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
+
         return Props.create(PoliciesRootActor.class, new Creator<PoliciesRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public PoliciesRootActor create() throws Exception {
-                return new PoliciesRootActor(config, snapshotAdapter, pubSubMediator, materializer);
+            public PoliciesRootActor create() {
+                return new PoliciesRootActor(configReader, snapshotAdapter, pubSubMediator, materializer);
             }
         });
     }

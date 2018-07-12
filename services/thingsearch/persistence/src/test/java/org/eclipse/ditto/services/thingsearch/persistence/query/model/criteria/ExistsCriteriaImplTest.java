@@ -19,7 +19,6 @@ import org.eclipse.ditto.model.query.model.expression.AttributeExpressionImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Unit test for {@link ExistsCriteriaImpl}.
  */

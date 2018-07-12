@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-policies-enforcers</artifactId>
+            <artifactId>ditto-model-enforcers</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

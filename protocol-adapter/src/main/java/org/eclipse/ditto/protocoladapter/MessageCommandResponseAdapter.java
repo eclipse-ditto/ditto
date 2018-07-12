@@ -16,7 +16,6 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
@@ -28,9 +27,13 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
+    private final boolean removeInternalHeaders;
+
     private MessageCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies) {
+            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies,
+            final boolean removeInternalMessageHeaders) {
         super(mappingStrategies);
+        this.removeInternalHeaders = removeInternalMessageHeaders;
     }
 
     /**
@@ -39,7 +42,17 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
      * @return the adapter.
      */
     public static MessageCommandResponseAdapter newInstance() {
-        return new MessageCommandResponseAdapter(mappingStrategies());
+        return of(Boolean.TRUE);
+    }
+
+    /**
+     * Returns a new MessageCommandResponseAdapter.
+     *
+     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
+     * @return the adapter.
+     */
+    public static MessageCommandResponseAdapter of(final boolean removeInternalMessageHeaders) {
+        return new MessageCommandResponseAdapter(mappingStrategies(), removeInternalMessageHeaders);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {
@@ -59,7 +72,8 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
                 adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable),statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
@@ -75,7 +89,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
             return SendClaimMessageResponse.TYPE;
         } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
             return SendMessageAcceptedResponse.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
+        } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {
             return SendThingMessageResponse.TYPE;
@@ -86,7 +100,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     public Adaptable toAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
     }
 
 }

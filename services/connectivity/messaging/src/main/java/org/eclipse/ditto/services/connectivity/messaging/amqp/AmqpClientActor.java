@@ -82,43 +82,51 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Nullable private Session jmsSession;
     @Nullable private ActorRef amqpPublisherActor;
 
+    /*
+     * This constructor is called via reflection by the static method propsForTest.
+     */
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            final JmsConnectionFactory jmsConnectionFactory) {
-        this(connection, connectionStatus, null, jmsConnectionFactory);
-    }
-
-    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
-            @Nullable final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
-        super(connection, connectionStatus, commandRouter);
+            final JmsConnectionFactory jmsConnectionFactory,
+            final ActorRef conciergeForwarder) {
+        super(connection, connectionStatus, conciergeForwarder);
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new ConnectionListener();
         consumerMap = new HashMap<>();
     }
 
-    /**
-     * Creates Akka configuration object for this actor.
-     *
-     * @param connection the connection
-     * @return the Akka configuration Props object
+    /*
+     * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
-    public static Props props(final Connection connection) {
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                ConnectionBasedJmsConnectionFactory.getInstance());
+    private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
+            final ActorRef conciergeForwarder) {
+        this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connection connection parameters
-     * @param connectionStatus the desired status of the connection
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param jmsConnectionFactory the JMS connection factory
-     * @return the Akka configuration Props object
+     * @param connection the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
+                conciergeForwarder);
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection connection parameters.
+     * @param connectionStatus the desired status of the connection.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param jmsConnectionFactory the JMS connection factory.
+     * @return the Akka configuration Props object.
      */
     public static Props propsForTests(final Connection connection, final ConnectionStatus connectionStatus,
-            final ActorRef commandRouter, final JmsConnectionFactory jmsConnectionFactory) {
-        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus, commandRouter,
-                jmsConnectionFactory);
+            final ActorRef conciergeForwarder, final JmsConnectionFactory jmsConnectionFactory) {
+        return Props.create(AmqpClientActor.class, validateConnection(connection), connectionStatus,
+                jmsConnectionFactory, conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -155,7 +163,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                                                 ex.getClass().getSimpleName() + ": " + ex.getMessage() + "'")
                                         .cause(ex).build();
                         return new Status.Failure(failedException);
-                    } else if (response instanceof ConnectionFailure){
+                    } else if (response instanceof ConnectionFailure) {
                         return ((ConnectionFailure) response).getFailure();
                     } else {
                         return new Status.Success(response);
@@ -199,7 +207,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .thenApply((entries) ->
                             entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }
@@ -216,7 +228,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                             TimeUnit.SECONDS);
             targetStatus.put(targetEntry.first(), targetEntry.second());
             return targetStatus;
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }

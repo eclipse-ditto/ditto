@@ -10,7 +10,7 @@ before_install:
 install: true
 script:
   - if [ ! -n "$TRAVIS_TAG" ]; then
-    mvn install javadoc:jar source:jar --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true;
+    travis_wait mvn install javadoc:jar source:jar --batch-mode --errors --quiet -Pbuild-documentation -DcreateJavadoc=true;
     fi;
   - if [ -n "$TRAVIS_TAG" ]; then
     export IMAGE_TAG=$TRAVIS_TAG;
@@ -18,6 +18,7 @@ script:
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-policies:$IMAGE_TAG      -t eclipse/ditto-policies:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG        -t eclipse/ditto-things:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
+    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-concierge:$IMAGE_TAG     -t eclipse/ditto-concierge:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
     docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-connectivity:$IMAGE_TAG  -t eclipse/ditto-connectivity:latest .;
     docker push eclipse/ditto-policies:$IMAGE_TAG;
@@ -26,6 +27,8 @@ script:
     docker push eclipse/ditto-things:latest;
     docker push eclipse/ditto-things-search:$IMAGE_TAG;
     docker push eclipse/ditto-things-search:latest;
+    docker push eclipse/ditto-concierge:$IMAGE_TAG;
+    docker push eclipse/ditto-concierge:latest;
     docker push eclipse/ditto-gateway:$IMAGE_TAG;
     docker push eclipse/ditto-gateway:latest;
     docker push eclipse/ditto-connectivity:$IMAGE_TAG;

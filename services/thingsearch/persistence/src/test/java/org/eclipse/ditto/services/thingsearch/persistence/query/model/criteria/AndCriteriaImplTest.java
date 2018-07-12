@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Tests {@link AndCriteriaImpl}.
  */

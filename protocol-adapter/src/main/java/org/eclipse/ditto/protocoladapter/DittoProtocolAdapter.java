@@ -52,14 +52,15 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
     private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
 
-    private DittoProtocolAdapter() {
-        this(ProtocolAdapterErrorRegistry.newInstance());
+    private DittoProtocolAdapter(final boolean removeInternalMessageHeaders) {
+        this(ProtocolAdapterErrorRegistry.newInstance(), removeInternalMessageHeaders);
     }
 
-    protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry) {
+    protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
+            final boolean removeInternalMessageHeaders) {
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.newInstance();
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.newInstance();
+        this.messageCommandAdapter = MessageCommandAdapter.of(removeInternalMessageHeaders);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(removeInternalMessageHeaders);
         this.thingModifyCommandAdapter = ThingModifyCommandAdapter.newInstance();
         this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.newInstance();
         this.thingQueryCommandAdapter = ThingQueryCommandAdapter.newInstance();
@@ -73,7 +74,17 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter();
+        return of(Boolean.TRUE);
+    }
+
+    /**
+     * Creates a new {@code DittoProtocolAdapter} instance.
+     *
+     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
+     * @return the instance.
+     */
+    public static DittoProtocolAdapter of(final boolean removeInternalMessageHeaders) {
+        return new DittoProtocolAdapter(removeInternalMessageHeaders);
     }
 
     @Override
@@ -334,14 +345,11 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
         final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
         final TopicPath topicPath = adaptable.getTopicPath();
-        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
-                .channel(topicPath.getChannel().getName())
-                .build();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
-                .map(jsonObject -> errorRegistry.parse(jsonObject, adjustedHeaders))
+                .map(jsonObject -> errorRegistry.parse(jsonObject, dittoHeaders))
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();

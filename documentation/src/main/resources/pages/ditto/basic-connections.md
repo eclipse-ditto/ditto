@@ -6,7 +6,7 @@ permalink: basic-connections.html
 ---
 
   {%
-    include note.html content="To get started with connections right away, consolidate the [Manage connections](/connectivity-manage-connections.html) 
+    include tip.html content="To get started with connections right away, consult the [Manage connections](connectivity-manage-connections.html) 
                                page. "
   %}
 
@@ -37,12 +37,12 @@ specific limitations. Those are documented with the corresponding protocol bindi
 
 A connection is initiated by the connectivity service. This obsoletes the need for client authorization, because 
 Ditto becomes the client in this case. Nevertheless, to access resources within Ditto, the connection must know on 
-which instance’s behalf it is acting. This is controlled via the configured `authorisationContext`, which holds a list of 
+which instance’s behalf it is acting. This is controlled via the configured `authorizationContext`, which holds a list of 
 self-assigned authorization subjects. Before a connection can access a Ditto resource, one of its 
 `authorizationSubject`s must be referenced in the used authorization mechanism, having the needed access rights. You 
 can achieve this via [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
-For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](/connectivity-mapping.html)
+For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html)
 
 
 [Connectivity API]: connectivity-overview.html

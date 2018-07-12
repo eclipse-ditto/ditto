@@ -18,7 +18,6 @@ import org.eclipse.ditto.model.query.model.criteria.LtPredicateImpl;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Unit test for {@link LtPredicateImpl}.
  */

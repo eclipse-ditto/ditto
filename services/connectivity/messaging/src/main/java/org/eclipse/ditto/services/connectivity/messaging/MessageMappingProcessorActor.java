@@ -13,8 +13,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -32,13 +35,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.services.utils.tracing.TraceUtils;
+import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -48,9 +50,6 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 
 /**
  * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a
@@ -67,44 +66,41 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final ActorRef publisherActor;
     private final AuthorizationContext authorizationContext;
-    private final Cache<String, TraceContext> traces;
+    private final Map<String, StartedTimer> timers;
 
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
-    private final ActorRef commandRouter;
+    private final ActorRef conciergeForwarder;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
         this.publisherActor = publisherActor;
-        this.commandRouter = commandRouter;
+        this.conciergeForwarder = conciergeForwarder;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
-        traces = CacheBuilder.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .removalListener((RemovalListener<String, TraceContext>) notification
-                        -> log.debug("Trace for {} removed.", notification.getKey()))
-                .build();
+
+        timers = new ConcurrentHashMap<>();
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles/publishes outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param headerFilter the header filter used to apply on responses
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles/publishes outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param headerFilter the header filter used to apply on responses.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
@@ -114,9 +110,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, commandRouter, authorizationContext,
-                        headerFilter, processor,
-                        connectionId);
+                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
+                        headerFilter, processor, connectionId);
             }
         });
     }
@@ -124,21 +119,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param publisherActor actor that handles outgoing messages
-     * @param commandRouter the command router used to send signals into the cluster
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers
-     * @param processor the MessageMappingProcessor to use
-     * @param connectionId the connection id
-     * @return the Akka configuration Props object
+     * @param publisherActor actor that handles outgoing messages.
+     * @param conciergeForwarder the actor used to send signals to the concierge service.
+     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
+     * @param processor the MessageMappingProcessor to use.
+     * @param connectionId the connection id.
+     * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef commandRouter,
+            final ActorRef conciergeForwarder,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
         return props(publisherActor,
-                commandRouter,
+                conciergeForwarder,
                 authorizationContext,
                 new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
                 processor, connectionId);
@@ -190,8 +185,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using command router", adjustedSignal.getType());
-                commandRouter.tell(adjustedSignal, getSelf());
+                log.info("Sending '{}' using conciergeForwarder", adjustedSignal.getType());
+                conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e, DittoHeaders.of(externalMessage.getHeaders()));
@@ -259,9 +254,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void startTrace(final Signal<?> command) {
-        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId ->
-                traces.put(correlationId, createRoundtripContext(correlationId, connectionId, command.getType()))
-        );
+        command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
+            final StartedTimer timer = TraceUtils
+                    .newAmqpRoundTripTimer(command)
+                    .expirationHandling(startedTimer -> this.timers.remove(correlationId))
+                    .build();
+            this.timers.put(correlationId, timer);
+        });
     }
 
     private void finishTrace(final Signal<?> response) {
@@ -283,24 +282,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
-        final TraceContext ctx = traces.getIfPresent(correlationId);
-        if (Objects.isNull(ctx)) {
+        final StartedTimer timer = timers.remove(correlationId);
+        if (Objects.isNull(timer)) {
             throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
         }
-        traces.invalidate(ctx);
-        if (Objects.isNull(cause)) {
-            ctx.finish();
-        } else {
-            ctx.finishWithError(cause);
-        }
-    }
 
-    private static TraceContext createRoundtripContext(final String correlationId, final String connectionId,
-            final String type) {
-        final Option<String> token = Option.apply(correlationId);
-        final TraceContext ctx = Kamon.tracer().newContext("roundtrip." + connectionId + "." + type,
-                token);
-        ctx.addMetadata("command", type);
-        return ctx;
+        if (Objects.isNull(cause)) {
+            timer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
+        } else {
+            timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
+        }
     }
 }

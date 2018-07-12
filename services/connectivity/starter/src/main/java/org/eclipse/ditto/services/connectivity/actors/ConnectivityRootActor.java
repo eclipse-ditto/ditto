@@ -19,17 +19,22 @@ import java.io.StringWriter;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultConnectionActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
+import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -39,6 +44,7 @@ import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.typesafe.config.Config;
 
@@ -98,6 +104,9 @@ public final class ConnectivityRootActor extends AbstractActor {
             }).match(IllegalStateException.class, e -> {
                 log.warning("Illegal State in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
+            }).match(IndexOutOfBoundsException.class, e -> {
+                log.warning("IndexOutOfBounds in child actor: {}", e.getMessage());
+                return SupervisorStrategy.resume();
             }).match(NoSuchElementException.class, e -> {
                 log.warning("NoSuchElement in child actor: {}", e.getMessage());
                 return SupervisorStrategy.resume();
@@ -132,8 +141,11 @@ public final class ConnectivityRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private ConnectivityRootActor(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    private ConnectivityRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer) {
+
+        final Config config = configReader.getRawConfig();
         final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
         final Duration healthCheckInterval = config.getDuration(ConfigKeys.HealthCheck.INTERVAL);
 
@@ -155,13 +167,25 @@ public final class ConnectivityRootActor extends AbstractActor {
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor =
                 config.getDouble(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
+        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
+
+        final ActorSystem actorSystem = this.getContext().system();
+        final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
+                .startProxy(ConciergeMessagingConstants.SHARD_REGION,
+                        Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
+                        ShardRegionExtractor.of(numberOfShards, actorSystem));
+
+        final ActorRef conciergeForwarder =  startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+                ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
+                        conciergeForwarderSignalTransformer));
+
         final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
         final Props connectionSupervisorProps =
-                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator, propsFactory);
+                ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
+                        conciergeForwarder, propsFactory);
 
-        final int numberOfShards = config.getInt(ConfigKeys.Cluster.NUMBER_OF_SHARDS);
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(this.getContext().system())
+                ClusterShardingSettings.create(actorSystem)
                         .withRole(ConnectivityMessagingConstants.CLUSTER_ROLE);
 
         final ActorRef connectionShardRegion = ClusterSharding.get(this.getContext().system())
@@ -195,19 +219,23 @@ public final class ConnectivityRootActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this ConnectivityRootActor.
      *
-     * @param config the configuration settings of the Things Service.
+     * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
      * @param materializer the materializer for the akka actor system.
+     * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
+     * concierge service
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Config config, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer) {
         return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public ConnectivityRootActor create() {
-                return new ConnectivityRootActor(config, pubSubMediator, materializer);
+                return new ConnectivityRootActor(configReader, pubSubMediator, materializer,
+                        conciergeForwarderSignalTransformer);
             }
         });
     }

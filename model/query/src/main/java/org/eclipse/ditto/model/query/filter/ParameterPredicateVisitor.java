@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.thingsearchparser.predicates.ast.PredicateVisitor
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode;
 
+
 /**
  * Predicate AST PredicateVisitor. Implements the visitor for AST nodes and creates a search criteria out of it.
  */
