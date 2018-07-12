@@ -207,7 +207,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .thenApply((entries) ->
                             entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }
@@ -224,7 +228,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                             TimeUnit.SECONDS);
             targetStatus.put(targetEntry.first(), targetEntry.second());
             return targetStatus;
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }

@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence;
 
 import static com.mongodb.client.model.Filters.eq;
 
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -82,7 +83,11 @@ public class MongoHealthCheck implements PersistenceHealthCheck {
                                     )
                     ) //
                     .runWith(Sink.head(), mat).toCompletableFuture().get(TIMEOUT, TimeUnit.MILLISECONDS);
-        } catch (final InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (final TimeoutException | ExecutionException e) {
             log.error(e, "Got exception while checking for health: {}", e.getMessage());
             return false;
         }
