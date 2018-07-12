@@ -40,7 +40,7 @@ final class PlaceholderFilter {
     private static final String PLACEHOLDER_START = "{{";
     private static final String PLACEHOLDER_END = "}}";
     private static final String PLACEHOLDER_REGEX =
-            Pattern.quote(PLACEHOLDER_START) + " *(\\S+):(\\S+) *" + Pattern.quote(PLACEHOLDER_END);
+            Pattern.quote(PLACEHOLDER_START) + " *((?:\\w|[-_])+):((?:\\w|[-_])+) *" + Pattern.quote(PLACEHOLDER_END);
     private static final Pattern PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
     private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
 
@@ -92,6 +92,7 @@ final class PlaceholderFilter {
                     .filter(p -> p.supports(placeholder))
                     .map(p -> p.apply(placeholder))
                     .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
+//                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
                     .filter(replacement -> !PATTERN.matcher(replacement).matches())
                     .forEach(replacement -> matcher.appendReplacement(sb, replacement));
         }
@@ -101,7 +102,7 @@ final class PlaceholderFilter {
 
     private static String checkAllPlaceholdersResolved(final String s) {
         if (containsPlaceholder(s)) {
-            throw UnresolvedPlaceholderException.newBuilder().message("").build();
+            throw UnresolvedPlaceholderException.newBuilder().message(s).build();
         }
         return s;
     }
