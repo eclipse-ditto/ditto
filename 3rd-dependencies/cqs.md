@@ -61,6 +61,9 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
+|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
+|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
 |io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
