@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.gateway.streaming;
+package org.eclipse.ditto.signals.events.things;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,14 +49,14 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
- * Helpers and utils for streaming based stuff.
+ * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
  */
-public final class StreamingHelpers {
+public final class ThingEventToThingConverter {
 
     private static final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> EVENT_TO_THING_MAPPERS =
             createEventToThingMappers();
 
-    private StreamingHelpers() {
+    private ThingEventToThingConverter() {
         throw new AssertionError();
     }
 

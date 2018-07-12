@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -143,7 +144,7 @@ public class MessageMappingProcessorActorTest {
                 publisherActor,
                 AUTHORIZATION_CONTEXT,
                 getMessageMappingProcessor(null),
-                CONNECTION_ID);
+                CONNECTION_ID, Collections.emptySet());
         return actorSystem.actorOf(props);
     }
 

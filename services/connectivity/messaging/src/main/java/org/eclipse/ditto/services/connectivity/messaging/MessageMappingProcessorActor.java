@@ -13,12 +13,12 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +34,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -41,6 +49,8 @@ import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -71,19 +81,29 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
+    private final Map<String, Criteria> targetFilterCriteria;
     private final ActorRef conciergeForwarder;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
-            final String connectionId) {
+            final String connectionId,
+            final Set<Target> targets) {
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.headerFilter = headerFilter;
         this.connectionId = connectionId;
+
+        targetFilterCriteria = targets.stream()
+                .filter(target -> target.getAddress().contains("things/twin/events") ||
+                        target.getAddress().contains("things/live/events"))
+                .filter(target -> target.getAddress().contains("?filter="))
+                .collect(Collectors.toMap(
+                        Target::getAddress,
+                        target -> parseCriteria(target.getAddress().split("\\?filter=", 2)[1])));
 
         timers = new ConcurrentHashMap<>();
     }
@@ -97,13 +117,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param headerFilter the header filter used to apply on responses.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection id.
+     * @param targets the configured targets of the connection - used in order to obtain an optional event filter string.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
             final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
-            final String connectionId) {
+            final String connectionId,
+            final Set<Target> targets) {
 
         return Props.create(MessageMappingProcessorActor.class, new Creator<MessageMappingProcessorActor>() {
             private static final long serialVersionUID = 1L;
@@ -111,7 +133,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             @Override
             public MessageMappingProcessorActor create() {
                 return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
-                        headerFilter, processor, connectionId);
+                        headerFilter, processor, connectionId, targets);
             }
         });
     }
@@ -124,19 +146,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection id.
+     * @param targets the configured targets of the connection - used in order to obtain an optional event filter string.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
             final AuthorizationContext authorizationContext,
             final MessageMappingProcessor processor,
-            final String connectionId) {
+            final String connectionId,
+            final Set<Target> targets) {
 
         return props(publisherActor,
                 conciergeForwarder,
                 authorizationContext,
                 new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
-                processor, connectionId);
+                processor, connectionId, targets);
     }
 
 
@@ -243,14 +267,46 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         try {
             final DittoHeaders filteredDittoHeaders = headerFilter.apply(signal.getDittoHeaders());
             final Signal signalWithFilteredHeaders = signal.setDittoHeaders(filteredDittoHeaders);
-            processor.process(signalWithFilteredHeaders)
-                    .ifPresent(message -> publisherActor.forward(message, getContext()));
+
+            if (matchesFilter(signalWithFilteredHeaders)) {
+                processor.process(signalWithFilteredHeaders)
+                        .ifPresent(message -> publisherActor.forward(message, getContext()));
+            }
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));
         } catch (final Exception e) {
             log.warning("Got unexpected exception during processing Signal: {}", e.getMessage());
         }
+    }
+
+    private boolean matchesFilter(final Signal<?> signal) {
+        final String topicPath = TopicPathMapper.mapSignalToTopicPath(signal);
+        final boolean hasFilterCriteria = targetFilterCriteria.containsKey(topicPath);
+
+        if (signal instanceof ThingEvent && hasFilterCriteria) {
+
+            // currently only ThingEvents may be filtered
+            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
+                    .filter(thing ->
+                            ThingPredicateVisitor.apply(targetFilterCriteria.get(topicPath))
+                                    .test(thing)
+                    )
+                    .isPresent();
+        } else {
+            return true;
+        }
+    }
+
+    private static Criteria parseCriteria(final String filter) {
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+                new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+
+        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
     }
 
     private void startTrace(final Signal<?> command) {

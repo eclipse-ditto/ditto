@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
 
 import com.mongodb.client.model.Filters;
+
 /**
  * Creates Bson of a predicate.
  */
@@ -26,8 +27,8 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     private static CreateBsonPredicateVisitor instance;
 
-    private static final String LEADING_WILDCARD = "\\Q\\E.*";
-    private static final String TRAILING_WILDCARD = ".*\\Q\\E";
+    private static final String LEADING_WILDCARD = "^\\Q\\E.*";
+    private static final String TRAILING_WILDCARD = ".*\\Q\\E$";
 
     private CreateBsonPredicateVisitor() {
         // only internally instantiable

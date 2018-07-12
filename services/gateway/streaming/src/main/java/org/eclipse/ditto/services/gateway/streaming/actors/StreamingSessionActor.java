@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
@@ -255,7 +255,7 @@ final class StreamingSessionActor extends AbstractActor {
     private boolean matchesFilter(final Signal<?> signal) {
         if (signal instanceof ThingEvent) {
             // currently only ThingEvents may be filtered
-            return StreamingHelpers.thingEventToThing((ThingEvent) signal)
+            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
                     .filter(this::doMatchFilter)
                     .isPresent();
         } else {

@@ -39,7 +39,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StreamingHelpers;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -144,7 +144,7 @@ public class SseThingsRoute extends AbstractRoute {
                         .map(jsonifiable -> ((ThingEvent) jsonifiable))
                         .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
                                 thingEvent.getThingId())) // only Events of the target thingIds
-                        .map(StreamingHelpers::thingEventToThing)
+                        .map(ThingEventToThingConverter::thingEventToThing)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
                         .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
