@@ -92,7 +92,6 @@ final class PlaceholderFilter {
                     .filter(p -> p.supports(placeholder))
                     .map(p -> p.apply(placeholder))
                     .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
-//                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
                     .filter(replacement -> !PATTERN.matcher(replacement).matches())
                     .forEach(replacement -> matcher.appendReplacement(sb, replacement));
         }
