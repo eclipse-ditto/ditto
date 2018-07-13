@@ -698,7 +698,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final Props props =
                     MessageMappingProcessorActor.props(getSelf(), conciergeForwarder,
                             connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
-                            processor, connectionId(), connection.getTargets());
+                            processor, connectionId());
 
             final DefaultResizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)

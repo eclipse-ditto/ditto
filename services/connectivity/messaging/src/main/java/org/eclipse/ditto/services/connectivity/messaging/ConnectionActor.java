@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -549,7 +550,7 @@ final class ConnectionActor extends AbstractPersistentActor {
     private void subscribeForEvents() {
         checkNotNull(connection, "Connection");
         uniqueTopicPaths = connection.getTargets().stream()
-                .flatMap(target -> target.getTopics().stream())
+                .flatMap(target -> target.getTopics().stream().map(Topic::getPath))
                 .collect(Collectors.toSet());
 
         forEachPubSubTopicDo(pubSubTopic -> {

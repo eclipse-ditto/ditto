@@ -39,7 +39,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     /**
      * @return set of topics that should be published via this target
      */
-    Set<String> getTopics();
+    Set<Topic> getTopics();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.

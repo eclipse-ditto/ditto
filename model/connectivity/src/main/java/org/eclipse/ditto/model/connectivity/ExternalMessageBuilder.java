@@ -16,6 +16,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.protocoladapter.Adaptable;
+
 /**
  * Builder for building instances of {@link ExternalMessage}.
  */
@@ -80,6 +82,14 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder asResponse(boolean response);
+
+    /**
+     * Sets the passed {@code originatingAdaptable} to the builder.
+     *
+     * @param originatingAdaptable Adaptable from which this ExternalMessage originated
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withOriginatingAdaptable(@Nullable Adaptable originatingAdaptable);
 
     /**
      * Builds the ExternalMessage.

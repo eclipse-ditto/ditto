@@ -144,7 +144,7 @@ public class MessageMappingProcessorActorTest {
                 publisherActor,
                 AUTHORIZATION_CONTEXT,
                 getMessageMappingProcessor(null),
-                CONNECTION_ID, Collections.emptySet());
+                CONNECTION_ID);
         return actorSystem.actorOf(props);
     }
 

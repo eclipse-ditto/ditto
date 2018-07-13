@@ -13,11 +13,15 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.nio.ByteBuffer;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -42,7 +46,7 @@ public class ImmutableTargetTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableTarget.class, areImmutable());
+        assertInstancesOf(ImmutableTarget.class, areImmutable(), provided(Topic.class).areAlsoImmutable());
     }
 
     @Test

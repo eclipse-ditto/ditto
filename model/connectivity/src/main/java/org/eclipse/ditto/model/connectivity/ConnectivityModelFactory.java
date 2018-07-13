@@ -12,9 +12,11 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -245,12 +247,18 @@ public final class ConnectivityModelFactory {
         return ImmutableSource.of(consumerCount, sources);
     }
 
+    public static Topic newTopic(final String topicString) {
+        return ImmutableTopic.fromString(topicString);
+    }
+
     public static Target newTarget(final String address, final Set<String> topics) {
-        return ImmutableTarget.of(address, topics);
+        return ImmutableTarget.of(address, topics.stream().map(ConnectivityModelFactory::newTopic)
+                .collect(Collectors.toSet()));
     }
 
     public static Target newTarget(final String address, final String requiredTopic, final String... topics) {
-        return ImmutableTarget.of(address, requiredTopic, topics);
+        return ImmutableTarget.of(address, ConnectivityModelFactory.newTopic(requiredTopic),
+                Arrays.stream(topics).map(ConnectivityModelFactory::newTopic).toArray(Topic[]::new));
     }
 
 }

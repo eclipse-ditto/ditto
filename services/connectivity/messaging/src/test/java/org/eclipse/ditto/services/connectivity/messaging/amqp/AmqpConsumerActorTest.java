@@ -147,7 +147,7 @@ public class AmqpConsumerActorTest {
             final Props messageMappingProcessorProps =
                     MessageMappingProcessorActor.props(getRef(), getRef(),
                             AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                            mappingProcessor, CONNECTION_ID, Collections.emptySet());
+                            mappingProcessor, CONNECTION_ID);
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
@@ -194,7 +194,7 @@ public class AmqpConsumerActorTest {
         final Props messageMappingProcessorProps =
                 MessageMappingProcessorActor.props(testActor, testActor,
                         AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                        mappingProcessor, CONNECTION_ID, Collections.emptySet());
+                        mappingProcessor, CONNECTION_ID);
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 

@@ -19,6 +19,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * Mutable builder for building new instances of ExternalMessage.
@@ -34,6 +35,8 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     private String textPayload;
     @Nullable
     private ByteBuffer bytePayload;
+    @Nullable
+    private Adaptable originatingAdaptable;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -47,6 +50,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.topicPath = message.getTopicPath().orElse(null);
         this.payloadType = message.getPayloadType();
         this.response = message.isResponse();
+        this.originatingAdaptable = message.getOriginatingAdaptable().orElse(null);
     }
 
     /**
@@ -121,8 +125,15 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder withOriginatingAdaptable(@Nullable final Adaptable originatingAdaptable) {
+        this.originatingAdaptable = originatingAdaptable;
+        return this;
+    }
+
+    @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, topicPath, response, payloadType, textPayload, bytePayload);
+        return new ImmutableExternalMessage(headers, topicPath, response, payloadType, textPayload, bytePayload,
+                originatingAdaptable);
     }
 
 }

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)
@@ -105,6 +106,11 @@ public interface ExternalMessage {
      * @return {@code true} if this message is a response
      */
     boolean isResponse();
+
+    /**
+     * @return the {@link Adaptable} from which this ExternalMessage originated.
+     */
+    Optional<Adaptable> getOriginatingAdaptable();
 
     /**
      * The known payload types of ExternalMessages.

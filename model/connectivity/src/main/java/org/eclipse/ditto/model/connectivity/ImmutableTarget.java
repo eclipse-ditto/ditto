@@ -36,9 +36,9 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableTarget implements Target {
 
     private final String address;
-    private final Set<String> topics;
+    private final Set<Topic> topics;
 
-    private ImmutableTarget(final String address, final Set<String> topics) {
+    private ImmutableTarget(final String address, final Set<Topic> topics) {
         this.address = address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
     }
@@ -50,7 +50,22 @@ final class ImmutableTarget implements Target {
      * @param topics set of topics that should be published via this target
      * @return a new instance of ImmutableTarget
      */
-    public static ImmutableTarget of(final String address, final Set<String> topics) {
+    public static ImmutableTarget of(final String address, final Set<Topic> topics) {
+        return new ImmutableTarget(address, topics);
+    }
+
+    /**
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return a new instance of ImmutableTarget
+     */
+    public static ImmutableTarget of(final String address, final Topic requiredTopic,
+            final Topic... additionalTopics) {
+        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
         return new ImmutableTarget(address, topics);
     }
 
@@ -66,7 +81,8 @@ final class ImmutableTarget implements Target {
             final String... additionalTopics) {
         final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return new ImmutableTarget(address, topics);
+        return new ImmutableTarget(address, topics.stream().map(ConnectivityModelFactory::newTopic)
+                .collect(Collectors.toSet()));
     }
 
     @Override
@@ -75,7 +91,7 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
-    public Set<String> getTopics() {
+    public Set<Topic> getTopics() {
         return topics;
     }
 
@@ -87,6 +103,7 @@ final class ImmutableTarget implements Target {
         jsonObjectBuilder.set(Target.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(Target.JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(Target.JsonFields.TOPICS, topics.stream()
+                .map(Topic::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
 
@@ -103,9 +120,10 @@ final class ImmutableTarget implements Target {
      */
     public static Target fromJson(final JsonObject jsonObject) {
         final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
-        final Set<String> readTopics = jsonObject.getValue(JsonFields.TOPICS)
+        final Set<Topic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
+                        .map(ImmutableTopic::fromString)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
         return ImmutableTarget.of(readAddress, readTopics);

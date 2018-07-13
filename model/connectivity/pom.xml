@@ -31,6 +31,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-protocol-adapter</artifactId>
+        </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
