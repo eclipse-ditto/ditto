@@ -39,14 +39,14 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "direction"}, Java type: String.
      */
-    DIRECTION("direction", String.class),
+    DIRECTION("direction", String.class, false, false),
 
     /**
      * Header definitions for the subject of a message.
      * <p>
      * Key: {@code "subject"}, Java type: String.
      */
-    SUBJECT("subject", String.class) {
+    SUBJECT("subject", String.class, false, false) {
         @Override
         public void validateValue(@Nullable final CharSequence value) {
             super.validateValue(value);
@@ -65,21 +65,21 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "thing-id"}, Java type: String.
      */
-    THING_ID("thing-id", String.class),
+    THING_ID("thing-id", String.class, false, false),
 
     /**
      * Header definition for the Feature ID of a message, if sent to a Feature.
      * <p>
      * Key: {@code "feature-id"}, Java type: String.
      */
-    FEATURE_ID("feature-id", String.class),
+    FEATURE_ID("feature-id", String.class, false, false),
 
     /**
      * Header definition for the timeout in seconds of a message.
      * <p>
      * Key: {@code "timeout"}, Java type: {@code long}.
      */
-    TIMEOUT("timeout", long.class) {
+    TIMEOUT("timeout", long.class, true, true) {
         @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
@@ -98,7 +98,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "timestamp"}, Java type: String.
      */
-    TIMESTAMP("timestamp", String.class) {
+    TIMESTAMP("timestamp", String.class, false, true) {
         @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
@@ -117,7 +117,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "status"}, Java type: {@code int}.
      */
-    STATUS_CODE("status", int.class) {
+    STATUS_CODE("status", int.class, false, false) {
         @SuppressWarnings({"squid:S2201", "ResultOfMethodCallIgnored"})
         @Override
         public void validateValue(@Nullable final CharSequence value) {
@@ -134,7 +134,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "validation-url"}, Java type: String.
      */
-    VALIDATION_URL("validation-url", String.class);
+    VALIDATION_URL("validation-url", String.class, true, false);
 
     /**
      * The regex pattern a Subject has to conform to. Defined by
@@ -151,10 +151,15 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
 
     private final String key;
     private final Class<?> type;
+    private final boolean readFromExternalHeaders;
+    private final boolean writeToExternalHeaders;
 
-    MessageHeaderDefinition(final String theKey, final Class<?> theType) {
+    MessageHeaderDefinition(final String theKey, final Class<?> theType, final boolean readFromExternalHeaders,
+            final boolean writeToExternalHeaders) {
         key = theKey;
         type = theType;
+        this.readFromExternalHeaders = readFromExternalHeaders;
+        this.writeToExternalHeaders = writeToExternalHeaders;
     }
 
     /**
@@ -175,6 +180,16 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     @Override
     public Class getJavaType() {
         return type;
+    }
+
+    @Override
+    public boolean shouldReadFromExternalHeaders() {
+        return readFromExternalHeaders;
+    }
+
+    @Override
+    public boolean shouldWriteToExternalHeaders() {
+        return writeToExternalHeaders;
     }
 
     @Nonnull

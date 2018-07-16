@@ -36,6 +36,20 @@ public interface HeaderDefinition {
     Class getJavaType();
 
     /**
+     * Returns whether Ditto reads this header from headers sent by clients.
+     *
+     * @return whether clients are allowed to set this header.
+     */
+    boolean shouldReadFromExternalHeaders();
+
+    /**
+     * Returns whether Ditto publishes this header to clients.
+     *
+     * @return whether clients are allowed to see this header.
+     */
+    boolean shouldWriteToExternalHeaders();
+
+    /**
      * Checks if the specified CharSequence is a valid representation of the Java type of this definition.
      * <p>
      * For example, if the Java type of this Definition was {@code int.class} then the value {@code "foo"} would be
