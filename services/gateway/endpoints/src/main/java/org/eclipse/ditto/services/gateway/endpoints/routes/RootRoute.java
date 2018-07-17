@@ -94,6 +94,7 @@ import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
+import akka.stream.ActorMaterializer;
 import akka.util.ByteString;
 
 /**
@@ -133,6 +134,7 @@ public final class RootRoute {
     private final StatsRoute statsRoute;
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
+    private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
 
     /**
@@ -140,13 +142,14 @@ public final class RootRoute {
      *
      * @param actorSystem the Actor System.
      * @param config the configuration of the service.
+     * @param materializer the actor materializer of the actor system.
      * @param proxyActor the proxy actor delegating commands.
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param healthCheckingActor the health-checking actor to use.
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param httpClient the Http Client to use.
      */
-    public RootRoute(final ActorSystem actorSystem, final Config config,
+    public RootRoute(final ActorSystem actorSystem, final Config config, final ActorMaterializer materializer,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
@@ -154,6 +157,8 @@ public final class RootRoute {
             final HttpClientFacade httpClient) {
         checkNotNull(actorSystem, "Actor System");
         checkNotNull(proxyActor, "proxyActor");
+
+        this.materializer = materializer;
 
         final StatusAndHealthProvider
                 statusHealthProvider = DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier);
@@ -255,13 +260,13 @@ public final class RootRoute {
         );
     }
 
-    private Route wrapWithRootDirectives(final Function<String, Route> rootRoute) {
+    private Route wrapWithRootDirectives(final java.util.function.Function<String, Route> rootRoute) {
         final Function<Function<String, Route>, Route> outerRouteProvider = innerRouteProvider ->
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
                         ensureCorrelationId(correlationId ->
-                                rewriteResponse(correlationId, () ->
+                                rewriteResponse(materializer, correlationId, () ->
                                         RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
                                                 logRequestResult(correlationId, () ->
                                                         innerRouteProvider.apply(correlationId)
@@ -292,7 +297,6 @@ public final class RootRoute {
                                 )
                         )
                 );
-
         return outerRouteProvider.apply(innerRouteProvider);
     }
 

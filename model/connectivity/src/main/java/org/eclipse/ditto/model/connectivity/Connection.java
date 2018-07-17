@@ -42,6 +42,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     String getId();
 
     /**
+     * Returns the name of this {@code Connection}.
+     *
+     * @return the name.
+     */
+    Optional<String> getName();
+
+    /**
      * Returns the connection type of this {@code Connection}.
      *
      * @return the connection type
@@ -170,6 +177,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Optional<MappingContext> getMappingContext();
 
     /**
+     * Returns the tags of this {@code Connection}.
+     *
+     * @return the tags.
+     */
+    Set<String> getTags();
+
+    /**
      * Returns a mutable builder with a fluent API for immutable {@code Connection}. The builder is initialised with the
      * entries of this instance.
      *
@@ -215,6 +229,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the {@code Connection} name.
+         */
+        public static final JsonFieldDefinition<String> NAME =
+                JsonFactory.newStringFieldDefinition("name", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code ConnectionType}.
          */
         public static final JsonFieldDefinition<String> CONNECTION_TYPE =
@@ -239,7 +260,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the {@code Connection} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -295,6 +317,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Connection} tags configuration.
+         */
+        public static final JsonFieldDefinition<JsonArray> TAGS =
+                JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {
