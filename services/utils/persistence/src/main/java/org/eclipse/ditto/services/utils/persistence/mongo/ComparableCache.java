@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,7 +22,6 @@ import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
@@ -51,13 +49,13 @@ final class ComparableCache<K, V extends Comparable<V>> {
     /**
      * Constructor.
      *
-     * @param size the (maximum) size of this cache
-     * @param namedMetricRegistry the named {@link MetricRegistry} for cache statistics.
+     * @param size the (maximum) size of this cache.
+     * @param cacheName The name of the cache. Will be used for metrics.
      */
-    public ComparableCache(final int size, @Nullable final Map.Entry<String, MetricRegistry> namedMetricRegistry) {
+    public ComparableCache(final int size, @Nullable String cacheName) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
 
-        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, namedMetricRegistry);
+        final CaffeineCache<K, V> caffeineCache = CaffeineCache.of(caffeine, cacheName);
         this.internalCache = caffeineCache.asMap();
     }
 

@@ -294,8 +294,7 @@ public class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
         assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
-        assertThat((Iterable<JsonKey>) adaptable.getPayload().getPath()).isEqualTo(
-                JsonPointer.of(MAPPING_INCOMING_PATH));
+        assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
     }
 
@@ -386,8 +385,7 @@ public class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getAction()).contains(TopicPath.Action.MODIFY);
         assertThat(adaptable.getTopicPath().getNamespace()).isEqualTo(MAPPING_INCOMING_NAMESPACE);
         assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
-        assertThat((Iterable<JsonKey>) adaptable.getPayload().getPath()).isEqualTo(
-                JsonPointer.of(MAPPING_INCOMING_PATH));
+        assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).contains(JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING));
     }
 

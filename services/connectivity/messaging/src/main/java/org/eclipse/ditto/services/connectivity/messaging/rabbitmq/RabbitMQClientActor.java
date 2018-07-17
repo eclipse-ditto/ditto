@@ -276,6 +276,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     ).collect(Collectors.toList()))
                     .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                     .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
+
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
@@ -289,7 +290,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     retrieveAddressMetric(target.getAddress(), RabbitMQPublisherActor.ACTOR_NAME)
                             .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
             return Collections.singletonMap(targetEntry.first(), targetEntry.second());
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            log.error(e,"Thread interrupted");
+            Thread.currentThread().interrupt();
+            return Collections.emptyMap();
+        } catch (final ExecutionException | TimeoutException e) {
             log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
             return Collections.emptyMap();
         }

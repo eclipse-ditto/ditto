@@ -29,11 +29,9 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRe
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
-import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -49,7 +47,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
+import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -83,12 +81,10 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.MetricRegistry;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
@@ -110,8 +106,6 @@ public final class RootRoute {
     static final String WS_PATH_PREFIX = "ws";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RootRoute.class);
-
-    private static final String BLOCKING_DISPATCHER_NAME = "blocking-dispatcher";
 
     private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
     private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
@@ -166,7 +160,6 @@ public final class RootRoute {
 
         this.materializer = materializer;
 
-        final MessageDispatcher blockingDispatcher = actorSystem.dispatchers().lookup(BLOCKING_DISPATCHER_NAME);
         final StatusAndHealthProvider
                 statusHealthProvider = DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier);
 
@@ -185,21 +178,25 @@ public final class RootRoute {
                 config.getDuration(ConfigKeys.CLAIMMESSAGE_DEFAULT_TIMEOUT),
                 config.getDuration(ConfigKeys.CLAIMMESSAGE_MAX_TIMEOUT));
         thingSearchRoute = new ThingSearchRoute(proxyActor, actorSystem);
+
+        final HeadersConfigReader headersConfig = HeadersConfigReader.fromRawConfig(config);
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                DittoProtocolAdapter.newInstance(), actorSystem.eventStream());
+                headersConfig.blacklist(),
+                DittoProtocolAdapter.of(!headersConfig.compatibilityMode()),
+                actorSystem.eventStream());
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
 
         apiAuthenticationDirective =
-                generateGatewayAuthenticationDirective(config, httpClient, blockingDispatcher);
+                generateGatewayAuthenticationDirective(config, httpClient);
         wsAuthenticationDirective = apiAuthenticationDirective;
         exceptionHandler = createExceptionHandler();
     }
 
     private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
-            final HttpClientFacade httpClient, final MessageDispatcher blockingDispatcher) {
+            final HttpClientFacade httpClient) {
         final boolean dummyAuthEnabled = config.getBoolean(ConfigKeys.AUTHENTICATION_DUMMY_ENABLED);
 
         final List<AuthenticationProvider> authenticationChain = new LinkedList<>();
@@ -209,15 +206,11 @@ public final class RootRoute {
         }
 
 
-        final Map.Entry<String, MetricRegistry> namedPublicKeysCacheMetricRegistry =
-                new AbstractMap.SimpleImmutableEntry<>("ditto.auth.jwt.publicKeys.cache", new MetricRegistry());
-        StatsdMetricsReporter.getInstance().add(namedPublicKeysCacheMetricRegistry);
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = buildJwtSubjectIssuersConfig();
 
         final PublicKeyProvider publicKeyProvider = DittoPublicKeyProvider.of(jwtSubjectIssuersConfig, httpClient,
                 config.getInt(ConfigKeys.CACHE_PUBLIC_KEYS_MAX),
-                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY),
-                namedPublicKeysCacheMetricRegistry);
+                config.getDuration(ConfigKeys.CACHE_PUBLIC_KEYS_EXPIRY), "ditto_authorization_jwt_publicKeys_cache");
         final DittoAuthorizationSubjectsProvider authorizationSubjectsProvider =
                 DittoAuthorizationSubjectsProvider.of(jwtSubjectIssuersConfig);
 

@@ -17,7 +17,6 @@ import java.util.List;
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Features;
-
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 

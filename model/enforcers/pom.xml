@@ -24,10 +24,6 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Model :: Enforcers</name>
 
-    <properties>
-        <javac.target>1.8</javac.target>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

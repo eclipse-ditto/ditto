@@ -55,7 +55,7 @@ public interface Payload extends Jsonifiable<JsonObject> {
      *
      * @return the path.
      */
-    JsonPointer getPath();
+    MessagePath getPath();
 
     /**
      * Returns the {@code value} of this {@code Payload} if present.

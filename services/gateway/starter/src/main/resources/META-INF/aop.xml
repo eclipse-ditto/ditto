@@ -14,16 +14,12 @@
 <aspectj>
     <aspects>
 
-        <!-- Notify that AspectJ is present -->
-        <aspect name="kamon.AspectJPresent"/>
-
         <!-- Futures -->
         <aspect name="kamon.scala.instrumentation.FutureInstrumentation"/>
-        <aspect name="kamon.scalaz.instrumentation.FutureInstrumentation"/>
 
         <!-- Actors -->
-        <aspect name="akka.kamon.instrumentation.TraceContextIntoRepointableActorRefMixin"/>
-        <aspect name="akka.kamon.instrumentation.TraceContextIntoSystemMessageMixin"/>
+        <aspect name="akka.kamon.instrumentation.HasContextIntoRepointableActorRefMixin"/>
+        <aspect name="akka.kamon.instrumentation.HasContextIntoSystemMessageMixin"/>
         <aspect name="akka.kamon.instrumentation.ActorSystemMessageInstrumentation"/>
         <aspect name="akka.kamon.instrumentation.EnvelopeContextIntoEnvelopeMixin"/>
         <aspect name="akka.kamon.instrumentation.MetricsIntoActorCellsMixin"/>
@@ -32,17 +28,33 @@
         <aspect name="akka.kamon.instrumentation.RoutedActorCellInstrumentation"/>
         <aspect name="akka.kamon.instrumentation.ActorLoggingInstrumentation"/>
 
+        <aspect name="akka.kamon.instrumentation.DeadLettersInstrumentation"/>
+
         <!-- Dispatchers -->
         <aspect name="akka.kamon.instrumentation.DispatcherInstrumentation"/>
         <aspect name="akka.kamon.instrumentation.DispatcherMetricCollectionInfoIntoDispatcherMixin"/>
 
         <!-- Patterns -->
         <aspect name="akka.kamon.instrumentation.AskPatternInstrumentation"/>
+
+        <!-- Remoting and Cluster -->
+        <aspect name="akka.kamon.instrumentation.RemotingInstrumentation"/>
+        <aspect name="akka.kamon.instrumentation.HasTransientContextIntoSend"/>
+        <aspect name="akka.kamon.instrumentation.MessageBufferInstrumentation"/>
+
+        <!-- Akka Http Server -->
+        <aspect name="kamon.akka.http.instrumentation.ServerRequestInstrumentation"/>
+
+        <!-- Akka Http Client -->
+        <aspect name="akka.http.impl.engine.client.ClientRequestInstrumentation"/>
     </aspects>
 
     <weaver options="-warn:none -Xlint:ignore">
         <include within="kamon..*"/>
         <include within="akka..*"/>
+
+        <!-- akka http -->
+        <include within="kamon.akka.http.instrumentation..*"/>
 
         <include within="scala.concurrent..*"/>
         <include within="scalaz.concurrent..*"/>

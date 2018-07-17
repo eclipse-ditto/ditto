@@ -22,10 +22,10 @@ import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
-import org.eclipse.ditto.model.enforcers.ImmutableEffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.enforcers.ImmutableEffectedSubjectIds;
+import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestrictionEnforcer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;

@@ -13,18 +13,13 @@ package org.eclipse.ditto.services.things.starter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Map;
-
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-
-import com.codahale.metrics.MetricRegistry;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -57,17 +52,14 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
      */
     protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
-
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
-                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
-        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
-
-        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem,
+            final ServiceConfigReader configReader) {
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(
+                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
 
     @Override

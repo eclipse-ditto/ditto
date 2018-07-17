@@ -33,13 +33,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 @Immutable
 final class ImmutablePayload implements Payload {
 
-    private final JsonPointer path;
+    private final MessagePath path;
     @Nullable private final JsonValue value;
     @Nullable private final HttpStatusCode status;
     @Nullable private final Long revision;
     @Nullable private final JsonFieldSelector fields;
 
-    private ImmutablePayload(final JsonPointer path,
+    private ImmutablePayload(final MessagePath path,
             @Nullable final JsonValue value,
             @Nullable final HttpStatusCode status,
             @Nullable final Long revision,
@@ -69,8 +69,7 @@ final class ImmutablePayload implements Payload {
             @Nullable final HttpStatusCode status,
             @Nullable final Long revision,
             @Nullable final JsonFieldSelector fields) {
-
-        return new ImmutablePayload(path, value, status, revision, fields);
+        return new ImmutablePayload(ImmutableMessagePath.of(path), value, status, revision, fields);
     }
 
     /**
@@ -100,7 +99,7 @@ final class ImmutablePayload implements Payload {
     }
 
     @Override
-    public JsonPointer getPath() {
+    public MessagePath getPath() {
         return path;
     }
 
@@ -148,6 +147,7 @@ final class ImmutablePayload implements Payload {
         return jsonObjectBuilder.build();
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(final Object o) {
         if (this == o) {

@@ -126,7 +126,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
             if (null != dittoHeaders) {
                 return dittoHeaders;
             }
-            LOG.warn("Object <{}> did not contain DittoHeaders although it should! Using empty DittoHeaders instead.");
+            LOG.warn("Object <{}> did not contain DittoHeaders although it should! Using empty DittoHeaders instead.",
+                    object);
         }
         return DittoHeaders.empty();
     }
