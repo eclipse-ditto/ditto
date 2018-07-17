@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -41,12 +42,20 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
  */
 final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> {
 
-    private ThingQueryCommandAdapter(final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingQueryCommandAdapter(
+            final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies,
+            final HeaderPublisher headerPublisher) {
+        super(mappingStrategies, headerPublisher);
     }
 
-    public static ThingQueryCommandAdapter newInstance() {
-        return new ThingQueryCommandAdapter(mappingStrategies());
+    /**
+     * Returns a new ThingQueryCommandAdapter.
+     *
+     * @param headerPublisher translator between external and Ditto headers.
+     * @return the adapter.
+     */
+    public static ThingQueryCommandAdapter of(final HeaderPublisher headerPublisher) {
+        return new ThingQueryCommandAdapter(mappingStrategies(), headerPublisher);
     }
 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {
@@ -109,7 +118,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
         if (command instanceof RetrieveThings) {
             return handleMultipleRetrieve((RetrieveThings) command, channel);
         } else {

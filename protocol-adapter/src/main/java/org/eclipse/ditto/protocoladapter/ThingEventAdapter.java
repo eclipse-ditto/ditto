@@ -18,6 +18,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
@@ -55,17 +56,20 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  */
 final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
 
-    private ThingEventAdapter(final Map<String, JsonifiableMapper<ThingEvent>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingEventAdapter(
+            final Map<String, JsonifiableMapper<ThingEvent>> mappingStrategies,
+            final HeaderPublisher headerPublisher) {
+        super(mappingStrategies, headerPublisher);
     }
 
     /**
      * Returns a new ThingEventAdapter.
      *
+     * @param headerPublisher translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingEventAdapter newInstance() {
-        return new ThingEventAdapter(mappingStrategies());
+    public static ThingEventAdapter of(final HeaderPublisher headerPublisher) {
+        return new ThingEventAdapter(mappingStrategies(), headerPublisher);
     }
 
     private static Map<String, JsonifiableMapper<ThingEvent>> mappingStrategies() {
@@ -194,7 +198,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingEvent event, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingEvent event, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingId());
 
         final EventsTopicPathBuilder eventsTopicPathBuilder;

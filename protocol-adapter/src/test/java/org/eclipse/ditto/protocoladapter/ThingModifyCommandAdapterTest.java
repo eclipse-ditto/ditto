@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -56,7 +56,7 @@ public final class ThingModifyCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandAdapter.newInstance();
+        underTest = ThingModifyCommandAdapter.of(MessageHeaders.publisher());
     }
 
     @Test(expected = UnknownCommandException.class)
@@ -228,7 +228,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -252,7 +252,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclEntryFromAdaptable() {
         final ModifyAclEntry expected =
@@ -276,7 +276,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclEntryToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -301,7 +301,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void deleteAclEntryFromAdaptable() {
         final DeleteAclEntry expected = DeleteAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
@@ -323,7 +323,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void deleteAclEntryToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)

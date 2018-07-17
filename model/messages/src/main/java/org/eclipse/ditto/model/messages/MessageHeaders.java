@@ -20,7 +20,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaderPublisher;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 
 /**
  * This interface represents headers to be used for {@link Message}s.
@@ -87,6 +90,15 @@ public interface MessageHeaders extends DittoHeaders {
      */
     static MessageHeaders of(final JsonObject jsonObject) {
         return MessageHeadersBuilder.of(jsonObject).build();
+    }
+
+    /**
+     * Create a header publisher that knows about Ditto and message headers.
+     *
+     * @return the header publisher.
+     */
+    static HeaderPublisher publisher() {
+        return DittoHeaderPublisher.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
     @Override

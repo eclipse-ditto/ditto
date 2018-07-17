@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -35,18 +36,19 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryCommandResponse> {
 
     private ThingQueryCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies) {
-
-        super(mappingStrategies);
+            final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies,
+            final HeaderPublisher headerPublisher) {
+        super(mappingStrategies, headerPublisher);
     }
 
     /**
      * Returns a new ThingQueryCommandResponseAdapter.
      *
+     * @param headerPublisher translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingQueryCommandResponseAdapter newInstance() {
-        return new ThingQueryCommandResponseAdapter(mappingStrategies());
+    public static ThingQueryCommandResponseAdapter of(final HeaderPublisher headerPublisher) {
+        return new ThingQueryCommandResponseAdapter(mappingStrategies(), headerPublisher);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
@@ -117,7 +119,8 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingQueryCommandResponse commandResponse, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingQueryCommandResponse commandResponse,
+            final TopicPath.Channel channel) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();

@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -48,8 +49,8 @@ public final class ThingQueryCommandAdapterTest {
     private ThingQueryCommandAdapter underTest;
 
     @Before
-    public void setUp() throws Exception {
-        underTest = ThingQueryCommandAdapter.newInstance();
+    public void setUp() {
+        underTest = ThingQueryCommandAdapter.of(MessageHeaders.publisher());
     }
 
     @Test(expected = UnknownCommandException.class)
@@ -97,7 +98,8 @@ public final class ThingQueryCommandAdapterTest {
                 RetrieveThing.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
+        final JsonifiableAdaptable jsonifiableAdaptable =
+                ProtocolFactory.wrapAsJsonifiableAdaptable(actual);
         final JsonObject jsonObject = jsonifiableAdaptable.toJson();
         System.out.println(jsonObject.toString());
 
@@ -147,8 +149,8 @@ public final class ThingQueryCommandAdapterTest {
 
         final RetrieveThing retrieveThing =
                 RetrieveThing.getBuilder(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE)
-                .withSelectedFields(selectedFields)
-                .build();
+                        .withSelectedFields(selectedFields)
+                        .build();
         final Adaptable actual = underTest.toAdaptable(retrieveThing);
 
         assertThat(actual).isEqualTo(expected);

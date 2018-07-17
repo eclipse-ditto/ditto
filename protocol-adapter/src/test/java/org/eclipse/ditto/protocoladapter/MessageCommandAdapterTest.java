@@ -104,7 +104,7 @@ public final class MessageCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandAdapter.newInstance();
+        underTest = MessageCommandAdapter.of(MessageHeaders.publisher());
     }
 
     @Test

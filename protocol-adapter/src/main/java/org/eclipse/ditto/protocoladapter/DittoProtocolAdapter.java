@@ -20,6 +20,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.Signal;
@@ -51,21 +53,28 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingEventAdapter thingEventAdapter;
 
     private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
-
-    private DittoProtocolAdapter(final boolean removeInternalMessageHeaders) {
-        this(ProtocolAdapterErrorRegistry.newInstance(), removeInternalMessageHeaders);
-    }
+    private final HeaderPublisher headerPublisher;
 
     protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
-            final boolean removeInternalMessageHeaders) {
+            final HeaderPublisher headerPublisher) {
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.of(removeInternalMessageHeaders);
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(removeInternalMessageHeaders);
-        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.newInstance();
-        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.newInstance();
-        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.newInstance();
-        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.newInstance();
-        this.thingEventAdapter = ThingEventAdapter.newInstance();
+        this.messageCommandAdapter = MessageCommandAdapter.of(headerPublisher);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerPublisher);
+        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerPublisher);
+        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerPublisher);
+        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerPublisher);
+        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerPublisher);
+        this.thingEventAdapter = ThingEventAdapter.of(headerPublisher);
+        this.headerPublisher = headerPublisher;
+    }
+
+    /**
+     * Creates a new {@code DittoProtocolAdapter} instance with the given header publisher.
+     *
+     * @param headerPublisher translator between external and Ditto headers.
+     */
+    public static DittoProtocolAdapter of(final HeaderPublisher headerPublisher) {
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerPublisher);
     }
 
     /**
@@ -74,17 +83,16 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return of(Boolean.TRUE);
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), MessageHeaders.publisher());
     }
 
     /**
-     * Creates a new {@code DittoProtocolAdapter} instance.
+     * Return the header publisher of this Ditto protocol adapter.
      *
-     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
-     * @return the instance.
+     * @return the header publisher.
      */
-    public static DittoProtocolAdapter of(final boolean removeInternalMessageHeaders) {
-        return new DittoProtocolAdapter(removeInternalMessageHeaders);
+    public HeaderPublisher headerPublisher() {
+        return headerPublisher;
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
@@ -53,8 +54,8 @@ public final class ThingQueryCommandResponseAdapterTest {
     private ThingQueryCommandResponseAdapter underTest;
 
     @Before
-    public void setUp() throws Exception {
-        underTest = ThingQueryCommandResponseAdapter.newInstance();
+    public void setUp() {
+        underTest = ThingQueryCommandResponseAdapter.of(MessageHeaders.publisher());
     }
 
     @Test(expected = UnknownCommandResponseException.class)

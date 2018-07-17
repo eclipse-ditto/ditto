@@ -53,7 +53,7 @@ public final class MessageCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandResponseAdapter.newInstance();
+        underTest = MessageCommandResponseAdapter.of(MessageHeaders.publisher());
     }
 
     @Parameterized.Parameters(name = "type={0}")
@@ -102,15 +102,17 @@ public final class MessageCommandResponseAdapterTest {
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
                         .statusCode(statusCode)
                         .schemaVersion(JsonSchemaVersion.V_2);
+        final DittoHeadersBuilder expectedHeadersBuilder =
+                TestConstants.DITTO_HEADERS_V_2.toBuilder().contentType(contentType);
         if (isAcceptedResponse()) {
             messageHeadersBuilder.responseRequired(false);
+            expectedHeadersBuilder.responseRequired(false);
         }
         final Message<Object> expectedMessage = Message.newBuilder(messageHeadersBuilder.build())
                 .payload(javaPayload)
                 .build();
-        final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
-        final MessageCommandResponse messageCommandResponse = messageCommandResponse(expectedMessage, expectedHeaders);
+        final MessageCommandResponse messageCommandResponse =
+                messageCommandResponse(expectedMessage, expectedHeadersBuilder.build());
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .live()

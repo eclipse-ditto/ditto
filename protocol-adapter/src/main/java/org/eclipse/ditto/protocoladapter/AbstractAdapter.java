@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
@@ -49,9 +50,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
 
     private final Map<String, JsonifiableMapper<T>> mappingStrategies;
+    private final HeaderPublisher headerPublisher;
 
-    protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies) {
+    protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies,
+            final HeaderPublisher headerPublisher) {
         this.mappingStrategies = mappingStrategies;
+        this.headerPublisher = headerPublisher;
     }
 
     protected static boolean isCreated(final Adaptable adaptable) {
@@ -60,6 +64,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 
+    /**
+     * Reads Ditto headers from an Adaptable. CAUTION: Headers are taken as-is!.
+     *
+     * @param adaptable the protocol message.
+     * @return the headers of the message.
+     */
     protected static DittoHeaders dittoHeadersFrom(final Adaptable adaptable) {
         return adaptable.getHeaders().orElseGet(DittoHeaders::empty);
     }
@@ -219,10 +229,22 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
                 .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
     }
 
+    protected abstract Adaptable constructAdaptable(final T signal, final TopicPath.Channel channel);
+
+    protected abstract String getType(Adaptable adaptable);
+
+    /*
+     * injects header reading phase to parsing of protocol messages.
+     */
     @Override
-    public T fromAdaptable(final Adaptable adaptable) {
-        checkNotNull(adaptable, "Adaptable");
-        final String type = getType(adaptable);
+    public final T fromAdaptable(final Adaptable externalAdaptable) {
+        checkNotNull(externalAdaptable, "Adaptable");
+        // get type from external adaptable before header filtering in case some headers exist for external messages
+        // but not internally in Ditto.
+        final String type = getType(externalAdaptable);
+        final Adaptable adaptable = externalAdaptable.getHeaders()
+                .map(headers -> externalAdaptable.setDittoHeaders(headerPublisher.fromExternalHeaders(headers)))
+                .orElse(externalAdaptable);
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
         if (null == jsonifiableMapper) {
             throw UnknownTopicPathException.newBuilder(adaptable.getTopicPath()).build();
@@ -231,7 +253,19 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
     }
 
-    protected abstract String getType(Adaptable adaptable);
+    /*
+     * inject header publishing phase to creation of protocol messages.
+     */
+    @Override
+    public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
+        final Adaptable adaptable = constructAdaptable(signal, channel);
+        final Map<String, String> externalHeaders = headerPublisher.toExternalHeaders(adaptable.getDittoHeaders());
+        return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
+    }
+
+    protected final HeaderPublisher headerPublisher() {
+        return headerPublisher;
+    }
 
     /**
      * Returns the given String {@code s} with an upper case first letter.

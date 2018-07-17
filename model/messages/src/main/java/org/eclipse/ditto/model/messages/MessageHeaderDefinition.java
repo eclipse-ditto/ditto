@@ -27,7 +27,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.IdValidator;
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaderPublisher;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 
 /**
  * Enumeration of definitions of well known message headers including their key and Java type.

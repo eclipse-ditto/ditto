@@ -18,6 +18,7 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -45,17 +46,20 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  */
 final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand> {
 
-    private ThingModifyCommandAdapter(final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingModifyCommandAdapter(
+            final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
+            final HeaderPublisher headerPublisher) {
+        super(mappingStrategies, headerPublisher);
     }
 
     /**
      * Returns a new ThingModifyCommandAdapter.
      *
+     * @param headerPublisher translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingModifyCommandAdapter newInstance() {
-        return new ThingModifyCommandAdapter(mappingStrategies());
+    public static ThingModifyCommandAdapter of(final HeaderPublisher headerPublisher) {
+        return new ThingModifyCommandAdapter(mappingStrategies(), headerPublisher);
     }
 
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {
@@ -131,7 +135,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =

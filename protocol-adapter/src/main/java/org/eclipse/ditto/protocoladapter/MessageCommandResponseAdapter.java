@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
@@ -27,32 +28,20 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
-    private final boolean removeInternalHeaders;
-
     private MessageCommandResponseAdapter(
             final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies,
-            final boolean removeInternalMessageHeaders) {
-        super(mappingStrategies);
-        this.removeInternalHeaders = removeInternalMessageHeaders;
+            final HeaderPublisher headerPublisher) {
+        super(mappingStrategies, headerPublisher);
     }
 
     /**
      * Returns a new MessageCommandResponseAdapter.
      *
+     * @param headerPublisher translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static MessageCommandResponseAdapter newInstance() {
-        return of(Boolean.TRUE);
-    }
-
-    /**
-     * Returns a new MessageCommandResponseAdapter.
-     *
-     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
-     * @return the adapter.
-     */
-    public static MessageCommandResponseAdapter of(final boolean removeInternalMessageHeaders) {
-        return new MessageCommandResponseAdapter(mappingStrategies(), removeInternalMessageHeaders);
+    public static MessageCommandResponseAdapter of(final HeaderPublisher headerPublisher) {
+        return new MessageCommandResponseAdapter(mappingStrategies(), headerPublisher);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {
@@ -97,10 +86,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
-    public Adaptable toAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), headerPublisher());
     }
 
 }
