@@ -12,6 +12,7 @@
 package org.eclipse.ditto.model.base.headers;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -27,22 +28,8 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
 
     private final Map<String, HeaderDefinition> headerDefinitionMap;
 
-    private DittoHeaderPublisher(final HeaderDefinition[]... headerDefinitions) {
-        this.headerDefinitionMap = Arrays.stream(headerDefinitions)
-                .flatMap(Arrays::stream)
-                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity()));
-    }
-
-    /**
-     * Default provider of header publisher for Ditto that knows about all header definitions enumerated in
-     * {@link DittoHeaderDefinition}.
-     */
-    public static final class Provider implements HeaderPublisher.Provider {
-
-        @Override
-        public HeaderPublisher get() {
-            return of();
-        }
+    private DittoHeaderPublisher(final Map<String, HeaderDefinition> headerDefinitionMap) {
+        this.headerDefinitionMap = headerDefinitionMap;
     }
 
     /**
@@ -62,7 +49,9 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
      * @return the Ditto header publisher that knows about the given definitions.
      */
     public static DittoHeaderPublisher of(final HeaderDefinition[]... headerDefinitions) {
-        return new DittoHeaderPublisher(headerDefinitions);
+        return new DittoHeaderPublisher(Arrays.stream(headerDefinitions)
+                .flatMap(Arrays::stream)
+                .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity())));
     }
 
     @Override
@@ -87,5 +76,14 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
             }
         });
         return headers;
+    }
+
+    @Override
+    public HeaderPublisher forgetHeaderKeys(final Collection<String> headerKeys) {
+        final Map<String, HeaderDefinition> newHeaderDefinitionMap = headerDefinitionMap.entrySet()
+                .stream()
+                .filter(entry -> !headerKeys.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return new DittoHeaderPublisher(newHeaderDefinitionMap);
     }
 }

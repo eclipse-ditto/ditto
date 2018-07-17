@@ -11,13 +11,8 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Interface for reading Ditto headers from external headers and writing Ditto headers to external headers.
@@ -40,25 +35,12 @@ public interface HeaderPublisher {
      */
     Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders);
 
-    default DittoHeaders fromExternalJson(final JsonObject externalHeaders) {
-        return fromExternalHeaders(externalHeaders.stream()
-                .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().formatAsString())));
-    }
-
-    default JsonObject toExternalJson(final DittoHeaders dittoHeaders) {
-        return toExternalHeaders(dittoHeaders).entrySet()
-                .stream()
-                .map(entry -> JsonFactory.newField(
-                        JsonFactory.newKey(entry.getKey()),
-                        JsonFactory.newValue(entry.getValue())))
-                .collect(JsonCollectors.fieldsToObject());
-    }
-
     /**
-     * Provider of a header publisher.
+     * Build a copy of this header publisher without knowledge of certain headers.
+     *
+     * @param headerKeys header keys to forget.
+     * @return a new header publisher with less knowledge.
      */
-    interface Provider {
+    HeaderPublisher forgetHeaderKeys(final Collection<String> headerKeys);
 
-        HeaderPublisher get();
-    }
 }

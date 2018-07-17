@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -86,9 +85,9 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        final boolean compatibilityMode =
-                HeadersConfigReader.fromRawConfig(actorSystem.settings().config()).compatibilityMode();
-        final DittoProtocolAdapter protocolAdapter = DittoProtocolAdapter.of(!compatibilityMode);
+        final HeadersConfigReader headersConfig = HeadersConfigReader.fromRawConfig(actorSystem.settings().config());
+        final DittoProtocolAdapter protocolAdapter =
+                DittoProtocolAdapter.of(headersConfig.loadHeaderPublisher(actorSystem));
         return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 

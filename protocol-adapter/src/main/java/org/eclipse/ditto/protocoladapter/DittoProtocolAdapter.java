@@ -86,15 +86,6 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), MessageHeaders.publisher());
     }
 
-    /**
-     * Return the header publisher of this Ditto protocol adapter.
-     *
-     * @return the header publisher.
-     */
-    public HeaderPublisher headerPublisher() {
-        return headerPublisher;
-    }
-
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
@@ -257,9 +248,12 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
             throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }
 
+        final DittoHeaders responseHeaders =
+                ProtocolFactory.newHeadersWithDittoContentType(thingErrorResponse.getDittoHeaders());
+
         return Adaptable.newBuilder(topicPathBuildable.build())
-                .withPayload(payload) //
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(thingErrorResponse.getDittoHeaders())) //
+                .withPayload(payload)
+                .withHeaders(DittoHeaders.of(headerPublisher.toExternalHeaders(responseHeaders)))
                 .build();
     }
 
@@ -351,7 +345,8 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the ThingErrorResponse.
      */
     private ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders dittoHeaders =
+                headerPublisher.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()

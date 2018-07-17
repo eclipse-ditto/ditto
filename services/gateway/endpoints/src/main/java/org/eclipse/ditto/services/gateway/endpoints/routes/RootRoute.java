@@ -128,6 +128,7 @@ public final class RootRoute {
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
     private final WebsocketRoute websocketRoute;
+    private final boolean wsCompatibilityMode;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
     private final StatsRoute statsRoute;
@@ -178,9 +179,10 @@ public final class RootRoute {
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                headersConfig.blacklist(),
-                DittoProtocolAdapter.of(!headersConfig.compatibilityMode()),
+                DittoProtocolAdapter.of(headersConfig.loadHeaderPublisher(actorSystem)),
+                DittoProtocolAdapter.of(headersConfig.loadCompatibleHeaderPublisher(actorSystem)),
                 actorSystem.eventStream());
+        wsCompatibilityMode = headersConfig.compatibilityMode();
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
 
@@ -380,7 +382,7 @@ public final class RootRoute {
                                         authContextWithPrefixedSubjects,
                                         authContext ->
                                                 websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                        authContext)
+                                                        authContext, wsCompatibilityMode)
                                 )
                         )
                 )
