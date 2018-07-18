@@ -27,8 +27,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  * Thrown if the the configuration of a {@link Connection} was invalid.
  */
 @Immutable
-public final class ConnectionConfigurationInvalidException extends DittoRuntimeException implements
-        ConnectivityException {
+public final class ConnectionConfigurationInvalidException extends DittoRuntimeException
+        implements ConnectivityException {
 
     /**
      * Error code of this exception.
@@ -40,9 +40,12 @@ public final class ConnectionConfigurationInvalidException extends DittoRuntimeE
 
     private static final long serialVersionUID = 8387870996010060745L;
 
-    private ConnectionConfigurationInvalidException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private ConnectionConfigurationInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
             @Nullable final String description,
-            @Nullable final Throwable cause, @Nullable final URI href) {
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -65,6 +68,7 @@ public final class ConnectionConfigurationInvalidException extends DittoRuntimeE
      */
     public static ConnectionConfigurationInvalidException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -84,6 +88,7 @@ public final class ConnectionConfigurationInvalidException extends DittoRuntimeE
      */
     public static ConnectionConfigurationInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
@@ -105,9 +110,13 @@ public final class ConnectionConfigurationInvalidException extends DittoRuntimeE
         @Override
         protected ConnectionConfigurationInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
+
             return new ConnectionConfigurationInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

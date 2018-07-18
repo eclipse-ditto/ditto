@@ -72,8 +72,6 @@ import akka.util.Timeout;
  */
 public final class AmqpClientActor extends BaseClientActor implements ExceptionListener {
 
-    private static final int TEST_CONNECTION_TIMEOUT = 5;
-
     private final JmsConnectionFactory jmsConnectionFactory;
     private final ConnectionListener connectionListener;
     private final Map<String, MessageConsumer> consumerMap;

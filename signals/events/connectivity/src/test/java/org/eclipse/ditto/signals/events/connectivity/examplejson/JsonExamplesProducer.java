@@ -42,7 +42,8 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
 public class JsonExamplesProducer {
 
-    private static final String ID = "myConnection";
+    private static final String ID = "myConnectionId";
+    private static final String NAME = "myConnection";
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
@@ -122,6 +123,7 @@ public class JsonExamplesProducer {
 
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+                        .name(NAME)
                         .sources(SOURCES)
                         .targets(TARGETS)
                         .mappingContext(MAPPING_CONTEXT)

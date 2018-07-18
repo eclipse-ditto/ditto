@@ -68,7 +68,18 @@
         <jsr302.version>3.0.1</jsr302.version>
 
         <rhino.version>1.7.10</rhino.version>
+        <!--
+            be aware that connectivity mapping has a direct dependency on files inside this library.
+            when updating this version, you should also check if the used paths and files still exist
+            and update the code otherwise. see implementation of org.eclipse.ditto.services.connectivity.mapping.MessageMapper
+        -->
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
+        <!--
+            be aware that connectivity mapping has a direct dependency on files inside this library.
+            when updating this version, you should also check if the used paths and files still exist
+            and update the code otherwise. see implementation of org.eclipse.ditto.services.connectivity.mapping.MessageMapper
+        -->
+        <js.long.version>3.2.0</js.long.version>
         <caffeine.version>2.6.2</caffeine.version>
 
         <!-- ### Testing dependencies versions -->
@@ -600,6 +611,11 @@
                 <groupId>org.webjars.npm</groupId>
                 <artifactId>bytebuffer</artifactId>
                 <version>${js.bytebuffer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars.npm</groupId>
+                <artifactId>long</artifactId>
+                <version>${js.long.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
