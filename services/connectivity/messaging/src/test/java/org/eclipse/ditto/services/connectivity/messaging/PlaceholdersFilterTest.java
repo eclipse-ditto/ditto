@@ -74,7 +74,7 @@ public class PlaceholdersFilterTest {
                 "prefix:eclipse:ditto:suffix");
         assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:id}}", thingPlaceholder))
                 .isEqualTo(
-                "testTargetAmqpCon4_eclipse:ditto");
+                        "testTargetAmqpCon4_eclipse:ditto");
     }
 
     @Test
@@ -112,19 +112,19 @@ public class PlaceholdersFilterTest {
 
         // whitespace separators
         assertThat(underTest.apply("{{thing:namespace }}  {{  thing:id }}  {{header:device-id }}",
-                headersPlaceholder, thingPlaceholder)).isEqualTo("eclipseditto" + DEVICE_ID);
+                headersPlaceholder, thingPlaceholder)).isEqualTo("eclipse  ditto  " + DEVICE_ID);
 
         // pre/postfix whitespace
         assertThat(underTest.apply("  {{thing:namespace }}{{  thing:id }}{{header:device-id }}  ",
-                headersPlaceholder, thingPlaceholder)).isEqualTo("eclipseditto" + DEVICE_ID);
+                headersPlaceholder, thingPlaceholder)).isEqualTo("  eclipseditto" + DEVICE_ID + "  ");
 
         // pre/postfix
         assertThat(underTest.apply("-----{{thing:namespace }}{{  thing:id }}{{header:device-id }}-----",
-                headersPlaceholder, thingPlaceholder)).isEqualTo("eclipseditto" + DEVICE_ID);
+                headersPlaceholder, thingPlaceholder)).isEqualTo("-----eclipseditto" + DEVICE_ID + "-----");
 
         // pre/postfix and separators
         assertThat(underTest.apply("-----{{thing:namespace }}///{{  thing:id }}///{{header:device-id }}-----",
-                headersPlaceholder, thingPlaceholder)).isEqualTo("eclipseditto" + DEVICE_ID);
+                headersPlaceholder, thingPlaceholder)).isEqualTo("-----eclipse///ditto///" + DEVICE_ID + "-----");
     }
 
     @Test
