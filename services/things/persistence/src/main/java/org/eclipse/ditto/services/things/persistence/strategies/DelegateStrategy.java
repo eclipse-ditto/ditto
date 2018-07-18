@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
- * A generic strategy that holds a mapping class -> strategy and applies the correct strategy for given messages.
+ * A generic strategy that holds a mapping class &rarr; strategy and applies the correct strategy for given messages.
  * This avoids the use of orElse() statements which is applied when calling {@link akka.japi.pf.ReceiveBuilder#match}.
  */
 public final class DelegateStrategy extends AbstractReceiveStrategy<Object>
