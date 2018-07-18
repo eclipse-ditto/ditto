@@ -416,7 +416,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         if (connection != null && !connection.getConnectionType().equals(command.getConnection().getConnectionType())) {
             handleException("modify", origin, ConnectionConfigurationInvalidException
                     .newBuilder("ConnectionType '" + connection.getConnectionType().getName() +
-                            "' of existing connection '" + connectionId + "' cannot be changed")
+                            "' of existing connection '" + connectionId + "' cannot be changed.")
                     .dittoHeaders(command.getDittoHeaders())
                     .build()
             );
@@ -427,19 +427,36 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 ConnectionModified.of(command.getConnection(), command.getDittoHeaders());
 
         persistEvent(connectionModified, persistedEvent -> {
-            connection = persistedEvent.getConnection();
-
-            askClientActor(command, response -> {
-                        getContext().become(connectionCreatedBehaviour);
-                        subscribeForEvents();
-                        origin.tell(
-                                ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
-                                getSelf());
-                        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                    }, error ->
-                            handleException("connect-after-modify", origin, error)
-            );
+            if (persistedEvent.getConnection().getClientCount() != connection.getClientCount()) {
+                log.info("Client count changed: old client count: <{}>, new client count: <{}>. " +
+                                "Stopping client actor to apply new config.",
+                        connection.getClientCount(), persistedEvent.getConnection().getClientCount());
+                // send an artificial CloseConnection command to gracefully disconnect and stop the child actors
+                askClientActor(CloseConnection.of(connectionId, DittoHeaders.empty()),
+                        onSuccess -> {
+                            log.info("Connection closed, now stopping client actor.");
+                            stopClientActor();
+                            handleModifyConnection(command, persistedEvent, origin);
+                        },
+                        error -> handleException("connect-after-modify", origin, error));
+            } else {
+                handleModifyConnection(command, persistedEvent, origin);
+            }
         });
+    }
+
+    private void handleModifyConnection(final ModifyConnection command, final ConnectionModified persistedEvent,
+            final ActorRef origin) {
+        connection = persistedEvent.getConnection();
+        askClientActor(command, response -> {
+                    getContext().become(connectionCreatedBehaviour);
+                    subscribeForEvents();
+                    origin.tell(
+                            ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
+                            getSelf());
+                    getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+                }, error -> handleException("connect-after-modify", origin, error)
+        );
     }
 
     private void openConnection(final OpenConnection command) {
@@ -454,8 +471,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             askClientActor(command, response -> {
                         subscribeForEvents();
                         origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
-                    }, error ->
-                            handleException("open-connection", origin, error)
+                    }, error -> handleException("open-connection", origin, error)
             );
         });
     }
@@ -673,8 +689,19 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void stopClientActor() {
         if (clientActor != null) {
             log.debug("Stopping the client actor.");
+            final String name = clientActor.path().name();
             stopChildActor(clientActor);
             clientActor = null;
+            // block until client actor is stopped
+            int counter = 20;
+            while (getContext().findChild(name).isPresent() && --counter >= 0) {
+                log.debug("Client actor '{}' still running.", name);
+                try {
+                    Thread.sleep(50);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 
