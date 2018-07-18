@@ -95,6 +95,8 @@ public final class ThingSupervisorActor extends AbstractActor {
      * @param maxBackOff the exponential back-off is capped to this duration.
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
+     * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
+     * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final Duration minBackOff,
