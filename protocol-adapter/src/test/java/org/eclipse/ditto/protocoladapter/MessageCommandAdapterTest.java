@@ -104,7 +104,7 @@ public final class MessageCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandAdapter.of(MessageHeaders.publisher());
+        underTest = MessageCommandAdapter.of(DittoProtocolAdapter.headerPublisher());
     }
 
     @Test

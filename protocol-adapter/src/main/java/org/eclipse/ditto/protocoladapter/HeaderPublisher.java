@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.base.headers;
+package org.eclipse.ditto.protocoladapter;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,17 +18,22 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+
 import jdk.nashorn.internal.ir.annotations.Immutable;
 
 /**
  * Default implementation of {@link HeaderPublisher} for Ditto.
  */
 @Immutable
-public final class DittoHeaderPublisher implements HeaderPublisher {
+public final class HeaderPublisher {
 
     private final Map<String, HeaderDefinition> headerDefinitionMap;
 
-    private DittoHeaderPublisher(final Map<String, HeaderDefinition> headerDefinitionMap) {
+    private HeaderPublisher(final Map<String, HeaderDefinition> headerDefinitionMap) {
         this.headerDefinitionMap = headerDefinitionMap;
     }
 
@@ -38,7 +43,7 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
      *
      * @return the Ditto header publisher.
      */
-    public static DittoHeaderPublisher of() {
+    public static HeaderPublisher of() {
         return of(DittoHeaderDefinition.values());
     }
 
@@ -48,13 +53,18 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
      * @param headerDefinitions arrays of header definitions.
      * @return the Ditto header publisher that knows about the given definitions.
      */
-    public static DittoHeaderPublisher of(final HeaderDefinition[]... headerDefinitions) {
-        return new DittoHeaderPublisher(Arrays.stream(headerDefinitions)
+    public static HeaderPublisher of(final HeaderDefinition[]... headerDefinitions) {
+        return new HeaderPublisher(Arrays.stream(headerDefinitions)
                 .flatMap(Arrays::stream)
                 .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity())));
     }
 
-    @Override
+    /**
+     * Read Ditto headers from external headers.
+     *
+     * @param externalHeaders external headers as a map.
+     * @return Ditto headers initialized with values from external headers.
+     */
     public DittoHeaders fromExternalHeaders(final Map<String, String> externalHeaders) {
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
         externalHeaders.forEach((key, value) -> {
@@ -66,7 +76,12 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
         return builder.build();
     }
 
-    @Override
+    /**
+     * Publish Ditto headers to external headers.
+     *
+     * @param dittoHeaders Ditto headers to publish.
+     * @return external headers.
+     */
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
         final Map<String, String> headers = new HashMap<>();
         dittoHeaders.forEach((key, value) -> {
@@ -78,12 +93,17 @@ public final class DittoHeaderPublisher implements HeaderPublisher {
         return headers;
     }
 
-    @Override
+    /**
+     * Build a copy of this header publisher without knowledge of certain headers.
+     *
+     * @param headerKeys header keys to forget.
+     * @return a new header publisher with less knowledge.
+     */
     public HeaderPublisher forgetHeaderKeys(final Collection<String> headerKeys) {
         final Map<String, HeaderDefinition> newHeaderDefinitionMap = headerDefinitionMap.entrySet()
                 .stream()
                 .filter(entry -> !headerKeys.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return new DittoHeaderPublisher(newHeaderDefinitionMap);
+        return new HeaderPublisher(newHeaderDefinitionMap);
     }
 }

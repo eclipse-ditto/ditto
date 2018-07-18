@@ -18,10 +18,10 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.HeaderPublisher;
-import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.Signal;
@@ -83,7 +83,16 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), MessageHeaders.publisher());
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerPublisher());
+    }
+
+    /**
+     * Create a default header publisher for this protocol adapter.
+     *
+     * @return the default header publisher.
+     */
+    public static HeaderPublisher headerPublisher() {
+        return HeaderPublisher.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
     @Override

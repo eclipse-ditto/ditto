@@ -25,7 +25,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
@@ -50,7 +49,7 @@ public final class ThingQueryCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingQueryCommandAdapter.of(MessageHeaders.publisher());
+        underTest = ThingQueryCommandAdapter.of(DittoProtocolAdapter.headerPublisher());
     }
 
     @Test(expected = UnknownCommandException.class)

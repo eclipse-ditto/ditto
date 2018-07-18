@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;

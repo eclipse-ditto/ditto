@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
@@ -59,7 +58,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandResponseAdapter.of(MessageHeaders.publisher());
+        underTest = ThingModifyCommandResponseAdapter.of(DittoProtocolAdapter.headerPublisher());
     }
 
     @Test(expected = UnknownCommandResponseException.class)
@@ -607,7 +606,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyAttributeResponse expectedCreated =
                 ModifyAttributeResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -1332,7 +1331,7 @@ public final class ThingModifyCommandResponseAdapterTest {
     public void deleteFeaturePropertyResponseFromAdaptable() {
         final DeleteFeaturePropertyResponse expected =
                 DeleteFeaturePropertyResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .things()

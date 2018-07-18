@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -56,7 +55,7 @@ public final class ThingModifyCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandAdapter.of(MessageHeaders.publisher());
+        underTest = ThingModifyCommandAdapter.of(DittoProtocolAdapter.headerPublisher());
     }
 
     @Test(expected = UnknownCommandException.class)

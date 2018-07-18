@@ -18,7 +18,6 @@ import java.util.Optional;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.HeaderPublisher;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;

@@ -25,9 +25,7 @@ import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -36,6 +34,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -85,9 +84,10 @@ public final class MessageMappingProcessor {
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry = DefaultMessageMapperFactory.of(actorSystem, MessageMappers.class, log)
                 .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
-        final HeadersConfigReader headersConfig = HeadersConfigReader.fromRawConfig(actorSystem.settings().config());
-        final DittoProtocolAdapter protocolAdapter =
-                DittoProtocolAdapter.of(headersConfig.loadHeaderPublisher(actorSystem));
+        final ProtocolConfigReader protocolConfigReader =
+                ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
+        final ProtocolAdapter protocolAdapter =
+                protocolConfigReader.loadProtocolAdapterProvider(actorSystem).get();
         return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 

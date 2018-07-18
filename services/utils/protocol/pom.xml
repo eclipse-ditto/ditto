@@ -16,26 +16,22 @@
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-services</artifactId>
+        <artifactId>ditto-services-utils</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-utils</artifactId>
-    <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: Utils</name>
+    <artifactId>ditto-services-utils-protocol</artifactId>
+    <name>Eclipse Ditto :: Services :: Utils :: Protocol</name>
 
-    <modules>
-        <module>akka</module>
-        <module>cache</module>
-        <module>cluster</module>
-        <module>config</module>
-        <module>devops</module>
-        <module>health</module>
-        <module>persistence</module>
-        <module>protocol</module>
-        <module>test</module>
-        <module>tracing</module>
-        <module>metrics</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-protocol-adapter</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
