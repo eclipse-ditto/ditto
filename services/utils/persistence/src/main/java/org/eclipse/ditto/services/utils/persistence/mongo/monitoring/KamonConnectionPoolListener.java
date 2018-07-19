@@ -13,8 +13,9 @@ package org.eclipse.ditto.services.utils.persistence.mongo.monitoring;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +29,6 @@ import com.mongodb.event.ConnectionPoolOpenedEvent;
 import com.mongodb.event.ConnectionPoolWaitQueueEnteredEvent;
 import com.mongodb.event.ConnectionPoolWaitQueueExitedEvent;
 import com.mongodb.event.ConnectionRemovedEvent;
-
-import kamon.Kamon;
-import kamon.metric.instrument.Gauge;
 
 /**
  * Reports MongoDB connection pool statistics to Kamon.
@@ -59,10 +57,7 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Connection pool closed: {}", event);
         }
-        final PoolMetric metric = metrics.remove(event.getServerId());
-        if (metric != null) {
-            metric.remove();
-        }
+        metrics.remove(event.getServerId());
     }
 
     @Override
@@ -99,62 +94,62 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
 
     private class PoolMetric {
 
-        private static final String POOL_PREFIX = ".pool.";
-        private static final String CHECKED_OUT_COUNT = ".checkedOutCount";
-        private static final String POOL_SIZE = ".poolSize";
-        private static final String WAIT_QUEUE_SIZE = ".waitQueueSize";
+        private static final String POOL_PREFIX = "_pool";
+        private static final String CHECKED_OUT_COUNT = "_checkedOutCount";
+        private static final String POOL_SIZE = "_poolSize";
+        private static final String WAIT_QUEUE_SIZE = "_waitQueueSize";
+        private static final String CLUSTER_ID_TAG = "cluster_id";
 
-        private final AtomicLong poolSize = new AtomicLong();
-        private final AtomicLong checkedOutCount = new AtomicLong();
-        private final AtomicLong waitQueueSize = new AtomicLong();
-        private final String name;
         private final Gauge poolSizeGauge;
         private final Gauge checkOutCountGauge;
         private final Gauge waitQueueGauge;
 
         private PoolMetric(final ServerId serverId) {
-            this.name = serverId.getClusterId().getValue();
-            poolSizeGauge = Kamon.metrics().gauge(metricName + POOL_PREFIX + name + POOL_SIZE, poolSize::get);
+            final String clusterId = serverId.getClusterId().getValue();
+            poolSizeGauge = DittoMetrics.gauge(metricName + POOL_PREFIX + POOL_SIZE)
+                    .tag(CLUSTER_ID_TAG, clusterId);
+            poolSizeGauge.set(0L);
+
             checkOutCountGauge =
-                    Kamon.metrics().gauge(metricName + POOL_PREFIX + name + CHECKED_OUT_COUNT, checkedOutCount::get);
+                    DittoMetrics.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT)
+                            .tag(CLUSTER_ID_TAG, clusterId);
+            checkOutCountGauge.set(0L);
+
             waitQueueGauge =
-                    Kamon.metrics().gauge(metricName + POOL_PREFIX + name + WAIT_QUEUE_SIZE, waitQueueSize::get);
+                    DittoMetrics.gauge(metricName + POOL_PREFIX + WAIT_QUEUE_SIZE)
+                            .tag(CLUSTER_ID_TAG, clusterId);
+            waitQueueGauge.set(0L);
         }
 
         private PoolMetric incPoolSize() {
-            poolSizeGauge.record(poolSize.incrementAndGet());
+            poolSizeGauge.increment();
             return this;
         }
 
         private PoolMetric decPoolSize() {
-            poolSizeGauge.record(poolSize.decrementAndGet());
+            poolSizeGauge.decrement();
             return this;
         }
 
         private PoolMetric incCheckedOutCount() {
-            checkOutCountGauge.record(checkedOutCount.incrementAndGet());
+            checkOutCountGauge.increment();
             return this;
         }
 
         private PoolMetric decCheckedOutCount() {
-            checkOutCountGauge.record(checkedOutCount.decrementAndGet());
+            checkOutCountGauge.decrement();
             return this;
         }
 
         private PoolMetric incWaitQueueSize() {
-            waitQueueGauge.record(waitQueueSize.incrementAndGet());
+            waitQueueGauge.increment();
             return this;
         }
 
         private PoolMetric decWaitQueueSize() {
-            waitQueueGauge.record(waitQueueSize.decrementAndGet());
+            waitQueueGauge.decrement();
             return this;
         }
 
-        private void remove() {
-            Kamon.metrics().removeGauge(metricName + POOL_PREFIX + name + POOL_SIZE);
-            Kamon.metrics().removeGauge(metricName + POOL_PREFIX + name + CHECKED_OUT_COUNT);
-            Kamon.metrics().removeGauge(metricName + POOL_PREFIX + name + WAIT_QUEUE_SIZE);
-        }
     }
 }

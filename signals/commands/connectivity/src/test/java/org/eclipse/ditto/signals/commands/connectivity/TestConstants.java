@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.connectivity.Target;
  */
 public final class TestConstants {
 
-    public static String ID = "myConnection";
+    public static String ID = "myConnectionId";
 
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectionStatus STATUS = ConnectionStatus.OPEN;

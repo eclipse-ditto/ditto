@@ -150,6 +150,17 @@
                 <role>Committer</role>
             </roles>
         </developer>
+        <developer>
+            <id>ffendt</id>
+            <name>Florian Fendt</name>
+            <email>florian.fendt@bosch-si.com</email>
+            <url>https://github.com/ffendt</url>
+            <organization>Bosch Software Innovations GmbH</organization>
+            <organizationUrl>http://www.bosch-si.com</organizationUrl>
+            <roles>
+                <role>Committer</role>
+            </roles>
+        </developer>
     </developers>
 
     <modules>
@@ -165,6 +176,9 @@
 
     <properties>
         <revision>0.1.0-SNAPSHOT</revision>
+
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -191,8 +205,8 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.7.0</version>
                     <configuration>
-                        <source>1.8</source>
-                        <target>1.8</target>
+                        <source>${javac.source}</source>
+                        <target>${javac.target}</target>
                         <encoding>${project.build.sourceEncoding}</encoding>
                     </configuration>
                 </plugin>

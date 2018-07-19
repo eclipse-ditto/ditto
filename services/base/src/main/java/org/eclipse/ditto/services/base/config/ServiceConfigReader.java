@@ -49,11 +49,11 @@ public interface ServiceConfigReader {
     HttpConfigReader http();
 
     /**
-     * Retrieve a statsd configuration reader.
+     * Retrieve a metrics configuration reader.
      *
-     * @return the statsd configuration of the service.
+     * @return the metrics configuration of the service.
      */
-    StatsdConfigReader statsd();
+    MetricsConfigReader metrics();
 
     /**
      * Retrieve the underlying {@code Config} object for backward compatibility.

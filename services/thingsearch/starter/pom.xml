@@ -118,33 +118,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-remote-2.4_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.kamon</groupId>
-                    <artifactId>sigar-loader</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-statsd_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>

@@ -103,7 +103,7 @@ public final class AggregatedConnectivityCommandResponse
      */
     public static AggregatedConnectivityCommandResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders,
-            final Map<String, JsonParsable<CommandResponse<?>>> parseStrategies) {
+            final Map<String, JsonParsable<ConnectivityCommandResponse>> parseStrategies) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders, parseStrategies);
     }
 
@@ -118,7 +118,7 @@ public final class AggregatedConnectivityCommandResponse
      * format.
      */
     public static AggregatedConnectivityCommandResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders, final Map<String, JsonParsable<CommandResponse<?>>> parseStrategies) {
+            final DittoHeaders dittoHeaders, final Map<String, JsonParsable<ConnectivityCommandResponse>> parseStrategies) {
         return new CommandResponseJsonDeserializer<AggregatedConnectivityCommandResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
                     final String theConnectionId =

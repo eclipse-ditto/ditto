@@ -20,6 +20,11 @@
         <version>${revision}</version>
     </parent>
 
+    <properties>
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+    </properties>
+
     <artifactId>ditto-services-concierge-enforcement</artifactId>
     <name>Eclipse Ditto :: Services :: Concierge :: Enforcement</name>
 

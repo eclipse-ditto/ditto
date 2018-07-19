@@ -171,8 +171,8 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
-                                .flow(actorSystem, materializer),
+                .bindAndHandle(createRoute(actorSystem, config, materializer, proxyActor, streamingActor,
+                        healthCheckActor).flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         binding.exceptionally(failure -> {
@@ -222,19 +222,15 @@ final class GatewayRootActor extends AbstractActor {
         return getContext().actorOf(props, actorName);
     }
 
-    private Route createRoute(final ActorSystem actorSystem, final Config config,
+    private Route createRoute(final ActorSystem actorSystem,
+            final Config config,
+            final ActorMaterializer materializer,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
-
         final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
-        final RootRoute rootRoute = new RootRoute(actorSystem, config,
-                proxyActor,
-                streamingActor,
-                healthCheckingActor,
-                new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                httpClient);
-
+        final RootRoute rootRoute = new RootRoute(actorSystem, config, materializer, proxyActor, streamingActor,
+                healthCheckingActor, new ClusterStatusSupplier(Cluster.get(actorSystem)), httpClient);
         return rootRoute.buildRoute();
     }
 

@@ -17,14 +17,13 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-
-import com.mongodb.client.model.Sorts;
-
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.SortFieldExpressionVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
+
+import com.mongodb.client.model.Sorts;
 
 /**
  * Creates a Bson sort option based on an expression.

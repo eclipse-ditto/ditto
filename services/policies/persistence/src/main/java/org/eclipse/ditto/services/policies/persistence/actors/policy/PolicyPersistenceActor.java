@@ -174,7 +174,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private Runnable invokeAfterSnapshotRunnable;
     private boolean snapshotInProgress;
 
-    private PolicyPersistenceActor(final String policyId,
+    PolicyPersistenceActor(final String policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
 
@@ -607,6 +607,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         return null == policy || policy.hasLifecycle(PolicyLifecycle.DELETED);
     }
 
+    private boolean policyExistsAsDeleted() {
+        return null != policy && policy.hasLifecycle(PolicyLifecycle.DELETED);
+    }
+
     private void doSaveSnapshot(final Runnable invokeAfterSnapshotRunnable) {
         if (snapshotInProgress) {
             log.debug("Already requested taking a Snapshot - not doing it again.");
@@ -677,7 +681,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * Message the PolicyPersistenceActor can send to itself to check for activity of the Actor and terminate itself
      * if there was no activity since the last check.
      */
-    private static final class CheckForActivity {
+    static final class CheckForActivity {
 
         private final long currentSequenceNr;
         private final long currentAccessCounter;
@@ -1696,7 +1700,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 log.error(cause, "Failed to save snapshot for <{}>. Cause: {}.", policyId, causeMessage);
             }
         }
-        
+
     }
 
     /**
@@ -1881,7 +1885,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final CheckForActivity message) {
-            if (isPolicyDeleted() && lastSnapshotSequenceNr < lastSequenceNr()) {
+            if (policyExistsAsDeleted() && lastSnapshotSequenceNr < lastSequenceNr()) {
                 // take a snapshot after a period of inactivity if:
                 // - thing is deleted,
                 // - the latest snapshot is out of date or is still ongoing.

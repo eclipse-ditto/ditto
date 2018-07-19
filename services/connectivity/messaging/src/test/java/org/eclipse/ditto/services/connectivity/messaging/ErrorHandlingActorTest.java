@@ -59,7 +59,7 @@ public class ErrorHandlingActorTest {
     }
 
     @Test
-    public void tryCreateConnectionExpectErrorResponse() {
+    public void tryCreateConnectionExpectSuccessResponseIndependentOfConnectionStatus() {
         new TestKit(actorSystem) {{
             final String connectionId = TestConstants.createRandomConnectionId();
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
@@ -71,10 +71,7 @@ public class ErrorHandlingActorTest {
             // create connection
             final ConnectivityModifyCommand command = CreateConnection.of(connection, DittoHeaders.empty());
             underTest.tell(command, getRef());
-            expectMsg(ConnectionFailedException
-                    .newBuilder(connectionId)
-                    .description("error message")
-                    .build());
+            expectMsg(CreateConnectionResponse.of(connection, DittoHeaders.empty()));
         }};
     }
 

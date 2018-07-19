@@ -80,11 +80,6 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-tools_${scala.version}</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

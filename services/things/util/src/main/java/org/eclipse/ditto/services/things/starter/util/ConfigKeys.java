@@ -78,7 +78,7 @@ public final class ConfigKeys {
          * Every amount of changes (configured by this key), this Actor will create a snapshot of the thing.
          */
         public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
-        
+
         /**
          * The interval when to do snapshot for a Thing which had changes to it.
          */

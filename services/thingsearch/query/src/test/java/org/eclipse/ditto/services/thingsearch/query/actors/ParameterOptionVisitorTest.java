@@ -22,18 +22,17 @@ import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-
 import org.eclipse.ditto.services.thingsearch.query.AnswerWithSelf;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**

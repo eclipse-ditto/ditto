@@ -59,7 +59,7 @@
         <!-- for testing purpose -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-testkit_2.12</artifactId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
             <version>${akka.version}</version>
             <scope>test</scope>
         </dependency>

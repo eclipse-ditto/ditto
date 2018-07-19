@@ -16,6 +16,7 @@ import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,9 +45,9 @@ import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -97,25 +98,33 @@ public final class WebsocketRoute {
     private final ActorRef streamingActor;
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
+    private final List<String> headerBlacklist;
 
     private final ProtocolAdapter protocolAdapter;
     private final EventStream eventStream;
 
     /**
      * Constructs the {@code /ws} route builder.
-     *  @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
+     *
+     * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param subscriberBackpressureQueueSize the max queue size of how many inflight Commands a single Websocket client
      * can have.
      * @param publisherBackpressureBufferSize the max buffer size of how many outstanding CommandResponses and Events a
      * single Websocket client can have - additionally incoming CommandResponses and Events are dropped if this size is
+     * @param headerBlacklist headers not to publish to clients
+     * @param protocolAdapter protocol adapter mapping {@code Signal} to {@code Adaptable}
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor, final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize, final ProtocolAdapter protocolAdapter,
+    public WebsocketRoute(final ActorRef streamingActor,
+            final int subscriberBackpressureQueueSize,
+            final int publisherBackpressureBufferSize,
+            final List<String> headerBlacklist,
+            final ProtocolAdapter protocolAdapter,
             final EventStream eventStream) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
+        this.headerBlacklist = headerBlacklist;
         this.protocolAdapter = protocolAdapter;
         this.eventStream = eventStream;
     }
@@ -321,9 +330,13 @@ public final class WebsocketRoute {
         dittoHeaders.getSource().ifPresent(dittoHeadersBuilder::source);
         final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
 
+
         final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         allHeaders.remove(DittoHeaderDefinition.ORIGIN.getKey());
         allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
+
+        // remove blacklisted headers before pushing signal out of websocket
+        headerBlacklist.forEach(allHeaders::remove);
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final JsonObject jsonObject = jsonifiableAdaptable.toJson(DittoHeaders.of(allHeaders));

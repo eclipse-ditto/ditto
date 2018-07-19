@@ -18,12 +18,11 @@ import java.util.stream.Collectors;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AndCriteriaImpl;
+import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AndCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 
 /**
  * Tests {@link AndCriteriaImpl}.

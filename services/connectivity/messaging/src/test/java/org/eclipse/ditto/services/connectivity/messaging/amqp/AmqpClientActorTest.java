@@ -58,6 +58,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -67,6 +68,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -125,12 +127,14 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem), TestConstants.AUTHORIZATION_CONTEXT)
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem),
+                TestConstants.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
                 .sources(Collections.singleton(ConnectivityModelFactory.newSource(1, "source1")))
                 .build();
 
-        final ThrowableAssert.ThrowingCallable props1 = () -> AmqpClientActor.propsForTests(connection, connectionStatus, null, null);
+        final ThrowableAssert.ThrowingCallable props1 =
+                () -> AmqpClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
                 () -> AmqpClientActor.propsForTests(connection, connectionStatus, null, jmsConnectionFactory);
 
@@ -309,6 +313,39 @@ public class AmqpClientActorTest {
             amqpClientActor.tell(TestConstants.thingModified(singletonList("")), getRef());
 
             verify(mockProducer, timeout(2000)).send(mockTextMessage);
+        }};
+    }
+
+    @Test
+    public void testTestConnection() {
+        new TestKit(actorSystem) {{
+            final Props props =
+                    AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsgClass(Status.Success.class);
+        }};
+    }
+
+    @Test
+    public void testTestConnectionFailsOnTimeout() throws JMSException {
+        new TestKit(actorSystem) {{
+            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenAnswer(
+                    (Answer<Session>) invocationOnMock -> {
+                        try {
+                            Thread.sleep(15000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return mockSession;
+                    });
+            final Props props =
+                    AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsgClass(java.time.Duration.ofSeconds(11), Status.Failure.class);
         }};
     }
 

@@ -100,6 +100,7 @@ public final class MessageCommandResponseAdapterTest {
                         .contentType(contentType)
                         .correlationId(CORRELATION_ID)
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
+                        .statusCode(statusCode)
                         .schemaVersion(JsonSchemaVersion.V_2);
         if (isAcceptedResponse()) {
             messageHeadersBuilder.responseRequired(false);
@@ -117,7 +118,9 @@ public final class MessageCommandResponseAdapterTest {
                 .subject(subject)
                 .build();
 
-        final JsonPointer path = JsonPointer.of("/inbox/messages/" + subject);
+        final String box = messageDirection == MessageDirection.TO ? "inbox" : "outbox";
+        final String preamble = isFeatureResponse() ? String.format("features/%s/%s", FEATURE_ID, box) : box;
+        final JsonPointer path = JsonPointer.of(String.format("/%s/messages/%s", preamble, subject));
 
         final DittoHeaders headers = TestConstants.HEADERS_V_2;
         final DittoHeaders theHeaders =
@@ -154,9 +157,9 @@ public final class MessageCommandResponseAdapterTest {
                 .build();
         final JsonPointer path = JsonPointer.of("/outbox/messages/" + subject);
 
-        final DittoHeaders expectedHeaders =
-                MessageHeaders.of(buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                        messageDirection, subject, contentType)).toBuilder().statusCode(statusCode).build();
+        final DittoHeaders expectedHeaders = TestConstants.DITTO_HEADERS_V_2.toBuilder()
+                .contentType(contentType)
+                .build();
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(statusCode)
@@ -174,10 +177,7 @@ public final class MessageCommandResponseAdapterTest {
                         .build())
                 .payload(payload)
                 .build();
-        final DittoHeaders theHeaders =
-                buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(), messageDirection, subject,
-                        contentType);
-        final MessageCommandResponse messageCommandResponse = messageCommandResponse(theMessage, theHeaders);
+        final MessageCommandResponse messageCommandResponse = messageCommandResponse(theMessage, expectedHeaders);
 
         final Adaptable actual = underTest.toAdaptable(messageCommandResponse);
 

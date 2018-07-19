@@ -31,6 +31,9 @@
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.6</scala.full.version>
 
+        <javac.source>1.8</javac.source>
+        <javac.target>1.8</javac.target>
+
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.1</typesafe-config.version>
@@ -46,7 +49,7 @@
         <jjwt.version>0.7.0</jjwt.version>
         <jackson.version>2.9.5</jackson.version>
         <asm.version>5.2</asm.version>
-        <qpid-jms-client.version>0.32.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.33.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.2.0</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
@@ -54,16 +57,30 @@
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.2.3</logback.version>
 
-        <kamon.version>0.6.7</kamon.version>
-        <kamon-core.version>0.6.7</kamon-core.version>
+        <!-- ### Metrics and Tracing -->
         <metrics.version>3.1.2</metrics.version>
-        <metrics-statsd.version>1.0.0</metrics-statsd.version>
+
+        <kamon-core.version>1.1.2</kamon-core.version>
+        <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
+        <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
+        <prometheus.java-client.version>0.4.0</prometheus.java-client.version>
+
         <jsr302.version>3.0.1</jsr302.version>
 
         <rhino.version>1.7.10</rhino.version>
+        <!--
+            be aware that connectivity mapping has a direct dependency on files inside this library.
+            when updating this version, you should also check if the used paths and files still exist
+            and update the code otherwise. see implementation of org.eclipse.ditto.services.connectivity.mapping.MessageMapper
+        -->
         <js.bytebuffer.version>5.0.1</js.bytebuffer.version>
+        <!--
+            be aware that connectivity mapping has a direct dependency on files inside this library.
+            when updating this version, you should also check if the used paths and files still exist
+            and update the code otherwise. see implementation of org.eclipse.ditto.services.connectivity.mapping.MessageMapper
+        -->
+        <js.long.version>3.2.0</js.long.version>
         <caffeine.version>2.6.2</caffeine.version>
-
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.12</junit.version>
@@ -320,56 +337,33 @@
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
                 <version>${kamon-core.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-scala_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
-                <artifactId>kamon-akka-remote-2.4_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>io.kamon</groupId>
-                        <artifactId>kamon-akka-2.4_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-remote_${scala.version}</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.typesafe.akka</groupId>
-                        <artifactId>akka-cluster_${scala.version}</artifactId>
+                        <!-- this is a dependency not required by kamon - they'll remove it in a future version -->
+                        <groupId>com.lihaoyi</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
+                <version>${kamon-system-metrics.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.kamon</groupId>
+                        <artifactId>sigar-loader</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-statsd_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.github.jjagged</groupId>
-                <artifactId>metrics-statsd</artifactId>
-                <version>${metrics-statsd.version}</version>
+                <artifactId>kamon-prometheus_${scala.version}</artifactId>
+                <version>${kamon-prometheus.version}</version>
                 <exclusions>
-                    <!-- replaced by io.dropwizard.metrics:metrics-core -->
                     <exclusion>
-                        <groupId>com.codahale.metrics</groupId>
-                        <artifactId>metrics-core</artifactId>
+                        <groupId>org.nanohttpd</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -377,6 +371,22 @@
                 <groupId>io.dropwizard.metrics</groupId>
                 <artifactId>metrics-core</artifactId>
                 <version>${metrics.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient</artifactId>
+                <version>${prometheus.java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_dropwizard</artifactId>
+                <version>${prometheus.java-client.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.prometheus</groupId>
+                <artifactId>simpleclient_common</artifactId>
+                <version>${prometheus.java-client.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
@@ -550,6 +560,16 @@
                 <artifactId>ditto-services-utils-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-tracing</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-metrics</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
@@ -597,6 +617,11 @@
                 <groupId>org.webjars.npm</groupId>
                 <artifactId>bytebuffer</artifactId>
                 <version>${js.bytebuffer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.webjars.npm</groupId>
+                <artifactId>long</artifactId>
+                <version>${js.long.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
@@ -802,6 +827,7 @@
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-test</artifactId>
                 <version>${project.version}</version>
+                <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
         </dependencies>
