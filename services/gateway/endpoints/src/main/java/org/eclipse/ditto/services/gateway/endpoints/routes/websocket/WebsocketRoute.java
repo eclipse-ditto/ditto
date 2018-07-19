@@ -15,26 +15,20 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.AdaptableBuilder;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -262,55 +256,39 @@ public final class WebsocketRoute {
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
         return cmdString -> {
-            final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder()
-                    .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                    .authorizationContext(connectionAuthContext)
-                    .correlationId(connectionCorrelationId)
-                    .origin(connectionCorrelationId);
-
-            if (cmdString.isEmpty()) {
-                throw new DittoJsonException(new IllegalArgumentException("Empty json."), dittoHeadersBuilder.build());
-            }
-
-            final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, dittoHeadersBuilder.build(),
-                    (str, headers) -> JsonFactory.readFrom(str).asObject());
-            final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(jsonObject,
-                    DittoHeaders.newBuilder()
-                            .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                            .authorizationContext(connectionAuthContext)
-                            .correlationId(jsonObject.getValue(JsonifiableAdaptable.JsonFields.HEADERS.getPointer()
-                                    .append(JsonPointer.of(DittoHeaderDefinition.CORRELATION_ID.getKey())))
-                                    .filter(JsonValue::isString)
-                                    .map(JsonValue::asString)
-                                    .orElse(connectionCorrelationId)
-                            )
-                            .build(),
-                    (jo, cmdHeaders) -> ProtocolFactory.jsonifiableAdaptableFromJson(jo));
-
-            final DittoHeaders headers = jsonifiableAdaptable.getHeaders().orElse(ProtocolFactory.emptyHeaders());
-            final String wsCorrelationId = headers.getCorrelationId()
-                    .orElseGet(() -> UUID.randomUUID().toString());
 
             final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
                     .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
 
-            final Map<String, String> allHeaders = new HashMap<>(headers);
-
-            final DittoHeaders adjustedHeaders = DittoHeaders.newBuilder()
-                    .authorizationContext(connectionAuthContext)
+            // initial internal header values
+            final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder()
                     .schemaVersion(jsonSchemaVersion)
-                    .correlationId(wsCorrelationId)
-                    .origin(connectionCorrelationId)
-                    .build();
+                    .authorizationContext(connectionAuthContext)
+                    .correlationId(connectionCorrelationId) // for logging
+                    .origin(connectionCorrelationId);
 
-            allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
-            allHeaders.putAll(additionalHeaders);
+            if (cmdString.isEmpty()) {
+                final RuntimeException cause = new IllegalArgumentException("Empty json.");
+                throw new DittoJsonException(cause, internalHeadersBuilder.build());
+            }
 
-            final AdaptableBuilder adaptableBuilder = ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable)
-                    .withHeaders(DittoHeaders.of(allHeaders))
-                    .withPayload(jsonifiableAdaptable.getPayload());
+            final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(cmdString,
+                    DittoHeaders.empty(), // unused
+                    (s, unused) -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s)));
 
-            return adapter.fromAdaptable(adaptableBuilder.build());
+            final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            final DittoHeaders signalHeaders = signal.getDittoHeaders();
+
+            // add any headers from protocol adapter to internal headers
+            internalHeadersBuilder.putHeaders(signalHeaders);
+            // generate correlation ID if it is not set in protocol message
+            if (!signalHeaders.getCorrelationId().isPresent()) {
+                internalHeadersBuilder.correlationId(UUID.randomUUID().toString());
+            }
+            // headers given by parent route override all other header sources
+            internalHeadersBuilder.putHeaders(additionalHeaders);
+
+            return signal.setDittoHeaders(internalHeadersBuilder.build());
         };
     }
 
