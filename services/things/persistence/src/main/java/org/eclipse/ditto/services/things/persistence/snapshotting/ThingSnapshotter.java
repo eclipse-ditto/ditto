@@ -208,6 +208,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
          * @param eventsDeleteOld Whether events before a successfully saved snapshot should be deleted.
          * @param log The logger. If null, nothing is logged.
          * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
+         * @return the snapshotter.
          */
         ThingSnapshotter apply(final ThingPersistenceActor persistenceActor,
                 final ActorRef pubSubMediator,
@@ -215,6 +216,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 final boolean eventsDeleteOld,
                 @Nullable final DiagnosticLoggingAdapter log,
                 @Nullable final java.time.Duration snapshotInterval);
+
     }
 
     /**
@@ -356,17 +358,6 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
         resetMaintenanceSnapshotSchedule();
     }
 
-    // Bookkeeping after snapshotting succeeded. Timeout message is cancelled and pending TakeSnapshot commands are
-    // unstashed. Maintenance snapshot schedule is reset.
-    private void saveSnapshotSucceeded() {
-        snapshotterState = new SnapshotterState(false, snapshotterState.getSequenceNr(),
-                snapshotterState.getSnapshotTag(), null, null);
-        lastSaneSnapshotterState = snapshotterState;
-        persistenceActor.unstashAll();
-        cancelSaveSnapshotTimeout();
-        resetMaintenanceSnapshotSchedule();
-    }
-
     // Access to the logger; does nothing if the logger is null (e. g., in unit tests where this objects exists
     // outside of any actor system).
     private void doLog(final Consumer<DiagnosticLoggingAdapter> whatToLog) {
@@ -383,7 +374,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
      * @param dittoHeaders Command headers for the response if snapshotting succeeds.
      */
     void doSaveSnapshot(final SnapshotTag snapshotTag, @Nullable final ActorRef sender,
-            @Nullable DittoHeaders dittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders) {
 
         checkNotNull(snapshotTag, "snapshot tag");
 
@@ -606,6 +597,18 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 persistenceActor.deleteMessages(upToSequenceNumber);
             }
         }
+
+        // Bookkeeping after snapshotting succeeded. Timeout message is cancelled and pending TakeSnapshot commands are
+        // unstashed. Maintenance snapshot schedule is reset.
+        private void saveSnapshotSucceeded() {
+            snapshotterState = new SnapshotterState(false, snapshotterState.getSequenceNr(),
+                    snapshotterState.getSnapshotTag(), null, null);
+            lastSaneSnapshotterState = snapshotterState;
+            persistenceActor.unstashAll();
+            cancelSaveSnapshotTimeout();
+            resetMaintenanceSnapshotSchedule();
+        }
+
     }
 
     private void replyErrorMessage(final Supplier<String> errorMessage) {
@@ -654,6 +657,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                 saveSnapshotFailed();
             }
         }
+
     }
 
     /**
