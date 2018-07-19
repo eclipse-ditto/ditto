@@ -13,22 +13,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.PolicyIdModified} event.
  */
 @Immutable
-final class PolicyIdModifiedStrategy implements EventStrategy<PolicyIdModified> {
+final class PolicyIdModifiedStrategy extends AbstractEventStrategy<PolicyIdModified> {
 
     @Override
-    public Thing handle(final PolicyIdModified event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .setPolicyId(event.getPolicyId())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final PolicyIdModified event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.setPolicyId(event.getPolicyId());
     }
 
 }

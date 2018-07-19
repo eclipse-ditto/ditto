@@ -13,22 +13,20 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted} event.
  */
 @Immutable
-final class FeatureDefinitionDeletedStrategy implements EventStrategy<FeatureDefinitionDeleted> {
+final class FeatureDefinitionDeletedStrategy extends AbstractEventStrategy<FeatureDefinitionDeleted> {
 
     @Override
-    public Thing handle(final FeatureDefinitionDeleted event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .removeFeatureDefinition(event.getFeatureId())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final FeatureDefinitionDeleted event,
+            final ThingBuilder.FromCopy thingBuilder) {
+
+        return thingBuilder.removeFeatureDefinition(event.getFeatureId());
     }
 
 }

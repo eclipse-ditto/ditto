@@ -13,22 +13,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryDeleted} event.
  */
 @Immutable
-final class AclEntryDeletedStrategy implements EventStrategy<AclEntryDeleted> {
+final class AclEntryDeletedStrategy extends AbstractEventStrategy<AclEntryDeleted> {
 
     @Override
-    public Thing handle(final AclEntryDeleted event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .removePermissionsOf(event.getAuthorizationSubject())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final AclEntryDeleted event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.removePermissionsOf(event.getAuthorizationSubject());
     }
 
 }

@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.junit.Test;
 
@@ -42,6 +41,7 @@ public final class AclEntryCreatedStrategyTest extends AbstractStrategyTest {
                 .setPermissions(ACL_ENTRY)
                 .setRevision(NEXT_REVISION)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

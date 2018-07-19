@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
@@ -24,8 +25,9 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 final class ThingCreatedStrategy implements EventStrategy<ThingCreated> {
 
     @Override
-    public Thing handle(final ThingCreated event, final Thing thing, final long revision) {
-        return event.getThing().toBuilder()
+    public Thing handle(final ThingCreated event, final @Nullable Thing thing, final long revision) {
+        return event.getThing()
+                .toBuilder()
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(revision)
                 .setModified(event.getTimestamp().orElse(null))

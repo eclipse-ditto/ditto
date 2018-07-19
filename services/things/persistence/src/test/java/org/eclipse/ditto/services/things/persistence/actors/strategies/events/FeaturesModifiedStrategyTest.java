@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.things.persistence.actors.strategies.events.FeaturesModifiedStrategy}.
+ * Unit test for {@link FeaturesModifiedStrategy}.
  */
 public final class FeaturesModifiedStrategyTest extends AbstractStrategyTest {
 
@@ -41,6 +41,7 @@ public final class FeaturesModifiedStrategyTest extends AbstractStrategyTest {
                 .setFeatures(FEATURES)
                 .setRevision(NEXT_REVISION)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

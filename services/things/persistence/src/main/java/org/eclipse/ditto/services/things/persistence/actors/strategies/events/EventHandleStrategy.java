@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,16 +50,20 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * This strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
+ * This Singleton strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
 @Immutable
 public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
 
     private static final EventHandleStrategy INSTANCE = new EventHandleStrategy();
 
-    private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies = new HashMap<>();
+    private static final Logger LOGGER = LoggerFactory.getLogger(EventHandleStrategy.class);
+
+    private final Map<Class<? extends ThingEvent>, EventStrategy<? extends ThingEvent>> strategies;
 
     /**
      * Returns the <em>singleton</em> {@code EventHandleStrategy} instance.
@@ -72,6 +78,7 @@ public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
      * Constructs a new {@code EventHandleStrategy}.
      */
     private EventHandleStrategy() {
+        strategies = new HashMap<>();
         addThingStrategies();
         addAclStrategies();
         addAttributesStrategies();
@@ -87,7 +94,6 @@ public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
 
     private void addAclStrategies() {
         addStrategy(AclModified.class, new AclModifiedStrategy());
-
         addStrategy(AclEntryCreated.class, new AclEntryCreatedStrategy());
         addStrategy(AclEntryModified.class, new AclEntryModifiedStrategy());
         addStrategy(AclEntryDeleted.class, new AclEntryDeletedStrategy());
@@ -136,11 +142,14 @@ public final class EventHandleStrategy implements EventStrategy<ThingEvent> {
 
     @Override
     public Thing handle(final ThingEvent event, final Thing thing, final long revision) {
+        checkNotNull(event, "ThingEvent");
+        @SuppressWarnings("unchecked")
         final EventStrategy<ThingEvent> strategy = (EventStrategy<ThingEvent>) strategies.get(event.getClass());
-        if (strategy != null) {
+        if (null != strategy) {
             return strategy.handle(event, thing, revision);
         } else {
-            return null;
+            LOGGER.info("No strategy found for event <{}>.", event.getType());
+            return thing;
         }
     }
 

@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.things.persistence.actors.strategies.events.ThingDeletedStrategy}.
+ * Unit test for {@link ThingDeletedStrategy}.
  */
 public final class ThingDeletedStrategyTest extends AbstractStrategyTest {
 
@@ -42,6 +42,7 @@ public final class ThingDeletedStrategyTest extends AbstractStrategyTest {
                 .setLifecycle(ThingLifecycle.DELETED)
                 .setRevision(NEXT_REVISION)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

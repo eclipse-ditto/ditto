@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 
@@ -21,19 +21,11 @@ import org.eclipse.ditto.signals.events.things.ThingDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.ThingDeleted} event.
  */
 @Immutable
-final class ThingDeletedStrategy implements EventStrategy<ThingDeleted> {
+final class ThingDeletedStrategy extends AbstractEventStrategy<ThingDeleted> {
 
     @Override
-    public Thing handle(final ThingDeleted event, final Thing thing, final long revision) {
-        if (thing != null) {
-            return thing.toBuilder()
-                    .setLifecycle(ThingLifecycle.DELETED)
-                    .setRevision(revision)
-                    .setModified(event.getTimestamp().orElse(null))
-                    .build();
-        } else {
-            return null;
-        }
+    protected ThingBuilder.FromCopy applyEvent(final ThingDeleted event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.setLifecycle(ThingLifecycle.DELETED);
     }
 
 }

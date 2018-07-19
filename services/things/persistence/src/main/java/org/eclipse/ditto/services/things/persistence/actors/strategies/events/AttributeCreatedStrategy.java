@@ -13,22 +13,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AttributeCreated} event.
  */
 @Immutable
-final class AttributeCreatedStrategy implements EventStrategy<AttributeCreated> {
+final class AttributeCreatedStrategy extends AbstractEventStrategy<AttributeCreated> {
 
     @Override
-    public Thing handle(final AttributeCreated event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .setAttribute(event.getAttributePointer(), event.getAttributeValue())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final AttributeCreated event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.setAttribute(event.getAttributePointer(), event.getAttributeValue());
     }
 
 }

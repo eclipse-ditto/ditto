@@ -13,22 +13,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeatureModified} event.
  */
 @Immutable
-final class FeatureModifiedStrategy implements EventStrategy<FeatureModified> {
+final class FeatureModifiedStrategy extends AbstractEventStrategy<FeatureModified> {
 
     @Override
-    public Thing handle(final FeatureModified event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .setFeature(event.getFeature())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final FeatureModified event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.setFeature(event.getFeature());
     }
 
 }

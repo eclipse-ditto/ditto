@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.things.persistence.actors.strategies.events.FeaturePropertyCreatedStrategy}.
+ * Unit test for {@link FeaturePropertyCreatedStrategy}.
  */
 public final class FeaturePropertyCreatedStrategyTest extends AbstractStrategyTest {
 
@@ -42,6 +42,7 @@ public final class FeaturePropertyCreatedStrategyTest extends AbstractStrategyTe
                 .setFeatureProperty(FEATURE_ID, FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
                 .setRevision(NEXT_REVISION)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

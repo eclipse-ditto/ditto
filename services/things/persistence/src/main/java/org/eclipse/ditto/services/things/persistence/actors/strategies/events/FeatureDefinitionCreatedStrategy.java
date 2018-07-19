@@ -13,22 +13,20 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated} event.
  */
 @Immutable
-final class FeatureDefinitionCreatedStrategy implements EventStrategy<FeatureDefinitionCreated> {
+final class FeatureDefinitionCreatedStrategy extends AbstractEventStrategy<FeatureDefinitionCreated> {
 
     @Override
-    public Thing handle(final FeatureDefinitionCreated event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .setFeatureDefinition(event.getFeatureId(), event.getDefinition())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final FeatureDefinitionCreated event,
+            final ThingBuilder.FromCopy thingBuilder) {
+
+        return thingBuilder.setFeatureDefinition(event.getFeatureId(), event.getDefinition());
     }
 
 }

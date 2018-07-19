@@ -13,22 +13,18 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.events;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.events.things.AclEntryModified} event.
  */
 @Immutable
-final class AclEntryModifiedStrategy implements EventStrategy<AclEntryModified> {
+final class AclEntryModifiedStrategy extends AbstractEventStrategy<AclEntryModified> {
 
     @Override
-    public Thing handle(final AclEntryModified event, final Thing thing, final long revision) {
-        return thing.toBuilder()
-                .setPermissions(event.getAclEntry())
-                .setRevision(revision)
-                .setModified(event.getTimestamp().orElse(null))
-                .build();
+    protected ThingBuilder.FromCopy applyEvent(final AclEntryModified event, final ThingBuilder.FromCopy thingBuilder) {
+        return thingBuilder.setPermissions(event.getAclEntry());
     }
 
 }

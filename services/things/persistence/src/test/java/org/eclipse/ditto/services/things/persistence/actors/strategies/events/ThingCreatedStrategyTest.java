@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.junit.Test;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.things.persistence.actors.strategies.events.ThingCreatedStrategy}.
+ * Unit test for {@link ThingCreatedStrategy}.
  */
 public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
 
@@ -42,6 +42,7 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
