@@ -241,15 +241,48 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         // get type from external adaptable before header filtering in case some headers exist for external messages
         // but not internally in Ditto.
         final String type = getType(externalAdaptable);
-        final Adaptable adaptable = externalAdaptable.getHeaders()
-                .map(headers -> externalAdaptable.setDittoHeaders(headerPublisher.fromExternalHeaders(headers)))
-                .orElse(externalAdaptable);
+
+        // filter headers by header publisher, then inject any missing information from topic path
+        final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders filteredHeaders = addTopicPathInfo(
+                headerPublisher.fromExternalHeaders(externalHeaders),
+                externalAdaptable.getTopicPath());
+
+        final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
         final JsonifiableMapper<T> jsonifiableMapper = mappingStrategies.get(type);
         if (null == jsonifiableMapper) {
             throw UnknownTopicPathException.newBuilder(adaptable.getTopicPath()).build();
         }
 
         return DittoJsonException.wrapJsonRuntimeException(() -> jsonifiableMapper.map(adaptable));
+    }
+
+    /**
+     * Add to headers any information that will be missing from topic path.
+     *
+     * @param filteredHeaders headers read from external headers.
+     * @param topicPath topic path of an adaptable.
+     * @return filteredHeaders with extra information from topicPath.
+     */
+    private static DittoHeaders addTopicPathInfo(final DittoHeaders filteredHeaders, final TopicPath topicPath) {
+        final DittoHeaders extraInfo = mapTopicPathToHeaders(topicPath);
+        return extraInfo.isEmpty() ? filteredHeaders : filteredHeaders.toBuilder().putHeaders(extraInfo).build();
+    }
+
+    /**
+     * Add any extra information in topic path as Ditto headers. Currently "channel" is the only relevant header.
+     *
+     * @param topicPath the topic path to extract information from.
+     * @return headers containing extra information from topic path.
+     */
+    private static DittoHeaders mapTopicPathToHeaders(final TopicPath topicPath) {
+        if (topicPath.getChannel() == TopicPath.Channel.LIVE) {
+            return DittoHeaders.newBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName())
+                    .build();
+        } else {
+            return DittoHeaders.empty();
+        }
     }
 
     /*

@@ -64,6 +64,33 @@ public final class ThingModifyCommandAdapterTest {
     }
 
     @Test
+    public void liveCommandFromAdaptable() {
+        final DittoHeaders expectedHeaders = TestConstants.DITTO_HEADERS_V_2
+                .toBuilder()
+                .channel("live")
+                .build();
+        final CreateThing expected = CreateThing.of(TestConstants.THING, null, expectedHeaders);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .live()
+                .commands()
+                .create()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void createThingFromAdaptable() {
         final CreateThing expected = CreateThing.of(TestConstants.THING, null, TestConstants.DITTO_HEADERS_V_2);
 
