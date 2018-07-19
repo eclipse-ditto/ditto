@@ -135,15 +135,9 @@ public final class MessageMappingProcessor {
             return adaptableOpt.map(adaptable -> {
                 doUpdateCorrelationId(adaptable);
 
-                return withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
-                        () -> {
-                            final Signal<?> signal = protocolAdapter.fromAdaptable(adaptable);
-                            final DittoHeadersBuilder dittoHeadersBuilder =
-                                    DittoHeaders.newBuilder(message.getHeaders());
-                            dittoHeadersBuilder.putHeaders(signal.getDittoHeaders());
-                            return signal.setDittoHeaders(dittoHeadersBuilder.build());
-                        }
-                );
+                return this.<Signal<?>>withTimer(
+                        overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
+                        () -> protocolAdapter.fromAdaptable(adaptable));
             });
         } catch (final DittoRuntimeException e) {
             throw e;
