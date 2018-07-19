@@ -11,14 +11,12 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
@@ -37,46 +35,33 @@ final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<Delete
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
+    protected Result doApply(final Context context, final DeleteFeatureProperty command) {
+        final Thing thing = context.getThingOrThrow();
+
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .map(feature -> getDeleteFeaturePropertyResult(feature, context, command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                                command.getDittoHeaders())));
+    }
+
+    private static Result getDeleteFeaturePropertyResult(final Feature feature, final Context context,
             final DeleteFeatureProperty command) {
 
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
-
-        final Optional<Features> featuresOptional = context.getThingOrThrow().getFeatures();
+        final JsonPointer propertyPointer = command.getPropertyPointer();
+        final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
-        if (featuresOptional.isPresent()) {
-            final Optional<Feature> featureOptional =
-                    featuresOptional.flatMap(features -> features.getFeature(featureId));
-            if (featureOptional.isPresent()) {
-                final JsonPointer propertyJsonPointer = command.getPropertyPointer();
-                final Feature feature = featureOptional.get();
-                final boolean containsProperty = feature.getProperties()
-                        .filter(featureProperties -> featureProperties.contains(propertyJsonPointer))
-                        .isPresent();
-                if (containsProperty) {
-                    final FeaturePropertyDeleted eventToPersist = FeaturePropertyDeleted.of(command.getThingId(),
-                            featureId, propertyJsonPointer, context.getNextRevision(), getEventTimestamp(),
-                            dittoHeaders);
-                    final DeleteFeaturePropertyResponse response =
-                            DeleteFeaturePropertyResponse.of(context.getThingId(), featureId, propertyJsonPointer,
-                                    dittoHeaders);
-                    result = ResultFactory.newResult(eventToPersist, response);
-                } else {
-                    result = ResultFactory.newResult(
-                            ExceptionFactory.featurePropertyNotFound(context.getThingId(), featureId,
-                                    propertyJsonPointer, dittoHeaders));
-                }
-            } else {
-                result = ResultFactory.newResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
-            }
-        } else {
-            result = ResultFactory.newResult(
-                    ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
-        }
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return result;
+        return feature.getProperties()
+                .flatMap(featureProperties -> featureProperties.getValue(propertyPointer))
+                .map(featureProperty -> ResultFactory.newResult(
+                        FeaturePropertyDeleted.of(thingId, featureId, propertyPointer, context.getNextRevision(),
+                                getEventTimestamp(), dittoHeaders),
+                        DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders)))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders)));
     }
 
 }

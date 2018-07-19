@@ -35,7 +35,7 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyFeature command) {
+    protected Result doApply(final Context context, final ModifyFeature command) {
         final Thing thing = context.getThingOrThrow();
 
         return thing.getFeatures()

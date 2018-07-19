@@ -35,9 +35,10 @@ final class DeleteFeaturesStrategy extends AbstractCommandStrategy<DeleteFeature
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteFeatures command) {
+    protected Result doApply(final Context context, final DeleteFeatures command) {
         final Thing thing = context.getThingOrThrow();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
         return thing.getFeatures()
                 .map(features -> ResultFactory.newResult(getEventToPersist(context, dittoHeaders),
                         getResponse(context, dittoHeaders)))

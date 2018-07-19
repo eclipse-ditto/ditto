@@ -35,7 +35,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureDefinition command) {
+    protected Result doApply(final Context context, final ModifyFeatureDefinition command) {
         final Thing thing = context.getThingOrThrow();
         final String featureId = command.getFeatureId();
 
@@ -55,21 +55,23 @@ final class ModifyFeatureDefinitionStrategy extends AbstractCommandStrategy<Modi
     }
 
     private static Result getModifyResult(final Context context, final ModifyFeatureDefinition command) {
+        final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        return ResultFactory.newResult(FeatureDefinitionModified.of(command.getId(), featureId, command.getDefinition(),
+        return ResultFactory.newResult(FeatureDefinitionModified.of(thingId, featureId, command.getDefinition(),
                 context.getNextRevision(), getEventTimestamp(), dittoHeaders),
-                ModifyFeatureDefinitionResponse.modified(context.getThingId(), featureId, dittoHeaders));
+                ModifyFeatureDefinitionResponse.modified(thingId, featureId, dittoHeaders));
     }
 
     private static Result getCreateResult(final Context context, final ModifyFeatureDefinition command) {
+        final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final String featureId = command.getFeatureId();
 
-        return ResultFactory.newResult(FeatureDefinitionCreated.of(command.getId(), featureId, command.getDefinition(),
+        return ResultFactory.newResult(FeatureDefinitionCreated.of(thingId, featureId, command.getDefinition(),
                 context.getNextRevision(), getEventTimestamp(), dittoHeaders),
-                ModifyFeatureDefinitionResponse.created(context.getThingId(), featureId, command.getDefinition(),
+                ModifyFeatureDefinitionResponse.created(thingId, featureId, command.getDefinition(),
                         dittoHeaders));
     }
 

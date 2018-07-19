@@ -11,11 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
-import java.util.Optional;
-
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
@@ -25,8 +21,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
 /**
  * This strategy handles the {@link RetrievePolicyId} command.
  */
-@ThreadSafe
-public final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePolicyId> {
+@Immutable
+final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -36,17 +32,15 @@ public final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<Retr
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrievePolicyId command) {
-        final String thingId = context.getThingId();
+    protected Result doApply(final Context context, final RetrievePolicyId command) {
         final Thing thing = context.getThingOrThrow();
-        final Optional<String> optPolicyId = thing.getPolicyId();
-        if (optPolicyId.isPresent()) {
-            final String policyId = optPolicyId.get();
-            return newResult(RetrievePolicyIdResponse.of(thingId, policyId, command.getDittoHeaders()));
-        } else {
-            return newResult(PolicyIdNotAccessibleException.newBuilder(thingId)
-                    .dittoHeaders(command.getDittoHeaders())
-                    .build());
-        }
+
+        return thing.getPolicyId()
+                .map(policyId -> RetrievePolicyIdResponse.of(context.getThingId(), policyId, command.getDittoHeaders()))
+                .map(ResultFactory::newResult)
+                .orElseGet(() -> ResultFactory.newResult(PolicyIdNotAccessibleException.newBuilder(context.getThingId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build()));
     }
+
 }

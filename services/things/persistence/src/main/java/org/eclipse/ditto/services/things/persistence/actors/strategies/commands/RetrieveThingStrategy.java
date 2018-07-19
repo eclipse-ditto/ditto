@@ -11,29 +11,35 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
  */
-@ThreadSafe
+@Immutable
 final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
+
+    private static final short RETRIEVE_THING_TIMEOUT_SECONDS = 120;
+    private static final Duration RETRIEVE_THING_TIMEOUT = Duration.ofSeconds(RETRIEVE_THING_TIMEOUT_SECONDS);
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -44,59 +50,68 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
 
     @Override
     public boolean isDefined(final Context context, final RetrieveThing command) {
-        final Thing thing = context.getThing().orElse(null);
+        final boolean thingExists = context.getThing()
+                .map(thing -> !isThingDeleted(thing))
+                .orElse(false);
 
-        return Objects.equals(context.getThingId(), command.getId()) && null != thing && !isThingDeleted(thing);
+        return Objects.equals(context.getThingId(), command.getId()) && thingExists;
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveThing command) {
-        final String thingId = context.getThingId();
+    protected Result doApply(final Context context, final RetrieveThing command) {
         final Thing thing = context.getThingOrThrow();
-        final Optional<Long> snapshotRevisionOptional = command.getSnapshotRevision();
-        if (snapshotRevisionOptional.isPresent()) {
-            try {
-                final ThingSnapshotter<?, ?> thingSnapshotter = context.getThingSnapshotter();
 
-                final Optional<Thing> thingOptional = thingSnapshotter.loadSnapshot(snapshotRevisionOptional.get())
-                        // TODO timeout???
-                        .toCompletableFuture().get();
-                return thingOptional.map(thing1 -> newResult(respondWithLoadSnapshotResult(command, thing1)))
-                        .orElseGet(() -> newResult(respondWithNotAccessibleException(command)));
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                context.getLog().info("Retrieving thing with ID <{}> was interrupted.", thingId);
-                return newResult(respondWithUnavailableException(command));
-            } catch (final ExecutionException e) {
-                context.getLog().info("Failed to retrieve thing with ID <{}>: {}", thingId, e.getMessage());
-                return newResult(respondWithUnavailableException(command));
-            }
-        } else {
-            final JsonObject thingJson = command.getSelectedFields()
-                    .map(sf -> thing.toJson(command.getImplementedSchemaVersion(), sf))
-                    .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
+        return command.getSnapshotRevision()
+                .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
+                .orElseGet(() -> getRetrieveThingResult(thing, command));
+    }
 
-            return newResult(RetrieveThingResponse.of(thingId, thingJson, command.getDittoHeaders()));
+    private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
+            final RetrieveThing command) {
+
+        return tryToLoadThingSnapshot(snapshotRevision, context, command);
+    }
+
+    private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
+            final RetrieveThing command) {
+
+        try {
+            return loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command);
+        } catch (final ExecutionException | TimeoutException e) {
+            context.getLog().info("Failed to retrieve thing with ID <{}>: {}", context.getThingId(), e.getMessage());
+            return ResultFactory.newResult(getThingUnavailableException(command));
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            context.getLog().info("Retrieving thing with ID <{}> was interrupted.", context.getThingId());
+            return ResultFactory.newResult(getThingUnavailableException(command));
         }
     }
 
-    private static WithDittoHeaders<RetrieveThingResponse> respondWithLoadSnapshotResult(final RetrieveThing command,
-            final Thing snapshotThing) {
+    private static Result loadThingSnapshot(final ThingSnapshotter<?, ?> snapshotter, final long snapshotRevision,
+            final RetrieveThing command) throws ExecutionException, InterruptedException, TimeoutException {
 
-        final JsonObject thingJson = command.getSelectedFields()
-                .map(sf -> snapshotThing.toJson(command.getImplementedSchemaVersion(), sf))
-                .orElseGet(() -> snapshotThing.toJson(command.getImplementedSchemaVersion()));
+        final CompletionStage<Optional<Thing>> completionStage = snapshotter.loadSnapshot(snapshotRevision);
+        final CompletableFuture<Optional<Thing>> completableFuture = completionStage.toCompletableFuture();
 
-        return RetrieveThingResponse.of(command.getThingId(), thingJson, command.getDittoHeaders());
+        return completableFuture.get(RETRIEVE_THING_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
+                .map(thing -> getRetrieveThingResult(thing, command))
+                .orElseGet(() -> ResultFactory.newResult(
+                        new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders())));
     }
 
-    private static DittoRuntimeException respondWithNotAccessibleException(final RetrieveThing command) {
-        // reset command headers so that correlationId etc. are preserved
-        return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
+    private static Result getRetrieveThingResult(final Thing thing, final ThingQueryCommand<RetrieveThing> command) {
+        return ResultFactory.newResult(RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
+                command.getDittoHeaders()));
     }
 
-    private static DittoRuntimeException respondWithUnavailableException(final RetrieveThing command) {
-        // reset command headers so that correlationId etc. are preserved
+    private static JsonObject getThingJson(final Thing thing, final ThingQueryCommand<RetrieveThing> command) {
+        return command.getSelectedFields()
+                .map(selectedFields -> thing.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
+    }
+
+    private static DittoRuntimeException getThingUnavailableException(final RetrieveThing command) {
+        // reset command headers so that correlation-id etc. is preserved
         return ThingUnavailableException.newBuilder(command.getThingId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
@@ -104,7 +119,8 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
 
     @Override
     protected Result unhandled(final Context context, final RetrieveThing command) {
-        return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
+        return ResultFactory.newResult(
+                new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
 }

@@ -32,7 +32,7 @@ final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteThing command) {
+    protected Result doApply(final Context context, final DeleteThing command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         context.getLog().info("Deleted Thing with ID <{}>.", thingId);

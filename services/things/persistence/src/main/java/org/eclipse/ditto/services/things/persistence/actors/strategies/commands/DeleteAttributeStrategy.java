@@ -34,20 +34,26 @@ final class DeleteAttributeStrategy extends AbstractCommandStrategy<DeleteAttrib
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final DeleteAttribute command) {
-        final String thingId = context.getThingId();
+    protected Result doApply(final Context context, final DeleteAttribute command) {
         final Thing thing = context.getThingOrThrow();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final JsonPointer attributeJsonPointer = command.getAttributePointer();
+        final JsonPointer attrPointer = command.getAttributePointer();
 
         return thing.getAttributes()
-                .filter(attributes -> attributes.contains(attributeJsonPointer))
-                .map(attributes -> AttributeDeleted.of(thingId, attributeJsonPointer, context.getNextRevision(),
-                        getEventTimestamp(), dittoHeaders))
-                .map(attributeDeleted -> ResultFactory.newResult(attributeDeleted,
-                        DeleteAttributeResponse.of(thingId, attributeJsonPointer, dittoHeaders)))
+                .filter(attributes -> attributes.contains(attrPointer))
+                .map(attributes -> getDeleteAttributeResult(context, command))
                 .orElseGet(() -> ResultFactory.newResult(
-                        ExceptionFactory.attributeNotFound(thingId, attributeJsonPointer, dittoHeaders)));
+                        ExceptionFactory.attributeNotFound(context.getThingId(), attrPointer,
+                                command.getDittoHeaders())));
+    }
+
+    private static Result getDeleteAttributeResult(final Context context, final DeleteAttribute command) {
+        final String thingId = context.getThingId();
+        final JsonPointer attrPointer = command.getAttributePointer();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AttributeDeleted.of(thingId, attrPointer, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders));
     }
 
 }

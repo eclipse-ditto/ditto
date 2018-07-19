@@ -35,7 +35,7 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAttributes command) {
+    protected Result doApply(final Context context, final ModifyAttributes command) {
         final Thing thing = context.getThingOrThrow();
 
         return thing.getAttributes()
@@ -43,7 +43,7 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
                 .orElseGet(() -> getCreateResult(context, command));
     }
 
-    private static CommandStrategy.Result getModifyResult(final Context context, final ModifyAttributes command) {
+    private static Result getModifyResult(final Context context, final ModifyAttributes command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -52,7 +52,7 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
                         dittoHeaders), ModifyAttributesResponse.modified(thingId, dittoHeaders));
     }
 
-    private static CommandStrategy.Result getCreateResult(final Context context, final ModifyAttributes command) {
+    private static Result getCreateResult(final Context context, final ModifyAttributes command) {
         final String thingId = context.getThingId();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

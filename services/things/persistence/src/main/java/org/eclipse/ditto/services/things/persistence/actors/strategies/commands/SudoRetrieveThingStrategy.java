@@ -12,11 +12,9 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import java.util.Objects;
-import java.util.Optional;
 
-import javax.annotation.concurrent.ThreadSafe;
+import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -28,7 +26,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 /**
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
-@ThreadSafe
+@Immutable
 final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrieveThing> {
 
     /**
@@ -40,31 +38,29 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
 
     @Override
     public boolean isDefined(final Context context, final SudoRetrieveThing command) {
-        return Objects.equals(context.getThingId(), command.getId())
-                && null != context.getThingOrThrow()
-                && !isThingDeleted(context.getThingOrThrow());
+        final boolean thingExists = context.getThing()
+                .map(thing -> !isThingDeleted(thing))
+                .orElse(false);
+
+        return Objects.equals(context.getThingId(), command.getId()) && thingExists;
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final SudoRetrieveThing command) {
+    protected Result doApply(final Context context, final SudoRetrieveThing command) {
         final Thing thing = context.getThingOrThrow();
-        final Optional<JsonFieldSelector> selectedFields = command.getSelectedFields();
-        final JsonSchemaVersion versionToUse = determineSchemaVersion(command, thing);
-        final JsonObject thingJson = selectedFields
-                .map(sf -> thing.toJson(versionToUse, sf, FieldType.regularOrSpecial()))
-                .orElseGet(() -> thing.toJson(versionToUse, FieldType.regularOrSpecial()));
+
+        final JsonSchemaVersion jsonSchemaVersion = determineSchemaVersion(command, thing);
+        final JsonObject thingJson = command.getSelectedFields()
+                .map(selectedFields -> thing.toJson(jsonSchemaVersion, selectedFields, FieldType.regularOrSpecial()))
+                .orElseGet(() -> thing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
         return ResultFactory.newResult(SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
     }
 
-    private JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {
+    private static JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {
         return command.useOriginalSchemaVersion()
-                ? getOriginalSchemaVersion(thing)
+                ? thing.getImplementedSchemaVersion()
                 : command.getImplementedSchemaVersion();
-    }
-
-    private JsonSchemaVersion getOriginalSchemaVersion(final Thing thing) {
-        return null != thing ? thing.getImplementedSchemaVersion() : JsonSchemaVersion.LATEST;
     }
 
     @Override
@@ -72,4 +68,5 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
         return ResultFactory.newResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
+
 }

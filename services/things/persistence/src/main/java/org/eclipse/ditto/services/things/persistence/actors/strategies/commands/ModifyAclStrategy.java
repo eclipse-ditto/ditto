@@ -36,7 +36,7 @@ public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> 
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAcl command) {
+    protected Result doApply(final Context context, final ModifyAcl command) {
         final String thingId = context.getThingId();
         final AccessControlList newAccessControlList = command.getAccessControlList();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

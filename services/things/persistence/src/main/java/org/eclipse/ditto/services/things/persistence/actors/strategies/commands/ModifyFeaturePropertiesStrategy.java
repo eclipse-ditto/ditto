@@ -36,7 +36,7 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureProperties command) {
+    protected Result doApply(final Context context, final ModifyFeatureProperties command) {
         final Thing thing = context.getThingOrThrow();
         final String featureId = command.getFeatureId();
 
@@ -56,24 +56,25 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
     }
 
     private static Result getModifyResult(final Context context, final ModifyFeatureProperties command) {
+        final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(FeaturePropertiesModified.of(command.getId(), featureId, command.getProperties(),
+        return ResultFactory.newResult(FeaturePropertiesModified.of(thingId, featureId, command.getProperties(),
                 context.getNextRevision(), getEventTimestamp(), dittoHeaders),
                 ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders));
     }
 
     private static Result getCreateResult(final Context context, final ModifyFeatureProperties command) {
+        final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
         final FeatureProperties featureProperties = command.getProperties();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                FeaturePropertiesCreated.of(command.getId(), featureId, featureProperties, context.getNextRevision(),
+                FeaturePropertiesCreated.of(thingId, featureId, featureProperties, context.getNextRevision(),
                         getEventTimestamp(), dittoHeaders),
-                ModifyFeaturePropertiesResponse.created(context.getThingId(), featureId, featureProperties,
-                        dittoHeaders));
+                ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties, dittoHeaders));
     }
 
 }

@@ -11,13 +11,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
@@ -37,42 +34,29 @@ final class DeleteFeatureDefinitionStrategy extends AbstractCommandStrategy<Dele
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context,
-            final DeleteFeatureDefinition command) {
-
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final CommandStrategy.Result result;
-
+    protected Result doApply(final Context context, final DeleteFeatureDefinition command) {
         final Thing thing = context.getThingOrThrow();
-        final String featureId = command.getFeatureId();
 
-        final Optional<Features> features = thing.getFeatures();
-        if (features.isPresent()) {
-            final Optional<Feature> feature = features.get().getFeature(featureId);
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .map(feature -> getDeleteFeatureDefinitionResult(feature, context, command.getDittoHeaders()))
+                .orElseGet(() -> ResultFactory.newResult(
+                        ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
+                                command.getDittoHeaders())));
+    }
 
-            if (feature.isPresent()) {
-                if (feature.get().getDefinition().isPresent()) {
-                    final FeatureDefinitionDeleted eventToPersist = FeatureDefinitionDeleted.of(command.getThingId(),
-                            featureId, context.getNextRevision(), getEventTimestamp(), dittoHeaders);
-                    final DeleteFeatureDefinitionResponse response = DeleteFeatureDefinitionResponse.of(context
-                            .getThingId(), featureId, dittoHeaders);
+    private static Result getDeleteFeatureDefinitionResult(final Feature feature, final Context context,
+            final DittoHeaders dittoHeaders) {
 
-                    result = ResultFactory.newResult(eventToPersist, response);
-                } else {
-                    result = ResultFactory.newResult(
-                            ExceptionFactory.featureDefinitionNotFound(context.getThingId(), featureId,
-                                    dittoHeaders));
-                }
-            } else {
-                result = ResultFactory.newResult(
-                        ExceptionFactory.featureNotFound(context.getThingId(), featureId, dittoHeaders));
-            }
-        } else {
-            result = ResultFactory.newResult(ExceptionFactory.featureNotFound(context.getThingId(),
-                    featureId, dittoHeaders));
-        }
+        final String thingId = context.getThingId();
+        final String featureId = feature.getId();
 
-        return result;
+        return feature.getDefinition()
+                .map(featureDefinition -> ResultFactory.newResult(
+                        FeatureDefinitionDeleted.of(thingId, featureId, context.getNextRevision(), getEventTimestamp(),
+                                dittoHeaders), DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders)))
+                .orElseGet(() -> ResultFactory.newResult(
+                            ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
     }
 
 }

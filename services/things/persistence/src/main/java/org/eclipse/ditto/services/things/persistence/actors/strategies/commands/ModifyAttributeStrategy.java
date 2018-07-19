@@ -36,7 +36,7 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
     }
 
     @Override
-    protected Result doApply(final CommandStrategy.Context context, final ModifyAttribute command) {
+    protected Result doApply(final Context context, final ModifyAttribute command) {
         final Thing thing = context.getThingOrThrow();
 
         return thing.getAttributes()

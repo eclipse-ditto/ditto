@@ -21,34 +21,17 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Unit test for {@link RetrieveAttributesStrategy}.
  */
-public final class RetrieveAttributesStrategyTest {
-
-    private static final long NEXT_REVISION = 42L;
-
-    private static DiagnosticLoggingAdapter logger;
-    private static ThingSnapshotter thingSnapshotter;
+public final class RetrieveAttributesStrategyTest extends AbstractCommandStrategyTest {
 
     private RetrieveAttributesStrategy underTest;
-
-    @BeforeClass
-    public static void initTestConstants() {
-        logger = Mockito.mock(DiagnosticLoggingAdapter.class);
-        thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
-    }
 
     @Before
     public void setUp() {
@@ -103,10 +86,6 @@ public final class RetrieveAttributesStrategyTest {
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).contains(ExceptionFactory.attributesNotFound(THING_ID, DittoHeaders.empty()));
         assertThat(result.isBecomeDeleted()).isFalse();
-    }
-
-    private static CommandStrategy.Context getDefaultContext(final Thing thing) {
-        return DefaultContext.getInstance(THING_ID, thing, NEXT_REVISION, logger, thingSnapshotter);
     }
 
 }

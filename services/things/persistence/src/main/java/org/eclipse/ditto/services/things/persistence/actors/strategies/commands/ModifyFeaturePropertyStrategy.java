@@ -37,7 +37,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     }
 
     @Override
-    protected Result doApply(final CommandStrategy.Context context, final ModifyFeatureProperty command) {
+    protected Result doApply(final Context context, final ModifyFeatureProperty command) {
         final Thing thing = context.getThingOrThrow();
         final String featureId = command.getFeatureId();
 
@@ -52,7 +52,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
             final ModifyFeatureProperty command) {
 
         return feature.getProperties()
-                .filter(featureProperties -> featureProperties.contains(command.getFeatureId()))
+                .filter(featureProperties -> featureProperties.contains(command.getPropertyPointer()))
                 .map(featureProperties -> getModifyResult(context, command))
                 .orElseGet(() -> getCreateResult(context, command));
     }

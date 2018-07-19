@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
@@ -26,7 +24,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
  * This strategy handles the {@link ModifyAclEntry} command.
@@ -42,33 +39,53 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final ModifyAclEntry command) {
-        final String thingId = context.getThingId();
+    protected Result doApply(final Context context, final ModifyAclEntry command) {
         final Thing thing = context.getThingOrThrow();
-        final long nextRevision = context.getNextRevision();
+
         final AccessControlList acl = thing.getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
-        final AclEntry modifiedAclEntry = command.getAclEntry();
-        final Validator aclValidator = AclValidator.newInstance(acl.setEntry(modifiedAclEntry),
-                Thing.MIN_REQUIRED_PERMISSIONS);
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        if (aclValidator.isValid()) {
-            final ThingModifiedEvent eventToPersist;
-            final ModifyAclEntryResponse response;
 
-            if (acl.contains(modifiedAclEntry.getAuthorizationSubject())) {
-                eventToPersist = AclEntryModified.of(command.getId(), modifiedAclEntry, nextRevision,
-                        getEventTimestamp(), dittoHeaders);
-                response = ModifyAclEntryResponse.modified(thingId, modifiedAclEntry, dittoHeaders);
-            } else {
-                eventToPersist = AclEntryCreated.of(command.getId(), modifiedAclEntry, nextRevision,
-                        getEventTimestamp(), dittoHeaders);
-                response = ModifyAclEntryResponse.created(thingId, modifiedAclEntry, dittoHeaders);
-            }
-
-            return newResult(eventToPersist, response);
-        } else {
-            return newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(), dittoHeaders));
+        final AccessControlList modifiedAcl = acl.setEntry(command.getAclEntry());
+        final Validator validator = getAclValidator(modifiedAcl);
+        if (!validator.isValid()) {
+            return ResultFactory.newResult(ExceptionFactory.aclInvalid(context.getThingId(), validator.getReason(),
+                    command.getDittoHeaders()));
         }
+
+        return getModifyOrCreateResult(acl, context, command);
+    }
+
+    private static Validator getAclValidator(final AccessControlList acl) {
+        return AclValidator.newInstance(acl, Thing.MIN_REQUIRED_PERMISSIONS);
+    }
+
+    private static Result getModifyOrCreateResult(final AccessControlList acl, final Context context,
+            final ModifyAclEntry command) {
+
+        final AclEntry aclEntry = command.getAclEntry();
+        if (acl.contains(aclEntry.getAuthorizationSubject())) {
+            return getModifyResult(context, command);
+        }
+        return getCreateResult(context, command);
+    }
+
+    private static Result getModifyResult(final Context context, final ModifyAclEntry command) {
+        final String thingId = context.getThingId();
+        final AclEntry aclEntry = command.getAclEntry();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AclEntryModified.of(thingId, aclEntry, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyAclEntryResponse.modified(thingId, aclEntry, dittoHeaders));
+    }
+
+    private static Result getCreateResult(final Context context, final ModifyAclEntry command) {
+        final String thingId = context.getThingId();
+        final AclEntry aclEntry = command.getAclEntry();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+        return ResultFactory.newResult(
+                AclEntryCreated.of(thingId, aclEntry, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ModifyAclEntryResponse.created(thingId, aclEntry, dittoHeaders));
     }
 
 }

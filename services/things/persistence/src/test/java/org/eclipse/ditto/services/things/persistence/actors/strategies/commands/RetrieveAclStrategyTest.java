@@ -12,7 +12,8 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -20,25 +21,17 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.TestConstants;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Context;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Result;
-import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Unit test for {@link RetrieveAclStrategy}.
  */
-public final class RetrieveAclStrategyTest {
-
-    private static final long NEXT_REVISION = 42L;
+public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
 
     private RetrieveAclStrategy underTest;
 
@@ -54,41 +47,32 @@ public final class RetrieveAclStrategyTest {
 
     @Test
     public void resultContainsJsonOfExistingAcl() {
-        final Thing thing = TestConstants.Thing.THING_V1;
+        final Context context = getDefaultContext(THING_V1);
+        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
-        final JsonObject aclJson = thing.getAccessControlList()
+        final JsonObject expectedAclJson = THING_V1.getAccessControlList()
                 .map(acl -> acl.toJson(JsonSchemaVersion.V_1))
                 .orElse(JsonFactory.newObject());
-
-        final ThingSnapshotter thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
-        final DiagnosticLoggingAdapter log = Mockito.mock(DiagnosticLoggingAdapter.class);
-        final Context context = DefaultContext.getInstance(THING_ID, thing, NEXT_REVISION, log, thingSnapshotter);
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final RetrieveAcl command = RetrieveAcl.of(THING_ID, dittoHeaders);
 
         final Result result = underTest.doApply(context, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(RetrieveAclResponse.of(THING_ID, aclJson, dittoHeaders));
+        assertThat(result.getCommandResponse()).contains(
+                RetrieveAclResponse.of(command.getThingId(), expectedAclJson, command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
     public void resultContainsEmptyJsonObject() {
-        final Thing thing = TestConstants.Thing.THING_V2;
-
-        final ThingSnapshotter thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
-        final DiagnosticLoggingAdapter log = Mockito.mock(DiagnosticLoggingAdapter.class);
-        final Context context = DefaultContext.getInstance(THING_ID, thing, NEXT_REVISION, log, thingSnapshotter);
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final RetrieveAcl command = RetrieveAcl.of(THING_ID, dittoHeaders);
+        final Context context = getDefaultContext(THING_V2);
+        final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
         final Result result = underTest.doApply(context, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveAclResponse.of(THING_ID, JsonFactory.newObject(), dittoHeaders));
+                RetrieveAclResponse.of(command.getThingId(), JsonFactory.newObject(), command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
