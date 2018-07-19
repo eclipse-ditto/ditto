@@ -109,8 +109,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private Cancellable activityChecker;
     private Thing thing;
 
-    ThingPersistenceActor(final String thingId,
-            final ActorRef pubSubMediator,
+    ThingPersistenceActor(final String thingId, final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         this.thingId = thingId;
@@ -131,10 +130,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
                     final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
-                    final Thing modified = eventHandleStrategy.handle(event, thing, getRevisionNumber());
-                    if (modified != null) {
-                        thing = modified;
-                    }
+                    thing = eventHandleStrategy.handle(event, thing, getRevisionNumber());
                 }).build();
     }
 
@@ -164,8 +160,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * @param thingSnapshotterCreate creator of {@code ThingSnapshotter} objects.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String thingId,
-            final ActorRef pubSubMediator,
+    public static Props props(final String thingId, final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
 
         return Props.create(ThingPersistenceActor.class, new Creator<ThingPersistenceActor>() {
