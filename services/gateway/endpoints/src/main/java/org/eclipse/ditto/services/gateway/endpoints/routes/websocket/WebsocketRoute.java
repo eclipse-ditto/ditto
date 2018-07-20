@@ -279,14 +279,14 @@ public final class WebsocketRoute {
             final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
             final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
+            // add headers given by parent route first so that protocol message may override them
+            internalHeadersBuilder.putHeaders(additionalHeaders);
             // add any headers from protocol adapter to internal headers
             internalHeadersBuilder.putHeaders(signalHeaders);
             // generate correlation ID if it is not set in protocol message
             if (!signalHeaders.getCorrelationId().isPresent()) {
                 internalHeadersBuilder.correlationId(UUID.randomUUID().toString());
             }
-            // headers given by parent route override all other header sources
-            internalHeadersBuilder.putHeaders(additionalHeaders);
 
             return signal.setDittoHeaders(internalHeadersBuilder.build());
         };
