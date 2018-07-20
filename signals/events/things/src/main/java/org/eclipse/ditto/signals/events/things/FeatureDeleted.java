@@ -50,7 +50,7 @@ public final class FeatureDeleted extends AbstractThingEvent<FeatureDeleted> imp
     private final String featureId;
 
     private FeatureDeleted(final String thingId, final String featureId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
     }
@@ -82,7 +82,7 @@ public final class FeatureDeleted extends AbstractThingEvent<FeatureDeleted> imp
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static FeatureDeleted of(final String thingId, final String featureId, final long revision,
-            final Instant timestamp, final DittoHeaders dittoHeaders) {
+            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders) {
         return new FeatureDeleted(thingId, featureId, revision, timestamp, dittoHeaders);
     }
 
