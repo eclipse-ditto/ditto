@@ -1230,15 +1230,19 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 applyModifyCommand(command);
             } else {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
-                if (existingAccessControlList.isPresent()) {
+                if (thing.getAccessControlList().isPresent()) {
                     // special apply - take the ACL of the persisted thing instead of the new one in the command:
-                    final Thing modifiedThingWithOldAcl = ThingsModelFactory.newThingBuilder(command.getThing())
-                            .removeAllPermissions()
-                            .setPermissions(existingAccessControlList.get())
-                            .build();
-                    final ThingModified thingModified =
-                            ThingModified.of(modifiedThingWithOldAcl, nextRevision(), eventTimestamp(), dittoHeaders);
+                    final ThingBuilder.FromCopy modifiedThingBuilder = thing.toBuilder();
+
+                    final long nextRevision = nextRevision();
+                    final Instant now = eventTimestamp();
+                    modifiedThingBuilder.setRevision(nextRevision)
+                            .setModified(now);
+                    final Thing newThingWithOutAcl = command.getThing().toBuilder().removeAllPermissions().build();
+                    mergeThingModifications(newThingWithOutAcl, modifiedThingBuilder);
+
+                    final ThingModified thingModified = ThingModified.of(modifiedThingBuilder.build(),
+                            nextRevision, now, dittoHeaders);
                     persistAndApplyEvent(thingModified,
                             event -> notifySender(ModifyThingResponse.modified(thingId, dittoHeaders)));
                 } else {
