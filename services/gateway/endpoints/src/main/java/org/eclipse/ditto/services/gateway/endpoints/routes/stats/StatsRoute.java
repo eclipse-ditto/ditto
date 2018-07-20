@@ -16,7 +16,10 @@ import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.get;
 import static akka.http.javadsl.server.Directives.path;
 import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
+import static akka.http.javadsl.server.Directives.pathPrefix;
 import static akka.http.javadsl.server.Directives.route;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -31,6 +34,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -52,6 +56,7 @@ public final class StatsRoute extends AbstractRoute {
     static final String STATISTICS_PATH_PREFIX = "stats";
     static final String THINGS_PATH = "things";
     static final String SEARCH_PATH = "search";
+    private static final String DETAILS_PATH = "details";
 
     /**
      * Constructs the {@code /stats} route builder.
@@ -72,29 +77,35 @@ public final class StatsRoute extends AbstractRoute {
     public Route buildStatsRoute(final String correlationId) {
         return Directives.rawPathPrefix(CustomPathMatchers.mergeDoubleSlashes().concat(STATISTICS_PATH_PREFIX),
                 () -> // /stats/*
-                extractRequestContext(ctx ->
-                        get(() -> // GET
-                                buildSubRoutes(ctx, correlationId)
+                        extractRequestContext(ctx ->
+                                get(() -> // GET
+                                        buildSubRoutes(ctx, correlationId)
+                                )
                         )
-                )
         );
     }
 
     private Route buildSubRoutes(final RequestContext ctx, final String correlationId) {
         return route(
-                path(THINGS_PATH, () -> // /stats/things
-                        pathEndOrSingleSlash(() ->
-                                handleDevOpsPerRequest(ctx,
-                                        RetrieveStatistics.of(
-                                                buildDevOpsDittoHeaders(correlationId)))
+                pathPrefix(THINGS_PATH, () -> // /stats/things
+                        route(
+                                path(DETAILS_PATH, () ->
+                                        authenticateDevopsBasic(REALM_DEVOPS,
+                                                handleDevOpsPerRequest(ctx,
+                                                        RetrieveStatisticsDetails.of(
+                                                                buildDevOpsDittoHeaders(correlationId))))
+                                ),
+                                pathEndOrSingleSlash(() ->
+                                        handleDevOpsPerRequest(ctx,
+                                                RetrieveStatistics.of(
+                                                        buildDevOpsDittoHeaders(correlationId)))
+                                )
                         )
                 ),
                 path(SEARCH_PATH, () -> // /stats/search
-                        pathEndOrSingleSlash(() ->
-                                handleSudoCountThingsPerRequest(ctx,
-                                        SudoCountThings.of(
-                                                buildDevOpsDittoHeaders(correlationId)))
-                        )
+                        handleSudoCountThingsPerRequest(ctx,
+                                SudoCountThings.of(
+                                        buildDevOpsDittoHeaders(correlationId)))
                 )
         );
     }
