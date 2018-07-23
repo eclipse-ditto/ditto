@@ -49,12 +49,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
 
     private final Map<String, JsonifiableMapper<T>> mappingStrategies;
-    private final HeaderPublisher headerPublisher;
+    private final HeaderTranslator headerTranslator;
 
     protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
+            final HeaderTranslator headerTranslator) {
         this.mappingStrategies = mappingStrategies;
-        this.headerPublisher = headerPublisher;
+        this.headerTranslator = headerTranslator;
     }
 
     protected static boolean isCreated(final Adaptable adaptable) {
@@ -242,10 +242,10 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
         // but not internally in Ditto.
         final String type = getType(externalAdaptable);
 
-        // filter headers by header publisher, then inject any missing information from topic path
+        // filter headers by header translator, then inject any missing information from topic path
         final DittoHeaders externalHeaders = externalAdaptable.getHeaders().orElse(DittoHeaders.empty());
         final DittoHeaders filteredHeaders = addTopicPathInfo(
-                headerPublisher.fromExternalHeaders(externalHeaders),
+                headerTranslator.fromExternalHeaders(externalHeaders),
                 externalAdaptable.getTopicPath());
 
         final Adaptable adaptable = externalAdaptable.setDittoHeaders(filteredHeaders);
@@ -291,12 +291,12 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
     @Override
     public final Adaptable toAdaptable(final T signal, final TopicPath.Channel channel) {
         final Adaptable adaptable = constructAdaptable(signal, channel);
-        final Map<String, String> externalHeaders = headerPublisher.toExternalHeaders(adaptable.getDittoHeaders());
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(adaptable.getDittoHeaders());
         return adaptable.setDittoHeaders(DittoHeaders.of(externalHeaders));
     }
 
-    protected final HeaderPublisher headerPublisher() {
-        return headerPublisher;
+    protected final HeaderTranslator headerTranslator() {
+        return headerTranslator;
     }
 
     /**

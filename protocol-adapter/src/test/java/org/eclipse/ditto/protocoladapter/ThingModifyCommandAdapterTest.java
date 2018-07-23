@@ -55,7 +55,7 @@ public final class ThingModifyCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandAdapter.of(DittoProtocolAdapter.headerPublisher());
+        underTest = ThingModifyCommandAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test(expected = UnknownCommandException.class)

@@ -30,18 +30,8 @@ public final class ProtocolConfigReaderTest {
         final Config rawConfig = defaultRawConfig();
         final ProtocolConfigReader underTest = ProtocolConfigReader.fromRawConfig(rawConfig);
 
-        assertThat(underTest.compatibilityMode()).isFalse();
         assertThat(underTest.blacklist()).contains("connection", "cache-control", "authorization", "raw-request-uri");
         assertThat(underTest.incompatibleBlacklist()).contains("thing-id", "feature-id");
-    }
-
-    @Test
-    public void testCompatibleConfiguration() {
-        final Config rawConfig = ConfigFactory.parseString("ditto.protocol.compatibility-mode=true")
-                .withFallback(defaultRawConfig());
-        final ProtocolConfigReader underTest = ProtocolConfigReader.fromRawConfig(rawConfig);
-
-        assertThat(underTest.compatibilityMode()).isTrue();
     }
 
     @Test

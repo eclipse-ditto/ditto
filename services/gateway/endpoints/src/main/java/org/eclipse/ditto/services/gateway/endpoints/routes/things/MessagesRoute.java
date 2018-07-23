@@ -43,7 +43,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
-import org.eclipse.ditto.protocoladapter.HeaderPublisher;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -90,7 +90,7 @@ final class MessagesRoute extends AbstractRoute {
     private final Duration maxMessageTimeout;
     private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
-    private final HeaderPublisher headerPublisher;
+    private final HeaderTranslator headerTranslator;
 
     /**
      * Constructs the MessagesService route builder.
@@ -117,9 +117,9 @@ final class MessagesRoute extends AbstractRoute {
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
 
-        headerPublisher = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
+        headerTranslator = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
                 .loadProtocolAdapterProvider(actorSystem)
-                .createHttpHeaderPublisher();
+                .createHttpHeaderTranslator();
     }
 
     /**
@@ -264,7 +264,7 @@ final class MessagesRoute extends AbstractRoute {
         final Map<String, String> externalHeaders =
                 StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
                         .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
-        return headerPublisher.fromExternalHeaders(externalHeaders);
+        return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 
     private Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,

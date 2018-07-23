@@ -53,7 +53,7 @@ public final class MessageCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandResponseAdapter.of(DittoProtocolAdapter.headerPublisher());
+        underTest = MessageCommandResponseAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Parameterized.Parameters(name = "type={0}")

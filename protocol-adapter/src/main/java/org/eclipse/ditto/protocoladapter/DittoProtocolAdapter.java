@@ -53,28 +53,28 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingEventAdapter thingEventAdapter;
 
     private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
-    private final HeaderPublisher headerPublisher;
+    private final HeaderTranslator headerTranslator;
 
     protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
-            final HeaderPublisher headerPublisher) {
+            final HeaderTranslator headerTranslator) {
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.of(headerPublisher);
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerPublisher);
-        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerPublisher);
-        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerPublisher);
-        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerPublisher);
-        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerPublisher);
-        this.thingEventAdapter = ThingEventAdapter.of(headerPublisher);
-        this.headerPublisher = headerPublisher;
+        this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
+        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.headerTranslator = headerTranslator;
     }
 
     /**
-     * Creates a new {@code DittoProtocolAdapter} instance with the given header publisher.
+     * Creates a new {@code DittoProtocolAdapter} instance with the given header translator.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      */
-    public static DittoProtocolAdapter of(final HeaderPublisher headerPublisher) {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerPublisher);
+    public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator);
     }
 
     /**
@@ -83,16 +83,16 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerPublisher());
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator());
     }
 
     /**
-     * Create a default header publisher for this protocol adapter.
+     * Create a default header translator for this protocol adapter.
      *
-     * @return the default header publisher.
+     * @return the default header translator.
      */
-    public static HeaderPublisher headerPublisher() {
-        return HeaderPublisher.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
+    public static HeaderTranslator headerTranslator() {
+        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
     @Override
@@ -262,7 +262,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload)
-                .withHeaders(DittoHeaders.of(headerPublisher.toExternalHeaders(responseHeaders)))
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
                 .build();
     }
 
@@ -355,7 +355,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      */
     private ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
         final DittoHeaders dittoHeaders =
-                headerPublisher.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
+                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()

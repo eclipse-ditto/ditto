@@ -53,17 +53,7 @@ public final class ProtocolConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * Return whether compatibility mode is on.
-     *
-     * @return whether compatibility mode is on.
-     */
-    public boolean compatibilityMode() {
-        return getIfPresent("compatibility-mode", config::getBoolean)
-                .orElse(false);
-    }
-
-    /**
-     * Return the configured class name of the provider of the Ditto header publisher.
+     * Return the configured class name of the provider of the Ditto header translator.
      *
      * @return the class name.
      */

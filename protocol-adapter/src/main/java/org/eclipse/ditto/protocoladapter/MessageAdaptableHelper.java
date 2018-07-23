@@ -74,7 +74,7 @@ final class MessageAdaptableHelper {
             final JsonPointer resourcePath,
             final Message<?> message,
             final DittoHeaders dittoHeaders,
-            final HeaderPublisher headerPublisher) {
+            final HeaderTranslator headerTranslator) {
 
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingId);
 
@@ -100,7 +100,7 @@ final class MessageAdaptableHelper {
 
         final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
         allHeadersBuilder.putHeaders(dittoHeaders);
-        final Map<String, String> externalHeaders = headerPublisher.toExternalHeaders(allHeadersBuilder.build());
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allHeadersBuilder.build());
 
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())

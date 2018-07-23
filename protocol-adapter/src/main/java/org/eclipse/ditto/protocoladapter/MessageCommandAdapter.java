@@ -29,18 +29,18 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
     private MessageCommandAdapter(
             final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new MessageCommandAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static MessageCommandAdapter of(final HeaderPublisher headerPublisher) {
-        return new MessageCommandAdapter(mappingStrategies(), headerPublisher);
+    public static MessageCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new MessageCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies() {
@@ -80,7 +80,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     public Adaptable constructAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
                 command.getResourcePath(), command.getMessage(), command.getDittoHeaders(),
-                headerPublisher());
+                headerTranslator());
     }
 
 }

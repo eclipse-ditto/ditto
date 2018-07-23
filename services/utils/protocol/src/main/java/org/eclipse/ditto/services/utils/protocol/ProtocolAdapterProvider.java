@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.utils.protocol;
 
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.eclipse.ditto.protocoladapter.HeaderPublisher;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -56,11 +56,11 @@ public abstract class ProtocolAdapterProvider {
     public abstract ProtocolAdapter createProtocolAdapterForCompatibilityMode();
 
     /**
-     * Create a header publisher to filter incoming HTTP headers for the protocol adapter.
+     * Create a header translator to filter incoming HTTP headers for the protocol adapter.
      *
-     * @return the header publisher.
+     * @return the header translator.
      */
-    public abstract HeaderPublisher createHttpHeaderPublisher();
+    public abstract HeaderTranslator createHttpHeaderTranslator();
 
     /**
      * Header definition for headers ignored by Ditto.

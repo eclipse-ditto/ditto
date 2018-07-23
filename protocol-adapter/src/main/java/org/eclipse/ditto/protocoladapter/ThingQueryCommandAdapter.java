@@ -43,18 +43,18 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
 
     private ThingQueryCommandAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingQueryCommandAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingQueryCommandAdapter of(final HeaderPublisher headerPublisher) {
-        return new ThingQueryCommandAdapter(mappingStrategies(), headerPublisher);
+    public static ThingQueryCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingQueryCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {

@@ -92,8 +92,6 @@ public final class WebsocketRoute {
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
 
-    private final ProtocolAdapter protocolAdapter;
-    private final ProtocolAdapter compatibleProtocolAdapter;
     private final EventStream eventStream;
 
     /**
@@ -104,21 +102,15 @@ public final class WebsocketRoute {
      * can have.
      * @param publisherBackpressureBufferSize the max buffer size of how many outstanding CommandResponses and Events a
      * single Websocket client can have - additionally incoming CommandResponses and Events are dropped if this size is
-     * @param protocolAdapter protocol adapter mapping {@code Signal} to {@code Adaptable}
-     * @param compatibleProtocolAdapter protocol adapter in compatibility mode.
      * @param eventStream eventStream used to publish events within the actor system
      */
     public WebsocketRoute(final ActorRef streamingActor,
             final int subscriberBackpressureQueueSize,
             final int publisherBackpressureBufferSize,
-            final ProtocolAdapter protocolAdapter,
-            final ProtocolAdapter compatibleProtocolAdapter,
             final EventStream eventStream) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
-        this.protocolAdapter = protocolAdapter;
-        this.compatibleProtocolAdapter = compatibleProtocolAdapter;
         this.eventStream = eventStream;
     }
 
@@ -128,9 +120,9 @@ public final class WebsocketRoute {
      * @return the {@code /ws} route.
      */
     public Route buildWebsocketRoute(final Integer version, final String correlationId,
-            final AuthorizationContext connectionAuthContext, final boolean compatibilityMode) {
+            final AuthorizationContext connectionAuthContext, final ProtocolAdapter chosenProtocolAdapter) {
         return buildWebsocketRoute(version, correlationId, connectionAuthContext, DittoHeaders.empty(),
-                compatibilityMode);
+                chosenProtocolAdapter);
     }
 
     /**
@@ -140,8 +132,7 @@ public final class WebsocketRoute {
      */
     public Route buildWebsocketRoute(final Integer version, final String correlationId,
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
-            final boolean compatibilityMode) {
-        final ProtocolAdapter chosenProtocolAdapter = compatibilityMode ? compatibleProtocolAdapter : protocolAdapter;
+            final ProtocolAdapter chosenProtocolAdapter) {
 
         return extractUpgradeToWebSocket(upgradeToWebSocket ->
                 complete(

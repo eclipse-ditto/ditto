@@ -47,18 +47,18 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
 
     private ThingModifyCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingModifyCommandResponseAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingModifyCommandResponseAdapter of(final HeaderPublisher headerPublisher) {
-        return new ThingModifyCommandResponseAdapter(mappingStrategies(), headerPublisher);
+    public static ThingModifyCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingModifyCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})

@@ -129,7 +129,6 @@ public final class RootRoute {
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
     private final WebsocketRoute websocketRoute;
-    private final boolean wsCompatibilityMode;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
     private final StatsRoute statsRoute;
@@ -137,6 +136,7 @@ public final class RootRoute {
     private final List<Integer> supportedSchemaVersions;
     private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
+    private final ProtocolAdapterProvider protocolAdapterProvider;
 
     /**
      * Constructs the {@code /} route builder.
@@ -180,15 +180,10 @@ public final class RootRoute {
                 config.getDuration(ConfigKeys.CLAIMMESSAGE_MAX_TIMEOUT));
         thingSearchRoute = new ThingSearchRoute(proxyActor, actorSystem);
 
-        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
-        final ProtocolAdapterProvider protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                protocolAdapterProvider.createProtocolAdapter(),
-                protocolAdapterProvider.createProtocolAdapterForCompatibilityMode(),
                 actorSystem.eventStream());
-        wsCompatibilityMode = protocolConfig.compatibilityMode();
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
 
@@ -196,6 +191,9 @@ public final class RootRoute {
                 generateGatewayAuthenticationDirective(config, httpClient);
         wsAuthenticationDirective = apiAuthenticationDirective;
         exceptionHandler = createExceptionHandler();
+
+        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
+        protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
     }
 
     private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
@@ -387,7 +385,7 @@ public final class RootRoute {
                                         authContextWithPrefixedSubjects,
                                         authContext ->
                                                 websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                        authContext, wsCompatibilityMode)
+                                                        authContext, protocolAdapterProvider.createProtocolAdapter())
                                 )
                         )
                 )

@@ -36,18 +36,18 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
 
     private ThingQueryCommandResponseAdapter(
             final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingQueryCommandResponseAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingQueryCommandResponseAdapter of(final HeaderPublisher headerPublisher) {
-        return new ThingQueryCommandResponseAdapter(mappingStrategies(), headerPublisher);
+    public static ThingQueryCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingQueryCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})

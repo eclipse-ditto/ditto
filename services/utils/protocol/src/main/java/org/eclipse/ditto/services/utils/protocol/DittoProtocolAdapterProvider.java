@@ -15,7 +15,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocoladapter.HeaderPublisher;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 
 /**
@@ -39,17 +39,17 @@ public final class DittoProtocolAdapterProvider extends ProtocolAdapterProvider 
 
     @Override
     public ProtocolAdapter createProtocolAdapterForCompatibilityMode() {
-        final HeaderPublisher compatibleHeaderPublisher = DittoProtocolAdapter.headerPublisher()
+        final HeaderTranslator compatibleHeaderTranslator = DittoProtocolAdapter.headerTranslator()
                 .forgetHeaderKeys(protocolConfigReader().incompatibleBlacklist());
-        return DittoProtocolAdapter.of(compatibleHeaderPublisher);
+        return DittoProtocolAdapter.of(compatibleHeaderTranslator);
     }
 
     @Override
-    public HeaderPublisher createHttpHeaderPublisher() {
+    public HeaderTranslator createHttpHeaderTranslator() {
         final HeaderDefinition[] blacklist = protocolConfigReader().blacklist()
                 .stream()
                 .map(Ignored::new)
                 .toArray(HeaderDefinition[]::new);
-        return HeaderPublisher.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blacklist);
+        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values(), blacklist);
     }
 }

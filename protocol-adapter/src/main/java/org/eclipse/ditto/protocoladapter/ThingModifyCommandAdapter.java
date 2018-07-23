@@ -47,18 +47,18 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
     private ThingModifyCommandAdapter(
             final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingModifyCommandAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingModifyCommandAdapter of(final HeaderPublisher headerPublisher) {
-        return new ThingModifyCommandAdapter(mappingStrategies(), headerPublisher);
+    public static ThingModifyCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingModifyCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {

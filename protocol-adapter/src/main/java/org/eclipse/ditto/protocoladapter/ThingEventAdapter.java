@@ -57,18 +57,18 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent> {
 
     private ThingEventAdapter(
             final Map<String, JsonifiableMapper<ThingEvent>> mappingStrategies,
-            final HeaderPublisher headerPublisher) {
-        super(mappingStrategies, headerPublisher);
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingEventAdapter.
      *
-     * @param headerPublisher translator between external and Ditto headers.
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingEventAdapter of(final HeaderPublisher headerPublisher) {
-        return new ThingEventAdapter(mappingStrategies(), headerPublisher);
+    public static ThingEventAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingEventAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingEvent>> mappingStrategies() {

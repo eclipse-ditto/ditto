@@ -27,37 +27,38 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
 /**
- * Default implementation of {@link HeaderPublisher} for Ditto.
- *
- * TODO TJ rename to HeaderFilter? this one doesn't publish --> HeaderTranslator
+ * Utility for translating Headers from external sources or to external sources.
+ * <p>
+ * Does so by applying blacklisting based on {@link HeaderDefinition}s.
+ * </p>
  */
 @Immutable
-public final class HeaderPublisher {
+public final class HeaderTranslator {
 
     private final Map<String, HeaderDefinition> headerDefinitionMap;
 
-    private HeaderPublisher(final Map<String, HeaderDefinition> headerDefinitionMap) {
+    private HeaderTranslator(final Map<String, HeaderDefinition> headerDefinitionMap) {
         this.headerDefinitionMap = Collections.unmodifiableMap(headerDefinitionMap);
     }
 
     /**
-     * Construct a Ditto header publisher that knows about all header definitions enumerated in
+     * Construct a Ditto header translator that knows about all header definitions enumerated in
      * {@link DittoHeaderDefinition}.
      *
-     * @return the Ditto header publisher.
+     * @return the Ditto header translator.
      */
-    public static HeaderPublisher of() {
+    public static HeaderTranslator of() {
         return of(DittoHeaderDefinition.values());
     }
 
     /**
-     * Construct a Ditto header publisher from arrays of header definitions.
+     * Construct a Ditto header translator from arrays of header definitions.
      *
      * @param headerDefinitions arrays of header definitions.
-     * @return the Ditto header publisher that knows about the given definitions.
+     * @return the Ditto header translator that knows about the given definitions.
      */
-    public static HeaderPublisher of(final HeaderDefinition[]... headerDefinitions) {
-        return new HeaderPublisher(Arrays.stream(headerDefinitions)
+    public static HeaderTranslator of(final HeaderDefinition[]... headerDefinitions) {
+        return new HeaderTranslator(Arrays.stream(headerDefinitions)
                 .flatMap(Arrays::stream)
                 .collect(Collectors.toMap(HeaderDefinition::getKey, Function.identity())));
     }
@@ -97,16 +98,16 @@ public final class HeaderPublisher {
     }
 
     /**
-     * Build a copy of this header publisher without knowledge of certain headers.
+     * Build a copy of this header translator without knowledge of certain headers.
      *
      * @param headerKeys header keys to forget.
-     * @return a new header publisher with less knowledge.
+     * @return a new header translator with less knowledge.
      */
-    public HeaderPublisher forgetHeaderKeys(final Collection<String> headerKeys) {
+    public HeaderTranslator forgetHeaderKeys(final Collection<String> headerKeys) {
         final Map<String, HeaderDefinition> newHeaderDefinitionMap = headerDefinitionMap.entrySet()
                 .stream()
                 .filter(entry -> !headerKeys.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        return new HeaderPublisher(newHeaderDefinitionMap);
+        return new HeaderTranslator(newHeaderDefinitionMap);
     }
 }
