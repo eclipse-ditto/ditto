@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.protocol;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.protocoladapter.HeaderPublisher;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Interface for loading protocol adapter at runtime.
@@ -45,23 +46,26 @@ public abstract class ProtocolAdapterProvider {
      *
      * @return the protocol adapter.
      */
-    public abstract ProtocolAdapter get();
+    public abstract ProtocolAdapter createProtocolAdapter();
 
     /**
      * Create a protocol adapter in compatibility mode.
      *
      * @return protocol adapter in compatibility mode.
      */
-    public abstract ProtocolAdapter getForCompatibilityMode();
+    public abstract ProtocolAdapter createProtocolAdapterForCompatibilityMode();
 
     /**
      * Create a header publisher to filter incoming HTTP headers for the protocol adapter.
+     *
+     * @return the header publisher.
      */
-    public abstract HeaderPublisher getHttpHeaderPublisher();
+    public abstract HeaderPublisher createHttpHeaderPublisher();
 
     /**
      * Header definition for headers ignored by Ditto.
      */
+    @AllValuesAreNonnullByDefault
     protected static final class Ignored implements HeaderDefinition {
 
         private final String key;
@@ -93,6 +97,11 @@ public abstract class ProtocolAdapterProvider {
         @Override
         public boolean shouldWriteToExternalHeaders() {
             return false;
+        }
+
+        @Override
+        public String toString() {
+            return getKey();
         }
     }
 }

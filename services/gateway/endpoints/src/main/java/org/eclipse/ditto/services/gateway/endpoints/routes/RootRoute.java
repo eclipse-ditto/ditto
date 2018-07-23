@@ -185,8 +185,8 @@ public final class RootRoute {
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                protocolAdapterProvider.get(),
-                protocolAdapterProvider.getForCompatibilityMode(),
+                protocolAdapterProvider.createProtocolAdapter(),
+                protocolAdapterProvider.createProtocolAdapterForCompatibilityMode(),
                 actorSystem.eventStream());
         wsCompatibilityMode = protocolConfig.compatibilityMode();
 

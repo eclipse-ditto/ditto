@@ -119,7 +119,7 @@ final class MessagesRoute extends AbstractRoute {
 
         headerPublisher = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
                 .loadProtocolAdapterProvider(actorSystem)
-                .getHttpHeaderPublisher();
+                .createHttpHeaderPublisher();
     }
 
     /**

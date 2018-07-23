@@ -33,19 +33,19 @@ public final class DittoProtocolAdapterProvider extends ProtocolAdapterProvider 
     }
 
     @Override
-    public ProtocolAdapter get() {
+    public ProtocolAdapter createProtocolAdapter() {
         return DittoProtocolAdapter.newInstance();
     }
 
     @Override
-    public ProtocolAdapter getForCompatibilityMode() {
+    public ProtocolAdapter createProtocolAdapterForCompatibilityMode() {
         final HeaderPublisher compatibleHeaderPublisher = DittoProtocolAdapter.headerPublisher()
                 .forgetHeaderKeys(protocolConfigReader().incompatibleBlacklist());
         return DittoProtocolAdapter.of(compatibleHeaderPublisher);
     }
 
     @Override
-    public HeaderPublisher getHttpHeaderPublisher() {
+    public HeaderPublisher createHttpHeaderPublisher() {
         final HeaderDefinition[] blacklist = protocolConfigReader().blacklist()
                 .stream()
                 .map(Ignored::new)

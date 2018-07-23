@@ -31,6 +31,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for Authorization Subjects value.
      * <p>
      * Key: {@code "auth-subjects"}, Java type: {@link JsonArray}.
+     * </p>
      */
     AUTHORIZATION_SUBJECTS("auth-subjects", JsonArray.class, false, true),
 
@@ -38,6 +39,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for correlation Id value.
      * <p>
      * Key: {@code "correlation-id"}, Java type: String.
+     * </p>
      */
     CORRELATION_ID("correlation-id", String.class, true, true),
 
@@ -45,6 +47,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for schema version value.
      * <p>
      * Key: {@code "version"}, Java type: {@code int}.
+     * </p>
      */
     SCHEMA_VERSION("version", int.class, true, true),
 
@@ -52,6 +55,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for source value.
      * <p>
      * Key: {@code "source"}, Java type: String.
+     * </p>
      */
     SOURCE("source", String.class, true, true),
 
@@ -59,6 +63,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for response required value.
      * <p>
      * Key: {@code "response-required"}, Java type: {@code boolean}.
+     * </p>
      */
     RESPONSE_REQUIRED("response-required", boolean.class, true, true),
 
@@ -66,6 +71,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for dry run value.
      * <p>
      * Key: {@code "dry-run"}, Java type: {@code boolean}.
+     * </p>
      */
     DRY_RUN("dry-run", boolean.class, false, false),
 
@@ -73,6 +79,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for read subjects value.
      * <p>
      * Key: {@code "read-subjects"}, Java type: {@link JsonArray}.
+     * </p>
      */
     READ_SUBJECTS("read-subjects", JsonArray.class, false, false),
 
@@ -80,6 +87,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for a signal's content-type.
      * <p>
      * Key: {@code "content-type"}, Java type: String.
+     * </p>
      */
     CONTENT_TYPE("content-type", String.class, true, true),
 
@@ -87,6 +95,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for channel value meaning distinguishing between live/twin.
      * <p>
      * Key: {@code "channel"}, Java type: {@link String}.
+     * </p>
      */
     CHANNEL("channel", String.class, false, false),
 
@@ -94,6 +103,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for origin value that is set to the id of the originating session.
      * <p>
      * Key: {@code "origin"}, Java type: {@link String}.
+     * </p>
      */
     ORIGIN("origin", String.class, false, false);
 
@@ -108,6 +118,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     private final boolean readFromExternalHeaders;
     private final boolean writeToExternalHeaders;
 
+    /**
+     * @param theKey the key used as key for header map.
+     * @param theType the Java type of the header value which is associated with this definition's key.
+     * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
+     * @param writeToExternalHeaders whether Ditto publishes this header to externals.
+     */
     DittoHeaderDefinition(final String theKey, final Class<?> theType, final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders) {
         key = theKey;

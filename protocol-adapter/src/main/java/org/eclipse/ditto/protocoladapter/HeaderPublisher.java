@@ -13,20 +13,23 @@ package org.eclipse.ditto.protocoladapter;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 
-import jdk.nashorn.internal.ir.annotations.Immutable;
-
 /**
  * Default implementation of {@link HeaderPublisher} for Ditto.
+ *
+ * TODO TJ rename to HeaderFilter? this one doesn't publish --> HeaderTranslator
  */
 @Immutable
 public final class HeaderPublisher {
@@ -34,7 +37,7 @@ public final class HeaderPublisher {
     private final Map<String, HeaderDefinition> headerDefinitionMap;
 
     private HeaderPublisher(final Map<String, HeaderDefinition> headerDefinitionMap) {
-        this.headerDefinitionMap = headerDefinitionMap;
+        this.headerDefinitionMap = Collections.unmodifiableMap(headerDefinitionMap);
     }
 
     /**

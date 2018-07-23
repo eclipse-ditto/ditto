@@ -52,8 +52,8 @@ public final class ProtocolConfigReaderTest {
 
         final ProtocolAdapterProvider provider = underTest.loadProtocolAdapterProvider(actorSystem);
         assertThat(provider.getClass()).isEqualTo(DittoProtocolAdapterProvider.class);
-        assertThat(provider.get().getClass()).isEqualTo(DittoProtocolAdapter.class);
-        assertThat(provider.getForCompatibilityMode().getClass())
+        assertThat(provider.createProtocolAdapter().getClass()).isEqualTo(DittoProtocolAdapter.class);
+        assertThat(provider.createProtocolAdapterForCompatibilityMode().getClass())
                 .isEqualTo(DittoProtocolAdapter.class);
     }
 
