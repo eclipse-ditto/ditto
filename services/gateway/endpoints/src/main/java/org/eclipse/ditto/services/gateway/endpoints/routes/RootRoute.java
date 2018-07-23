@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -136,7 +137,7 @@ public final class RootRoute {
     private final List<Integer> supportedSchemaVersions;
     private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
-    private final ProtocolAdapterProvider protocolAdapterProvider;
+    private final ProtocolAdapter protocolAdapter;
 
     /**
      * Constructs the {@code /} route builder.
@@ -193,7 +194,8 @@ public final class RootRoute {
         exceptionHandler = createExceptionHandler();
 
         final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
-        protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
+        final ProtocolAdapterProvider protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
+        protocolAdapter = protocolAdapterProvider.createProtocolAdapter();
     }
 
     private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
@@ -385,7 +387,7 @@ public final class RootRoute {
                                         authContextWithPrefixedSubjects,
                                         authContext ->
                                                 websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                        authContext, protocolAdapterProvider.createProtocolAdapter())
+                                                        authContext, protocolAdapter)
                                 )
                         )
                 )
