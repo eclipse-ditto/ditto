@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
@@ -153,9 +154,10 @@ final class StreamingSessionActor extends AbstractActor {
                      */
                     getContext().getSystem().scheduler()
                             .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    () ->
-                                            acknowledgeSubscription(streamingType, self),
-                                    getContext().getSystem().dispatcher());
+                                    self,
+                                    new AcknowledgeSubscription(streamingType),
+                                    getContext().getSystem().dispatcher(),
+                                    self);
                 })
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -169,10 +171,15 @@ final class StreamingSessionActor extends AbstractActor {
                      */
                     getContext().getSystem().scheduler()
                             .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    () ->
-                                            acknowledgeUnsubscription(streamingType, self),
-                                    getContext().getSystem().dispatcher());
+                                    self,
+                                    new AcknowledgeUnsubscription(streamingType),
+                                    getContext().getSystem().dispatcher(),
+                                    self);
                 })
+                .match(AcknowledgeSubscription.class, msg ->
+                        acknowledgeSubscription(msg.getStreamingType(), getSelf()))
+                .match(AcknowledgeUnsubscription.class, msg ->
+                        acknowledgeUnsubscription(msg.getStreamingType(), getSelf()))
                 .match(Terminated.class, terminated -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("eventAndResponsePublisher was terminated");
@@ -219,24 +226,70 @@ final class StreamingSessionActor extends AbstractActor {
         }
     }
 
-    private void acknowledgeSubscriptionForSignal(final Signal liveSignal) {
-        if (liveSignal instanceof MessageCommand && outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
-            acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
-        } else if (liveSignal instanceof Command && outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
-            acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
-        } else if (liveSignal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
-            acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
+    private void acknowledgeSubscriptionForSignal(final Signal signal) {
+        if (isLiveSignal(signal)) {
+            if (signal instanceof MessageCommand &&
+                    outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
+                acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
+            } else if (signal instanceof Command && outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
+                acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
+            } else if (signal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
+                acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
+            }
+        } else if (signal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
+            acknowledgeSubscription(StreamingType.EVENTS, getSelf());
         }
     }
 
+    private static boolean isLiveSignal(final Signal signal) {
+        return signal.getDittoHeaders().getChannel()
+                .flatMap(TopicPath.Channel::forName)
+                .filter(TopicPath.Channel.LIVE::equals)
+                .isPresent();
+    }
+
     private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {
-        outstandingSubscriptionAcks.remove(streamingType);
-        eventAndResponsePublisher.tell(new StreamingAck(streamingType, true), self);
-        logger.debug("Subscribed to Cluster <{}> in <{}> session", streamingType, type);
+        if (outstandingSubscriptionAcks.contains(streamingType)) {
+            outstandingSubscriptionAcks.remove(streamingType);
+            eventAndResponsePublisher.tell(new StreamingAck(streamingType, true), self);
+            logger.debug("Subscribed to Cluster <{}> in <{}> session", streamingType, type);
+        } else {
+            logger.debug("Subscription already acked for type <{}> in <{}> session", streamingType, type);
+        }
     }
 
     private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
         eventAndResponsePublisher.tell(new StreamingAck(streamingType, false), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session", streamingType, type);
+    }
+
+    /**
+     * Messages to self to perform an outstanding acknowledgement if not already acknowledged.
+     */
+    private static abstract class WithStreamingType {
+
+        private final StreamingType streamingType;
+
+        private WithStreamingType(final StreamingType streamingType) {
+            this.streamingType = streamingType;
+        }
+
+        StreamingType getStreamingType() {
+            return streamingType;
+        }
+    }
+
+    private static final class AcknowledgeSubscription extends WithStreamingType {
+
+        private AcknowledgeSubscription(final StreamingType streamingType) {
+            super(streamingType);
+        }
+    }
+
+    private static final class AcknowledgeUnsubscription extends WithStreamingType {
+
+        private AcknowledgeUnsubscription(final StreamingType streamingType) {
+            super(streamingType);
+        }
     }
 }
