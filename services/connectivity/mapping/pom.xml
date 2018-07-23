@@ -56,6 +56,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>long</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>

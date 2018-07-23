@@ -97,15 +97,17 @@ public class RabbitMQClientActorTest {
 
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
-                ConnectionStatus.OPEN, TestConstants.getUri(actorSystem), TestConstants.AUTHORIZATION_CONTEXT)
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto",
+                ConnectionType.AMQP_091, ConnectionStatus.OPEN,
+                TestConstants.getUri(actorSystem), TestConstants.AUTHORIZATION_CONTEXT)
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", "topic1")))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
                 () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, null);
         final ThrowableAssert.ThrowingCallable props2 =
-                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null, rabbitConnectionFactoryFactory);
+                () -> RabbitMQClientActor.propsForTests(connection, connectionStatus, null,
+                        rabbitConnectionFactoryFactory);
         Stream.of(props1, props2)
                 .forEach(throwingCallable ->
                         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

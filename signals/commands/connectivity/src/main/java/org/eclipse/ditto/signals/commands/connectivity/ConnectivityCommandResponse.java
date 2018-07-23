@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.commands.connectivity;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -52,6 +53,9 @@ public interface ConnectivityCommandResponse<T extends ConnectivityCommandRespon
     default String getResourceType() {
         return ConnectivityCommand.RESOURCE_TYPE;
     }
+
+    @Override
+    T setDittoHeaders(DittoHeaders dittoHeaders);
 
     /**
      * This class contains definitions for all specific fields of a {@code ConnectivityCommandResponse}'s JSON representation.
