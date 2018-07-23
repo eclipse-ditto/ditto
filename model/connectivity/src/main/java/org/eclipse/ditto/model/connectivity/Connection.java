@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -70,11 +71,11 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     AuthorizationContext getAuthorizationContext();
 
     /**
-     * Returns a set of the sources of this {@code Connection}.
+     * Returns a list of the sources of this {@code Connection}.
      *
      * @return the sources
      */
-    Set<Source> getSources();
+    List<Source> getSources();
 
     /**
      * Returns a set of targets of this {@code Connection}.

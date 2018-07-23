@@ -52,7 +52,7 @@ public class ConsumerData {
     }
 
     String getActorName() {
-        return AmqpConsumerActor.ACTOR_NAME_PREFIX + source.getIdentifier() + "-" + addressWithIndex;
+        return AmqpConsumerActor.ACTOR_NAME_PREFIX + source.getIndex() + "-" + addressWithIndex;
     }
 
     @Override

@@ -359,14 +359,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     handleOutboundSignal(signal);
                     return stay();
                 })
-//                .event(Signal.class, BaseClientData.class, (signal, data) -> {
-//                    handleSignal(signal);
-//                    return stay();
-//                })
-//                .event(ExternalMessage.class, BaseClientData.class, (externalMessage, data) -> {
-//                    handleExternalMessage(externalMessage);
-//                    return stay();
-//                })
                 .event(Status.Success.class, BaseClientData.class, (success, data) -> {
                     log.info("Got Status.Success: {}", success);
                     return stay();
@@ -868,7 +860,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * @return the sources configured for this connection or an empty set if no sources were configured.
      */
-    protected final Set<Source> getSourcesOrEmptySet() {
+    protected final List<Source> getSourcesOrEmptySet() {
         return connection().getSources();
     }
 

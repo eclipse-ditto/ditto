@@ -31,8 +31,8 @@ public class ImmutableSourceTest {
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
-    private static final Source SOURCE_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, ctx, AMQP_SOURCE1);
-    private static final Source SOURCE_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, AMQP_SOURCE1);
+    private static final Source SOURCE_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
+    private static final Source SOURCE_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, AMQP_SOURCE1);
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
@@ -48,8 +48,6 @@ public class ImmutableSourceTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableSource.class)
-                // TODO PM identifier field might be removed anyways, therefore test was adapted.
-                .withIgnoredFields("identifier")
                 .usingGetClass()
                 .verify();
     }
@@ -68,7 +66,7 @@ public class ImmutableSourceTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Source actual = ImmutableSource.fromJson(SOURCE_JSON_WITH_AUTH_CONTEXT);
+        final Source actual = ImmutableSource.fromJson(SOURCE_JSON_WITH_AUTH_CONTEXT, 0);
         assertThat(actual).isEqualTo(SOURCE_WITH_AUTH_CONTEXT);
     }
 
@@ -80,7 +78,7 @@ public class ImmutableSourceTest {
 
     @Test
     public void fromJsonWithEmptyAuthContextReturnsExpected() {
-        final Source actual = ImmutableSource.fromJson(SOURCE_JSON);
+        final Source actual = ImmutableSource.fromJson(SOURCE_JSON, 0);
         assertThat(actual).isEqualTo(SOURCE_WITH_EMPTY_AUTH_CONTEXT);
     }
 }

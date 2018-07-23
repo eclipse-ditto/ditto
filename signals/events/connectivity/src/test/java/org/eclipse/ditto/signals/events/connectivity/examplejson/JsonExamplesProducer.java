@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonField;
@@ -54,9 +55,8 @@ public class JsonExamplesProducer {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Set<Source> SOURCES = new HashSet<>(
-            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
-                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
+    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
+            ConnectivityModelFactory.newSource(2, "amqp/source2"));
 
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", Topic.TWIN_EVENTS)));

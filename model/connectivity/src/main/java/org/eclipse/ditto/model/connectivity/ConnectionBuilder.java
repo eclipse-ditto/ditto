@@ -12,6 +12,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -100,7 +101,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code sources} is {@code null}.
      */
-    ConnectionBuilder sources(Set<Source> sources);
+    ConnectionBuilder sources(List<Source> sources);
 
     /**
      * Adds additional targets to the connection.

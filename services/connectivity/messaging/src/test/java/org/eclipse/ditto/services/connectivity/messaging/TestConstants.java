@@ -11,14 +11,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static java.util.Arrays.asList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -91,12 +92,11 @@ public class TestConstants {
 
     public static class Sources {
 
-        public static final Set<Source> SOURCES = asSet(newSource(2, "amqp/source1"),
-                newSource(2, "amqp/source2"));
-        public static final Set<Source> SOURCES_WITH_AUTH_CONTEXT =
-                asSet(newSource(2, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
-        public static final Set<Source> SOURCES_WITH_SAME_ADDRESS =
-                asSet(newSource(1, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
+        public static final List<Source> SOURCES = asList(newSource(2, "amqp/source1"), newSource(2, "amqp/source2"));
+        public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
+                asList(newSource(2, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
+        public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
+                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
     }
 
     public static class Targets {
@@ -128,7 +128,7 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
-            final Set<Source> sources) {
+            final List<Source> sources) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
                 .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                 .sources(sources)
@@ -147,7 +147,7 @@ public class TestConstants {
 
     @SafeVarargs
     public static <T> Set<T> asSet(final T... array) {
-        return new HashSet<>(Arrays.asList(array));
+        return new HashSet<>(asList(array));
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,

@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,9 +53,10 @@ public final class ImmutableConnectionTest {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Source SOURCE1 = ConnectivityModelFactory.newSource("amqp/source1");
-    private static final Source SOURCE2 = ConnectivityModelFactory.newSource(1, AUTHORIZATION_CONTEXT, "amqp/source2");
-    private static final Set<Source> SOURCES = new HashSet<>(Arrays.asList(SOURCE1, SOURCE2));
+    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(0, "amqp/source1");
+    private static final Source SOURCE2 =
+            ConnectivityModelFactory.newSource(1, 1, AUTHORIZATION_CONTEXT, "amqp/source2");
+    private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final Target TARGET1 =
             ConnectivityModelFactory.newTarget("amqp/target1", Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
@@ -250,7 +252,7 @@ public final class ImmutableConnectionTest {
         final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .name(NAME)
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .sources(SOURCES)
+                .sources(Arrays.asList(SOURCE2, SOURCE1)) // use different order to test sorting
                 .targets(TARGETS)
                 .clientCount(2)
                 .mappingContext(KNOWN_MAPPING_CONTEXT)
@@ -358,7 +360,7 @@ public final class ImmutableConnectionTest {
 
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, uri)
                 .authorizationContext(AUTHORIZATION_CONTEXT)
-                .sources(Collections.singleton(SOURCE1))
+                .sources(Collections.singletonList(SOURCE1))
                 .build();
 
         assertThat(connection.toString()).doesNotContain(password);

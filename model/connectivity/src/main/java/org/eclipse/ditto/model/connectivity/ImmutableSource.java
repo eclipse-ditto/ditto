@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -42,18 +41,17 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableSource implements Source {
 
     static final int DEFAULT_CONSUMER_COUNT = 1;
-    private static final AtomicLong ID_GENERATOR = new AtomicLong(0);
 
     private final Set<String> addresses;
     private final int consumerCount;
-    private final long identifier;
+    private final int index;
     private final AuthorizationContext authorizationContext;
 
     ImmutableSource(final Set<String> addresses, final int consumerCount,
-            final AuthorizationContext authorizationContext) {
+            final AuthorizationContext authorizationContext, final int index) {
         this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
-        this.identifier = ID_GENERATOR.getAndIncrement();
+        this.index = index;
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
     }
 
@@ -73,8 +71,8 @@ final class ImmutableSource implements Source {
     }
 
     @Override
-    public long getIdentifier() {
-        return identifier;
+    public int getIndex() {
+        return index;
     }
 
     @Override
@@ -106,7 +104,7 @@ final class ImmutableSource implements Source {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source fromJson(final JsonObject jsonObject) {
+    public static Source fromJson(final JsonObject jsonObject, int index) {
         final Set<String> readSources = jsonObject.getValue(JsonFields.ADDRESSES)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
@@ -123,7 +121,7 @@ final class ImmutableSource implements Source {
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
-        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext);
+        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index);
     }
 
     @Override
@@ -133,18 +131,20 @@ final class ImmutableSource implements Source {
         final ImmutableSource that = (ImmutableSource) o;
         return consumerCount == that.consumerCount &&
                 Objects.equals(addresses, that.addresses) &&
+                Objects.equals(index, that.index) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(addresses, consumerCount, authorizationContext);
+        return Objects.hash(index, addresses, consumerCount, authorizationContext);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "addresses=" + addresses +
+                "index=" + index +
+                ", addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
                 ", authorizationContext=" + authorizationContext +
                 "]";

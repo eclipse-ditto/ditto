@@ -15,8 +15,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -59,7 +62,7 @@ final class ImmutableConnection implements Connection {
     private final ConnectionUri uri;
 
     private final AuthorizationContext authorizationContext;
-    private final Set<Source> sources;
+    private final List<Source> sources;
     private final Set<Target> targets;
     private final int clientCount;
     private final boolean failOverEnabled;
@@ -76,7 +79,7 @@ final class ImmutableConnection implements Connection {
         connectionStatus = builder.connectionStatus;
         uri = ConnectionUri.of(builder.uri);
         authorizationContext = builder.authorizationContext;
-        sources = Collections.unmodifiableSet(new HashSet<>(builder.sources));
+        sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
         targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
         clientCount = builder.clientCount;
         failOverEnabled = builder.failOverEnabled;
@@ -201,14 +204,21 @@ final class ImmutableConnection implements Connection {
             return AuthorizationModelFactory.newAuthContext(authorizationSubjects);
         }
 
-        private static Set<Source> getSources(final JsonObject jsonObject) {
-            return jsonObject.getValue(JsonFields.SOURCES)
-                    .map(array -> array.stream()
+    private static List<Source> getSources(final JsonObject jsonObject) {
+        final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
+        if (sourcesArray.isPresent()) {
+            final JsonArray values = sourcesArray.get();
+            return IntStream.range(0, values.getSize())
+                    .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(ImmutableSource::fromJson)
-                            .collect(Collectors.toSet()))
-                    .orElse(Collections.emptySet());
+                            .map(valueAsObject -> ImmutableSource.fromJson(valueAsObject, index)))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
         }
 
         private static Set<Target> getTargets(final JsonObject jsonObject) {
@@ -266,7 +276,7 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
-    public Set<Source> getSources() {
+    public List<Source> getSources() {
         return sources;
     }
 
@@ -361,6 +371,7 @@ final class ImmutableConnection implements Connection {
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
         jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
+                .sorted(Comparator.comparingInt(Source::getIndex))
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         jsonObjectBuilder.set(JsonFields.TARGETS, targets.stream()
@@ -459,7 +470,7 @@ final class ImmutableConnection implements Connection {
         private Set<String> tags = new HashSet<>();
         private boolean failOverEnabled = true;
         private boolean validateCertificate = true;
-        private final Set<Source> sources = new HashSet<>();
+        private final List<Source> sources = new ArrayList<>();
         private final Set<Target> targets = new HashSet<>();
         private int clientCount = 1;
         private int processorPoolSize = 5;
@@ -521,7 +532,7 @@ final class ImmutableConnection implements Connection {
         }
 
         @Override
-        public ConnectionBuilder sources(final Set<Source> sources) {
+        public ConnectionBuilder sources(final List<Source> sources) {
             this.sources.addAll(checkNotNull(sources, "sources"));
             return this;
         }

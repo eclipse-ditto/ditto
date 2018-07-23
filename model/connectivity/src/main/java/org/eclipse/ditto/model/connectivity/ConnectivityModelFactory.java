@@ -240,7 +240,7 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Source}
      */
     public static Source newSource(final Set<String> addresses) {
-        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT, AuthorizationModelFactory.emptyAuthContext());
+        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT, AuthorizationModelFactory.emptyAuthContext(), 0);
     }
 
     /**
@@ -251,7 +251,7 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Source}
      */
     public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext());
+        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0);
     }
 
     /**
@@ -264,7 +264,7 @@ public final class ConnectivityModelFactory {
      */
     public static Source newSource(final Set<String> addresses, final int consumerCount,
             final AuthorizationContext authorizationContext) {
-        return new ImmutableSource(addresses, consumerCount, authorizationContext);
+        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0);
     }
 
     /**
@@ -273,9 +273,9 @@ public final class ConnectivityModelFactory {
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
-    public static Source newSource(final String... sources) {
+    public static Source newSource(final int index, final String... sources) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
-                AuthorizationModelFactory.emptyAuthContext());
+                AuthorizationModelFactory.emptyAuthContext(), index);
     }
 
     /**
@@ -285,9 +285,9 @@ public final class ConnectivityModelFactory {
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
-    public static Source newSource(final int consumerCount, final String... sources) {
+    public static Source newSource(final int consumerCount, final int index, final String... sources) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount,
-                AuthorizationModelFactory.emptyAuthContext());
+                AuthorizationModelFactory.emptyAuthContext(), index);
     }
 
     /**
@@ -298,9 +298,10 @@ public final class ConnectivityModelFactory {
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
-    public static Source newSource(final int consumerCount, final AuthorizationContext authorizationContext,
+    public static Source newSource(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext,
             final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext);
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
     }
 
     /**
