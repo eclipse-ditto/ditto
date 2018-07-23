@@ -154,9 +154,10 @@ final class StreamingSessionActor extends AbstractActor {
                      */
                     getContext().getSystem().scheduler()
                             .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    () ->
-                                            acknowledgeSubscription(streamingType, self),
-                                    getContext().getSystem().dispatcher());
+                                    self,
+                                    new AcknowledgeSubscription(streamingType),
+                                    getContext().getSystem().dispatcher(),
+                                    self);
                 })
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, unsubscribeAck -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
@@ -170,10 +171,15 @@ final class StreamingSessionActor extends AbstractActor {
                      */
                     getContext().getSystem().scheduler()
                             .scheduleOnce(FiniteDuration.apply(MAX_SUBSCRIBE_TIMEOUT_MS, TimeUnit.MILLISECONDS),
-                                    () ->
-                                            acknowledgeUnsubscription(streamingType, self),
-                                    getContext().getSystem().dispatcher());
+                                    self,
+                                    new AcknowledgeUnsubscription(streamingType),
+                                    getContext().getSystem().dispatcher(),
+                                    self);
                 })
+                .match(AcknowledgeSubscription.class, msg ->
+                        acknowledgeSubscription(msg.getStreamingType(), getSelf()))
+                .match(AcknowledgeUnsubscription.class, msg ->
+                        acknowledgeUnsubscription(msg.getStreamingType(), getSelf()))
                 .match(Terminated.class, terminated -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("eventAndResponsePublisher was terminated");
@@ -255,5 +261,35 @@ final class StreamingSessionActor extends AbstractActor {
     private void acknowledgeUnsubscription(final StreamingType streamingType, final ActorRef self) {
         eventAndResponsePublisher.tell(new StreamingAck(streamingType, false), self);
         logger.debug("Unsubscribed from Cluster <{}> in <{}> session", streamingType, type);
+    }
+
+    /**
+     * Messages to self to perform an outstanding acknowledgement if not already acknowledged.
+     */
+    private static abstract class WithStreamingType {
+
+        private final StreamingType streamingType;
+
+        private WithStreamingType(final StreamingType streamingType) {
+            this.streamingType = streamingType;
+        }
+
+        StreamingType getStreamingType() {
+            return streamingType;
+        }
+    }
+
+    private static final class AcknowledgeSubscription extends WithStreamingType {
+
+        private AcknowledgeSubscription(final StreamingType streamingType) {
+            super(streamingType);
+        }
+    }
+
+    private static final class AcknowledgeUnsubscription extends WithStreamingType {
+
+        private AcknowledgeUnsubscription(final StreamingType streamingType) {
+            super(streamingType);
+        }
     }
 }
