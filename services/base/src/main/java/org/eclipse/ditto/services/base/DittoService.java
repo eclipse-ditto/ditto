@@ -179,13 +179,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         }
     }
 
-    private void stopKamon() {
-        // stop collecting system metrics
-        SystemMetrics.stopCollecting();
-        // stop reporting metrics and traces
-        Kamon.stopAllReporters();
-    }
-
     /**
      * Starts the Akka actor system as well as all required actors.
      * <p>
