@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.net.InetSocketAddress;
 import java.time.Duration;
 
 import org.junit.Test;
@@ -42,8 +41,8 @@ public final class DittoServiceConfigReaderTest {
         assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
         assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
         assertThat(underTest.cluster().majorityCheckDelay()).isEqualTo(Duration.ofHours(500));
-        assertThat(underTest.statsd().address())
-                .contains(InetSocketAddress.createUnresolved("statsdhost", 5678));
+        assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
+        assertThat(underTest.metrics().isSystemMetricsEnabled()).isTrue();
     }
 
     @Test
@@ -56,7 +55,8 @@ public final class DittoServiceConfigReaderTest {
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_ENABLED);
         assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
-        assertThat(underTest.statsd().address()).isEmpty();
+        assertThat(underTest.metrics().isPrometheusEnabled()).isFalse();
+        assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 
     @Test
@@ -66,7 +66,8 @@ public final class DittoServiceConfigReaderTest {
         assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
         assertThat(underTest.cluster().majorityCheckDelay())
                 .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
-        assertThat(underTest.statsd().address()).isEmpty();
+        assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
+        assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
 
     private static ServiceConfigReader loadResource(final String resourceName) {

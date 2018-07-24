@@ -13,12 +13,11 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visit
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.ExistsFieldExpressionVisitor;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates a Mongo Bson object for field-based exists criteria.

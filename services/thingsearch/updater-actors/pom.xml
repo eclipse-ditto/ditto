@@ -86,11 +86,6 @@
             <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-
         <!-- ## Testing ## -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -109,6 +104,14 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
         </dependency>
     </dependencies>
 

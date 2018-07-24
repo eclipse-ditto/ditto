@@ -36,6 +36,8 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingR
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -55,10 +57,6 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
 import akka.util.Timeout;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
-import scala.Some;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.Future;
 
@@ -72,7 +70,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregator";
 
-    private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregator.retrievethings";
+    private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregator_retrievethings";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
@@ -151,11 +149,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
             @Nullable final JsonFieldSelector selectedFields,
             final Command command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Option<String> token =
-                dittoHeaders.getCorrelationId()
-                        .map(cId -> (Option<String>) Some.apply(cId))
-                        .orElse(Option.empty());
-        final TraceContext traceContext = Kamon.tracer().newContext(TRACE_AGGREGATOR_RETRIEVE_THINGS, token);
+
+        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS).build();
 
         final List<Future<Object>> futures = thingIds.stream()
                 .filter(thingId -> thingIdMatcher.reset(thingId).matches())
@@ -195,14 +190,14 @@ public final class ThingsAggregatorActor extends AbstractActor {
         }
 
         final Future<CommandResponse> transformed =
-                mapToReadCommandResponsesFuture(iterableFuture, comparator, command, traceContext);
+                mapToReadCommandResponsesFuture(iterableFuture, comparator, command, timer);
 
         Patterns.pipe(transformed, aggregatorDispatcher).to(resultReceiver);
     }
 
     private Future<CommandResponse> mapToReadCommandResponsesFuture(
             final Future<Iterable<Object>> iterableFuture, final Comparator<WithEntity> comparator,
-            final Command retrieveThings, final TraceContext traceContext) {
+            final Command retrieveThings, final StartedTimer timer) {
         return iterableFuture.map(new Mapper<Iterable<Object>, CommandResponse>() {
             @Override
             public CommandResponse apply(final Iterable<Object> p) {
@@ -212,8 +207,8 @@ public final class ThingsAggregatorActor extends AbstractActor {
                         .sorted(comparator)
                         .map(WithEntity::getEntity)
                         .collect(toList());
-                traceContext.addMetadata("count", Integer.toBinaryString(things.size()));
-                traceContext.finish();
+
+                timer.stop();
 
                 if (retrieveThings instanceof SudoCommand) {
                     return SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),

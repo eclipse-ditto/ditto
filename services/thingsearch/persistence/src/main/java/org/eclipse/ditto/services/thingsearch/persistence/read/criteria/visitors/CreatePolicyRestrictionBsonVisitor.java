@@ -19,9 +19,6 @@ import java.util.stream.Stream;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetPolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetUnwoundExistsFilterBsonVisitor;
@@ -32,6 +29,8 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.PolicyRestrictedFieldExpression;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Builds the BSON query including "granted" and "revoked" fields based on the passed {@code

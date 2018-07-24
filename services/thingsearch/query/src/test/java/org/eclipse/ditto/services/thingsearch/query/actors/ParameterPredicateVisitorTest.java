@@ -19,13 +19,12 @@ import java.util.Collections;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
 import org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Unit test for {@link ParameterPredicateVisitor}.

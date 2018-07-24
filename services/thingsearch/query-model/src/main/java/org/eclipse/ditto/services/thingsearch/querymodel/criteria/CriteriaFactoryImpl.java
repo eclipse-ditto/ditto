@@ -15,8 +15,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
+import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
 
 
 /**

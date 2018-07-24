@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.time.Instant;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -30,6 +32,7 @@ final class ImmutablePayloadBuilder implements PayloadBuilder {
     private JsonValue value;
     private HttpStatusCode status;
     private Long revision;
+    @Nullable private Instant timestamp;
     private JsonFieldSelector fields;
 
     private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
@@ -72,6 +75,12 @@ final class ImmutablePayloadBuilder implements PayloadBuilder {
     }
 
     @Override
+    public PayloadBuilder withTimestamp(@Nullable final Instant timestamp) {
+        this.timestamp = timestamp;
+        return this;
+    }
+
+    @Override
     public PayloadBuilder withFields(final JsonFieldSelector fields) {
         this.fields = fields;
         return this;
@@ -85,7 +94,7 @@ final class ImmutablePayloadBuilder implements PayloadBuilder {
 
     @Override
     public Payload build() {
-        return ImmutablePayload.of(path, value, status, revision, fields);
+        return ImmutablePayload.of(path, value, status, revision, timestamp, fields);
     }
 
 }

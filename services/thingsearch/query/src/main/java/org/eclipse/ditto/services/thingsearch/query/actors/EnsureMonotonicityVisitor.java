@@ -15,13 +15,12 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 
 /**
  * Throws an exception if the criteria contains negation (i. e., is not monotone)

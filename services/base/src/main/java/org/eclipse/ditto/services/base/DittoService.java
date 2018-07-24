@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.slf4j.Logger;
 
@@ -46,14 +48,18 @@ import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.actor.Scheduler;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
+import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.server.Route;
 import akka.management.AkkaManagement;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.stream.ActorMaterializer;
-import akka.stream.stage.TimerMessages;
 import kamon.Kamon;
+import kamon.prometheus.PrometheusReporter;
+import kamon.system.SystemMetrics;
 
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.
@@ -73,7 +79,7 @@ import kamon.Kamon;
  * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
- * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+ * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -96,6 +102,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     private final String serviceName;
     private final String rootActorName;
     private final C configReader;
+
+    private PrometheusReporter prometheusReporter;
+    private ActorSystem actorSystem;
 
     /**
      * Constructs a new {@code DittoService} object.
@@ -137,6 +146,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         logRuntimeParameters();
         startKamon();
         startActorSystem();
+        startKamonPrometheusHttpEndpoint();
     }
 
     private void logRuntimeParameters() {
@@ -145,8 +155,45 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         logger.info("Available processors: {}", Runtime.getRuntime().availableProcessors());
     }
 
-    private static void startKamon() {
-        Kamon.start(ConfigFactory.load("kamon"));
+    private void startKamon() {
+        checkForAspectJ();
+
+        final Config kamonConfig = ConfigFactory.load("kamon");
+        Kamon.reconfigure(kamonConfig);
+
+        if (configReader.metrics().isSystemMetricsEnabled()) {
+            // start system metrics collection
+            SystemMetrics.startCollecting();
+        }
+        if (configReader.metrics().isPrometheusEnabled()) {
+            // start prometheus reporter
+            this.startPrometheusReporter();
+        }
+    }
+
+    private void checkForAspectJ() {
+        try {
+            Class.forName("org.aspectj.weaver.loadtime.Agent");
+        } catch (final ClassNotFoundException e) {
+            logger.warn("AspectJ weaving agent is not loaded");
+        }
+    }
+
+    private void startPrometheusReporter() {
+        try {
+            prometheusReporter = new PrometheusReporter();
+            Kamon.addReporter(prometheusReporter);
+            logger.info("Successfully added Prometheus reporter to Kamon.");
+        } catch (final Throwable ex) {
+            logger.error("Error while adding Prometheus reporter to Kamon.", ex);
+        }
+    }
+
+    private void stopKamon() {
+        // stop collecting system metrics
+        SystemMetrics.stopCollecting();
+        // stop reporting metrics and traces
+        Kamon.stopAllReporters();
     }
 
     /**
@@ -169,7 +216,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final double parallelismMax =
                 config.getDouble("akka.actor.default-dispatcher.fork-join-executor.parallelism-max");
         logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
-        final ActorSystem actorSystem = createActorSystem(config);
+        actorSystem = createActorSystem(config);
 
         AkkaManagement.get(actorSystem).start();
         ClusterBootstrap.get(actorSystem).start();
@@ -216,6 +263,28 @@ public abstract class DittoService<C extends ServiceConfigReader> {
             }
             System.exit(status);
         }, 0, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Starts Prometheus HTTP endpoint on which Prometheus may scrape the data.
+     */
+    private void startKamonPrometheusHttpEndpoint() {
+        if (configReader.metrics().isPrometheusEnabled()) {
+            final ActorMaterializer materializer = createActorMaterializer(actorSystem);
+            final Route prometheusReporterRoute = PrometheusReporterRoute
+                    .buildPrometheusReporterRoute(prometheusReporter);
+            final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
+                    .bindAndHandle(prometheusReporterRoute.flow(actorSystem, materializer),
+                            ConnectHttp.toHost(configReader.metrics().getPrometheusHostname(),
+                                    configReader.metrics().getPrometheusPort()), materializer);
+
+            binding.exceptionally(failure -> {
+                logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
+                logger.error("Terminating actorSystem!");
+                actorSystem.terminate();
+                return null;
+            });
+        }
     }
 
     /**
@@ -294,7 +363,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * method is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #startStatsdMetricsReporter(ActorSystem, ServiceConfigReader)},</li>
+     * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
      * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -310,7 +379,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
-            startStatsdMetricsReporter(actorSystem, configReader);
+            addDropwizardMetricRegistries(actorSystem, configReader);
 
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
@@ -322,12 +391,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     }
 
     /**
-     * May be overridden to start a StatsD metrics reporter. <em>The base implementation does nothing.</em>
+     * May be overridden to add custom dropwizard metric registries. <em>The base implementation does nothing.</em>
      *
      * @param actorSystem Akka actor system for starting actors.
      * @param configReader the configuration reader of this service.
      */
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final C configReader) {
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
         // Does nothing by default.
     }
 

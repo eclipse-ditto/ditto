@@ -16,9 +16,6 @@ import java.util.stream.Stream;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
@@ -26,6 +23,8 @@ import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates the Bson object used for the PolicyRestrictedSearchAggregation.

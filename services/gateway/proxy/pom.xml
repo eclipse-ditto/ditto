@@ -162,10 +162,6 @@
 
         <!-- ### Logging ### -->
         <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
