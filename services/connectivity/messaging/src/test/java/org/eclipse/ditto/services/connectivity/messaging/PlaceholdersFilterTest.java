@@ -75,12 +75,16 @@ public class PlaceholdersFilterTest {
         assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", thingPlaceholder))
                 .isEqualTo(
                         "testTargetAmqpCon4_eclipse:ditto");
+
+        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:id}}", thingPlaceholder))
+                .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
     }
 
     @Test
     public void testThingPlaceholderDebug() {
         assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", thingPlaceholder))
                 .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
+
     }
 
 
