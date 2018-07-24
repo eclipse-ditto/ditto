@@ -136,17 +136,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
     }
 
-    /**
-     * Authorize a thing command. Either the command is forwarded to things-shard-region for execution or
-     * the sender is told of an error.
-     *
-     * @param signal the command to authorize.
-     * @param sender of the command.
-     * @param log the logger to use for logging.
-     */
     @Override
-    public void enforce(final ThingCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
-        thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
+    public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+        return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
