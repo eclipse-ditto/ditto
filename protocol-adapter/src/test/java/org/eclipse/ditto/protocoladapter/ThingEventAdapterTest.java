@@ -98,7 +98,7 @@ public final class ThingEventAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingEventAdapter.newInstance();
+        underTest = ThingEventAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test(expected = UnknownEventException.class)

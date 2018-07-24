@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -56,12 +55,39 @@ public final class ThingModifyCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingModifyCommandAdapter.newInstance();
+        underTest = ThingModifyCommandAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test(expected = UnknownCommandException.class)
     public void unknownCommandToAdaptable() {
         underTest.toAdaptable(new UnknownThingModifyCommand());
+    }
+
+    @Test
+    public void liveCommandFromAdaptable() {
+        final DittoHeaders expectedHeaders = TestConstants.DITTO_HEADERS_V_2
+                .toBuilder()
+                .channel("live")
+                .build();
+        final CreateThing expected = CreateThing.of(TestConstants.THING, null, expectedHeaders);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .live()
+                .commands()
+                .create()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -228,7 +254,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -252,7 +278,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclEntryFromAdaptable() {
         final ModifyAclEntry expected =
@@ -276,7 +302,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void modifyAclEntryToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
@@ -301,7 +327,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void deleteAclEntryFromAdaptable() {
         final DeleteAclEntry expected = DeleteAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
@@ -323,7 +349,7 @@ public final class ThingModifyCommandAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
     }
-    
+
     @Test
     public void deleteAclEntryToAdaptable() {
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)

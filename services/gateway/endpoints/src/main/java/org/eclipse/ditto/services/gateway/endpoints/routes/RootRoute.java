@@ -46,8 +46,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.base.config.HeadersConfigReader;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -77,6 +76,8 @@ import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,6 +137,7 @@ public final class RootRoute {
     private final List<Integer> supportedSchemaVersions;
     private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
+    private final ProtocolAdapter protocolAdapter;
 
     /**
      * Constructs the {@code /} route builder.
@@ -179,12 +181,9 @@ public final class RootRoute {
                 config.getDuration(ConfigKeys.CLAIMMESSAGE_MAX_TIMEOUT));
         thingSearchRoute = new ThingSearchRoute(proxyActor, actorSystem);
 
-        final HeadersConfigReader headersConfig = HeadersConfigReader.fromRawConfig(config);
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                headersConfig.blacklist(),
-                DittoProtocolAdapter.of(!headersConfig.compatibilityMode()),
                 actorSystem.eventStream());
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
@@ -193,6 +192,10 @@ public final class RootRoute {
                 generateGatewayAuthenticationDirective(config, httpClient);
         wsAuthenticationDirective = apiAuthenticationDirective;
         exceptionHandler = createExceptionHandler();
+
+        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
+        final ProtocolAdapterProvider protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
+        protocolAdapter = protocolAdapterProvider.createProtocolAdapter();
     }
 
     private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
@@ -384,7 +387,7 @@ public final class RootRoute {
                                         authContextWithPrefixedSubjects,
                                         authContext ->
                                                 websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                        authContext)
+                                                        authContext, protocolAdapter)
                                 )
                         )
                 )

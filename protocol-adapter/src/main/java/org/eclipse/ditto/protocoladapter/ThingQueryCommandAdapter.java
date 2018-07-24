@@ -41,12 +41,20 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
  */
 final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> {
 
-    private ThingQueryCommandAdapter(final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingQueryCommandAdapter(
+            final Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
-    public static ThingQueryCommandAdapter newInstance() {
-        return new ThingQueryCommandAdapter(mappingStrategies());
+    /**
+     * Returns a new ThingQueryCommandAdapter.
+     *
+     * @param headerTranslator translator between external and Ditto headers.
+     * @return the adapter.
+     */
+    public static ThingQueryCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingQueryCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {
@@ -109,7 +117,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingQueryCommand command, final TopicPath.Channel channel) {
         if (command instanceof RetrieveThings) {
             return handleMultipleRetrieve((RetrieveThings) command, channel);
         } else {
