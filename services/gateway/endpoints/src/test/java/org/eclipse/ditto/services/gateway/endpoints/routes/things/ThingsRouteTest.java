@@ -20,7 +20,10 @@ import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsExcep
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
@@ -60,6 +63,14 @@ public class ThingsRouteTest extends EndpointTestBase {
             pathBuilder.append(':').append(UUID.randomUUID());
         }
         underTest.run(HttpRequest.GET(pathBuilder.toString()));
+    }
+
+    @Test
+    public void createThingWithInvalidInitialPolicy() {
+        final String body = "{\"_policy\":1234}";
+        final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
+        final TestRouteResult result = underTest.run(HttpRequest.POST("/things").withEntity(requestEntity));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test

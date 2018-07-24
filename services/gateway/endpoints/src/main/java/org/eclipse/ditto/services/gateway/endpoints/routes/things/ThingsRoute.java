@@ -190,17 +190,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static JsonObject createInlinePolicyJson(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return inputJson.getValue(Policy.INLINED_FIELD_NAME)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .filter(obj -> {
-                    try {
-                        PoliciesModelFactory.newPolicy(obj.set(Thing.JsonFields.POLICY_ID, "empty:empty"));
-                        // only accept valid inline policies
-                        return true;
-                    } catch (final RuntimeException e) {
-                        return false;
-                    }
-                })
+                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asObject))
                 .orElse(null);
     }
 
