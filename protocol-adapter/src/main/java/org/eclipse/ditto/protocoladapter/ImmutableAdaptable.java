@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -96,4 +97,13 @@ final class ImmutableAdaptable implements Adaptable {
                 + headers + ']';
     }
 
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        return headers;
+    }
+
+    @Override
+    public Adaptable setDittoHeaders(@Nonnull final DittoHeaders dittoHeaders) {
+        return new ImmutableAdaptable(topicPath, payload, dittoHeaders);
+    }
 }

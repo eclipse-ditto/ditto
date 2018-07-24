@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTED;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.DISCONNECTING;
 import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.FAILED;
-import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilter.Mode.EXCLUDE;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -53,7 +52,6 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
-import org.eclipse.ditto.services.base.config.HeadersConfigReader;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
@@ -109,8 +107,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final List<String> headerBlacklist;
     private final ActorRef conciergeForwarder;
 
     @Nullable private ActorRef messageMappingProcessorActor;
@@ -125,7 +121,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration initTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
-        headerBlacklist = HeadersConfigReader.fromRawConfig(config).blacklist();
         this.conciergeForwarder = conciergeForwarder;
 
         startWith(DISCONNECTED, new BaseClientData(connection.getId(), connection, ConnectionStatus.UNKNOWN,
@@ -708,8 +703,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     connection.getProcessorPoolSize());
             final Props props =
                     MessageMappingProcessorActor.props(getSelf(), conciergeForwarder,
-                            connection.getAuthorizationContext(), new DittoHeadersFilter(EXCLUDE, headerBlacklist),
-                            processor, connectionId());
+                            connection.getAuthorizationContext(), processor, connectionId());
 
             final Resizer resizer = new DefaultResizer(1, connection.getProcessorPoolSize());
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)

@@ -98,7 +98,8 @@ public final class ImmutableJsonifiableAdaptableTest {
 
         final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), payload,
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
-        final JsonifiableAdaptable expected = ImmutableJsonifiableAdaptable.of(adaptable);
+        final JsonifiableAdaptable expected =
+                ImmutableJsonifiableAdaptable.of(adaptable);
 
         final JsonObject payloadJsonObject = JsonObject.newBuilder()
                 .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)

@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2017 Bosch Software Innovations GmbH.
  *
@@ -25,42 +26,33 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
  */
 final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
 
-    private final boolean removeInternalHeaders;
 
-    private MessageCommandAdapter(final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
-            final boolean removeInternalMessageHeaders) {
-        super(mappingStrategies);
-        this.removeInternalHeaders = removeInternalMessageHeaders;
+    private MessageCommandAdapter(
+            final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new MessageCommandAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static MessageCommandAdapter newInstance() {
-        return of(Boolean.TRUE);
-    }
-
-    /**
-     * Returns a new MessageCommandAdapter.
-     *
-     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
-     * @return the adapter.
-     */
-    public static MessageCommandAdapter of(final boolean removeInternalMessageHeaders) {
-        return new MessageCommandAdapter(mappingStrategies(), removeInternalMessageHeaders);
+    public static MessageCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new MessageCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies() {
+
         final Map<String, JsonifiableMapper<MessageCommand>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(SendClaimMessage.TYPE,
-                adaptable -> SendClaimMessage.of(thingIdFrom(adaptable), MessageAdaptableHelper.messageFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> SendClaimMessage.of(thingIdFrom(adaptable),
+                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendThingMessage.TYPE,
-                adaptable -> SendThingMessage.of(thingIdFrom(adaptable), MessageAdaptableHelper.messageFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                adaptable -> SendThingMessage.of(thingIdFrom(adaptable),
+                        MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendFeatureMessage.TYPE,
                 adaptable -> SendFeatureMessage.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
                         MessageAdaptableHelper.messageFrom(adaptable), dittoHeadersFrom(adaptable)));
@@ -85,9 +77,10 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand> {
     }
 
     @Override
-    public Adaptable toAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final MessageCommand command, final TopicPath.Channel channel) {
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(),
+                headerTranslator());
     }
 
 }

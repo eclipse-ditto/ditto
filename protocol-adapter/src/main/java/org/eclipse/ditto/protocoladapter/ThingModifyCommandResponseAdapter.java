@@ -44,19 +44,21 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRespon
  */
 final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModifyCommandResponse> {
 
-    private ThingModifyCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies) {
 
-        super(mappingStrategies);
+    private ThingModifyCommandResponseAdapter(
+            final Map<String, JsonifiableMapper<ThingModifyCommandResponse>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingModifyCommandResponseAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingModifyCommandResponseAdapter newInstance() {
-        return new ThingModifyCommandResponseAdapter(mappingStrategies());
+    public static ThingModifyCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingModifyCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
@@ -83,7 +85,8 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingModifyCommandResponse commandResponse, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingModifyCommandResponse commandResponse,
+            final TopicPath.Channel channel) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();

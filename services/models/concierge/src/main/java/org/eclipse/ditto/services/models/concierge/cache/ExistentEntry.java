@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.models.concierge.cache;
 
 import java.util.Objects;
 
-import jdk.nashorn.internal.ir.annotations.Immutable;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * A pair consisting of a value and a revision.
