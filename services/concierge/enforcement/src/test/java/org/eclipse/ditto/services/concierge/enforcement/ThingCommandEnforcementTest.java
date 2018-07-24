@@ -406,8 +406,10 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final Object response = expectMsgClass(Object.class);
-            assertThat(response).isInstanceOf(PolicyIdInvalidException.class);
+
+            // result may not be an instance of PolicyIdInvalidException but should have the same error code.
+            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(PolicyIdInvalidException.ERROR_CODE);
         }};
     }
 
@@ -433,8 +435,10 @@ public final class ThingCommandEnforcementTest {
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final Object response = expectMsgClass(Object.class);
-            assertThat(response).isInstanceOf(PolicyInvalidException.class);
+
+            // result may not be an instance of PolicyInvalidException but should have the same error code.
+            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(PolicyInvalidException.ERROR_CODE);
         }};
 
     }
