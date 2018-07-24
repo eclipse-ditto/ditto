@@ -71,7 +71,8 @@ public final class HeaderTranslator {
      */
     public DittoHeaders fromExternalHeaders(final Map<String, String> externalHeaders) {
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
-        externalHeaders.forEach((key, value) -> {
+        externalHeaders.forEach((externalKey, value) -> {
+            final String key = externalKey.toLowerCase();
             final HeaderDefinition definition = headerDefinitionMap.get(key);
             if (definition == null || definition.shouldReadFromExternalHeaders()) {
                 builder.putHeader(key, value);
