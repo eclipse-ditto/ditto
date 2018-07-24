@@ -54,15 +54,15 @@ public class ThingsRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
-    // THIS TEST SHOULD FAIL!
-    @Test(expected = StackOverflowError.class)
+    @Test
     public void getThingWithVeryLongId() {
         final int numberOfUUIDs = 100;
-        final StringBuilder pathBuilder = new StringBuilder("/things/");
+        final StringBuilder pathBuilder = new StringBuilder("/things/").append("namespace");
         for (int i = 0; i < numberOfUUIDs; ++i) {
             pathBuilder.append(':').append(UUID.randomUUID());
         }
-        underTest.run(HttpRequest.GET(pathBuilder.toString()));
+        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
