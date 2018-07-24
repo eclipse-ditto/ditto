@@ -68,25 +68,25 @@ public class PlaceholdersFilterTest {
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> underTest.apply("{{}}", thingPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> underTest.apply("{{ {{  thing:id  }} }}", thingPlaceholder));
+                () -> underTest.apply("{{ {{  thing:name  }} }}", thingPlaceholder));
         assertThat(underTest.apply("eclipse:ditto", thingPlaceholder)).isEqualTo("eclipse:ditto");
-        assertThat(underTest.apply("prefix:{{ thing:namespace }}:{{ thing:id }}:suffix", thingPlaceholder)).isEqualTo(
+        assertThat(underTest.apply("prefix:{{ thing:namespace }}:{{ thing:name }}:suffix", thingPlaceholder)).isEqualTo(
                 "prefix:eclipse:ditto:suffix");
-        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:id}}", thingPlaceholder))
+        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", thingPlaceholder))
                 .isEqualTo(
                         "testTargetAmqpCon4_eclipse:ditto");
     }
 
     @Test
     public void testThingPlaceholderDebug() {
-        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:id}}", thingPlaceholder))
+        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", thingPlaceholder))
                 .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
     }
 
 
     @Test
     public void testMultiplePlaceholders() {
-        final String template = "{{thing:namespace }}/{{ thing:id }}:{{header:device-id }}";
+        final String template = "{{thing:namespace }}/{{ thing:name }}:{{header:device-id }}";
         final String expected = "eclipse/ditto:" + DEVICE_ID;
         assertThat(underTest.apply(template, headersPlaceholder, thingPlaceholder)).isEqualTo(expected);
     }
@@ -95,35 +95,35 @@ public class PlaceholdersFilterTest {
     public void testValidPlaceholderVariations() {
 
         // no whitespace
-        assertThat(underTest.apply("{{thing:namespace}}/{{thing:id}}:{{header:device-id}}",
+        assertThat(underTest.apply("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
 
         // multi whitespace
-        assertThat(underTest.apply("{{  thing:namespace  }}/{{  thing:id  }}:{{  header:device-id  }}",
+        assertThat(underTest.apply("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
 
         // mixed whitespace
-        assertThat(underTest.apply("{{thing:namespace }}/{{  thing:id }}:{{header:device-id }}",
+        assertThat(underTest.apply("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
 
         // no separators
-        assertThat(underTest.apply("{{thing:namespace }}{{  thing:id }}{{header:device-id }}",
+        assertThat(underTest.apply("{{thing:namespace }}{{  thing:name }}{{header:device-id }}",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("eclipseditto" + DEVICE_ID);
 
         // whitespace separators
-        assertThat(underTest.apply("{{thing:namespace }}  {{  thing:id }}  {{header:device-id }}",
+        assertThat(underTest.apply("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("eclipse  ditto  " + DEVICE_ID);
 
         // pre/postfix whitespace
-        assertThat(underTest.apply("  {{thing:namespace }}{{  thing:id }}{{header:device-id }}  ",
+        assertThat(underTest.apply("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("  eclipseditto" + DEVICE_ID + "  ");
 
         // pre/postfix
-        assertThat(underTest.apply("-----{{thing:namespace }}{{  thing:id }}{{header:device-id }}-----",
+        assertThat(underTest.apply("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("-----eclipseditto" + DEVICE_ID + "-----");
 
         // pre/postfix and separators
-        assertThat(underTest.apply("-----{{thing:namespace }}///{{  thing:id }}///{{header:device-id }}-----",
+        assertThat(underTest.apply("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----",
                 headersPlaceholder, thingPlaceholder)).isEqualTo("-----eclipse///ditto///" + DEVICE_ID + "-----");
     }
 
@@ -132,19 +132,19 @@ public class PlaceholdersFilterTest {
 
         // illegal braces combinations
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> underTest.apply("{{th{{ing:namespace }}{{  thing:id }}{{header:device-id }}",
+                () -> underTest.apply("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}",
                         headersPlaceholder, thingPlaceholder));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> underTest.apply("{{th}}ing:namespace }}{{  thing:id }}{{header:device-id }}",
+                () -> underTest.apply("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}",
                         headersPlaceholder, thingPlaceholder));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> underTest.apply("{{thing:nam{{espace }}{{  thing:id }}{{header:device-id }}",
+                () -> underTest.apply("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}",
                         headersPlaceholder, thingPlaceholder));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> underTest.apply("{{thing:nam}}espace }}{{  thing:id }}{{header:device-id }}",
+                () -> underTest.apply("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}",
                         headersPlaceholder, thingPlaceholder));
     }
 }

@@ -157,8 +157,11 @@ final class PlaceholderFilter {
 
         private static final String ID_PLACEHOLDER = "id";
         private static final String NAMESPACE_PLACEHOLDER = "namespace";
-        private static final List<String> SUPPORTED = Arrays.asList(ID_PLACEHOLDER, NAMESPACE_PLACEHOLDER);
+        private static final String NAME_PLACEHOLDER = "name";
+        private static final List<String> SUPPORTED = Arrays.asList(ID_PLACEHOLDER, NAMESPACE_PLACEHOLDER,
+                NAME_PLACEHOLDER);
         private final String namespace;
+        private final String name;
         private final String id;
 
         private ThingPlaceholder(final String thingId) {
@@ -167,7 +170,8 @@ final class PlaceholderFilter {
                 throw ThingIdInvalidException.newBuilder(thingId).build();
             }
             namespace = matcher.group("ns");
-            id = matcher.group("id");
+            name = matcher.group("id");
+            id = thingId;
         }
 
         @Override
@@ -186,6 +190,8 @@ final class PlaceholderFilter {
             switch (placeholder) {
                 case NAMESPACE_PLACEHOLDER:
                     return Optional.of(namespace);
+                case NAME_PLACEHOLDER:
+                    return Optional.of(name);
                 case ID_PLACEHOLDER:
                     return Optional.of(id);
                 default:

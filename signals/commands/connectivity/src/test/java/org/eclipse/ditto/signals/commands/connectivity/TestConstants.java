@@ -45,8 +45,8 @@ public final class TestConstants {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
-            ConnectivityModelFactory.newSource(2, "amqp/source2"));
+    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2,0, "amqp/source1"),
+            ConnectivityModelFactory.newSource(2,1,"amqp/source2"));
 
     private static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", Topic.TWIN_EVENTS)));

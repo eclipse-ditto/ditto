@@ -92,17 +92,18 @@ public class TestConstants {
 
     public static class Sources {
 
-        public static final List<Source> SOURCES = asList(newSource(2, "amqp/source1"), newSource(2, "amqp/source2"));
+        public static final List<Source> SOURCES = asList(newSource(2, 0, "amqp/source1"), newSource(2, 1,
+                "amqp/source2"));
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
                 asList(newSource(2, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
-                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, "source1"));
+                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, 1,"source1"));
     }
 
     public static class Targets {
 
         static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:id}}", Topic.TWIN_EVENTS);
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
                 newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);

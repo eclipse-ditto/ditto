@@ -153,7 +153,7 @@ public class AmqpClientActorTest {
                 ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
-                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, "source1")))
+                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0,"source1")))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
