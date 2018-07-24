@@ -34,6 +34,7 @@ import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
@@ -97,6 +98,7 @@ public final class GatewayMappingStrategyTest {
                 .knows(ChangeLogLevel.TYPE)
                 .knows(RetrieveLoggerConfig.TYPE)
                 .knows(RetrieveStatistics.TYPE)
+                .knows(RetrieveStatisticsDetails.TYPE)
                 .knows(ChangeLogLevelResponse.TYPE)
                 .knows(RetrieveLoggerConfigResponse.TYPE)
                 .knows(RetrieveStatisticsResponse.TYPE);

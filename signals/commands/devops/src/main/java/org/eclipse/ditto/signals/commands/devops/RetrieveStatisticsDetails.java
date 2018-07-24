@@ -27,19 +27,19 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * Command which retrieves publicly available statistics about the stored Things currently present.
  */
 @Immutable
-public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStatistics> {
+public final class RetrieveStatisticsDetails extends AbstractDevOpsCommand<RetrieveStatisticsDetails> {
 
     /**
      * Name of the command.
      */
-    public static final String NAME = "retrieveStatistics";
+    public static final String NAME = "retrieveStatisticsDetails";
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private RetrieveStatistics(final DittoHeaders dittoHeaders) {
+    private RetrieveStatisticsDetails(final DittoHeaders dittoHeaders) {
         super(TYPE, null, null, dittoHeaders);
     }
 
@@ -49,26 +49,26 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      * @param dittoHeaders the optional command headers of the request.
      * @return a Command for retrieving statistics.
      */
-    public static RetrieveStatistics of(final DittoHeaders dittoHeaders) {
-        return new RetrieveStatistics(dittoHeaders);
+    public static RetrieveStatisticsDetails of(final DittoHeaders dittoHeaders) {
+        return new RetrieveStatisticsDetails(dittoHeaders);
     }
 
     /**
-     * Creates a new {@code RetrieveStatistics} from a JSON string.
+     * Creates a new {@code RetrieveStatisticsDetails} from a JSON string.
      *
-     * @param jsonString contains the data of the RetrieveStatistics command.
+     * @param jsonString contains the data of the RetrieveStatisticsDetails command.
      * @param dittoHeaders the headers of the request.
-     * @return the RetrieveStatistics command which is based on the data of {@code jsonString}.
+     * @return the RetrieveStatisticsDetails command which is based on the data of {@code jsonString}.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static RetrieveStatistics fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+    public static RetrieveStatisticsDetails fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
     /**
-     * Creates a new {@code RetrieveStatistics} from a JSON object.
+     * Creates a new {@code RetrieveStatisticsDetails} from a JSON object.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -77,9 +77,9 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveStatistics fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
-                .deserialize(() -> RetrieveStatistics.of(dittoHeaders));
+    public static RetrieveStatisticsDetails fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<RetrieveStatisticsDetails>(TYPE, jsonObject)
+                .deserialize(() -> RetrieveStatisticsDetails.of(dittoHeaders));
     }
 
     @Override
@@ -97,7 +97,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
     }
 
     @Override
-    public RetrieveStatistics setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public RetrieveStatisticsDetails setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(dittoHeaders);
     }
 
