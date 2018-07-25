@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: swagger-ui
+spec:
+  clusterIP: None
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: swagger-ui
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: swagger-ui
+spec:
+  template:
+    metadata:
+      labels:
+        app: swagger-ui
+    spec:
+      containers:
+      - name: swagger-ui
+        image: docker.io/swaggerapi/swagger-ui:3.17.4  # old version v2.2.9
+        volumeMounts:
+        - name: swagger-ui-api
+          mountPath: /usr/share/nginx/html/openapi
+      volumes:
+      - name: swagger-ui-api
+        configMap:
+          name: swagger-ui-api
