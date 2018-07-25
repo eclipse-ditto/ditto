@@ -80,10 +80,12 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
     private BiConsumer<Void, Throwable> handleEnforcementCompletion(final T signal, final ActorRef sender) {
         return (_void, throwable) -> {
-            final Throwable error = throwable instanceof CompletionException
-                    ? throwable.getCause()
-                    : throwable;
-            reportError("Error thrown during enforcement", sender, error, signal.getDittoHeaders());
+            if (throwable != null) {
+                final Throwable error = throwable instanceof CompletionException
+                        ? throwable.getCause()
+                        : throwable;
+                reportError("Error thrown during enforcement", sender, error, signal.getDittoHeaders());
+            }
         };
     }
 
