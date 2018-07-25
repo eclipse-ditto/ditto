@@ -11,20 +11,17 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -41,9 +38,6 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 @Immutable
 final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
-
-    private static final short RETRIEVE_THING_TIMEOUT_SECONDS = 120;
-    private static final Duration RETRIEVE_THING_TIMEOUT = Duration.ofSeconds(RETRIEVE_THING_TIMEOUT_SECONDS);
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -68,7 +62,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
 
         return command.getSnapshotRevision()
                 .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
-                .orElseGet(() -> getRetrieveThingResult(getThingOrThrow(thing), command));
+                .orElseGet(() -> ResultFactory.newResult(getRetrieveThingResponse(thing, command)));
     }
 
     private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
@@ -80,35 +74,41 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
             final RetrieveThing command) {
 
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        try {
-            return loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command);
-        } catch (final ExecutionException | TimeoutException e) {
-            log.info("Failed to retrieve thing with ID <{}>: {}", context.getThingId(), e.getMessage());
-            return ResultFactory.newResult(getThingUnavailableException(command));
-        } catch (final InterruptedException e) {
-            // we cannot re-interrupt the thread here - the caller would not get a response and the actorSystem will fail
-            log.warning("Retrieving thing with ID <{}> was interrupted.", context.getThingId());
-            return ResultFactory.newResult(getThingUnavailableException(command));
-        }
+        return ResultFactory.newResult(
+                loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command).handle((message, error) -> {
+                    if (error != null) {
+                        final DiagnosticLoggingAdapter log = context.getLog();
+                        LogUtil.enhanceLogWithCorrelationId(log, command);
+                        log.error(error, "Failed to retrieve thing with ID <{}>", context.getThingId());
+                    }
+                    return message != null
+                            ? message
+                            : getThingUnavailableException(command);
+                }));
     }
 
-    private static Result loadThingSnapshot(final ThingSnapshotter<?, ?> snapshotter, final long snapshotRevision,
-            final RetrieveThing command) throws ExecutionException, InterruptedException, TimeoutException {
+    private static CompletionStage<WithDittoHeaders> loadThingSnapshot(
+            final ThingSnapshotter<?, ?> snapshotter,
+            final long snapshotRevision,
+            final RetrieveThing command) {
 
         final CompletionStage<Optional<Thing>> completionStage = snapshotter.loadSnapshot(snapshotRevision);
         final CompletableFuture<Optional<Thing>> completableFuture = completionStage.toCompletableFuture();
 
-        return completableFuture.get(RETRIEVE_THING_TIMEOUT.getSeconds(), TimeUnit.SECONDS)
-                .map(thing -> getRetrieveThingResult(thing, command))
-                .orElseGet(() -> ResultFactory.newResult(
-                        new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders())));
+        return completableFuture.thenApply(thingOpt ->
+                thingOpt.map(thing -> getRetrieveThingResponse(thing, command))
+                        .orElseGet(() -> notAccessible(command)));
     }
 
-    private static Result getRetrieveThingResult(final Thing thing, final ThingQueryCommand<RetrieveThing> command) {
-        return ResultFactory.newResult(RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
-                command.getDittoHeaders()));
+    private static WithDittoHeaders getRetrieveThingResponse(@Nullable final Thing thing,
+            final ThingQueryCommand<RetrieveThing> command) {
+        if (thing != null) {
+            return RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
+                    command.getDittoHeaders());
+        } else {
+
+            return notAccessible(command);
+        }
     }
 
     private static JsonObject getThingJson(final Thing thing, final ThingQueryCommand<RetrieveThing> command) {
@@ -122,6 +122,10 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
         return ThingUnavailableException.newBuilder(command.getThingId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
+    }
+
+    private static ThingNotAccessibleException notAccessible(final ThingQueryCommand<?> command) {
+        return new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders());
     }
 
     @Override

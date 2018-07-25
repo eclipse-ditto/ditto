@@ -49,21 +49,6 @@ public final class ResultFactoryTest {
     }
 
     @Test
-    public void assertImmutabilityOfImmutableResult() {
-        assertInstancesOf(ResultFactory.ImmutableResult.class,
-                areImmutable(),
-                provided(ThingModifiedEvent.class, WithDittoHeaders.class,
-                        DittoRuntimeException.class).areAlsoImmutable());
-    }
-
-    @Test
-    public void testHashCodeAndEqualsOfImmutableResult() {
-        EqualsVerifier.forClass(ResultFactory.ImmutableResult.class)
-                .usingGetClass()
-                .verify();
-    }
-
-    @Test
     public void notifyResponse() {
         final CommandStrategy.Result result = ResultFactory.newResult(response);
 

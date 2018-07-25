@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -62,7 +63,7 @@ public interface CommandStrategy<T extends Command> {
      * Indicates whether this strategy is defined for the specified command and context and can be applied.
      *
      * @param context the context.
-     * @param thing
+     * @param thing the current Thing of the ThingPersistenceActor.
      * @param command the command.
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if any argument is {@code null}.
@@ -80,7 +81,8 @@ public interface CommandStrategy<T extends Command> {
          * @param becomeDeletedRunnable runnable that is called if the actor should now act as deleted handler
          */
         void apply(BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                Consumer<WithDittoHeaders> notifyConsumer, Runnable becomeDeletedRunnable);
+                Consumer<WithDittoHeaders> notifyConsumer,
+                Runnable becomeDeletedRunnable);
 
         /**
          * @return the empty result
@@ -94,6 +96,8 @@ public interface CommandStrategy<T extends Command> {
         Optional<WithDittoHeaders> getCommandResponse();
 
         Optional<DittoRuntimeException> getException();
+
+        Optional<CompletionStage<WithDittoHeaders>> getFutureMessage();
 
         boolean isBecomeDeleted();
 

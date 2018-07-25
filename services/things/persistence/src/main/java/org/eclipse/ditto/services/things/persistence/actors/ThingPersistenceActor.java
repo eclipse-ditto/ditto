@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
@@ -38,8 +39,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
@@ -47,6 +46,8 @@ import org.eclipse.ditto.services.things.persistence.actors.strategies.events.Ev
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -343,10 +344,18 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         thingSnapshotter.startMaintenanceSnapshots();
     }
 
+    @SuppressWarnings("unchecked")
     private void handleCommand(final Command command) {
         final CommandStrategy.Result result = COMMAND_RECEIVE_STRATEGY.apply(defaultContext, thing,
                 getNextRevisionNumber(), command);
-        result.apply(this::persistAndApplyEvent, this::notifySender, this::becomeThingDeletedHandler);
+
+        // Unchecked warning suppressed for `persistAndApplyConsumer`.
+        // It is actually type-safe with the (infinitely-big) type parameter
+        // this.<ThingModifiedEvent<? extends ThingModifiedEvent<? extends ThingModifiedEvent<... ad nauseam ...>>>>
+        final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistAndApplyConsumer =
+                this::persistAndApplyEvent;
+
+        result.apply(persistAndApplyConsumer, asyncNotifySender(), this::becomeThingDeletedHandler);
     }
 
     private long getNextRevisionNumber() {
@@ -373,14 +382,17 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         thingSnapshotter.stopMaintenanceSnapshots();
     }
 
-    private <A extends ThingModifiedEvent> void persistAndApplyEvent(final A event, final Consumer<A> handler) {
+    private <A extends ThingModifiedEvent<? extends A>> void persistAndApplyEvent(
+            final A event,
+            final Consumer<A> handler) {
+
         final A modifiedEvent;
         if (thing != null) {
             // set version of event to the version of the thing
             final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
                     .schemaVersion(thing.getImplementedSchemaVersion())
                     .build();
-            modifiedEvent = (A) event.setDittoHeaders(newHeaders);
+            modifiedEvent = event.setDittoHeaders(newHeaders);
         } else {
             modifiedEvent = event;
         }
@@ -454,6 +466,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private void notifySender(final WithDittoHeaders message) {
         notifySender(getSender(), message);
+    }
+
+    private Consumer<WithDittoHeaders> asyncNotifySender() {
+        accessCounter++;
+        final ActorRef sender = getSender();
+        final ActorRef self = getSelf();
+        return message -> sender.tell(message, self);
     }
 
     private void notifySender(final ActorRef sender, final WithDittoHeaders message) {

@@ -13,10 +13,10 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -37,89 +37,36 @@ final class ResultFactory {
     static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
             final ThingCommandResponse response) {
 
-        return new ImmutableResult(eventToPersist, response, null);
+        return newResult(eventToPersist, response, false);
     }
 
     static CommandStrategy.Result newResult(final DittoRuntimeException dittoRuntimeException) {
-        return new ImmutableResult(null, null, dittoRuntimeException);
+        return new InfoResult(dittoRuntimeException);
     }
 
     static CommandStrategy.Result newResult(final WithDittoHeaders response) {
-        return new ImmutableResult(null, response, null);
+        return new InfoResult(response);
     }
 
     static CommandStrategy.Result emptyResult() {
-        return new ImmutableResult(null, null, null);
+        return new EmptyResult();
     }
 
     static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
             final ThingCommandResponse response, final boolean becomeDeleted) {
 
-        return new ImmutableResult(eventToPersist, response, null, becomeDeleted);
+        return new MutationResult(eventToPersist, response, becomeDeleted);
     }
 
-    static final class ImmutableResult implements CommandStrategy.Result {
+    static CommandStrategy.Result newResult(final CompletionStage<WithDittoHeaders> futureMessage) {
+        return new FutureInfoResult(futureMessage);
+    }
 
-        @Nullable private final ThingModifiedEvent eventToPersist;
-        @Nullable private final WithDittoHeaders response;
-        @Nullable private final DittoRuntimeException exception;
-        private final boolean becomeDeleted;
-
-        private ImmutableResult(@Nullable final ThingModifiedEvent eventToPersist,
-                @Nullable final WithDittoHeaders response, @Nullable final DittoRuntimeException exception) {
-
-            this(eventToPersist, response, exception, false);
-        }
-
-        private ImmutableResult(@Nullable final ThingModifiedEvent eventToPersist,
-                @Nullable final WithDittoHeaders response,
-                @Nullable final DittoRuntimeException exception,
-                final boolean becomeDeleted) {
-
-            this.eventToPersist = eventToPersist;
-            this.response = response;
-            this.exception = exception;
-            this.becomeDeleted = becomeDeleted;
-        }
-
-        @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-
-            if (eventToPersist != null && response != null) {
-                persistConsumer.accept(eventToPersist, event -> {
-                    notifyConsumer.accept(response);
-                    if (becomeDeleted) {
-                        becomeDeletedRunnable.run();
-                    }
-                });
-            } else if (response != null) {
-                notifyConsumer.accept(response);
-            } else if (exception != null) {
-                notifyConsumer.accept(exception);
-            }
-        }
-
-        @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.ofNullable(eventToPersist);
-        }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.ofNullable(response);
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.ofNullable(exception
-            );
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return becomeDeleted;
-        }
+    /*
+     * Results are actor messages. They must be thread-safe even though some (i. e., FutureInfoResult) may not be
+     * immutable.
+     */
+    private static abstract class AbstractResult implements CommandStrategy.Result {
 
         @Override
         public boolean equals(final Object o) {
@@ -129,28 +76,197 @@ final class ResultFactory {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            final ImmutableResult that = (ImmutableResult) o;
-            return becomeDeleted == that.becomeDeleted &&
-                    Objects.equals(eventToPersist, that.eventToPersist) &&
-                    Objects.equals(response, that.response) &&
-                    Objects.equals(exception, that.exception);
+            final CommandStrategy.Result that = (CommandStrategy.Result) o;
+            return isBecomeDeleted() == that.isBecomeDeleted() &&
+                    Objects.equals(getEventToPersist(), that.getEventToPersist()) &&
+                    Objects.equals(getCommandResponse(), that.getCommandResponse()) &&
+                    Objects.equals(getException(), that.getException()) &&
+                    Objects.equals(getFutureMessage(), that.getFutureMessage());
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(eventToPersist, response, exception, becomeDeleted);
+            return Objects.hash(getEventToPersist(), getCommandResponse(), getException(), getFutureMessage(),
+                    isBecomeDeleted());
         }
 
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    "eventToPersist=" + eventToPersist +
-                    ", response=" + response +
-                    ", exception=" + exception +
-                    ", becomeDeleted=" + becomeDeleted +
+                    "eventToPersist=" + getEventToPersist().orElse(null) +
+                    ", response=" + getCommandResponse().orElse(null) +
+                    ", exception=" + getException().orElse(null) +
+                    ", futureMessage=" + getFutureMessage().orElse(null) +
+                    ", becomeDeleted=" + isBecomeDeleted() +
                     "]";
         }
-
     }
 
+    private static final class EmptyResult extends AbstractResult {
+
+        @Override
+        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+            // do nothing
+        }
+
+        @Override
+        public Optional<ThingModifiedEvent> getEventToPersist() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<WithDittoHeaders> getCommandResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<DittoRuntimeException> getException() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean isBecomeDeleted() {
+            return false;
+        }
+    }
+
+    private static final class MutationResult extends AbstractResult {
+
+        private final ThingModifiedEvent eventToPersist;
+        private final WithDittoHeaders response;
+        private final boolean becomeDeleted;
+
+        private MutationResult(final ThingModifiedEvent eventToPersist,
+                final WithDittoHeaders response, final boolean becomeDeleted) {
+            this.eventToPersist = eventToPersist;
+            this.response = response;
+            this.becomeDeleted = becomeDeleted;
+        }
+
+        @Override
+        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+            persistConsumer.accept(eventToPersist, event -> {
+                notifyConsumer.accept(response);
+                if (becomeDeleted) {
+                    becomeDeletedRunnable.run();
+                }
+            });
+        }
+
+        @Override
+        public Optional<ThingModifiedEvent> getEventToPersist() {
+            return Optional.of(eventToPersist);
+        }
+
+        @Override
+        public Optional<WithDittoHeaders> getCommandResponse() {
+            return Optional.of(response);
+        }
+
+        @Override
+        public Optional<DittoRuntimeException> getException() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean isBecomeDeleted() {
+            return becomeDeleted;
+        }
+    }
+
+    private static final class InfoResult extends AbstractResult {
+
+        private final WithDittoHeaders message;
+
+        private InfoResult(final WithDittoHeaders message) {
+            this.message = message;
+        }
+
+        @Override
+        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+            notifyConsumer.accept(message);
+        }
+
+        @Override
+        public Optional<ThingModifiedEvent> getEventToPersist() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<WithDittoHeaders> getCommandResponse() {
+            return message instanceof DittoRuntimeException
+                    ? Optional.empty()
+                    : Optional.of(message);
+        }
+
+        @Override
+        public Optional<DittoRuntimeException> getException() {
+            return message instanceof DittoRuntimeException
+                    ? Optional.of((DittoRuntimeException) message)
+                    : Optional.empty();
+        }
+
+        @Override
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean isBecomeDeleted() {
+            return false;
+        }
+    }
+
+    private static final class FutureInfoResult extends AbstractResult {
+
+        private final CompletionStage<WithDittoHeaders> futureMessage;
+
+        private FutureInfoResult(final CompletionStage<WithDittoHeaders> futureMessage) {
+            this.futureMessage = futureMessage;
+        }
+
+        @Override
+        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+            futureMessage.thenAccept(notifyConsumer);
+        }
+
+        @Override
+        public Optional<ThingModifiedEvent> getEventToPersist() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<WithDittoHeaders> getCommandResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<DittoRuntimeException> getException() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+            return Optional.of(futureMessage);
+        }
+
+        @Override
+        public boolean isBecomeDeleted() {
+            return false;
+        }
+    }
 }

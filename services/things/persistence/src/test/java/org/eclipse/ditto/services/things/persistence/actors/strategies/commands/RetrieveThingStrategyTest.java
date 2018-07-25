@@ -19,10 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -131,7 +127,8 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(
+        assertThat(result.getCommandResponse()).isEmpty();
+        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
                 RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
@@ -153,9 +150,10 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(
-                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
+        assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).isEmpty();
+        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.isBecomeDeleted()).isFalse();
     }
 
@@ -175,42 +173,14 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        assertThat(result.getException()).isEmpty();
+        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
                 new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders()));
         assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
-    public void retrieveThingWithInterruptedException()
-            throws ExecutionException, InterruptedException, TimeoutException {
-
-        final CommandStrategy.Context context = getDefaultContext();
-        final long snapshotRevision = 1337L;
-        final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
-                .withSnapshotRevision(snapshotRevision)
-                .build();
-
-        final CompletableFuture completableFuture = Mockito.mock(CompletableFuture.class);
-        Mockito.when(completableFuture.get(Mockito.anyLong(), Mockito.any(TimeUnit.class)))
-                .thenThrow(new InterruptedException());
-                
-        final CompletionStage completionStage = Mockito.mock(CompletionStage.class);
-        Mockito.when(completionStage.toCompletableFuture()).thenReturn(completableFuture);
-
-        Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision)).thenReturn(completionStage);
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(ThingUnavailableException.newBuilder(command.getThingId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
-        assertThat(result.isBecomeDeleted()).isFalse();
-    }
-
-    @Test
-    public void retrieveThingWithExecutionException() {
+    public void retrieveThingWithException() {
         final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
@@ -226,9 +196,12 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(ThingUnavailableException.newBuilder(command.getThingId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+        assertThat(result.getException()).isEmpty();
+        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+                ThingUnavailableException
+                        .newBuilder(command.getThingId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         assertThat(result.isBecomeDeleted()).isFalse();
     }
 
