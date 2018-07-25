@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -73,7 +74,7 @@ final class MessageAdaptableHelper {
             final JsonPointer resourcePath,
             final Message<?> message,
             final DittoHeaders dittoHeaders,
-            final boolean removeInternalHeaders) {
+            final HeaderTranslator headerTranslator) {
 
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingId);
 
@@ -99,20 +100,11 @@ final class MessageAdaptableHelper {
 
         final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
         allHeadersBuilder.putHeaders(dittoHeaders);
-
-        // these headers are used to store message attributes of Message that are not fields.
-        // their content is duplicated elsewhere. do not carry them in adaptable headers.
-        if (removeInternalHeaders) {
-            allHeadersBuilder.removeHeader(SUBJECT.getKey())
-                    .removeHeader(DIRECTION.getKey())
-                    .removeHeader(THING_ID.getKey())
-                    .removeHeader(FEATURE_ID.getKey())
-                    .removeHeader(STATUS_CODE.getKey());
-        }
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allHeadersBuilder.build());
 
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(allHeadersBuilder.build()).build();
+                .withHeaders(DittoHeaders.of(externalHeaders)).build();
     }
 
     /**

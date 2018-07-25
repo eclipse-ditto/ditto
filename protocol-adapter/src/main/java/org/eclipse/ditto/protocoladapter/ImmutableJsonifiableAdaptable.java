@@ -16,6 +16,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -127,4 +128,13 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
         return getClass().getSimpleName() + " [" + "delegateAdaptable=" + delegateAdaptable + "]";
     }
 
+    @Override
+    public DittoHeaders getDittoHeaders() {
+        return delegateAdaptable.getDittoHeaders();
+    }
+
+    @Override
+    public Adaptable setDittoHeaders(@Nonnull final DittoHeaders dittoHeaders) {
+        return new ImmutableJsonifiableAdaptable(delegateAdaptable.setDittoHeaders(dittoHeaders));
+    }
 }

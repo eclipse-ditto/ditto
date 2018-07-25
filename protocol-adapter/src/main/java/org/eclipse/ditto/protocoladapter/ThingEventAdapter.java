@@ -58,17 +58,20 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  */
 final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
 
-    private ThingEventAdapter(final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingEventAdapter(
+            final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingEventAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingEventAdapter newInstance() {
-        return new ThingEventAdapter(mappingStrategies());
+    public static ThingEventAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingEventAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies() {
@@ -213,7 +216,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingId());
 
         final EventsTopicPathBuilder eventsTopicPathBuilder;
