@@ -42,7 +42,7 @@ public abstract class AbstractMongoClientActor extends AbstractActor {
 
     protected abstract Duration getTimeout();
 
-    protected abstract Boolean getSSLEnabled();
+    protected abstract boolean isSSLEnabled();
 
     @Override
     public void preStart() throws NoSuchAlgorithmException, KeyManagementException {
@@ -54,7 +54,7 @@ public abstract class AbstractMongoClientActor extends AbstractActor {
                         .socketTimeout((int) timeout.toMillis())
                         .serverSelectionTimeout((int) timeout.toMillis());
 
-        if (getSSLEnabled()) {
+        if (isSSLEnabled()) {
             log.debug("SSL is enabled using SSLContext with TLSv1.2");
             final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(null, null, null);

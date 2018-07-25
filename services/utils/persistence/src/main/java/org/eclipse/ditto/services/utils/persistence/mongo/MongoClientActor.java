@@ -36,7 +36,7 @@ public final class MongoClientActor extends AbstractMongoClientActor {
 
     private final String connectionString;
     private final Duration timeout;
-    private final Boolean sslEnabled;
+    private final boolean sslEnabled;
 
     /**
      * Constructs a {@code MongoClientActor}.
@@ -76,7 +76,7 @@ public final class MongoClientActor extends AbstractMongoClientActor {
     }
 
     @Override
-    protected Boolean getSSLEnabled() {
+    protected boolean isSSLEnabled() {
         return sslEnabled;
     }
 
