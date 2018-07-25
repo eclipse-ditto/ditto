@@ -93,6 +93,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
             Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
             Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThingPersistenceActorSnapshottingTest.class);
+
     private static Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
                 .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
@@ -113,7 +115,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     private Map<Class<? extends Command>, BiFunction<Command, Long, ThingEvent>> commandToEventMapperRegistry;
 
     @Rule
-    public final TestWatcher watchman = new TestedMethodLoggingWatcher(LoggerFactory.getLogger(getClass()));
+    public final TestWatcher watchman = new TestedMethodLoggingWatcher(LOGGER);
 
     @Override
     protected void setup(final Config customConfig) {
@@ -309,8 +311,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 underTest.tell(createThing, getRef());
 
+                LOGGER.info("Told CreateThing, expecting CreateThingResponse..");
+
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing, 1);
+
+                LOGGER.info("Expecting Event made it to Journal and snapshots are empty..");
 
                 final Event expectedCreatedEvent = toEvent(createThing, 1);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
@@ -323,8 +329,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 final ModifyThing modifyThing = ModifyThing.of(thingId, thingForModify, null, dittoHeadersV2);
                 underTest.tell(modifyThing, getRef());
 
+                LOGGER.info("Told ModifyThing, expecting ModifyThingResponse..");
+
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
                 ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatusCode.NO_CONTENT);
+
+                LOGGER.info("Expecting Event made it to Journal, CreateEvent was deleted and snapshots contain Thing..");
 
                 final Event expectedModifiedEvent = toEvent(modifyThing, 2);
                 // created-event has been deleted due to snapshot
@@ -337,17 +347,29 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .build();
                 underTest.tell(retrieveThing, getRef());
 
+                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse..");
+
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                 assertThingInResponse(retrieveThingResponse.getThing(), thingForModify, 2);
+
+                LOGGER.info("Restarting ThingPersistenceActor..");
 
                 // restart actor to recover thing state: make sure that the revision is still 2 (will be loaded from
                 // snapshot)
                 watch(underTest);
                 underTest.tell(PoisonPill.getInstance(), getRef());
+
+                LOGGER.info("Expecting ThingPersistenceActor to be terminated..");
+
                 expectTerminated(underTest);
+
+                LOGGER.info("Recreating ThingPersistenceActor..");
+
                 underTest = Retry.untilSuccess(() -> createPersistenceActorFor(thingId));
 
                 underTest.tell(retrieveThing, getRef());
+
+                LOGGER.info("Told RetrieveThing, expecting RetrieveThingResponse..");
 
                 final RetrieveThingResponse retrieveThingAfterRestartResponse =
                         expectMsgClass(RetrieveThingResponse.class);
