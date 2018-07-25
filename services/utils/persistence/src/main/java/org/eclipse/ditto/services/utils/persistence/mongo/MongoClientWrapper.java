@@ -86,8 +86,11 @@ public class MongoClientWrapper implements Closeable {
         final MongoClientSettings.Builder builder =
                 MongoClientSettings.builder()
                         .readPreference(ReadPreference.secondaryPreferred())
-                        .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
-                        .credential(connectionString.getCredential());
+                        .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build());
+
+        if (connectionString.getCredential() != null) {
+            builder.credential(connectionString.getCredential());
+        }
 
         if (MongoConfig.getSSLEnabled(config)) {
             eventLoopGroup = new NioEventLoopGroup();

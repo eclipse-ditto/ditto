@@ -119,7 +119,7 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <configuration>
                         <dockerHost>${docker.daemon.url}</dockerHost>
-                        <certPath>${docker.certsPath}}</certPath>
+                        <certPath>${docker.certsPath}</certPath>
                         <verbose>true</verbose>
                         <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
                     </configuration>
