@@ -97,6 +97,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
     private static Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
+                .withValue("akka.logger-startup-timeout", ConfigValueFactory.fromAnyRef("60s"))
                 .withValue(ConfigKeys.Thing.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(
                         DEFAULT_TEST_SNAPSHOT_THRESHOLD))
                 .withValue(ConfigKeys.Thing.ACTIVITY_CHECK_INTERVAL, ConfigValueFactory.fromAnyRef(VERY_LONG_DURATION))
@@ -299,6 +300,9 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
      */
     @Test
     public void thingInArbitraryStateIsSnapshotCorrectly() {
+
+        waitSecs(5L); // experiment in order to get it working on Travis
+
         setup(createNewDefaultTestConfig());
 
         new TestKit(actorSystem) {
