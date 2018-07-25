@@ -58,10 +58,10 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyFeaturesOfThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -72,10 +72,10 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyExistingFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesModified.class);
         assertThat(result.getCommandResponse()).contains(

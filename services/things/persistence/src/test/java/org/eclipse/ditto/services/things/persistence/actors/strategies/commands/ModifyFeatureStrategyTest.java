@@ -53,10 +53,10 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void modifyFeatureOnThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -67,10 +67,10 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void modifyFeatureOnThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeature(modifiedFeature.getId()));
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeature(modifiedFeature.getId()), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -81,10 +81,10 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void modifyExistingFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureModified.class);
         assertThat(result.getCommandResponse()).contains(

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -33,10 +34,10 @@ final class RetrieveAclStrategy extends AbstractCommandStrategy<RetrieveAcl> {
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveAcl command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveAcl command) {
 
-        final JsonObject aclJson = thing.getAccessControlList()
+        final JsonObject aclJson = getThingOrThrow(thing).getAccessControlList()
                 .map(acl -> acl.toJson(command.getImplementedSchemaVersion()))
                 .orElseGet(JsonFactory::newObject);
 

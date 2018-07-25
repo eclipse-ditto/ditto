@@ -44,10 +44,10 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyPolicyIdOnThingWithoutPolicies() {
-        final CommandStrategy.Context context = getDefaultContext(TestConstants.Thing.THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(PolicyIdCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -58,10 +58,10 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void modifyExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext(TestConstants.Thing.THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(PolicyIdModified.class);
         assertThat(result.getCommandResponse()).contains(

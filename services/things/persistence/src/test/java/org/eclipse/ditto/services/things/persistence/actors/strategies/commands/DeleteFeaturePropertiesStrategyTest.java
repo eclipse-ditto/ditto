@@ -45,12 +45,12 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void successfullyDeleteFeaturePropertiesFromFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final String featureId = FLUX_CAPACITOR_ID;
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), featureId, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertiesDeleted.class);
         assertThat(result.getCommandResponse()).contains(
@@ -61,11 +61,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void deleteFeaturePropertiesFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -78,11 +78,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
     @Test
     public void deleteFeaturePropertiesFromThingWithoutThatFeature() {
         final String featureId = FLUX_CAPACITOR_ID;
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeature(featureId));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), featureId, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -95,11 +95,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
     @Test
     public void deleteFeaturePropertiesFromFeatureWithoutProperties() {
         final Feature feature = FLUX_CAPACITOR.removeProperties();
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.setFeature(feature));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), feature.getId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(feature), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

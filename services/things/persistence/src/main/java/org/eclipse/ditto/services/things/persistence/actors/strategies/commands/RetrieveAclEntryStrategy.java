@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -33,13 +34,13 @@ final class RetrieveAclEntryStrategy extends AbstractCommandStrategy<RetrieveAcl
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveAclEntry command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveAclEntry command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThingOrThrow();
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return thing.getAccessControlList()
+        return getThingOrThrow(thing).getAccessControlList()
                 .flatMap(acl -> acl.getEntryFor(authorizationSubject))
                 .map(aclEntry -> ResultFactory.newResult(RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders)))
                 .orElseGet(() -> ResultFactory.newResult(

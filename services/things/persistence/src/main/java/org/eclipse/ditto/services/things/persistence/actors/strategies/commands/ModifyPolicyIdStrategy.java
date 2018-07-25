@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -34,31 +35,31 @@ final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyI
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyPolicyId command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyPolicyId command) {
 
-        return thing.getPolicyId()
-                .map(policyId -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+        return getThingOrThrow(thing).getPolicyId()
+                .map(policyId -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyPolicyId command) {
+    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyPolicyId command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                PolicyIdModified.of(thingId, command.getPolicyId(), context.getNextRevision(), getEventTimestamp(),
+                PolicyIdModified.of(thingId, command.getPolicyId(), nextRevision, getEventTimestamp(),
                         dittoHeaders),
                 ModifyPolicyIdResponse.modified(thingId, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyPolicyId command) {
+    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyPolicyId command) {
         final String thingId = context.getThingId();
         final String policyId = command.getPolicyId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                PolicyIdCreated.of(thingId, policyId, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                PolicyIdCreated.of(thingId, policyId, nextRevision, getEventTimestamp(), dittoHeaders),
                 ModifyPolicyIdResponse.created(thingId, policyId, dittoHeaders));
     }
 

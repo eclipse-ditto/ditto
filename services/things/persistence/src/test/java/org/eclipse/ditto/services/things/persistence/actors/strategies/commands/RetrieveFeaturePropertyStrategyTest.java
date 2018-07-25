@@ -45,13 +45,13 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getProperty() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getThingId(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -63,11 +63,11 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getPropertyFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatureProperty command = RetrieveFeatureProperty.of(context.getThingId(), FLUX_CAPACITOR_ID,
                 JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -79,13 +79,12 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
 
     @Test
     public void getPropertyFromFeatureWithoutProperties() {
-        final CommandStrategy.Context context =
-                getDefaultContext(THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()));
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getThingId(), FLUX_CAPACITOR_ID,
                         JsonFactory.newPointer("target_year_1"), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -99,12 +98,12 @@ public final class RetrieveFeaturePropertyStrategyTest extends AbstractCommandSt
     public void getNonExistentProperty() {
         final JsonPointer propertyPointer = JsonFactory.newPointer("target_year_1");
         final CommandStrategy.Context context =
-                getDefaultContext(THING_V2.setFeature(FLUX_CAPACITOR.removeProperty(propertyPointer)));
+                getDefaultContext();
         final RetrieveFeatureProperty command =
                 RetrieveFeatureProperty.of(context.getThingId(), FLUX_CAPACITOR_ID, propertyPointer,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.setFeature(FLUX_CAPACITOR.removeProperty(propertyPointer)), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

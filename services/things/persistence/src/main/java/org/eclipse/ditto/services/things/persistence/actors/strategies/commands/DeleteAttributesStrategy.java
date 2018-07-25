@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -33,21 +34,22 @@ final class DeleteAttributesStrategy extends AbstractCommandStrategy<DeleteAttri
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteAttributes command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final DeleteAttributes command) {
 
-        return thing.getAttributes()
-                .map(attributes -> getDeleteAttributesResult(context, command))
+        return getThingOrThrow(thing).getAttributes()
+                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(
                         ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders())));
     }
 
-    private static Result getDeleteAttributesResult(final Context context, final DeleteAttributes command) {
+    private static Result getDeleteAttributesResult(final Context context, final long nextRevision,
+            final DeleteAttributes command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                AttributesDeleted.of(thingId, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
                 DeleteAttributesResponse.of(thingId, dittoHeaders));
     }
 

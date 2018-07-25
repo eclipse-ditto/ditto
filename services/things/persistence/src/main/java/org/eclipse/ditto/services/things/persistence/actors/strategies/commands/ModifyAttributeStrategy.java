@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -36,34 +37,34 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyAttribute command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyAttribute command) {
 
-        return thing.getAttributes()
+        return getThingOrThrow(thing).getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))
-                .map(attributes -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+                .map(attributes -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyAttribute command) {
+    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                AttributeModified.of(thingId, attributePointer, command.getAttributeValue(), context.getNextRevision(),
+                AttributeModified.of(thingId, attributePointer, command.getAttributeValue(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
                 ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyAttribute command) {
+    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                AttributeCreated.of(thingId, attributePointer, attributeValue, context.getNextRevision(),
+                AttributeCreated.of(thingId, attributePointer, attributeValue, nextRevision,
                         getEventTimestamp(), dittoHeaders),
                 ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders));
     }

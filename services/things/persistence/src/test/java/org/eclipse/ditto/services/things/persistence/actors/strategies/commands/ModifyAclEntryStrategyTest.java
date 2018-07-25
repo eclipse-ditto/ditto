@@ -61,10 +61,10 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void createAclEntryAsThingHasNoAclYet() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), aclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -75,7 +75,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void createInvalidAclForThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntry.getAuthorizationSubject(), Permission.WRITE);
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), modifiedAclEntry, DittoHeaders.empty());
@@ -85,7 +85,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         modifiedAclEntry.getAuthorizationSubject(), Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -98,10 +98,10 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final AclEntry aclEntryGrimes = TestConstants.Authorization.ACL_ENTRY_GRIMES;
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntryGrimes.getAuthorizationSubject(), Permission.WRITE);
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), modifiedAclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryModified.class);
         assertThat(result.getCommandResponse()).contains(
@@ -114,7 +114,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
     public void modifyExistingAclEntryToProduceInvalidAcl() {
         final AclEntry modifiedAclEntry =
                 ThingsModelFactory.newAclEntry(aclEntry.getAuthorizationSubject(), Permission.READ);
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), modifiedAclEntry, DittoHeaders.empty());
 
         final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getThingId(), Optional.of(
@@ -123,7 +123,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

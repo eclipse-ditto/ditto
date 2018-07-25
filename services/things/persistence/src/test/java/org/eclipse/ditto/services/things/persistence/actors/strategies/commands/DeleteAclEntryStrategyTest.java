@@ -53,11 +53,11 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void applyStrategyOnThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), authSubject, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -68,7 +68,7 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void deleteLastAclEntryWithMinRequiredPermissions() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeAllPermissionsOf(AUTH_SUBJECT_OLDMAN));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
         final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(THING_ID, Optional.of(
                 MessageFormat.format(
@@ -76,7 +76,7 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
                         Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAllPermissionsOf(AUTH_SUBJECT_OLDMAN), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -86,11 +86,11 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void successfullyDeleteAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), authSubject, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryDeleted.class);
         assertThat(result.getCommandResponse()).contains(

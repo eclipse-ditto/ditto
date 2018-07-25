@@ -57,11 +57,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
 
     @Test
     public void successfullyDeleteFeaturePropertyFromThing() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
                 DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertyDeleted.class);
         assertThat(result.getCommandResponse()).contains(DeleteFeaturePropertyResponse.of(context.getThingId(),
@@ -72,11 +72,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
 
     @Test
     public void deleteFeaturePropertyFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
                 DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -88,11 +88,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
 
     @Test
     public void deleteFeaturePropertyFromThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeature(featureId));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
                 DeleteFeatureProperty.of(context.getThingId(), featureId, propertyPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -105,11 +105,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
     @Test
     public void deleteFeaturePropertyFromFeatureWithoutProperties() {
         final Feature feature = FLUX_CAPACITOR.removeProperties();
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.setFeature(feature));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
                 DeleteFeatureProperty.of(context.getThingId(), feature.getId(), propertyPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(feature), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -122,11 +122,11 @@ public final class DeleteFeaturePropertyStrategyTest extends AbstractCommandStra
     @Test
     public void deleteFeaturePropertyFromFeatureWithoutThatProperty() {
         final Feature feature = FLUX_CAPACITOR.removeProperty(propertyPointer);
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.setFeature(feature));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperty command =
                 DeleteFeatureProperty.of(context.getThingId(), feature.getId(), propertyPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(feature), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

@@ -42,10 +42,10 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void successfullyDeleteFeaturesFromThing() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatures command = DeleteFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -56,10 +56,10 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
 
     @Test
     public void deleteFeaturesFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatures command = DeleteFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(ThingModifiedEvent.class);
         assertThat(result.getCommandResponse()).contains(

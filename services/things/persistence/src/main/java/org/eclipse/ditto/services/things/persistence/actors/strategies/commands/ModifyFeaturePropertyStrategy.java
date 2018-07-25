@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -37,38 +38,40 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatureProperty command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
 
-        return thing.getFeatures()
+        return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(featureId))
-                .map(feature -> getModifyOrCreateResult(feature, context, command))
+                .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
     }
 
     private static Result getModifyOrCreateResult(final Feature feature, final Context context,
-            final ModifyFeatureProperty command) {
+            final long nextRevision, final ModifyFeatureProperty command) {
 
         return feature.getProperties()
                 .filter(featureProperties -> featureProperties.contains(command.getPropertyPointer()))
-                .map(featureProperties -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+                .map(featureProperties -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyFeatureProperty command) {
+    private static Result getModifyResult(final Context context, final long nextRevision,
+            final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getPropertyPointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
                 FeaturePropertyModified.of(command.getId(), featureId, propertyPointer, command.getPropertyValue(),
-                        context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                        nextRevision, getEventTimestamp(), dittoHeaders),
                 ModifyFeaturePropertyResponse.modified(context.getThingId(), featureId, propertyPointer, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyFeatureProperty command) {
+    private static Result getCreateResult(final Context context, final long nextRevision,
+            final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
         final JsonPointer propertyPointer = command.getPropertyPointer();
         final JsonValue propertyValue = command.getPropertyValue();
@@ -76,7 +79,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
 
         return ResultFactory.newResult(
                 FeaturePropertyCreated.of(command.getId(), featureId, propertyPointer, propertyValue,
-                        context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                        nextRevision, getEventTimestamp(), dittoHeaders),
                 ModifyFeaturePropertyResponse.created(context.getThingId(), featureId, propertyPointer, propertyValue,
                         dittoHeaders));
     }

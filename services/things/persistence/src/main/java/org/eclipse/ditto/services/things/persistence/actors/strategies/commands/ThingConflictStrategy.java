@@ -13,8 +13,10 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -32,12 +34,14 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
     }
 
     @Override
-    public boolean isDefined(final Context context, final CreateThing command) {
+    public boolean isDefined(final Context context, @Nullable final Thing thing,
+            final CreateThing command) {
         return Objects.equals(context.getThingId(), command.getId());
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final CreateThing command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final CreateThing command) {
         return ResultFactory.newResult(ThingConflictException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());

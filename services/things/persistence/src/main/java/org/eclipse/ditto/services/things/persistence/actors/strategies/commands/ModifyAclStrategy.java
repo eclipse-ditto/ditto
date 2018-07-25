@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
@@ -36,7 +37,8 @@ public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> 
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyAcl command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyAcl command) {
         final String thingId = context.getThingId();
         final AccessControlList newAccessControlList = command.getAccessControlList();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -48,7 +50,7 @@ public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> 
                     dittoHeaders));
         }
 
-        return ResultFactory.newResult(AclModified.of(thingId, newAccessControlList, context.getNextRevision(),
+        return ResultFactory.newResult(AclModified.of(thingId, newAccessControlList, nextRevision,
                 getEventTimestamp(), dittoHeaders),
                 ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()));
     }

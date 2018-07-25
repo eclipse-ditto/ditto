@@ -45,10 +45,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
 
     @Test
     public void retrieveAttributesWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -60,11 +60,11 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
 
     @Test
     public void retrieveAttributesWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, selectedFields, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -77,10 +77,10 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
 
     @Test
     public void retrieveAttributesFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeAttributes());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAttributes command = RetrieveAttributes.of(THING_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

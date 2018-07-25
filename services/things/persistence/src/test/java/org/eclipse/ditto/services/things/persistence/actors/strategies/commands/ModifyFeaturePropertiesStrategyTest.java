@@ -56,12 +56,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeaturePropertiesOfThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -73,12 +73,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeaturePropertiesOfThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeature(featureId));
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -91,12 +91,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
     @Test
     public void modifyFeaturePropertiesOfFeatureWithoutProperties() {
         final Feature featureWithoutProperties = TestConstants.Feature.FLUX_CAPACITOR.removeProperties();
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.setFeature(featureWithoutProperties));
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(featureWithoutProperties), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertiesCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -108,12 +108,12 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyExistingFeatureProperties() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureProperties command =
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertiesModified.class);
         assertThat(result.getCommandResponse()).contains(

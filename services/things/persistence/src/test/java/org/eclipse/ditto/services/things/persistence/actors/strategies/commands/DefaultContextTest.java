@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import akka.actor.ActorPath;
+import akka.actor.ActorSystem;
 import akka.actor.RootActorPath;
 import akka.event.DiagnosticLoggingAdapter;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -32,7 +33,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultContextTest {
 
     private static final String THING_ID = "com.example.iot:myThing";
-    private static final long NEXT_REVISION = 42L;
     private static final DiagnosticLoggingAdapter LOG = Mockito.mock(DiagnosticLoggingAdapter.class);
     private static final ThingSnapshotter SNAPSHOTTER = Mockito.mock(ThingSnapshotter.class);
 
@@ -46,16 +46,6 @@ public final class DefaultContextTest {
                 .usingGetClass()
                 .withPrefabValues(ActorPath.class, red, blue)
                 .verify();
-    }
-
-    @Test
-    public void gettersForNullThing() {
-        final DefaultContext underTest = DefaultContext.getInstance(THING_ID, null, NEXT_REVISION, LOG, SNAPSHOTTER);
-
-        assertThat(underTest.getThing()).isEmpty();
-        assertThatExceptionOfType(NoSuchElementException.class)
-                .isThrownBy(underTest::getThingOrThrow)
-                .withNoCause();
     }
 
 }

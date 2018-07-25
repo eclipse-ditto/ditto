@@ -20,17 +20,21 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
+
+import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This strategy handles the {@link RetrieveThing} command.
@@ -49,21 +53,22 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     }
 
     @Override
-    public boolean isDefined(final Context context, final RetrieveThing command) {
-        final boolean thingExists = context.getThing()
-                .map(thing -> !isThingDeleted(thing))
+    public boolean isDefined(final Context context, @Nullable final Thing thing,
+            final RetrieveThing command) {
+        final boolean thingExists = Optional.ofNullable(thing)
+                .map(t -> !isThingDeleted(t))
                 .orElse(false);
 
         return Objects.equals(context.getThingId(), command.getId()) && thingExists;
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveThing command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveThing command) {
 
         return command.getSnapshotRevision()
                 .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
-                .orElseGet(() -> getRetrieveThingResult(thing, command));
+                .orElseGet(() -> getRetrieveThingResult(getThingOrThrow(thing), command));
     }
 
     private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
@@ -75,14 +80,16 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
             final RetrieveThing command) {
 
+        final DiagnosticLoggingAdapter log = context.getLog();
+        LogUtil.enhanceLogWithCorrelationId(log, command);
         try {
             return loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command);
         } catch (final ExecutionException | TimeoutException e) {
-            context.getLog().info("Failed to retrieve thing with ID <{}>: {}", context.getThingId(), e.getMessage());
+            log.info("Failed to retrieve thing with ID <{}>: {}", context.getThingId(), e.getMessage());
             return ResultFactory.newResult(getThingUnavailableException(command));
         } catch (final InterruptedException e) {
-//            Thread.currentThread().interrupt(); // TODO TJ undo experimenting if this works on Travis
-            context.getLog().info("Retrieving thing with ID <{}> was interrupted.", context.getThingId());
+            // we cannot re-interrupt the thread here - the caller would not get a response and the actorSystem will fail
+            log.warning("Retrieving thing with ID <{}> was interrupted.", context.getThingId());
             return ResultFactory.newResult(getThingUnavailableException(command));
         }
     }
@@ -118,7 +125,8 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     }
 
     @Override
-    protected Result unhandled(final Context context, final RetrieveThing command) {
+    protected Result unhandled(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }

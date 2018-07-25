@@ -42,10 +42,10 @@ public final class DeleteAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void successfullyDeleteAllAttributesFromThing() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributesDeleted.class);
         assertThat(result.getCommandResponse()).contains(
@@ -57,10 +57,10 @@ public final class DeleteAttributesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void deleteAttributesFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeAttributes());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

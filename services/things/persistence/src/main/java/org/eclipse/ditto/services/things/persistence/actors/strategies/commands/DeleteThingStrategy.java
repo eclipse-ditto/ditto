@@ -11,12 +11,17 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
+
+import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This strategy handles the {@link DeleteThing} command.
@@ -32,13 +37,16 @@ final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteThing command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final DeleteThing command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        context.getLog().info("Deleted Thing with ID <{}>.", thingId);
+        final DiagnosticLoggingAdapter log = context.getLog();
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.info("Deleted Thing with ID <{}>.", thingId);
 
         return ResultFactory.newResult(
-                ThingDeleted.of(thingId, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
                 DeleteThingResponse.of(thingId, dittoHeaders), true);
     }
 

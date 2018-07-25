@@ -47,14 +47,14 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void resultContainsJsonOfExistingAcl() {
-        final Context context = getDefaultContext(THING_V1);
+        final Context context = getDefaultContext();
         final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
         final JsonObject expectedAclJson = THING_V1.getAccessControlList()
                 .map(acl -> acl.toJson(JsonSchemaVersion.V_1))
                 .orElse(JsonFactory.newObject());
 
-        final Result result = underTest.doApply(context, command);
+        final Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -65,10 +65,10 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void resultContainsEmptyJsonObject() {
-        final Context context = getDefaultContext(THING_V2);
+        final Context context = getDefaultContext();
         final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
-        final Result result = underTest.doApply(context, command);
+        final Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(

@@ -44,11 +44,11 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinition() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -60,11 +60,11 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getDefinitionFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -76,12 +76,11 @@ public final class RetrieveFeatureDefinitionStrategyTest extends AbstractCommand
 
     @Test
     public void getNonExistingDefinition() {
-        final CommandStrategy.Context context =
-                getDefaultContext(THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()));
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatureDefinition command =
                 RetrieveFeatureDefinition.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.setFeature(FLUX_CAPACITOR.removeDefinition()), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

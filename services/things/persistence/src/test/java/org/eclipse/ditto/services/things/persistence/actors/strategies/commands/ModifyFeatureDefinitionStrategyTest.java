@@ -56,12 +56,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeatureDefinitionOfThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getThingId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -72,12 +72,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyFeatureDefinitionOfThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeature(featureId));
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getThingId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -89,12 +89,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     @Test
     public void modifyFeatureDefinitionOfFeatureWithoutDefinition() {
         final Feature featureWithoutDefinition = TestConstants.Feature.FLUX_CAPACITOR.removeDefinition();
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.setFeature(featureWithoutDefinition));
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getThingId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.setFeature(featureWithoutDefinition), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureDefinitionCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -106,12 +106,12 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
 
     @Test
     public void modifyExistingFeatureDefinition() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatureDefinition command =
                 ModifyFeatureDefinition.of(context.getThingId(), featureId, modifiedFeatureDefinition,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureDefinitionModified.class);
         assertThat(result.getCommandResponse()).contains(

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -33,24 +34,25 @@ final class DeleteFeatureStrategy extends AbstractCommandStrategy<DeleteFeature>
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteFeature command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final DeleteFeature command) {
         final String featureId = command.getFeatureId();
 
-        return thing.getFeatures()
+        return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(featureId))
-                .map(feature -> getDeleteFeatureResult(context, command))
+                .map(feature -> getDeleteFeatureResult(context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
     }
 
-    private static Result getDeleteFeatureResult(final Context context, final DeleteFeature command) {
+    private static Result getDeleteFeatureResult(final Context context, final long nextRevision,
+            final DeleteFeature command) {
         final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                FeatureDeleted.of(thingId, featureId, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                FeatureDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(), dittoHeaders),
                 DeleteFeatureResponse.of(thingId, featureId, dittoHeaders));
     }
 

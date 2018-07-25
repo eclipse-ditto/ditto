@@ -43,11 +43,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveAclEntryFromThingWithoutAcl() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -59,11 +59,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveAclEntryFromThingWithoutThatAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeAllPermissionsOf(AUTH_SUBJECT_GRIMES));
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAllPermissionsOf(AUTH_SUBJECT_GRIMES), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -75,11 +75,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveExistingAclEntry() {
-        final CommandStrategy.Context context = getDefaultContext(TestConstants.Thing.THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(

@@ -44,10 +44,10 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveFeaturesWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -59,12 +59,12 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveFeaturesWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
                 RetrieveFeatures.of(context.getThingId(), selectedFields, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(RetrieveFeaturesResponse.of(command.getThingId(),
@@ -75,10 +75,10 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveFeaturesFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

@@ -56,11 +56,11 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Test
     public void modifyAttributeOfThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeAttributes());
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -72,11 +72,11 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
 
     @Test
     public void modifyAttributeOfThingWithoutThatAttribute() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -91,12 +91,12 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final JsonPointer existingAttributePointer = JsonFactory.newPointer("/location/latitude");
         final JsonValue newAttributeValue = JsonFactory.newValue(42.0D);
 
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeModified.class);
         assertThat(result.getCommandResponse()).contains(

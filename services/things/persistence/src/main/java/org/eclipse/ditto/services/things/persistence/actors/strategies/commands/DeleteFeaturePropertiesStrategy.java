@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -34,26 +35,27 @@ final class DeleteFeaturePropertiesStrategy extends AbstractCommandStrategy<Dele
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteFeatureProperties command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final DeleteFeatureProperties command) {
 
-        return thing.getFeatures()
+        return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .map(feature -> getDeleteFeaturePropertiesResult(feature, context, command.getDittoHeaders()))
+                .map(feature -> getDeleteFeaturePropertiesResult(feature, context, nextRevision,
+                        command.getDittoHeaders()))
                 .orElseGet(() -> ResultFactory.newResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
     private static Result getDeleteFeaturePropertiesResult(final Feature feature, final Context context,
-            final DittoHeaders dittoHeaders) {
+            final long nextRevision, final DittoHeaders dittoHeaders) {
 
         final String thingId = context.getThingId();
         final String featureId = feature.getId();
 
         return feature.getProperties()
                 .map(featureProperties -> ResultFactory.newResult(
-                        FeaturePropertiesDeleted.of(thingId, featureId, context.getNextRevision(), getEventTimestamp(),
+                        FeaturePropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
                                 dittoHeaders), DeleteFeaturePropertiesResponse.of(thingId, featureId, dittoHeaders)))
                 .orElseGet(() -> ResultFactory.newResult(
                         ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders)));

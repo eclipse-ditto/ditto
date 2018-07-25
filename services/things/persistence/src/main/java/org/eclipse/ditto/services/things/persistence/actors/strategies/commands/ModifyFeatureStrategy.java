@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,30 +36,30 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeature command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyFeature command) {
 
-        return thing.getFeatures()
+        return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .map(feature -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+                .map(feature -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyFeature command) {
+    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyFeature command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                FeatureModified.of(command.getId(), command.getFeature(), context.getNextRevision(),
-                        getEventTimestamp(), dittoHeaders),
+                FeatureModified.of(command.getId(), command.getFeature(), nextRevision, getEventTimestamp(),
+                        dittoHeaders),
                 ModifyFeatureResponse.modified(context.getThingId(), command.getFeatureId(), dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyFeature command) {
+    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyFeature command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Feature feature = command.getFeature();
 
         return ResultFactory.newResult(
-                FeatureCreated.of(command.getId(), feature, context.getNextRevision(), getEventTimestamp(),
+                FeatureCreated.of(command.getId(), feature, nextRevision, getEventTimestamp(),
                         dittoHeaders),
                 ModifyFeatureResponse.created(context.getThingId(), feature, dittoHeaders));
     }

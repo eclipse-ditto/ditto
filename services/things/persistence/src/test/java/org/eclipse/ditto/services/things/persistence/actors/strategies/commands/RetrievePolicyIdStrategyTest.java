@@ -44,10 +44,10 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrievePolicyId command = RetrievePolicyId.of(THING_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -58,10 +58,10 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
 
     @Test
     public void retrieveNonExistingPolicyId() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.toBuilder().removePolicyId().build());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrievePolicyId command = RetrievePolicyId.of(THING_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.toBuilder().removePolicyId().build(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

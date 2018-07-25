@@ -37,20 +37,20 @@ final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntr
     }
 
     @Override
-    protected Result doApply(final Context context, final DeleteAclEntry command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, final Thing thing,
+            final long nextRevision, final DeleteAclEntry command) {
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return thing.getAccessControlList()
+        return getThingOrThrow(thing).getAccessControlList()
                 .filter(acl -> acl.contains(authSubject))
-                .map(acl -> getDeleteAclEntryResult(acl, context, command))
+                .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.aclEntryNotFound(context.getThingId(),
                         authSubject, dittoHeaders)));
     }
 
     private static Result getDeleteAclEntryResult(final AccessControlList acl, final Context context,
-            final DeleteAclEntry command) {
+            final long nextRevision, final DeleteAclEntry command) {
 
         final String thingId = context.getThingId();
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
@@ -64,7 +64,7 @@ final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntr
         }
 
         return ResultFactory.newResult(
-                AclEntryDeleted.of(thingId, authSubject, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                AclEntryDeleted.of(thingId, authSubject, nextRevision, getEventTimestamp(), dittoHeaders),
                 DeleteAclEntryResponse.of(thingId, authSubject, dittoHeaders));
     }
 

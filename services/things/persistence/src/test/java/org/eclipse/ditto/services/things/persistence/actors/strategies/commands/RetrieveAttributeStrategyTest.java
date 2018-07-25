@@ -43,12 +43,12 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveExistingAttribute() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonPointer attributePointer = JsonFactory.newPointer("location/latitude");
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getThingId(), attributePointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -60,12 +60,12 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveAttributeFromThingWithoutAttributes() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2.removeAttributes());
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getThingId(), JsonFactory.newPointer("location/latitude"),
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -76,12 +76,12 @@ public final class RetrieveAttributeStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveNonExistingAttribute() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAttribute command =
                 RetrieveAttribute.of(context.getThingId(), JsonFactory.newPointer("location/bar"),
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

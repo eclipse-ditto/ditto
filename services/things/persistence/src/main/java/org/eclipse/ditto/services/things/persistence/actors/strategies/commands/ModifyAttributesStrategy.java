@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,30 +36,32 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyAttributes command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyAttributes command) {
 
-        return thing.getAttributes()
-                .map(attributes -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+        return getThingOrThrow(thing).getAttributes()
+                .map(attributes -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyAttributes command) {
+    private static Result getModifyResult(final Context context, final long nextRevision,
+            final ModifyAttributes command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                AttributesModified.of(thingId, command.getAttributes(), context.getNextRevision(), getEventTimestamp(),
+                AttributesModified.of(thingId, command.getAttributes(), nextRevision, getEventTimestamp(),
                         dittoHeaders), ModifyAttributesResponse.modified(thingId, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyAttributes command) {
+    private static Result getCreateResult(final Context context, final long nextRevision,
+            final ModifyAttributes command) {
         final String thingId = context.getThingId();
         final Attributes attributes = command.getAttributes();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                AttributesCreated.of(thingId, attributes, context.getNextRevision(), getEventTimestamp(), dittoHeaders),
+                AttributesCreated.of(thingId, attributes, nextRevision, getEventTimestamp(), dittoHeaders),
                 ModifyAttributesResponse.created(thingId, attributes, dittoHeaders));
     }
 

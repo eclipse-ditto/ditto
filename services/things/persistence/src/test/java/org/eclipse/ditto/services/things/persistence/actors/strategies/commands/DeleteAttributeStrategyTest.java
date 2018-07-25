@@ -45,10 +45,10 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void successfullyDeleteAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeDeleted.class);
         assertThat(result.getCommandResponse()).contains(DeleteAttributeResponse.of(context.getThingId(),
@@ -60,10 +60,10 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void deleteAttributeFromThingWithoutAttributes() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeAttributes());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -75,10 +75,10 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     @Test
     public void deleteAttributeFromThingWithoutThatAttribute() {
         final JsonPointer attrPointer = JsonFactory.newPointer("/location/longitude");
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeAttribute(attrPointer));
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttribute command = DeleteAttribute.of(context.getThingId(), attrPointer, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAttribute(attrPointer), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,29 +36,29 @@ final class ModifyFeaturesStrategy extends AbstractCommandStrategy<ModifyFeature
     }
 
     @Override
-    protected Result doApply(final Context context, final ModifyFeatures command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final ModifyFeatures command) {
 
-        return thing.getFeatures()
-                .map(features -> getModifyResult(context, command))
-                .orElseGet(() -> getCreateResult(context, command));
+        return getThingOrThrow(thing).getFeatures()
+                .map(features -> getModifyResult(context, nextRevision, command))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final ModifyFeatures command) {
+    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                FeaturesModified.of(command.getId(), command.getFeatures(), context.getNextRevision(),
+                FeaturesModified.of(command.getId(), command.getFeatures(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
                 ModifyFeaturesResponse.modified(context.getThingId(), dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final ModifyFeatures command) {
+    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyFeatures command) {
         final Features features = command.getFeatures();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return ResultFactory.newResult(
-                FeaturesCreated.of(command.getId(), features, context.getNextRevision(), getEventTimestamp(),
+                FeaturesCreated.of(command.getId(), features, nextRevision, getEventTimestamp(),
                         dittoHeaders),
                 ModifyFeaturesResponse.created(context.getThingId(), features, dittoHeaders));
     }

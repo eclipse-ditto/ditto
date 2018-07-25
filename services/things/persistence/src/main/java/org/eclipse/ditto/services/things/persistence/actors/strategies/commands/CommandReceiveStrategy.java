@@ -17,6 +17,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -120,8 +121,10 @@ public final class CommandReceiveStrategy extends AbstractCommandStrategy<Comman
     }
 
     @Override
-    protected Result unhandled(final Context context, final Command command) {
+    protected Result unhandled(final Context context, final Thing thing,
+            final long nextRevision, final Command command) {
         final DiagnosticLoggingAdapter log = context.getLog();
+        LogUtil.enhanceLogWithCorrelationId(log, command);
         log.info("Command of type <{}> cannot be handled by this strategy.", command.getClass().getName());
 
         return ResultFactory.emptyResult();
@@ -133,21 +136,24 @@ public final class CommandReceiveStrategy extends AbstractCommandStrategy<Comman
     }
 
     @Override
-    public boolean isDefined(final Context context, final Command command) {
+    public boolean isDefined(final Context context, final Thing thing,
+            final Command command) {
         return isDefined(command);
     }
 
     @Override
-    protected Result doApply(final Context context, final Command command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final Command command) {
         final CommandStrategy<Command> commandStrategy = getAppropriateStrategy(command.getClass());
 
         final DiagnosticLoggingAdapter log = context.getLog();
+        LogUtil.enhanceLogWithCorrelationId(log, command);
         if (null != commandStrategy) {
             LogUtil.enhanceLogWithCorrelationId(log, command.getDittoHeaders().getCorrelationId());
             if (log.isDebugEnabled()) {
                 log.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
             }
-            return commandStrategy.apply(context, command);
+            return commandStrategy.apply(context, thing, nextRevision, command);
         }
 
         log.info("No strategy found for command <{}>.", command.getType());

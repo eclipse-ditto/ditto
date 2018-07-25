@@ -96,6 +96,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      */
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
+    private static final CommandReceiveStrategy COMMAND_RECEIVE_STRATEGY = CommandReceiveStrategy.getInstance();
+
     private final String thingId;
     private final ActorRef pubSubMediator;
     private final ThingSnapshotter<?, ?> thingSnapshotter;
@@ -104,6 +106,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private final java.time.Duration activityCheckDeletedInterval;
     private final Receive handleThingEvents;
     private final long snapshotThreshold;
+
+    /**
+     * Context for all {@link CommandReceiveStrategy} strategies - contains references to fields of {@code this}
+     * PersistenceActor.
+     */
+    private final CommandStrategy.Context defaultContext;
 
     private long accessCounter;
     private Cancellable activityChecker;
@@ -126,6 +134,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         // Snapshotting
         thingSnapshotter = getSnapshotter(config, thingSnapshotterCreate);
+
+        defaultContext = DefaultContext.getInstance(thingId, log, thingSnapshotter);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -317,9 +327,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     private void becomeThingCreatedHandler() {
-        final CommandStrategy<Command> commandReceiveStrategy = CommandReceiveStrategy.getInstance();
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
-                .match(Command.class, commandReceiveStrategy::isDefined, this::handleCommand);
+                .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, this::handleCommand);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .matchEach(thingSnapshotter.strategies())
@@ -335,10 +344,8 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void handleCommand(final Command command) {
-        final CommandStrategy.Context ctx = DefaultContext.getInstance(thingId, thing, getNextRevisionNumber(), log,
-                thingSnapshotter);
-        final CommandStrategy<Command> commandReceiveStrategy = CommandReceiveStrategy.getInstance();
-        final CommandStrategy.Result result = commandReceiveStrategy.apply(ctx, command);
+        final CommandStrategy.Result result = COMMAND_RECEIVE_STRATEGY.apply(defaultContext, thing,
+                getNextRevisionNumber(), command);
         result.apply(this::persistAndApplyEvent, this::notifySender, this::becomeThingDeletedHandler);
     }
 

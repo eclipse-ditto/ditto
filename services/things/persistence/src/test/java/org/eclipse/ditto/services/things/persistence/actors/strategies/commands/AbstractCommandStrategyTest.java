@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshott
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
 
+import akka.actor.ActorSystem;
 import akka.event.DiagnosticLoggingAdapter;
 
 /**
@@ -38,8 +39,8 @@ public abstract class AbstractCommandStrategyTest {
         thingSnapshotter = Mockito.mock(ThingSnapshotter.class);
     }
 
-    protected static CommandStrategy.Context getDefaultContext(@Nullable final Thing thing) {
-        return DefaultContext.getInstance(THING_ID, thing, NEXT_REVISION, logger, thingSnapshotter);
+    protected static CommandStrategy.Context getDefaultContext() {
+        return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter);
     }
 
 }

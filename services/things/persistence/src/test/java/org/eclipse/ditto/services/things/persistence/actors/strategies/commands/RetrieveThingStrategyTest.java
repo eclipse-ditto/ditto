@@ -56,41 +56,41 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void isNotDefinedForDeviantThingIds() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of("org.example:myThing", DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, THING_V2, command);
 
         assertThat(defined).isFalse();
     }
 
     @Test
     public void isNotDefinedIfContextHasNoThing() {
-        final CommandStrategy.Context context = getDefaultContext(null);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(THING_ID, DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, null, command);
 
         assertThat(defined).isFalse();
     }
 
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, THING_V2, command);
 
         assertThat(defined).isTrue();
     }
 
     @Test
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionAndNoSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -101,14 +101,14 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void retrieveThingFromContextIfCommandHasNoSnapshotRevisionButSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
                 .withSelectedFields(fieldSelector)
                 .build();
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -119,7 +119,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void retrieveThingFromSnapshotterWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
                 .withSnapshotRevision(snapshotRevision)
@@ -128,7 +128,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -139,7 +139,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void retrieveThingFromSnapshotterWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
@@ -150,7 +150,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -161,7 +161,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void retrieveNonExistentThingFromSnapshotter() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
@@ -171,7 +171,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -184,7 +184,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     public void retrieveThingWithInterruptedException()
             throws ExecutionException, InterruptedException, TimeoutException {
 
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
                 .withSnapshotRevision(snapshotRevision)
@@ -199,7 +199,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision)).thenReturn(completionStage);
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -211,7 +211,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void retrieveThingWithExecutionException() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final long snapshotRevision = 1337L;
         final RetrieveThing command = RetrieveThing.getBuilder(context.getThingId(), DittoHeaders.empty())
                 .withSnapshotRevision(snapshotRevision)
@@ -222,7 +222,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision)).thenReturn(completableFuture);
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -234,10 +234,10 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.unhandled(context, command);
+        final CommandStrategy.Result result = underTest.unhandled(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

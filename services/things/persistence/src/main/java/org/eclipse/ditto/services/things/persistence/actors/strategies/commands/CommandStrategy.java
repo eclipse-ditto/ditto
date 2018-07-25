@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -40,10 +42,12 @@ public interface CommandStrategy<T extends Command> {
      * Applies the strategy to the given command using the given context.
      *
      * @param context the context.
+     * @param thing the current Thing of the ThingPersistenceActor.
+     * @param nextRevision the next revision number of the ThingPersistenceActor.
      * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
-    Result apply(Context context, T command);
+    Result apply(Context context, @Nullable Thing thing, long nextRevision, T command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and can be applied.
@@ -58,11 +62,12 @@ public interface CommandStrategy<T extends Command> {
      * Indicates whether this strategy is defined for the specified command and context and can be applied.
      *
      * @param context the context.
+     * @param thing
      * @param command the command.
      * @return {@code true} if the strategy is defined for the given command and can be applied.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    boolean isDefined(Context context, T command);
+    boolean isDefined(Context context, final Thing thing, T command);
 
     /**
      * The result of applying the strategy to the given command.
@@ -103,27 +108,6 @@ public interface CommandStrategy<T extends Command> {
          * @return the thing ID.
          */
         String getThingId();
-
-        /**
-         * Returns the Thing of this context or throws an exception if this context does not have a Thing.
-         *
-         * @return the thing.
-         * @throws java.util.NoSuchElementException if this context does not have a Thing.
-         */
-        Thing getThingOrThrow();
-
-        /**
-         * Returns the Thing of this context of an empty Optional.
-         *
-         * @return an Optional containing the Thing of this context or an empty Optional if this context does not
-         * have a Thing.
-         */
-        Optional<Thing> getThing();
-
-        /**
-         * @return the next revision.
-         */
-        long getNextRevision();
 
         /**
          * @return the log.

@@ -42,10 +42,10 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
     @Test
     public void successfullyDeleteThing() {
          // The Thing of the context is ignored, only the Thing ID is of importance.
-        final CommandStrategy.Context context = getDefaultContext(null);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteThing command = DeleteThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, null, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(ThingDeleted.class);
         assertThat(result.getCommandResponse()).contains(

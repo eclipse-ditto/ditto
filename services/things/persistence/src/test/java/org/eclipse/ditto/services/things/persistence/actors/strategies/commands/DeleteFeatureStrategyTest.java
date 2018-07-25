@@ -51,10 +51,10 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void successfullyDeleteFeatureFromThing() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeature command = DeleteFeature.of(context.getThingId(), featureId, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureDeleted.class);
         assertThat(result.getCommandResponse()).contains(DeleteFeatureResponse.of(context.getThingId(),
@@ -65,10 +65,10 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void deleteFeatureFromThingWithoutFeatures() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1.removeFeatures());
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeature command = DeleteFeature.of(context.getThingId(), featureId, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -80,10 +80,10 @@ public final class DeleteFeatureStrategyTest extends AbstractCommandStrategyTest
 
     @Test
     public void deleteFeatureFromThingWithoutThatFeature() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V1);
+        final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeature command = DeleteFeature.of(context.getThingId(), "myFeature", DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

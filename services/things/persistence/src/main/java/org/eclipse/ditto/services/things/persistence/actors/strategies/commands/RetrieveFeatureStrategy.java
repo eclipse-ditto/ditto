@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -35,11 +36,11 @@ final class RetrieveFeatureStrategy extends AbstractCommandStrategy<RetrieveFeat
     }
 
     @Override
-    protected Result doApply(final Context context, final RetrieveFeature command) {
-        final Thing thing = context.getThingOrThrow();
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveFeature command) {
         final String thingId = context.getThingId();
 
-        return thing.getFeatures()
+        return getThingOrThrow(thing).getFeatures()
                 .map(features -> getFeatureResult(features, thingId, command))
                 .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featureNotFound(thingId,
                         command.getFeatureId(), command.getDittoHeaders())));

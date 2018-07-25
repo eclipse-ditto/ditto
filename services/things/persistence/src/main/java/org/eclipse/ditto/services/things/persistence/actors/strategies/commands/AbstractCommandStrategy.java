@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -47,25 +49,28 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
     }
 
     @Override
-    public Result apply(final Context context, final T command) {
+    public Result apply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
-        if (isDefined(context, command)) {
+        if (isDefined(context, thing, command)) {
             final DiagnosticLoggingAdapter logger = context.getLog();
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());
             if (logger.isDebugEnabled()) {
                 logger.debug("Applying command <{}>: {}", command.getType(), command.toJsonString());
             }
-            return doApply(context, command);
+            return doApply(context, thing, nextRevision, command);
         } else {
-            return unhandled(context, command);
+            return unhandled(context, thing, nextRevision, command);
         }
     }
 
-    protected abstract Result doApply(final Context context, final T command);
+    protected abstract Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final T command);
 
-    protected Result unhandled(final Context context, final T command) {
+    protected Result unhandled(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final T command) {
         throw ExceptionFactory.unhandled(command);
     }
 
@@ -80,11 +85,11 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
     }
 
     @Override
-    public boolean isDefined(final Context context, final T command) {
+    public boolean isDefined(final Context context, @Nullable final Thing thing, final T command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
 
-        return context.getThing()
+        return Optional.ofNullable(thing)
                 .flatMap(Thing::getId)
                 .filter(thingId -> Objects.equals(thingId, command.getId()))
                 .isPresent();
@@ -92,6 +97,13 @@ abstract class AbstractCommandStrategy<T extends Command> implements CommandStra
 
     protected static boolean isThingDeleted(@Nullable final Thing thing) {
         return null == thing || thing.hasLifecycle(ThingLifecycle.DELETED);
+    }
+
+    protected static Thing getThingOrThrow(@Nullable final Thing thing) {
+        if (null != thing) {
+            return thing;
+        }
+        throw new NoSuchElementException("This Context does not have a Thing!");
     }
 
     protected static Instant getEventTimestamp() {

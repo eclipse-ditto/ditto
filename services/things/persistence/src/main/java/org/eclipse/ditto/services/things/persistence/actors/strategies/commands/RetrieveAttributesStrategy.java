@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -34,12 +35,12 @@ final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveA
     }
 
     @Override
-    protected CommandStrategy.Result doApply(final CommandStrategy.Context context, final RetrieveAttributes command) {
+    protected Result doApply(final Context context, @Nullable final Thing thing,
+            final long nextRevision, final RetrieveAttributes command) {
         final String thingId = context.getThingId();
-        final Thing thing = context.getThingOrThrow();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return thing.getAttributes()
+        return getThingOrThrow(thing).getAttributes()
                 .map(attributes -> getAttributesJson(attributes, command))
                 .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
                 .map(ResultFactory::newResult)

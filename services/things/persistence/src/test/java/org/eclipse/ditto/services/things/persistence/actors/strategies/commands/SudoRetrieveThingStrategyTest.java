@@ -48,37 +48,37 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void isNotDefinedForDeviantThingIds() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final SudoRetrieveThing command = SudoRetrieveThing.of("org.example:myThing", DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, THING_V2, command);
 
         assertThat(defined).isFalse();
     }
 
     @Test
     public void isNotDefinedIfContextHasNoThing() {
-        final CommandStrategy.Context context = getDefaultContext(null);
+        final CommandStrategy.Context context = getDefaultContext();
         final SudoRetrieveThing command = SudoRetrieveThing.of(THING_ID, DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, null, command);
 
         assertThat(defined).isFalse();
     }
 
     @Test
     public void isDefinedIfContextHasThingAndThingIdsAreEqual() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final SudoRetrieveThing command = SudoRetrieveThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final boolean defined = underTest.isDefined(context, command);
+        final boolean defined = underTest.isDefined(context, THING_V2, command);
 
         assertThat(defined).isTrue();
     }
 
     @Test
     public void retrieveThingWithoutSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_1)
                 .build();
@@ -86,7 +86,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(SudoRetrieveThingResponse.of(expectedThingJson, dittoHeaders));
@@ -96,13 +96,13 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithoutSelectedFieldsWithOriginalSchemaVersion() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final SudoRetrieveThing command =
                 SudoRetrieveThing.withOriginalSchemaVersion(context.getThingId(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -113,7 +113,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithSelectedFields() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_1)
@@ -123,7 +123,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(SudoRetrieveThingResponse.of(expectedThingJson, dittoHeaders));
@@ -133,14 +133,14 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void retrieveThingWithSelectedFieldsWithOriginalSchemaVersion() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
         final SudoRetrieveThing command =
                 SudoRetrieveThing.of(context.getThingId(), fieldSelector, DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, command);
+        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
@@ -151,10 +151,10 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
 
     @Test
     public void unhandledReturnsThingNotAccessibleException() {
-        final CommandStrategy.Context context = getDefaultContext(THING_V2);
+        final CommandStrategy.Context context = getDefaultContext();
         final SudoRetrieveThing command = SudoRetrieveThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.unhandled(context, command);
+        final CommandStrategy.Result result = underTest.unhandled(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
