@@ -81,7 +81,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
             context.getLog().info("Failed to retrieve thing with ID <{}>: {}", context.getThingId(), e.getMessage());
             return ResultFactory.newResult(getThingUnavailableException(command));
         } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
+//            Thread.currentThread().interrupt(); // TODO TJ undo experimenting if this works on Travis
             context.getLog().info("Retrieving thing with ID <{}> was interrupted.", context.getThingId());
             return ResultFactory.newResult(getThingUnavailableException(command));
         }
