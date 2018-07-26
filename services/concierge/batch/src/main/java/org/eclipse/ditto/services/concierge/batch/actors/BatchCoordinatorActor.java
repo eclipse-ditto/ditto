@@ -42,7 +42,6 @@ import org.eclipse.ditto.signals.events.batch.BatchExecutionStarted;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -73,7 +72,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final ActorRef pubSubMediator;
+    private final ActorRef eventRecipient;
     private final ActorRef conciergeForwarder;
     private final Set<String> pendingCommands;
     private final Map<String, Command> commands;
@@ -83,10 +82,11 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
     private ActorRef originalSender;
     private Cancellable shutdown;
 
-    private BatchCoordinatorActor(final String batchId, final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
+    private BatchCoordinatorActor(final String batchId, final ActorRef eventRecipient,
+            final ActorRef conciergeForwarder) {
         this.batchId = batchId;
         this.conciergeForwarder = conciergeForwarder;
-        this.pubSubMediator = pubSubMediator;
+        this.eventRecipient = eventRecipient;
 
         pendingCommands = new HashSet<>();
         commands = new HashMap<>();
@@ -98,16 +98,16 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
      *
      * @param batchId the identifier of the batch which this actor handles.
      * @param conciergeForwarder the ref of the conciergeForwarder.
-     * @param pubSubMediator the mediator to use for distributed pubsub.
+     * @param eventRecipient the recipient for published events
      * @return the Akka configuration Props object.
      */
-    static Props props(final String batchId, final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
+    static Props props(final String batchId, final ActorRef eventRecipient, final ActorRef conciergeForwarder) {
         return Props.create(BatchCoordinatorActor.class, new Creator<BatchCoordinatorActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public BatchCoordinatorActor create() {
-                return new BatchCoordinatorActor(batchId, pubSubMediator, conciergeForwarder);
+                return new BatchCoordinatorActor(batchId, eventRecipient, conciergeForwarder);
             }
         });
     }
@@ -222,7 +222,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
                                 pendingCommands.add(correlationId);
                             });
 
-                            notifySubscribers(batchExecutionStarted);
+                            notifyEventRecipient(batchExecutionStarted);
                             becomeCommandResponseAwaiting();
                         });
                     }
@@ -273,8 +273,9 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
                         "Correlation ID!"));
         final BatchCommandExecuted commandExecuted =
                 BatchCommandExecuted.of(response.getDittoHeaders().getCorrelationId()
-                        .orElseThrow(() -> new IllegalStateException("encountered CommandResponse without correlationId")),
-                response, Instant.now());
+                                .orElseThrow(
+                                        () -> new IllegalStateException("encountered CommandResponse without correlationId")),
+                        response, Instant.now());
         persist(commandExecuted, event -> {
             log.info("Received '{}' for Batch with ID '{}'.", response.getName(), batchId);
 
@@ -287,7 +288,7 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
                         buildDittoHeaders());
                 persist(batchExecutionFinished, batchExecutionFinishedPersisted -> {
                     log.info("Batch with ID '{}' finished.", batchId);
-                    notifySubscribers(batchExecutionFinishedPersisted);
+                    notifyEventRecipient(batchExecutionFinished);
                     scheduleShutdown();
                     becomeShutdownAwaiting();
                 });
@@ -295,9 +296,10 @@ final class BatchCoordinatorActor extends AbstractPersistentActor {
         });
     }
 
-    private void notifySubscribers(final Event event) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(),
-                event, true), getSelf());
+    private void notifyEventRecipient(final Event event) {
+        if (eventRecipient != null) {
+            eventRecipient.tell(event, getSelf());
+        }
     }
 
     private DittoHeaders buildDittoHeaders() {
