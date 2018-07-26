@@ -22,7 +22,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_HEALTH;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
@@ -246,18 +245,15 @@ public final class RootRoute {
                                 statsRoute.buildStatsRoute(correlationId), // /stats
                                 api(ctx, correlationId), // /api
                                 ws(correlationId), // /ws
-                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment -> {
-                                    final String realm = getRealmFromSegment(segment);
-                                    return authenticateDevopsBasic(realm,
-                                            route(
-                                                    overallStatusRoute.buildStatusRoute(), // /status
-                                                    cachingHealthRoute.buildHealthRoute(), // /health
-                                                    devopsRoute.buildDevopsRoute(ctx) // /devops
-                                            )
-                                    );
-                                })
-
-
+                                publicHealth(), // /health
+                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
+                                        authenticateDevopsBasic(REALM_DEVOPS,
+                                                route(
+                                                        overallStatusRoute.buildStatusRoute(), // /status
+                                                        devopsRoute.buildDevopsRoute(ctx) // /devops
+                                                )
+                                        )
+                                )
                         )
                 )
         );
@@ -309,6 +305,10 @@ public final class RootRoute {
 
     private Route wsAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return wsAuthenticationDirective.authenticate(correlationId, inner);
+    }
+
+    private Route publicHealth() {
+        return cachingHealthRoute.buildHealthRoute();
     }
 
     /*
@@ -442,20 +442,5 @@ public final class RootRoute {
 
         return builder.build();
     }
-
-    /**
-     * Computes the basic-auth realm from the path segment.
-     *
-     * @param segment The path segment, should match {@link this#DEVOPS_AUTH_SECURED}
-     * @return Basic-auth realm for the path
-     */
-    private static String getRealmFromSegment(final String segment) {
-        if (segment.startsWith(CachingHealthRoute.PATH_HEALTH)) {
-            return REALM_HEALTH;
-        } else {
-            return REALM_DEVOPS;
-        }
-    }
-
 }
 
