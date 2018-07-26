@@ -35,7 +35,6 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
@@ -151,15 +150,6 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.warning("Got 'CommandResponse' message which did not implement the required interfaces "
                             + "'WithEntity' / 'WithOptionalEntity': {}", commandResponse);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
-                })
-                .match(RetrieveStatisticsResponse.class, statisticsResponse -> {
-                    logger.debug("Got 'RetrieveStatisticsResponse' message");
-                    final JsonObject statisticsJson = statisticsResponse.getStatistics();
-                    completeWithResult(
-                            HttpResponse.create()
-                                    .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(statisticsJson.toString()))
-                                    .withStatus(HttpStatusCode.OK.toInt())
                     );
                 })
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {

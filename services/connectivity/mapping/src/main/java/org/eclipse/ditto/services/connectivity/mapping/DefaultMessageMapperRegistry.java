@@ -31,6 +31,19 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
         this.mapper = mapper;
     }
 
+    /**
+     * Creates a new instance of {@code DefaultMessageMapperRegistry} of the parameter values.
+     *
+     * @param defaultMapper the default mapper.
+     * @param mapper the mapper.
+     * @return the instance.
+     */
+    public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper,
+            @Nullable final MessageMapper mapper) {
+
+        return new DefaultMessageMapperRegistry(defaultMapper, mapper);
+    }
+
     @Override
     public MessageMapper getDefaultMapper() {
         return defaultMapper;
@@ -39,16 +52,6 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
     @Override
     public Optional<MessageMapper> getMapper() {
         return Optional.ofNullable(mapper);
-    }
-
-    /**
-     * Creates a new registry of the parameter values.
-     *
-     * @param defaultMapper the default mapper
-     * @param mapper the mapper
-     */
-    public static DefaultMessageMapperRegistry of(final MessageMapper defaultMapper, @Nullable final MessageMapper mapper) {
-        return new DefaultMessageMapperRegistry(defaultMapper, mapper);
     }
 
     @Override
@@ -77,4 +80,5 @@ public final class DefaultMessageMapperRegistry implements MessageMapperRegistry
                 ", mapper=" + mapper +
                 "]";
     }
+
 }

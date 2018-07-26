@@ -114,8 +114,11 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
     /**
      * DevOps commands issued via the HTTP DevopsRoute are handled here on the (gateway) cluster node which got the HTTP
-     * request. The job now is to: <ul> <li>publish the command in the cluster (so that all services which should react
-     * on that command get it)</li> <li>start aggregation of responses</li> </ul>
+     * request. The job now is to:
+     * <ul>
+     *  <li>publish the command in the cluster (so that all services which should react on that command get it)</li>
+     *  <li>start aggregation of responses</li>
+     * </ul>
      *
      * @param command the initial DevOpsCommand to handle
      */

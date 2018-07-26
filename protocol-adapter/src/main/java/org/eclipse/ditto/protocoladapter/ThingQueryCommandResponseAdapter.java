@@ -35,18 +35,19 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryCommandResponse> {
 
     private ThingQueryCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies) {
-
-        super(mappingStrategies);
+            final Map<String, JsonifiableMapper<ThingQueryCommandResponse>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingQueryCommandResponseAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingQueryCommandResponseAdapter newInstance() {
-        return new ThingQueryCommandResponseAdapter(mappingStrategies());
+    public static ThingQueryCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingQueryCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
@@ -117,7 +118,8 @@ final class ThingQueryCommandResponseAdapter extends AbstractAdapter<ThingQueryC
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingQueryCommandResponse commandResponse, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingQueryCommandResponse commandResponse,
+            final TopicPath.Channel channel) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
