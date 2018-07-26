@@ -42,6 +42,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.eclipse.ditto.signals.events.base.assertions.EventAssertions;
 import org.eclipse.ditto.signals.events.batch.BatchExecutionFinished;
+import org.eclipse.ditto.signals.events.batch.BatchExecutionStarted;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -54,8 +55,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Kill;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -73,16 +72,14 @@ public final class BatchCoordinatorActorTest {
     public static final String THING2_ID = "com.bosch.iot.things.test:thing2";
 
     private static ActorSystem actorSystem;
-    private static ActorRef pubSubMediator;
     private static ActorRef conciergeForwarder;
 
     @BeforeClass
     public static void setUpActorSystem() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
-        pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         final ActorRef sharedRegionProxy = actorSystem.actorOf(Props.create(SharedRegionProxyMock.class));
         conciergeForwarder = actorSystem.actorOf(BatchSupervisorActorTest.ConciergeForwarderActorMock.props
-                        (sharedRegionProxy), BatchSupervisorActorTest.ConciergeForwarderActorMock.ACTOR_NAME);
+                (sharedRegionProxy), BatchSupervisorActorTest.ConciergeForwarderActorMock.ACTOR_NAME);
     }
 
     /** */
@@ -113,15 +110,14 @@ public final class BatchCoordinatorActorTest {
                         ExecuteBatch.of(batchId, Arrays.asList(modifyThing1, modifyThing2),
                                 DittoHeaders.newBuilder().correlationId(batchId).build());
 
-                final ActorRef underTest = createBatchCoordinatorActor(batchId);
-
-                subscribeToEvents(this, BatchExecutionFinished.TYPE);
+                final ActorRef underTest = createBatchCoordinatorActor(ref(), batchId);
 
                 underTest.tell(executeBatch, ref());
 
                 expectMsgAllClass()
                         .of(ExecuteBatchResponse.class,
                                 executeBatchResponse -> assertThat(executeBatchResponse).hasCorrelationId(batchId))
+                        .of(BatchExecutionStarted.class, batchEvent -> {})
                         .of(BatchExecutionFinished.class, batchExecutionFinished -> {
                             EventAssertions.assertThat(batchExecutionFinished).hasCorrelationId(batchId);
                             Assertions.assertThat(batchExecutionFinished.getCommandResponses())
@@ -162,15 +158,14 @@ public final class BatchCoordinatorActorTest {
                                                 .build())),
                                 DittoHeaders.newBuilder().correlationId(batchId).build());
 
-                final ActorRef underTest = createBatchCoordinatorActor(batchId);
-
-                subscribeToEvents(this, BatchExecutionFinished.TYPE);
+                final ActorRef underTest = createBatchCoordinatorActor(ref(), batchId);
 
                 underTest.tell(executeBatch, ref());
 
                 expectMsgAllClass()
                         .of(ExecuteBatchResponse.class,
                                 executeBatchResponse -> assertThat(executeBatchResponse).hasCorrelationId(batchId))
+                        .of(BatchExecutionStarted.class, batchEvent -> {})
                         .of(BatchExecutionFinished.class, batchExecutionFinished -> {
                             EventAssertions.assertThat(batchExecutionFinished).hasCorrelationId(batchId);
                             Assertions.assertThat(batchExecutionFinished.getCommandResponses()).contains(
@@ -211,9 +206,7 @@ public final class BatchCoordinatorActorTest {
                                         DittoHeaders.newBuilder().build())),
                                 DittoHeaders.newBuilder().correlationId(batchId).build());
 
-                final ActorRef underTest = createBatchCoordinatorActor(batchId);
-
-                subscribeToEvents(this, BatchExecutionFinished.TYPE);
+                final ActorRef underTest = createBatchCoordinatorActor(ref(), batchId);
 
                 underTest.tell(executeBatch, ref());
 
@@ -244,9 +237,7 @@ public final class BatchCoordinatorActorTest {
                                         DittoHeaders.newBuilder().build())),
                                 DittoHeaders.newBuilder().correlationId(batchId).build());
 
-                final ActorRef underTest = createBatchCoordinatorActor(batchId);
-
-                subscribeToEvents(this, BatchExecutionFinished.TYPE);
+                final ActorRef underTest = createBatchCoordinatorActor(ref(), batchId);
 
                 underTest.tell(executeBatch, ref());
                 underTest.tell(executeBatch, ref());
@@ -257,6 +248,7 @@ public final class BatchCoordinatorActorTest {
                                 .dittoRuntimeExceptionHasErrorCode(BatchAlreadyExecutingException.ERROR_CODE))
                         .of(ExecuteBatchResponse.class,
                                 executeBatchResponse -> assertThat(executeBatchResponse).hasCorrelationId(batchId))
+                        .of(BatchExecutionStarted.class, batchEvent -> {})
                         .of(BatchExecutionFinished.class,
                                 batchExecutionFinished -> EventAssertions.assertThat(batchExecutionFinished)
                                         .hasCorrelationId(batchId))
@@ -283,20 +275,19 @@ public final class BatchCoordinatorActorTest {
                                         DittoHeaders.newBuilder().build())),
                                 DittoHeaders.newBuilder().correlationId(batchId).build());
 
-                final ActorRef underTest = createBatchCoordinatorActor(batchId);
-
-                subscribeToEvents(this, BatchExecutionFinished.TYPE);
+                final ActorRef underTest = createBatchCoordinatorActor(ref(), batchId);
 
                 underTest.tell(executeBatch, ref());
 
                 final ExecuteBatchResponse executeBatchResponse = expectMsgClass(ExecuteBatchResponse.class);
                 assertThat(executeBatchResponse).hasCorrelationId(batchId);
+                expectMsgClass(BatchExecutionStarted.class);
 
                 watch(underTest);
                 underTest.tell(Kill.getInstance(), ref());
                 expectTerminated(underTest);
 
-                Retry.untilSuccess(() -> createBatchCoordinatorActor(batchId));
+                Retry.untilSuccess(() -> createBatchCoordinatorActor(ref(), batchId));
 
                 final BatchExecutionFinished batchExecutionFinished = expectMsgClass(BatchExecutionFinished.class);
                 EventAssertions.assertThat(batchExecutionFinished).hasCorrelationId(batchId);
@@ -304,8 +295,8 @@ public final class BatchCoordinatorActorTest {
         };
     }
 
-    private static ActorRef createBatchCoordinatorActor(final String batchId) {
-        final Props props = BatchCoordinatorActor.props(batchId, pubSubMediator, conciergeForwarder);
+    private static ActorRef createBatchCoordinatorActor(final ActorRef eventRecipient, final String batchId) {
+        final Props props = BatchCoordinatorActor.props(batchId, eventRecipient, conciergeForwarder);
         final String name = BatchCoordinatorActor.ACTOR_NAME_PREFIX + batchId;
 
         return actorSystem.actorOf(props, name);
@@ -313,19 +304,6 @@ public final class BatchCoordinatorActorTest {
 
     private static String randomBatchId() {
         return "BatchCoordinatorActorTest-" + UUID.randomUUID().toString();
-    }
-
-    private void subscribeToEvents(final JavaTestProbe javaTestProbe, final String... events) {
-        final String group = "BatchCoordinatorActorTest" + UUID.randomUUID().toString();
-        for (final String e : events) {
-            pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(e, group, javaTestProbe.ref()),
-                    javaTestProbe.ref());
-        }
-        final JavaTestProbe.ExpectMsgAllClass consumeSubscribeAcks = javaTestProbe.expectMsgAllClass();
-        for (final String e : events) {
-            consumeSubscribeAcks.of(DistributedPubSubMediator.SubscribeAck.class, subscribeAck -> {});
-        }
-        consumeSubscribeAcks.run();
     }
 
     private static final class SharedRegionProxyMock extends AbstractActor {
@@ -354,8 +332,7 @@ public final class BatchCoordinatorActorTest {
 
                 getSender().tell(ModifyThingResponse.modified(command.getId(),
                         command.getDittoHeaders()), getSelf());
-            }
-            else if (type.equals(ModifyFeature.TYPE)) {
+            } else if (type.equals(ModifyFeature.TYPE)) {
                 final ModifyFeature command = (ModifyFeature) commandRegistry.parse(jsonCommand, dittoHeaders);
 
                 final String thingId = command.getThingId();
