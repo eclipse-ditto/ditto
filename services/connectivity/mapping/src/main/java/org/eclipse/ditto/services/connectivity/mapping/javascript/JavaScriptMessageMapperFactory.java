@@ -13,11 +13,14 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript;
 
 import java.util.Map;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 
 /**
  * Factory for creating instances of {@link JavaScriptMessageMapperRhino} and configurations of it.
  */
+@Immutable
 public final class JavaScriptMessageMapperFactory {
 
     private JavaScriptMessageMapperFactory() {
@@ -44,4 +47,5 @@ public final class JavaScriptMessageMapperFactory {
     public static MessageMapper createJavaScriptMessageMapperRhino() {
         return new JavaScriptMessageMapperRhino();
     }
+
 }

@@ -53,7 +53,7 @@ public final class MessageCommandResponseAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandResponseAdapter.newInstance();
+        underTest = MessageCommandResponseAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Parameterized.Parameters(name = "type={0}")
@@ -101,16 +101,20 @@ public final class MessageCommandResponseAdapterTest {
                         .correlationId(CORRELATION_ID)
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
                         .statusCode(statusCode)
+                        .channel(TopicPath.Channel.LIVE.getName())
                         .schemaVersion(JsonSchemaVersion.V_2);
+        final DittoHeadersBuilder expectedHeadersBuilder = TestConstants.DITTO_HEADERS_V_2.toBuilder()
+                .contentType(contentType)
+                .channel(TopicPath.Channel.LIVE.getName());
         if (isAcceptedResponse()) {
             messageHeadersBuilder.responseRequired(false);
+            expectedHeadersBuilder.responseRequired(false);
         }
         final Message<Object> expectedMessage = Message.newBuilder(messageHeadersBuilder.build())
                 .payload(javaPayload)
                 .build();
-        final DittoHeaders expectedHeaders = buildMessageHeaders(TestConstants.DITTO_HEADERS_V_2.toBuilder(),
-                messageDirection, subject, contentType);
-        final MessageCommandResponse messageCommandResponse = messageCommandResponse(expectedMessage, expectedHeaders);
+        final MessageCommandResponse expected =
+                messageCommandResponse(expectedMessage, expectedHeadersBuilder.build());
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .live()
@@ -135,7 +139,7 @@ public final class MessageCommandResponseAdapterTest {
                 .build();
         final MessageCommandResponse actual = underTest.fromAdaptable(adaptable);
 
-        assertThat(actual).isEqualTo(messageCommandResponse);
+        assertThat(actual).isEqualTo(expected);
     }
 
     private String subject() {

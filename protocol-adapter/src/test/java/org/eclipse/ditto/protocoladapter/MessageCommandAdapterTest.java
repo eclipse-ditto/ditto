@@ -104,7 +104,7 @@ public final class MessageCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandAdapter.newInstance();
+        underTest = MessageCommandAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test
@@ -142,6 +142,7 @@ public final class MessageCommandAdapterTest {
                 .correlationId(TestConstants.CORRELATION_ID)
                 .schemaVersion(version)
                 .contentType(contentType)
+                .channel(TopicPath.Channel.LIVE.getName())
                 .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
                 .build();
     }
@@ -167,7 +168,7 @@ public final class MessageCommandAdapterTest {
 
         final Adaptable expectedAdaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
-                .withHeaders(expectedHeaders)
+                .withHeaders(expectedAdaptableHeaders(contentType))
                 .build();
 
         // build the message that will be converted to an adaptable
@@ -214,6 +215,12 @@ public final class MessageCommandAdapterTest {
     }
 
     private DittoHeaders expectedDittoHeaders(final CharSequence contentType) {
+        return expectedAdaptableHeaders(contentType).toBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build();
+    }
+
+    private DittoHeaders expectedAdaptableHeaders(final CharSequence contentType) {
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);

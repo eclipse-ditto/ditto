@@ -556,6 +556,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-protocol</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-tracing</artifactId>
                 <version>${project.version}</version>
             </dependency>

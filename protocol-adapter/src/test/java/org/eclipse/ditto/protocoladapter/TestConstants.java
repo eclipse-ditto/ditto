@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -96,6 +97,7 @@ final class TestConstants {
             .correlationId(CORRELATION_ID)
             .schemaVersion(JsonSchemaVersion.V_2)
             .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+            .putHeader(MessageHeaderDefinition.STATUS_CODE.getKey(), "200")
             .build();
 
     static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);

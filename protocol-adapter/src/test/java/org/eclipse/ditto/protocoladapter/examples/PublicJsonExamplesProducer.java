@@ -37,13 +37,12 @@ import com.eclipsesource.json.WriterConfig;
 
 /**
  * Produces Ditto Protocol JSON example snippets wrapped in Markdown syntax:
- <pre>{@code   ## <title>
-```json
-   { ... json ... }
-```
-   }
-</pre>
- *
+ * <pre>{@code   ## <title>
+ * ```json
+ * { ... json ... }
+ * ```
+ * }
+ * </pre>
  */
 public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
@@ -123,8 +122,9 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
         if (adaptable.isPresent()) {
             final String jsonString =
-                    adaptable.map(adaptable1 -> ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1)
-                            .toJsonString()).get();
+                    adaptable.map(adaptable1 ->
+                            ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1).toJsonString()
+                    ).get();
 
             try {
                 final String markdown = wrapCodeSnippet(title, jsonString);

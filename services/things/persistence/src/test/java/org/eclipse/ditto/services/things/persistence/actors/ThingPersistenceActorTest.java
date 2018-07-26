@@ -93,7 +93,10 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -138,6 +141,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
     }
+
+    @Rule
+    public final TestWatcher watchman = new TestedMethodLoggingWatcher(LoggerFactory.getLogger(getClass()));
 
     /** */
     @Before
@@ -1576,7 +1582,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ActorRef underTest = actorSystem.actorOf(props);
                 watch(underTest);
 
-                final Object checkForActivity = new ThingPersistenceActor.CheckForActivity(1L, 1L);
+                final Object checkForActivity = new CheckForActivity(1L, 1L);
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
