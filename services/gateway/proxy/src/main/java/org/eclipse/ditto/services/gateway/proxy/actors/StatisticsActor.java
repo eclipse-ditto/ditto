@@ -20,6 +20,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -37,6 +38,7 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 
 import akka.actor.AbstractActor;
@@ -60,7 +62,7 @@ public final class StatisticsActor extends AbstractActor {
     /**
      * The name of this Actor in the ActorSystem.
      */
-    public static final String ACTOR_NAME = "statistics";
+    static final String ACTOR_NAME = "statistics";
 
     private static final String SR_THING = ThingsMessagingConstants.SHARD_REGION;
     private static final String SR_POLICY = PoliciesMessagingConstants.SHARD_REGION;
@@ -85,6 +87,7 @@ public final class StatisticsActor extends AbstractActor {
     private final ClusterSharding clusterSharding;
 
     private Statistics currentStatistics;
+    private StatisticsDetails currentStatisticsDetails;
 
     private StatisticsActor(final ActorRef pubSubMediator) {
         this.pubSubMediator = pubSubMediator;
@@ -97,7 +100,7 @@ public final class StatisticsActor extends AbstractActor {
      * @param pubSubMediator the Pub/Sub mediator to use.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef pubSubMediator) {
+    static Props props(final ActorRef pubSubMediator) {
         return Props.create(StatisticsActor.class, new Creator<StatisticsActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -114,21 +117,29 @@ public final class StatisticsActor extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(RetrieveStatistics.class, retrieveStatistics -> {
 
+                    tellShardRegionToSendClusterShardingStats(SR_THING);
+                    tellShardRegionToSendClusterShardingStats(SR_POLICY);
+                    tellShardRegionToSendClusterShardingStats(SR_CONCIERGE);
+                    tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER);
+
+                    final ActorRef self = getSelf();
+                    final ActorRef sender = getSender();
+                    becomeStatisticsAwaiting(statistics ->
+                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
+                                    retrieveStatistics.getDittoHeaders()), self)
+                    );
+                })
+                .match(RetrieveStatisticsDetails.class, retrieveStatistics -> {
+
                     tellRootActorToGetShardRegionState(THINGS_ROOT);
                     tellRootActorToGetShardRegionState(POLICIES_ROOT);
                     tellRootActorToGetShardRegionState(CONCIERGE_ROOT);
                     tellRootActorToGetShardRegionState(SEARCH_UPDATER_ROOT);
 
-                    final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
-                    tellShardRegionToSendClusterShardingStats(SR_THING, shardStatisticsMap);
-                    tellShardRegionToSendClusterShardingStats(SR_POLICY, shardStatisticsMap);
-                    tellShardRegionToSendClusterShardingStats(SR_CONCIERGE, shardStatisticsMap);
-                    tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER, shardStatisticsMap);
-
                     final ActorRef self = getSelf();
                     final ActorRef sender = getSender();
-                    becomeStatisticsAwaiting(shardStatisticsMap, statistics ->
-                            sender.tell(RetrieveStatisticsResponse.of(null, null, statistics.toJson(),
+                    becomeStatisticsDetailsAwaiting(statistics ->
+                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
                                     retrieveStatistics.getDittoHeaders()), self)
                     );
                 })
@@ -143,16 +154,24 @@ public final class StatisticsActor extends AbstractActor {
                 rootActorPath, ShardRegion.getShardRegionStateInstance(), false), getSelf());
     }
 
-    private void tellShardRegionToSendClusterShardingStats(final String shardRegion,
-            final Map<String, ShardStatisticsWrapper> shardStatisticsMap) {
-        shardStatisticsMap.put(shardRegion, new ShardStatisticsWrapper());
+    private void tellShardRegionToSendClusterShardingStats(final String shardRegion) {
         clusterSharding.shardRegion(shardRegion).tell(
                 new ShardRegion.GetClusterShardingStats(FiniteDuration.apply(10, TimeUnit.SECONDS)),
                 getSelf());
     }
 
-    private void becomeStatisticsAwaiting(final Map<String, ShardStatisticsWrapper> shardStatisticsMap,
-            final Consumer<Statistics> statisticsConsumer) {
+    private static Map<String, ShardStatisticsWrapper> initShardStatisticsMap() {
+        final Map<String, ShardStatisticsWrapper> shardStatisticsMap = new HashMap<>();
+        shardStatisticsMap.put(SR_THING, new ShardStatisticsWrapper());
+        shardStatisticsMap.put(SR_POLICY, new ShardStatisticsWrapper());
+        shardStatisticsMap.put(SR_CONCIERGE, new ShardStatisticsWrapper());
+        shardStatisticsMap.put(SR_SEARCH_UPDATER, new ShardStatisticsWrapper());
+        return shardStatisticsMap;
+    }
+
+    private void becomeStatisticsAwaiting(final Consumer<Statistics> statisticsConsumer) {
+
+        final Map<String, ShardStatisticsWrapper> shardStatisticsMap = initShardStatisticsMap();
 
         getContext().getSystem()
                 .scheduler()
@@ -161,8 +180,47 @@ public final class StatisticsActor extends AbstractActor {
 
         getContext().become(ReceiveBuilder.create()
                 .match(RetrieveStatistics.class, rs -> currentStatistics != null,
-                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(null, null,
+                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(
                                 currentStatistics.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
+                )
+                .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
+                    final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
+                    final Map<Address, ShardRegion.ShardRegionStats> regions = clusterShardingStats.getRegions();
+                    shardStatistics.count = regions.isEmpty() ? 0 : regions.values().stream()
+                            .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
+                                    shardRegionStats.getStats().values().stream()
+                                            .mapToInt(o -> (Integer) o)
+                                            .sum())
+                            .sum();
+                })
+                .match(AskTimeoutException.class, askTimeout -> {
+                    currentStatistics = new Statistics(
+                            shardStatisticsMap.get(SR_THING).count,
+                            shardStatisticsMap.get(SR_POLICY).count,
+                            shardStatisticsMap.get(SR_CONCIERGE).count,
+                            shardStatisticsMap.get(SR_SEARCH_UPDATER).count
+                    );
+                    statisticsConsumer.accept(currentStatistics);
+                    getContext().unbecome();
+                })
+                .matchAny(m -> log.warning("Got unknown message during 'statisticsAwaiting': {}", m))
+                .build()
+        );
+    }
+
+    private void becomeStatisticsDetailsAwaiting(final Consumer<StatisticsDetails> statisticsDetailsConsumer) {
+
+        final Map<String, ShardStatisticsWrapper> shardStatisticsMap = initShardStatisticsMap();
+
+        getContext().getSystem()
+                .scheduler()
+                .scheduleOnce(FiniteDuration.apply(WAIT_TIME_MS * 8L, TimeUnit.MILLISECONDS), getSelf(),
+                        new AskTimeoutException("Timed out"), getContext().getSystem().dispatcher(), getSelf());
+
+        getContext().become(ReceiveBuilder.create()
+                .match(RetrieveStatisticsDetails.class, rs -> currentStatisticsDetails != null,
+                        retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(
+                                currentStatisticsDetails.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
                 )
                 .match(ShardRegion.CurrentShardRegionState.class, currentShardRegionState -> {
                     final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
@@ -199,31 +257,17 @@ public final class StatisticsActor extends AbstractActor {
                         }
                     });
                 })
-                .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
-                    final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
-                    final Map<Address, ShardRegion.ShardRegionStats> regions = clusterShardingStats.getRegions();
-                    shardStatistics.count = regions.isEmpty() ? 0 : regions.values().stream()
-                            .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
-                                    shardRegionStats.getStats().values().stream()
-                                            .mapToInt(o -> (Integer) o)
-                                            .sum())
-                            .sum();
-                })
                 .match(AskTimeoutException.class, askTimeout -> {
-                    currentStatistics = new Statistics(
-                            shardStatisticsMap.get(SR_THING).count,
+                    currentStatisticsDetails = new StatisticsDetails(
                             shardStatisticsMap.get(SR_THING).hotnessMap,
-                            shardStatisticsMap.get(SR_POLICY).count,
                             shardStatisticsMap.get(SR_POLICY).hotnessMap,
-                            shardStatisticsMap.get(SR_CONCIERGE).count,
                             shardStatisticsMap.get(SR_CONCIERGE).hotnessMap,
-                            shardStatisticsMap.get(SR_SEARCH_UPDATER).count,
                             shardStatisticsMap.get(SR_SEARCH_UPDATER).hotnessMap
                     );
-                    statisticsConsumer.accept(currentStatistics);
+                    statisticsDetailsConsumer.accept(currentStatisticsDetails);
                     getContext().unbecome();
                 })
-                .matchAny(m -> log.warning("Got unknown message during 'statisticsAwaiting': {}", m))
+                .matchAny(m -> log.warning("Got unknown message during 'statisticsDetailsAwaiting': {}", m))
                 .build()
         );
     }
@@ -255,7 +299,7 @@ public final class StatisticsActor extends AbstractActor {
     }
 
     /**
-     * Representation publicly available statistics about stuff within the Things service.
+     * Representation publicly available statistics about hot entities within Ditto.
      */
     @Immutable
     private static final class Statistics implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
@@ -263,53 +307,29 @@ public final class StatisticsActor extends AbstractActor {
         private static final JsonFieldDefinition<Long> HOT_THINGS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotThingsCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> THINGS_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("thingsNamespacesHotness", FieldType.REGULAR);
-
         private static final JsonFieldDefinition<Long> HOT_POLICIES_COUNT =
                 JsonFactory.newLongFieldDefinition("hotPoliciesCount", FieldType.REGULAR);
-
-        private static final JsonFieldDefinition<JsonObject> POLICIES_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("policiesNamespacesHotness", FieldType.REGULAR);
 
         private static final JsonFieldDefinition<Long> HOT_CONCIERGE_ENFORCERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotConciergeEnforcersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersHotness", FieldType.REGULAR);
-
         private static final JsonFieldDefinition<Long> HOT_SEARCH_UPDATERS_COUNT =
                 JsonFactory.newLongFieldDefinition("hotSearchUpdatersCount", FieldType.REGULAR);
 
-        private static final JsonFieldDefinition<JsonObject> SEARCH_UPDATERS_NAMESPACE_HOTNESS =
-                JsonFactory.newJsonObjectFieldDefinition("searchUpdatersNamespacesHotness", FieldType.REGULAR);
-
         private final long hotThingsCount;
-        private final Map<String, Long> thingsNamespacesHotness;
         private final long hotPoliciesCount;
-        private final Map<String, Long> policiesNamespacesHotness;
         private final long hotConciergeEnforcersCount;
-        private final Map<String, Long> conciergeEnforcersHotness;
         private final long hotSearchUpdatersCount;
-        private final Map<String, Long> searchUpdatersNamespacesHotness;
 
         private Statistics(final long hotThingsCount,
-                final Map<String, Long> thingsNamespacesHotness,
                 final long hotPoliciesCount,
-                final Map<String, Long> policiesNamespacesHotness,
                 final long hotConciergeEnforcersCount,
-                final Map<String, Long> conciergeEnforcersHotness,
-                final long hotSearchUpdatersCount,
-                final Map<String, Long> searchUpdatersNamespacesHotness) {
+                final long hotSearchUpdatersCount) {
 
             this.hotThingsCount = hotThingsCount;
-            this.thingsNamespacesHotness = thingsNamespacesHotness;
             this.hotPoliciesCount = hotPoliciesCount;
-            this.policiesNamespacesHotness = policiesNamespacesHotness;
             this.hotConciergeEnforcersCount = hotConciergeEnforcersCount;
-            this.conciergeEnforcersHotness = conciergeEnforcersHotness;
             this.hotSearchUpdatersCount = hotSearchUpdatersCount;
-            this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
         }
 
         /**
@@ -323,15 +343,99 @@ public final class StatisticsActor extends AbstractActor {
         }
 
         @Override
-        public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+        public JsonObject toJson(@Nonnull final JsonSchemaVersion schemaVersion,
+                @Nonnull final Predicate<JsonField> predicate) {
             return JsonFactory.newObjectBuilder()
                     .set(HOT_THINGS_COUNT, hotThingsCount, predicate)
-                    .set(THINGS_NAMESPACE_HOTNESS, buildHotnessMapJson(thingsNamespacesHotness), predicate)
                     .set(HOT_POLICIES_COUNT, hotPoliciesCount, predicate)
-                    .set(POLICIES_NAMESPACE_HOTNESS, buildHotnessMapJson(policiesNamespacesHotness), predicate)
                     .set(HOT_CONCIERGE_ENFORCERS_COUNT, hotConciergeEnforcersCount, predicate)
-                    .set(CONCIERGE_ENFORCERS_HOTNESS, buildHotnessMapJson(conciergeEnforcersHotness), predicate)
                     .set(HOT_SEARCH_UPDATERS_COUNT, hotSearchUpdatersCount, predicate)
+                    .build();
+        }
+
+        @SuppressWarnings("OverlyComplexMethod")
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) return false;
+            final Statistics that = (Statistics) o;
+            return hotThingsCount == that.hotThingsCount &&
+                    hotPoliciesCount == that.hotPoliciesCount &&
+                    hotConciergeEnforcersCount == that.hotConciergeEnforcersCount &&
+                    hotSearchUpdatersCount == that.hotSearchUpdatersCount;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(hotThingsCount, hotPoliciesCount,
+                    hotConciergeEnforcersCount, hotSearchUpdatersCount);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "hotThingsCount=" + hotThingsCount +
+                    ", hotPoliciesCount=" + hotPoliciesCount +
+                    ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
+                    ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
+                    "]";
+        }
+
+    }
+
+    /**
+     * Representation statistics details about namespace hotness within Ditto.
+     */
+    @Immutable
+    private static final class StatisticsDetails implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
+
+        private static final JsonFieldDefinition<JsonObject> THINGS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("thingsNamespacesHotness", FieldType.REGULAR);
+
+        private static final JsonFieldDefinition<JsonObject> POLICIES_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("policiesNamespacesHotness", FieldType.REGULAR);
+
+        private static final JsonFieldDefinition<JsonObject> CONCIERGE_ENFORCERS_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("conciergeEnforcersHotness", FieldType.REGULAR);
+
+        private static final JsonFieldDefinition<JsonObject> SEARCH_UPDATERS_NAMESPACE_HOTNESS =
+                JsonFactory.newJsonObjectFieldDefinition("searchUpdatersNamespacesHotness", FieldType.REGULAR);
+
+        private final Map<String, Long> thingsNamespacesHotness;
+        private final Map<String, Long> policiesNamespacesHotness;
+        private final Map<String, Long> conciergeEnforcersHotness;
+        private final Map<String, Long> searchUpdatersNamespacesHotness;
+
+        private StatisticsDetails(final Map<String, Long> thingsNamespacesHotness,
+                final Map<String, Long> policiesNamespacesHotness,
+                final Map<String, Long> conciergeEnforcersHotness,
+                final Map<String, Long> searchUpdatersNamespacesHotness) {
+
+            this.thingsNamespacesHotness = thingsNamespacesHotness;
+            this.policiesNamespacesHotness = policiesNamespacesHotness;
+            this.conciergeEnforcersHotness = conciergeEnforcersHotness;
+            this.searchUpdatersNamespacesHotness = searchUpdatersNamespacesHotness;
+        }
+
+        /**
+         * Returns all non hidden marked fields of this StatisticsDetails.
+         *
+         * @return a JSON object representation of this StatisticsDetails including only non hidden marked fields.
+         */
+        @Override
+        public JsonObject toJson() {
+            return toJson(FieldType.notHidden());
+        }
+
+        @Override
+        public JsonObject toJson(@Nonnull final JsonSchemaVersion schemaVersion,
+                @Nonnull final Predicate<JsonField> predicate) {
+            return JsonFactory.newObjectBuilder()
+                    .set(THINGS_NAMESPACE_HOTNESS, buildHotnessMapJson(thingsNamespacesHotness), predicate)
+                    .set(POLICIES_NAMESPACE_HOTNESS, buildHotnessMapJson(policiesNamespacesHotness), predicate)
+                    .set(CONCIERGE_ENFORCERS_HOTNESS, buildHotnessMapJson(conciergeEnforcersHotness), predicate)
                     .set(SEARCH_UPDATERS_NAMESPACE_HOTNESS, buildHotnessMapJson(searchUpdatersNamespacesHotness),
                             predicate)
                     .build();
@@ -370,12 +474,8 @@ public final class StatisticsActor extends AbstractActor {
                 return true;
             }
             if (o == null || getClass() != o.getClass()) return false;
-            final Statistics that = (Statistics) o;
-            return hotThingsCount == that.hotThingsCount &&
-                    hotPoliciesCount == that.hotPoliciesCount &&
-                    hotConciergeEnforcersCount == that.hotConciergeEnforcersCount &&
-                    hotSearchUpdatersCount == that.hotSearchUpdatersCount &&
-                    Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
+            final StatisticsDetails that = (StatisticsDetails) o;
+            return Objects.equals(thingsNamespacesHotness, that.thingsNamespacesHotness) &&
                     Objects.equals(policiesNamespacesHotness, that.policiesNamespacesHotness) &&
                     Objects.equals(conciergeEnforcersHotness, that.conciergeEnforcersHotness) &&
                     Objects.equals(searchUpdatersNamespacesHotness, that.searchUpdatersNamespacesHotness);
@@ -383,22 +483,16 @@ public final class StatisticsActor extends AbstractActor {
 
         @Override
         public int hashCode() {
-            return Objects.hash(hotThingsCount, thingsNamespacesHotness, hotPoliciesCount,
-                    policiesNamespacesHotness, hotConciergeEnforcersCount,
-                    conciergeEnforcersHotness,
-                    hotSearchUpdatersCount, searchUpdatersNamespacesHotness);
+            return Objects.hash(thingsNamespacesHotness, policiesNamespacesHotness,
+                    conciergeEnforcersHotness, searchUpdatersNamespacesHotness);
         }
 
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    "hotThingsCount=" + hotThingsCount +
-                    ", thingsNamespacesHotness=" + thingsNamespacesHotness +
-                    ", hotPoliciesCount=" + hotPoliciesCount +
+                    "thingsNamespacesHotness=" + thingsNamespacesHotness +
                     ", policiesNamespacesHotness=" + policiesNamespacesHotness +
-                    ", hotConciergeEnforcersCount=" + hotConciergeEnforcersCount +
                     ", conciergeEnforcersHotness=" + conciergeEnforcersHotness +
-                    ", hotSearchUpdatersCount=" + hotSearchUpdatersCount +
                     ", searchUpdatersNamespacesHotness=" + searchUpdatersNamespacesHotness +
                     "]";
         }

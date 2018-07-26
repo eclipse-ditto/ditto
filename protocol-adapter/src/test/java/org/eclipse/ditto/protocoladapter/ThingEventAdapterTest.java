@@ -98,7 +98,7 @@ public final class ThingEventAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = ThingEventAdapter.newInstance();
+        underTest = ThingEventAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test(expected = UnknownEventException.class)
@@ -108,8 +108,9 @@ public final class ThingEventAdapterTest {
 
     @Test
     public void thingCreatedFromAdaptable() {
+        final Instant now = Instant.now();
         final ThingCreated expected =
-                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, TestConstants.DITTO_HEADERS_V_2);
+                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now, TestConstants.DITTO_HEADERS_V_2);
 
         final JsonPointer path = JsonPointer.empty();
 
@@ -117,6 +118,7 @@ public final class ThingEventAdapterTest {
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(now)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -129,16 +131,18 @@ public final class ThingEventAdapterTest {
     public void thingCreatedToAdaptable() {
         final JsonPointer path = JsonPointer.empty();
 
+        final Instant now = Instant.now();
         final Adaptable expected = Adaptable.newBuilder(topicPathCreated)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .withRevision(TestConstants.REVISION)
+                        .withTimestamp(now)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ThingCreated thingCreated =
-                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+                ThingCreated.of(TestConstants.THING, TestConstants.REVISION, now, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(thingCreated);
 
         assertThat(actual).isEqualTo(expected);

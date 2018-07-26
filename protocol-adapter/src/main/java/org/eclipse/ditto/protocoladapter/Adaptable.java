@@ -14,12 +14,13 @@ package org.eclipse.ditto.protocoladapter;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
  * An {@code Adaptable} can be mapped to and from a {@link org.eclipse.ditto.signals.commands.base.Command}, {@link
  * org.eclipse.ditto.signals.commands.base.CommandResponse} or {@link org.eclipse.ditto.signals.events.base.Event}.
  */
-public interface Adaptable {
+public interface Adaptable extends WithDittoHeaders<Adaptable> {
 
     /**
      * Returns a mutable builder to create immutable {@code Adaptable} instances for a given {@code topicPath}.

@@ -169,9 +169,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      *
      * @param configReader the configuration reader of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer TODO Javadoc
-     * @param thingsSyncPersistence TODO Javadoc
-     * @param policiesSyncPersistence TODO Javadoc
+     * @param materializer actor materializer to create stream actors.
+     * @param thingsSyncPersistence persistence for background synchronization of things.
+     * @param policiesSyncPersistence persistence for background synchronization of policies.
      * @return a Props object to create this actor.
      */
     public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,

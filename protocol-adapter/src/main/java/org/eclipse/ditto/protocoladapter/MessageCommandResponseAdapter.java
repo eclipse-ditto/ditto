@@ -27,32 +27,20 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
  */
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
-    private final boolean removeInternalHeaders;
-
     private MessageCommandResponseAdapter(
             final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies,
-            final boolean removeInternalMessageHeaders) {
-        super(mappingStrategies);
-        this.removeInternalHeaders = removeInternalMessageHeaders;
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new MessageCommandResponseAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static MessageCommandResponseAdapter newInstance() {
-        return of(Boolean.TRUE);
-    }
-
-    /**
-     * Returns a new MessageCommandResponseAdapter.
-     *
-     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
-     * @return the adapter.
-     */
-    public static MessageCommandResponseAdapter of(final boolean removeInternalMessageHeaders) {
-        return new MessageCommandResponseAdapter(mappingStrategies(), removeInternalMessageHeaders);
+    public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new MessageCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {
@@ -97,10 +85,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
-    public Adaptable toAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), removeInternalHeaders);
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), headerTranslator());
     }
 
 }

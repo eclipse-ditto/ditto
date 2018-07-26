@@ -75,7 +75,7 @@ final class ThingsRootActor extends AbstractActor {
      */
     static final String ACTOR_NAME = "thingsRoot";
 
-    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child...";
+    private static final String RESTARTING_CHILD_MESSAGE = "Restarting child ...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
@@ -121,7 +121,7 @@ final class ThingsRootActor extends AbstractActor {
             }).match(DittoRuntimeException.class, e ->
             {
                 log.error(e,
-                        "DittoRuntimeException '{}' should not be escalated to ThingsRootActor. Simply resuming Actor.",
+                        "DittoRuntimeException <{}> should not be escalated to ThingsRootActor. Simply resuming Actor.",
                         e.getErrorCode());
                 return SupervisorStrategy.resume();
             }).match(Throwable.class, e ->
@@ -183,9 +183,9 @@ final class ThingsRootActor extends AbstractActor {
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
-            log.info("No explicit hostname configured, using HTTP hostname: {}", hostname);
+            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
         }
-        final CompletionStage<ServerBinding> binding = Http.get(getContext().system()) //
+        final CompletionStage<ServerBinding> binding = Http.get(getContext().system())
                 .bindAndHandle(
                         createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                                 materializer),
@@ -246,7 +246,7 @@ final class ThingsRootActor extends AbstractActor {
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
-        log.info("Starting child actor '{}'", actorName);
+        log.info("Starting child actor <{}>.", actorName);
         return getContext().actorOf(props, actorName);
     }
 
@@ -255,8 +255,9 @@ final class ThingsRootActor extends AbstractActor {
                 serverBinding.localAddress().getPort());
     }
 
-    private Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator,
+    private static Props getThingSupervisorActorProps(final Config config, final ActorRef pubSubMediator,
             final ThingSnapshotter.Create thingSnapshotterCreate) {
+
         final Duration minBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
@@ -264,4 +265,5 @@ final class ThingsRootActor extends AbstractActor {
         return ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
                 ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
     }
+
 }
