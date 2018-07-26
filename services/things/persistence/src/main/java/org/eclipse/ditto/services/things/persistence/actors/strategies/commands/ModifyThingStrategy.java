@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -75,6 +76,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 .getAccessControlList()
                 .map(AccessControlList::isEmpty)
                 .orElse(true);
+
         if (!isCommandAclEmpty) {
             return applyModifyCommand(context, thing, nextRevision, command);
         } else {
@@ -82,12 +84,11 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
             final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
             if (existingAccessControlList.isPresent()) {
                 // special apply - take the ACL of the persisted thing instead of the new one in the command:
-                final Thing modifiedThingWithOldAcl = ThingsModelFactory.newThingBuilder(command.getThing())
-                        .removeAllPermissions()
-                        .setPermissions(existingAccessControlList.get())
-                        .build();
-                final ThingModified thingModified =
-                        ThingModified.of(modifiedThingWithOldAcl, nextRevision, getEventTimestamp(), dittoHeaders);
+                final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
+                final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, nextRevision);
+
+                final ThingModified thingModified = ThingModified.of(mergedThing, nextRevision, getEventTimestamp(),
+                        dittoHeaders);
                 return newResult(thingModified, ModifyThingResponse.modified(thingId, dittoHeaders));
             } else {
                 context.getLog().error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
