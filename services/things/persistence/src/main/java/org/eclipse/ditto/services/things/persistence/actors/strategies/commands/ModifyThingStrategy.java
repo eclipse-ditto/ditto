@@ -134,8 +134,9 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
      */
     private static Result handleModifyExistingV1WithV2Command(final Context context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
-        if (containsPolicy(command)) {
-            return applyModifyCommand(context, thing, nextRevision, command);
+        if (containsPolicyId(command)) {
+            final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
+            return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
             return newResult(
                     PolicyIdMissingException.fromThingIdOnUpdate(context.getThingId(), command.getDittoHeaders()));
@@ -191,14 +192,6 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
 
         return builder.build();
-    }
-
-    private static boolean containsPolicy(final ModifyThing command) {
-        return containsInitialPolicy(command) || containsPolicyId(command);
-    }
-
-    private static boolean containsInitialPolicy(final ModifyThing command) {
-        return command.getInitialPolicy().isPresent();
     }
 
     private static boolean containsPolicyId(final ModifyThing command) {
