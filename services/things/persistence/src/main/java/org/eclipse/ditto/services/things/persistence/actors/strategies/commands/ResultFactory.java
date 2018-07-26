@@ -58,15 +58,15 @@ final class ResultFactory {
         return new MutationResult(eventToPersist, response, becomeDeleted);
     }
 
-    static CommandStrategy.Result newResult(final CompletionStage<WithDittoHeaders> futureMessage) {
-        return new FutureInfoResult(futureMessage);
+    static CommandStrategy.Result newResult(final CompletionStage<WithDittoHeaders> futureResponse) {
+        return new FutureInfoResult(futureResponse);
     }
 
     /*
      * Results are actor messages. They must be thread-safe even though some (i. e., FutureInfoResult) may not be
      * immutable.
      */
-    private static abstract class AbstractResult implements CommandStrategy.Result {
+    private abstract static class AbstractResult implements CommandStrategy.Result {
 
         @Override
         public boolean equals(final Object o) {
@@ -81,12 +81,12 @@ final class ResultFactory {
                     Objects.equals(getEventToPersist(), that.getEventToPersist()) &&
                     Objects.equals(getCommandResponse(), that.getCommandResponse()) &&
                     Objects.equals(getException(), that.getException()) &&
-                    Objects.equals(getFutureMessage(), that.getFutureMessage());
+                    Objects.equals(getFutureResponse(), that.getFutureResponse());
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(getEventToPersist(), getCommandResponse(), getException(), getFutureMessage(),
+            return Objects.hash(getEventToPersist(), getCommandResponse(), getException(), getFutureResponse(),
                     isBecomeDeleted());
         }
 
@@ -96,7 +96,7 @@ final class ResultFactory {
                     "eventToPersist=" + getEventToPersist().orElse(null) +
                     ", response=" + getCommandResponse().orElse(null) +
                     ", exception=" + getException().orElse(null) +
-                    ", futureMessage=" + getFutureMessage().orElse(null) +
+                    ", futureResponse=" + getFutureResponse().orElse(null) +
                     ", becomeDeleted=" + isBecomeDeleted() +
                     "]";
         }
@@ -126,7 +126,7 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
             return Optional.empty();
         }
 
@@ -176,7 +176,7 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
             return Optional.empty();
         }
 
@@ -184,20 +184,21 @@ final class ResultFactory {
         public boolean isBecomeDeleted() {
             return becomeDeleted;
         }
+
     }
 
     private static final class InfoResult extends AbstractResult {
 
-        private final WithDittoHeaders message;
+        private final WithDittoHeaders response;
 
-        private InfoResult(final WithDittoHeaders message) {
-            this.message = message;
+        private InfoResult(final WithDittoHeaders response) {
+            this.response = response;
         }
 
         @Override
         public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            notifyConsumer.accept(message);
+            notifyConsumer.accept(response);
         }
 
         @Override
@@ -207,20 +208,20 @@ final class ResultFactory {
 
         @Override
         public Optional<WithDittoHeaders> getCommandResponse() {
-            return message instanceof DittoRuntimeException
+            return response instanceof DittoRuntimeException
                     ? Optional.empty()
-                    : Optional.of(message);
+                    : Optional.of(response);
         }
 
         @Override
         public Optional<DittoRuntimeException> getException() {
-            return message instanceof DittoRuntimeException
-                    ? Optional.of((DittoRuntimeException) message)
+            return response instanceof DittoRuntimeException
+                    ? Optional.of((DittoRuntimeException) response)
                     : Optional.empty();
         }
 
         @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
             return Optional.empty();
         }
 
@@ -228,20 +229,21 @@ final class ResultFactory {
         public boolean isBecomeDeleted() {
             return false;
         }
+
     }
 
     private static final class FutureInfoResult extends AbstractResult {
 
-        private final CompletionStage<WithDittoHeaders> futureMessage;
+        private final CompletionStage<WithDittoHeaders> futureResponse;
 
-        private FutureInfoResult(final CompletionStage<WithDittoHeaders> futureMessage) {
-            this.futureMessage = futureMessage;
+        private FutureInfoResult(final CompletionStage<WithDittoHeaders> futureResponse) {
+            this.futureResponse = futureResponse;
         }
 
         @Override
         public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            futureMessage.thenAccept(notifyConsumer);
+            futureResponse.thenAccept(notifyConsumer);
         }
 
         @Override
@@ -260,13 +262,14 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureMessage() {
-            return Optional.of(futureMessage);
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
+            return Optional.of(futureResponse);
         }
 
         @Override
         public boolean isBecomeDeleted() {
             return false;
         }
+
     }
 }

@@ -128,7 +128,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+        assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
                 RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
@@ -152,7 +152,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).isEmpty();
-        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+        assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
                 RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -174,7 +174,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).isEmpty();
-        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+        assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
                 new ThingNotAccessibleException(command.getThingId(), command.getDittoHeaders()));
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -197,7 +197,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).isEmpty();
-        assertThat(result.getFutureMessage().get().toCompletableFuture()).isCompletedWithValue(
+        assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
                 ThingUnavailableException
                         .newBuilder(command.getThingId())
                         .dittoHeaders(command.getDittoHeaders())

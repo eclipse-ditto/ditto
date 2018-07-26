@@ -97,7 +97,7 @@ public interface CommandStrategy<T extends Command> {
 
         Optional<DittoRuntimeException> getException();
 
-        Optional<CompletionStage<WithDittoHeaders>> getFutureMessage();
+        Optional<CompletionStage<WithDittoHeaders>> getFutureResponse();
 
         boolean isBecomeDeleted();
 
