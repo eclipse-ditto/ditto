@@ -59,7 +59,7 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TagThing, TagT
     }
 
     /**
-     * Creates a {@code ThingSnapshotter} for a {@code ThingPersistenceActor}.
+     * Creates an instance of {@code DittoThingSnapshotter} for a {@code ThingPersistenceActor}.
      *
      * @param thingPersistenceActor The actor in which this snapshotter is run. Must not be null.
      * @param pubSubMediator the akka distributed pubsub mediator.
@@ -67,6 +67,7 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TagThing, TagT
      * @param eventsDeleteOld Whether events before a saved snapshot are to be deleted.
      * @param log The actor's logger. If null, nothing is logged.
      * @param snapshotInterval How long to wait between scheduled maintenance snapshots.
+     * @return the instance.
      */
     public static DittoThingSnapshotter getInstance(final ThingPersistenceActor thingPersistenceActor,
             @SuppressWarnings({"unused", "squid:S1172"}) final ActorRef pubSubMediator,
@@ -74,6 +75,7 @@ public final class DittoThingSnapshotter extends ThingSnapshotter<TagThing, TagT
             final boolean eventsDeleteOld,
             @Nullable final DiagnosticLoggingAdapter log,
             @Nullable final java.time.Duration snapshotInterval) {
+
         return new DittoThingSnapshotter(thingPersistenceActor, SNAPSHOT_ADAPTER,
                 snapshotDeleteOld, eventsDeleteOld, log, snapshotInterval);
     }

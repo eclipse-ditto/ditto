@@ -27,15 +27,15 @@ public interface MessageMapperConfiguration {
     /**
      * Returns the configuration properties as Map.
      *
-     * @return the configuration properties
+     * @return an unmodifiable Map containing the configuration properties.
      */
     Map<String, String> getProperties();
 
     /**
      * Searches the configuration for a specific property.
      *
-     * @param propertyName the property name
-     * @return the property if present
+     * @param propertyName the property name.
+     * @return the property if present.
      */
     default Optional<String> findProperty(final String propertyName) {
         return Optional.ofNullable(getProperties().get(propertyName));
@@ -44,8 +44,8 @@ public interface MessageMapperConfiguration {
     /**
      * Extracts a required property from the configuration and fails with an exception if missing.
      *
-     * @param propertyName the property name
-     * @return the property value
+     * @param propertyName the property name.
+     * @return the property value.
      * @throws MessageMapperConfigurationInvalidException if no value for the the requested property name is present
      */
     default String getProperty(final String propertyName) {
@@ -57,7 +57,7 @@ public interface MessageMapperConfiguration {
     /**
      * Searches the configuration for the content type property.
      *
-     * @return the content type value if present
+     * @return the content type value if present.
      */
     default Optional<String> findContentType() {
         return findProperty(ExternalMessage.CONTENT_TYPE_HEADER);
@@ -66,8 +66,8 @@ public interface MessageMapperConfiguration {
     /**
      * Extracts the content type and fails if missing.
      *
-     * @return the contentType
-     * @throws MessageMapperConfigurationInvalidException if content type is missing
+     * @return the contentType.
+     * @throws MessageMapperConfigurationInvalidException if content type is missing.
      */
     default String getContentType() {
         return getProperty(ExternalMessage.CONTENT_TYPE_HEADER);
@@ -79,21 +79,22 @@ public interface MessageMapperConfiguration {
     interface Builder<B extends Builder<?, T>,T extends MessageMapperConfiguration> {
 
         /**
-         * @return the configuration properties as mutable map
+         * @return the configuration properties as mutable map.
          */
         Map<String, String> getProperties();
 
         /**
          * Configures the Content-Type of the MessageMapperConfiguration.
          *
-         * @param contentType the Content-Type
-         * @return this builder for chaining
+         * @param contentType the Content-Type.
+         * @return this builder for chaining.
          */
-        default B contentType(@Nullable String contentType) {
+        default B contentType(@Nullable final String contentType) {
+            final Map<String, String> properties = getProperties();
             if (contentType != null) {
-                getProperties().put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
+                properties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
             } else {
-                getProperties().remove(ExternalMessage.CONTENT_TYPE_HEADER);
+                properties.remove(ExternalMessage.CONTENT_TYPE_HEADER);
             }
             return (B) this;
         }
@@ -101,9 +102,10 @@ public interface MessageMapperConfiguration {
         /**
          * Builds the builder and returns a new instance of {@link MessageMapperConfiguration}
          *
-         * @return the built MessageMapperConfiguration
+         * @return the built MessageMapperConfiguration.
          */
         T build();
+
     }
 
 }

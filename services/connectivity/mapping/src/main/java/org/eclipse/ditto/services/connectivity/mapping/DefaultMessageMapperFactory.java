@@ -48,7 +48,7 @@ import scala.util.Try;
  * <p>
  * Due to this, the factory can be instantiated with a reference to the actors log adapter and will log problems to
  * the debug and warning level (no info and error). Setting a log adapter does not change factory behaviour!
- * <p>
+ * </p>
  */
 @Immutable
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
@@ -77,7 +77,8 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      */
     private DefaultMessageMapperFactory(final Config mappingConfig, final DynamicAccess dynamicAccess,
             final Class<?> factoryClass, final DiagnosticLoggingAdapter log) {
-        this.mappingConfig = checkNotNull(mappingConfig);;
+
+        this.mappingConfig = checkNotNull(mappingConfig);
         this.dynamicAccess = checkNotNull(dynamicAccess);
         this.factoryClass = checkNotNull(factoryClass);
         this.log = checkNotNull(log);
@@ -91,8 +92,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * @param log the log adapter used for debug and warning logs
      * @return the new instance
      */
-    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem,
-            final Class<?> factoryClass, final DiagnosticLoggingAdapter log) {
+    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem, final Class<?> factoryClass,
+            final DiagnosticLoggingAdapter log) {
+
         final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
         final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
         return new DefaultMessageMapperFactory(mappingConfig, dynamicAccess, factoryClass, log);
@@ -100,7 +102,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public Optional<MessageMapper> mapperOf(final MappingContext mappingContext) {
-
         Optional<MessageMapper> mapper = Optional.empty();
         try {
             mapper = findFactoryMethodAndCreateInstance(mappingContext);
@@ -124,8 +125,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             }
         }
 
-        final DefaultMessageMapperConfiguration options =
-                DefaultMessageMapperConfiguration.of(mappingContext.getOptions());
+        final MessageMapperConfiguration options = DefaultMessageMapperConfiguration.of(mappingContext.getOptions());
         return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
@@ -156,6 +156,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      */
     Optional<MessageMapper> findFactoryMethodAndCreateInstance(final MappingContext mappingContext)
             throws IllegalAccessException, InvocationTargetException {
+
         final Optional<Method> factoryMethod = findMessageMapperFactoryMethod(factoryClass, mappingContext);
         if (!factoryMethod.isPresent()) {
             log.debug("No factory method found for ctx: <{}>", mappingContext);
@@ -177,6 +178,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      */
     Optional<MessageMapper> findClassAndCreateInstance(final MappingContext mappingContext)
             throws InstantiationException {
+
         checkNotNull(mappingContext);
 
         try {
@@ -187,7 +189,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         }
     }
 
-    private boolean configureInstance(final MessageMapper mapper, final DefaultMessageMapperConfiguration options) {
+    private boolean configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {
         try {
             mapper.configure(mappingConfig, options);
             return true;
@@ -198,13 +200,15 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         }
     }
 
-    private MessageMapper createInstanceFor(final String className) throws ClassNotFoundException,
-            InstantiationException {
+    private MessageMapper createInstanceFor(final String className)
+            throws ClassNotFoundException, InstantiationException {
+
         final ClassTag<MessageMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(MessageMapper.class);
         final List<Tuple2<Class<?>, Object>> constructorArgs = new ArrayList<>();
 
-        final Try<MessageMapper> mapperTry = this.dynamicAccess
-                .createInstanceFor(className, JavaConversions.asScalaBuffer(constructorArgs).toList(), tag);
+        final Try<MessageMapper> mapperTry =
+                dynamicAccess.createInstanceFor(className, JavaConversions.asScalaBuffer(constructorArgs).toList(),
+                        tag);
 
         if (mapperTry.isFailure()) {
             final Throwable error = mapperTry.failed().get();
@@ -237,8 +241,12 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DefaultMessageMapperFactory that = (DefaultMessageMapperFactory) o;
         return Objects.equals(dynamicAccess, that.dynamicAccess) &&
                 Objects.equals(factoryClass, that.factoryClass) &&
@@ -249,4 +257,5 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     public int hashCode() {
         return Objects.hash(dynamicAccess, factoryClass, log);
     }
+
 }

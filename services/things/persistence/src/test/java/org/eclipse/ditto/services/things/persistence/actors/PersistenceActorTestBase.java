@@ -38,6 +38,10 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.junit.After;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -82,6 +86,7 @@ public abstract class PersistenceActorTestBase {
             .build();
     private static final ThingLifecycle THING_LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final long THING_REVISION = 1;
+
 
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
@@ -182,4 +187,20 @@ public abstract class PersistenceActorTestBase {
         return actorSystem.actorOf(props, thingId);
     }
 
+    /**
+     * This TestWatcher logs the name of each performed test method.
+     */
+    protected static final class TestedMethodLoggingWatcher extends TestWatcher {
+
+        private final Logger logger;
+
+        public TestedMethodLoggingWatcher(final Logger logger) {
+            this.logger = logger;
+        }
+
+        @Override
+        protected void starting(final org.junit.runner.Description description) {
+            logger.info("Testing: {}#{}()", description.getTestClass().getSimpleName(), description.getMethodName());
+        }
+    }
 }
