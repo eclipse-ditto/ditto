@@ -60,7 +60,7 @@ kubectl apply -f kubernetes/mongodb/mongodb.yaml
 ```bash
 kubectl apply -f kubernetes/ditto/ditto-cluster.yaml
 # Start ditto services with an alternative version e.g. 0.1.0-SNAPSHOT
-# cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0.1.0-SNAPSHOT/ | kubectl create -f -
+# cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0.1.0-SNAPSHOT/ | kubectl apply -f -
 ```
 
 #### Start Swagger UI
