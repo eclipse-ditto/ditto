@@ -27,7 +27,7 @@ public final class SuffixBuilderConfig {
     private final List<String> supportedPrefixes;
 
 
-    SuffixBuilderConfig(final List<String> supportedPrefixes) {
+    public SuffixBuilderConfig(final List<String> supportedPrefixes) {
         this.supportedPrefixes = supportedPrefixes;
 
         if (supportedPrefixes.isEmpty()) {

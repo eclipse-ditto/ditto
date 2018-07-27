@@ -42,6 +42,11 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-metrics</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-persistence</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>

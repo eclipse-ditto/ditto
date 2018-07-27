@@ -9,13 +9,13 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
+package org.eclipse.ditto.services.base.config;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.eclipse.ditto.services.base.config.AbstractConfigReader;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

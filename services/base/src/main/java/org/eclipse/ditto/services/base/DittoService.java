@@ -31,12 +31,14 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
@@ -144,6 +146,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      */
     protected void doStart() {
         logRuntimeParameters();
+        configureMongoDbSuffixBuilder();
         startKamon();
         startActorSystem();
         startKamonPrometheusHttpEndpoint();
@@ -153,6 +156,11 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
         logger.info("Running with following runtime parameters: {}", bean.getInputArguments());
         logger.info("Available processors: {}", Runtime.getRuntime().availableProcessors());
+    }
+
+    private void configureMongoDbSuffixBuilder() {
+        final SuffixBuilderConfigReader suffixBuilderConfigReader = configReader.mongoCollectionNameSuffix();
+        suffixBuilderConfigReader.getSuffixBuilderConfig().ifPresent(NamespaceSuffixCollectionNames::setConfig);
     }
 
     private void startKamon() {
