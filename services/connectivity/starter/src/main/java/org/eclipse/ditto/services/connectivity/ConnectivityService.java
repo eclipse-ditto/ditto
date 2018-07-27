@@ -72,6 +72,6 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
     private void configureMongoCollectionNameSuffixAppender() {
         final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
         final SuffixBuilderConfigReader suffixBuilderConfigReader = SuffixBuilderConfigReader.fromRawConfig(config);
-        NamespaceSuffixCollectionNames.setConfig(suffixBuilderConfigReader.getSuffixBuilderConfig());
+        suffixBuilderConfigReader.getSuffixBuilderConfig().ifPresent(NamespaceSuffixCollectionNames::setConfig);
     }
 }

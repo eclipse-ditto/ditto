@@ -35,12 +35,7 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
 
     public static void setConfig(final SuffixBuilderConfig suffixBuilderConfig) {
         NamespaceSuffixCollectionNames.suffixBuilderConfig = suffixBuilderConfig;
-        LOGGER.debug("Configured " + NamespaceSuffixCollectionNames.class.getName());
-        if (suffixBuilderConfig.isEnabled()) {
-            LOGGER.info("Namespace appending to mongodb collection names is enabled");
-        } else {
-            LOGGER.info("Namespace appending to mongodb collection names is disabled");
-        }
+        LOGGER.info("Namespace appending to mongodb collection names is enabled");
     }
 
     static void resetConfig() {
@@ -55,10 +50,6 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
      */
     @Override
     public String getSuffixFromPersistenceId(final String persistenceId) {
-
-        if (!suffixBuilderConfig.isEnabled()) {
-            return "";
-        }
 
         final String[] persistenceIdSplitByColons = persistenceId.split(":");
 
@@ -85,10 +76,6 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
      */
     @Override
     public String validateMongoCharacters(final String input) {
-
-        if (!suffixBuilderConfig.isEnabled()) {
-            return input;
-        }
         return input.replace('.', '%').replaceAll(REPLACE_REGEX, "#");
     }
 }

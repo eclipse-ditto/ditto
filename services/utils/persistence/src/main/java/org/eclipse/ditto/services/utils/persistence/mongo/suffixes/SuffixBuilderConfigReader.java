@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.ditto.services.base.config.AbstractConfigReader;
 
@@ -38,19 +39,19 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
     private SuffixBuilderConfigReader(final Config config) {
         super(config);
 
-        final String enabledPropertyName = "enabled";
-        final boolean defaultValue = true;
-        final boolean enabled = getIfPresent(enabledPropertyName, config::getBoolean).orElse(defaultValue);
-
         final String supportedPrefixesPropertyName = "supported-prefixes";
         final List<String> supportedPrefixes = getIfPresent(supportedPrefixesPropertyName, config::getStringList)
                 .orElse(Collections.emptyList());
 
-        if (enabled) {
-            verifyClassIsDefinedAndAvailableInClasspath();
-        }
+        final String extractorClass = getIfPresent("class", config::getString).orElse("");
+        final boolean enabled = !extractorClass.equals("");
 
-        this.suffixBuilderConfig = new SuffixBuilderConfig(enabled, supportedPrefixes);
+        if (enabled) {
+            verifyClassIsAvailableInClasspath(extractorClass);
+            this.suffixBuilderConfig = new SuffixBuilderConfig(supportedPrefixes);
+        } else {
+            suffixBuilderConfig = null;
+        }
     }
 
     /**
@@ -66,25 +67,23 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
         return new SuffixBuilderConfigReader(suffixBuilderConfig);
     }
 
-    public SuffixBuilderConfig getSuffixBuilderConfig() {
-        return suffixBuilderConfig;
+    public Optional<SuffixBuilderConfig> getSuffixBuilderConfig() {
+        if (suffixBuilderConfig == null) {
+            return Optional.empty();
+        } else {
+            return Optional.of(suffixBuilderConfig);
+        }
     }
 
-    private void verifyClassIsDefinedAndAvailableInClasspath() {
-        final String classPropertyName = "class";
-        final String fullQualifiedPropertyName = PATH + "." + classPropertyName;
-        final String extractorClass = getIfPresent(classPropertyName, config::getString).orElseThrow(
-                () -> new ConfigurationException(
-                        String.format("SuffixBuilder is enabled but no class is defined. Please define property <%s>.",
-                                fullQualifiedPropertyName)));
-
+    private void verifyClassIsAvailableInClasspath(String className) {
         try {
-            Class.forName(extractorClass);
+            Class.forName(className);
         } catch (ClassNotFoundException | NoClassDefFoundError e) {
+            final String fullQualifiedPropertyName = PATH + "." + "class";
             final String message = String.format(
                     "The configured class to extract namespace suffixes <%s> is not available in the classpath." +
                             " Please check the property <%s>.",
-                    extractorClass,
+                    className,
                     fullQualifiedPropertyName);
 
             throw new ConfigurationException(message);

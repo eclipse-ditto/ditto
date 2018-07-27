@@ -24,22 +24,16 @@ public final class SuffixBuilderConfig {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SuffixBuilderConfig.class);
 
-    private final boolean enabled;
     private final List<String> supportedPrefixes;
 
 
-    SuffixBuilderConfig(final boolean enabled, final List<String> supportedPrefixes) {
-        this.enabled = enabled;
+    SuffixBuilderConfig(final List<String> supportedPrefixes) {
         this.supportedPrefixes = supportedPrefixes;
 
-        if (enabled && supportedPrefixes.isEmpty()) {
-            LOGGER.warn("Namespace appending for mongodb collection names is enabled, but no prefixes are supported." +
-                    "Namespace will never be appended. Please check your configuration.");
+        if (supportedPrefixes.isEmpty()) {
+            LOGGER.warn("No prefixes are supported and therefore no namespace will never be appended. " +
+                    "Please check your configuration.");
         }
-    }
-
-    boolean isEnabled() {
-        return enabled;
     }
 
     List<String> getSupportedPrefixes() {
