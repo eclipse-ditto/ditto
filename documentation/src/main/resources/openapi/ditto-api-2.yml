@@ -196,10 +196,62 @@ paths:
         be created which grants all permissions to the authorized subject on the
         root thing and policy resource.
 
-        ### Update of an existing Thing
+        ### Permissions for updating an existing Thing
 
         For updating an existing Thing the authorized subject has to have an
         unrestricted `WRITE` permission on the Thing's root resource.
+
+        ### Partially updating an existing Thing
+
+        When updating an existing Thing already containing `attributes`, `policyId` or `features` the already existing fields
+        must not explicitly be provided again. For this "PUT Thing" request (and only for this top-level update on the
+        Thing) the top-level field to update is merged with the existing top-level fields of the Thing.
+
+
+        For example: A Thing already exists with this content:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "policyId": "namespace:policy-name",
+          "attributes": {
+            "foo": 1
+          },
+          "features": {...}
+        }
+
+        ```
+
+        The Thing's `attributes` may be modified without having to pass the `policyId` or the `features` in again. The content
+        of the request's body would be sufficient for updating the `attributes`:
+
+        ```
+
+        {
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+        }
+
+        ```
+
+        The `policyId` and `features` of the Thing will not be overwritten, the Thing will be merged as one would expect it:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "policyId": "namespace:policy-name",
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+          "features": {...}
+        }
+
+        ```
       tags:
         - Things
       parameters:

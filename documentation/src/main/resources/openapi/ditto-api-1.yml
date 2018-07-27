@@ -188,11 +188,63 @@ paths:
 
         Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
 
-        ### Update of an existing Thing
+        ### Permissions for updating an existing Thing
 
         For updating an existing Thing the authorized subject has to have the `WRITE` permission.
         If the new Thing to update contains an `acl` entry, the authorized subject additionally has to have the `ADMINISTRATE` permission.
         For authorized subjects which don't have the `ADMINISTRATE` permission, the complete Thing may be updated if the `acl` entry is not set.
+
+        ### Partially updating an existing Thing
+
+        When updating an existing Thing already containing `attributes`, `acl` or `features` the already existing fields
+        must not explicitly be provided again. For this "PUT Thing" request (and only for this top-level update on the
+        Thing) the top-level field to update is merged with the existing top-level fields of the Thing.
+
+
+        For example: A Thing already exists with this content:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "acl": {...},
+          "attributes": {
+            "foo": 1
+          },
+          "features": {...}
+        }
+
+        ```
+
+        The Thing's `attributes` may be modified without having to pass the `acl` or the `features` in again. The content
+        of the request's body would be sufficient for updating the `attributes`:
+
+        ```
+
+        {
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+        }
+
+        ```
+
+        The `acl` and `features` of the Thing will not be overwritten, the Thing will be merged as one would expect it:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "acl": {...},
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+          "features": {...}
+        }
+
+        ```
       tags:
         - Things
       parameters:
