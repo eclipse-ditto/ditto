@@ -17,9 +17,14 @@ import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -44,6 +49,7 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
 
     private ConnectivityService() {
         super(LOGGER, SERVICE_NAME, ConnectivityRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        configureMongoCollectionNameSuffixAppender();
     }
 
     /**
@@ -63,4 +69,9 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
         return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
     }
 
+    private void configureMongoCollectionNameSuffixAppender() {
+        final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
+        final SuffixBuilderConfigReader suffixBuilderConfigReader = SuffixBuilderConfigReader.fromRawConfig(config);
+        NamespaceSuffixCollectionNames.setConfig(suffixBuilderConfigReader.getSuffixBuilderConfig());
+    }
 }

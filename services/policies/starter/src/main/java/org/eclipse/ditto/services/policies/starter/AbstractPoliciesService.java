@@ -11,12 +11,20 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfigReader;
 import org.slf4j.Logger;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
@@ -41,6 +49,7 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
      */
     protected AbstractPoliciesService(final Logger logger) {
         super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
+        configureMongoCollectionNameSuffixAppender();
     }
 
     @Override
@@ -49,4 +58,9 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
                 MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
 
+    private void configureMongoCollectionNameSuffixAppender() {
+        final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
+        final SuffixBuilderConfigReader suffixBuilderConfigReader = SuffixBuilderConfigReader.fromRawConfig(config);
+        NamespaceSuffixCollectionNames.setConfig(suffixBuilderConfigReader.getSuffixBuilderConfig());
+    }
 }

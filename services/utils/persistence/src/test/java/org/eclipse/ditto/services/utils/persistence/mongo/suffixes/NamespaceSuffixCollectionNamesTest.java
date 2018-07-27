@@ -13,6 +13,8 @@ package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,11 +24,13 @@ public class NamespaceSuffixCollectionNamesTest {
 
     @Before
     public void setup() {
+        NamespaceSuffixCollectionNames.resetConfig();
         this.sut = new NamespaceSuffixCollectionNames();
     }
 
     @Test
     public void getSuffixFromPersistenceId() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(true, Collections.singletonList("thing")));
         final String persistenceId = "thing:org.eclipse.ditto:test:thing";
 
         final String suffix = sut.getSuffixFromPersistenceId(persistenceId);
@@ -36,7 +40,37 @@ public class NamespaceSuffixCollectionNamesTest {
     }
 
     @Test
+    public void getSuffixFromPersistenceIdReturnsEmptySuffixIfPrefixIsNotSupported() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(true, Collections.singletonList("thing")));
+        final String persistenceId = "some:org.eclipse.ditto:test:thing";
+
+        final String suffix = sut.getSuffixFromPersistenceId(persistenceId);
+
+        final String expectedSuffix = "";
+        assertThat(suffix).isEqualTo(expectedSuffix);
+    }
+
+    @Test
+    public void getSuffixFromPersistenceIdReturnsEmptySuffixIfNotEnabled() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(false, Collections.singletonList("thing")));
+        final String persistenceId = "thing:org.eclipse.ditto:test:thing";
+
+        final String suffix = sut.getSuffixFromPersistenceId(persistenceId);
+
+        final String expectedSuffix = "";
+        assertThat(suffix).isEqualTo(expectedSuffix);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void getSuffixFromPersistenceIdThrowsNullpointerExceptionWithoutConfig() {
+        final String persistenceId = "thing:org.eclipse.ditto:test:thing";
+
+        sut.getSuffixFromPersistenceId(persistenceId);
+    }
+
+    @Test
     public void validateMongoCharacters() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(true, Collections.singletonList("thing")));
         final String invalidInput =
                 "This/should\\be.a string\"separated$by*hashes<and>not:by|strange?characters";
 
@@ -44,5 +78,24 @@ public class NamespaceSuffixCollectionNamesTest {
 
         final String expected = "This#should#be%a#string#separated#by#hashes#and#not#by#strange#characters";
         assertThat(sanitizedString).isEqualTo(expected);
+    }
+
+    @Test
+    public void validateMongoCharactersReturnsInputIfNotEnabled() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(false, Collections.singletonList("thing")));
+        final String invalidInput =
+                "This/should\\be.a string\"separated$by*hashes<and>not:by|strange?characters";
+
+        final String sanitizedString = sut.validateMongoCharacters(invalidInput);
+
+        final String expected = "This/should\\be.a string\"separated$by*hashes<and>not:by|strange?characters";
+        assertThat(sanitizedString).isEqualTo(expected);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void validateMongoCharactersThrowsNullpointerExceptionWithoutConfig() {
+        final String persistenceId = "thing:org.eclipse.ditto:test:thing";
+
+        sut.getSuffixFromPersistenceId(persistenceId);
     }
 }

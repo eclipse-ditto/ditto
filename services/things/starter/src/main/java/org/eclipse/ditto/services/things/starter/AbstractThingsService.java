@@ -17,9 +17,14 @@ import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
+import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfigReader;
 import org.slf4j.Logger;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -53,6 +58,7 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
     protected AbstractThingsService(final Logger logger, final ThingSnapshotter.Create thingSnapshotterCreate) {
         super(logger, SERVICE_NAME, ThingsRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
         this.thingSnapshotterCreate = checkNotNull(thingSnapshotterCreate);
+        configureMongoCollectionNameSuffixAppender();
     }
 
     @Override
@@ -69,4 +75,9 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
         return ThingsRootActor.props(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
     }
 
+    private void configureMongoCollectionNameSuffixAppender() {
+        final Config config = ConfigUtil.determineConfig(SERVICE_NAME);
+        final SuffixBuilderConfigReader suffixBuilderConfigReader = SuffixBuilderConfigReader.fromRawConfig(config);
+        NamespaceSuffixCollectionNames.setConfig(suffixBuilderConfigReader.getSuffixBuilderConfig());
+    }
 }

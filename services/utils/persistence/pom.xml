@@ -25,6 +25,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-signals-events-base</artifactId>
             <version>${project.version}</version>

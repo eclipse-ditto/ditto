@@ -13,6 +13,9 @@ package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
 
 /**
@@ -20,11 +23,29 @@ import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
  */
 public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(NamespaceSuffixCollectionNames.class);
+
     private static final char[] forbiddenCharactersInMongoCollectionNames =
             new char[]{'/', '\\', '.', ' ', '\"', '$', '*', '<', '>', ':', '|', '?'};
 
     private static final String REPLACE_REGEX =
             String.format("[%s]", Pattern.quote(new String(forbiddenCharactersInMongoCollectionNames)));
+
+    private static SuffixBuilderConfig suffixBuilderConfig;
+
+    public static void setConfig(final SuffixBuilderConfig suffixBuilderConfig) {
+        NamespaceSuffixCollectionNames.suffixBuilderConfig = suffixBuilderConfig;
+        LOGGER.debug("Configured " + NamespaceSuffixCollectionNames.class.getName());
+        if (suffixBuilderConfig.isEnabled()) {
+            LOGGER.info("Namespace appending to mongodb collection names is enabled");
+        } else {
+            LOGGER.info("Namespace appending to mongodb collection names is disabled");
+        }
+    }
+
+    static void resetConfig() {
+        suffixBuilderConfig = null;
+    }
 
     /**
      * Gets the suffix of the collection name for the given persistenceId.
@@ -34,22 +55,25 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
      */
     @Override
     public String getSuffixFromPersistenceId(final String persistenceId) {
-        if (!shouldSuffix(persistenceId)) {
+
+        if (!suffixBuilderConfig.isEnabled()) {
             return "";
         }
 
         final String[] persistenceIdSplitByColons = persistenceId.split(":");
 
         if (persistenceIdSplitByColons.length < 3) {
-            throw new IllegalStateException("Missing namespace in persistenceId: " + persistenceId);
+            throw new IllegalStateException(
+                    String.format("Persistence id <%s> is not in the expected format of <prefix:namespace:name>",
+                            persistenceId));
+        }
+
+        final String prefix = persistenceIdSplitByColons[0];
+        if (!suffixBuilderConfig.getSupportedPrefixes().contains(prefix)) {
+            return "";
         }
 
         return validateMongoCharacters(persistenceIdSplitByColons[1]);
-    }
-
-    private static boolean shouldSuffix(final String persistenceId) {
-        return persistenceId.startsWith("thing:") || persistenceId.startsWith("policy:") ||
-                persistenceId.startsWith("connection:");
     }
 
     /**
@@ -62,6 +86,9 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
     @Override
     public String validateMongoCharacters(final String input) {
 
+        if (!suffixBuilderConfig.isEnabled()) {
+            return input;
+        }
         return input.replace('.', '%').replaceAll(REPLACE_REGEX, "#");
     }
 }
