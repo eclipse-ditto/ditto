@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -75,6 +76,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 .getAccessControlList()
                 .map(AccessControlList::isEmpty)
                 .orElse(true);
+
         if (!isCommandAclEmpty) {
             return applyModifyCommand(context, thing, nextRevision, command);
         } else {
@@ -82,12 +84,11 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
             final Optional<AccessControlList> existingAccessControlList = thing.getAccessControlList();
             if (existingAccessControlList.isPresent()) {
                 // special apply - take the ACL of the persisted thing instead of the new one in the command:
-                final Thing modifiedThingWithOldAcl = ThingsModelFactory.newThingBuilder(command.getThing())
-                        .removeAllPermissions()
-                        .setPermissions(existingAccessControlList.get())
-                        .build();
-                final ThingModified thingModified =
-                        ThingModified.of(modifiedThingWithOldAcl, nextRevision, getEventTimestamp(), dittoHeaders);
+                final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
+                final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, nextRevision);
+
+                final ThingModified thingModified = ThingModified.of(mergedThing, nextRevision, getEventTimestamp(),
+                        dittoHeaders);
                 return newResult(thingModified, ModifyThingResponse.modified(thingId, dittoHeaders));
             } else {
                 context.getLog().error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
@@ -133,8 +134,9 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
      */
     private static Result handleModifyExistingV1WithV2Command(final Context context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
-        if (containsPolicy(command)) {
-            return applyModifyCommand(context, thing, nextRevision, command);
+        if (containsPolicyId(command)) {
+            final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
+            return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
             return newResult(
                     PolicyIdMissingException.fromThingIdOnUpdate(context.getThingId(), command.getDittoHeaders()));
@@ -190,14 +192,6 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         thingWithModifications.getFeatures().ifPresent(builder::setFeatures);
 
         return builder.build();
-    }
-
-    private static boolean containsPolicy(final ModifyThing command) {
-        return containsInitialPolicy(command) || containsPolicyId(command);
-    }
-
-    private static boolean containsInitialPolicy(final ModifyThing command) {
-        return command.getInitialPolicy().isPresent();
     }
 
     private static boolean containsPolicyId(final ModifyThing command) {
