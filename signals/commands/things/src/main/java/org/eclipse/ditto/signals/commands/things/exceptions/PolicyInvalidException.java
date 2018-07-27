@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.exceptions;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -63,7 +63,22 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      * @return the builder.
      */
     public static Builder newBuilder(final Collection<String> permissions, final String thingId) {
-        return new Builder(requireNonNull(permissions), requireNonNull(thingId));
+        checkNotNull(permissions, "permissions");
+        checkNotNull(thingId, "thingId");
+        return new Builder(permissions, thingId);
+    }
+
+    /**
+     * A mutable builder for a {@link PolicyInvalidException} caused by some other error.
+     *
+     * @param cause reason why the policy is invalid.
+     * @param thingId ID of the thing the policy applies to.
+     * @return the builder.
+     */
+    public static Builder newBuilderForCause(final Throwable cause, final String thingId) {
+        checkNotNull(cause, "cause");
+        checkNotNull(thingId, "thingId");
+        return new Builder(cause, thingId);
     }
 
     /**
@@ -98,7 +113,6 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
 
     /**
      * A mutable builder with a fluent API for a {@link PolicyInvalidException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyInvalidException> {
@@ -108,6 +122,12 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
         private Builder(final Collection<String> permissions, final String thingId) {
             message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
             description(MessageFormat.format(DESCRIPTION_TEMPLATE, permissions));
+        }
+
+        private Builder(final Throwable cause, final String thingId) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));
+            description(cause.getMessage());
+            cause(cause);
         }
 
         @Override

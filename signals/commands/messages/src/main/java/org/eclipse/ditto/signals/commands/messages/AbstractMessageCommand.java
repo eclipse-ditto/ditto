@@ -48,12 +48,12 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
      * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
      */
     public static final String THING_ID_NON_NAMESPACE_REGEX =
-            "(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*";
+            "(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+";
 
     /**
      * The regex pattern a Thing Namespace.
      */
-    public static final String THING_NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*)(?:\\.[a-zA-Z]\\w*)*))";
+    public static final String THING_NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
 
     /**
      * The regex pattern a Thing ID has to conform to. Combines "namespace" pattern (java package notation + a
