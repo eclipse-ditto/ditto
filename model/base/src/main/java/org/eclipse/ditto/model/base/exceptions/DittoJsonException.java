@@ -92,9 +92,9 @@ public final class DittoJsonException extends DittoRuntimeException {
         } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
             throw new DittoJsonException(e);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
     /**
@@ -116,9 +116,9 @@ public final class DittoJsonException extends DittoRuntimeException {
                 | UnsupportedOperationException e) {
             throw new DittoJsonException(e);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
     /**
@@ -142,9 +142,9 @@ public final class DittoJsonException extends DittoRuntimeException {
         } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
             throw new DittoJsonException(e, dittoHeaders);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
 }

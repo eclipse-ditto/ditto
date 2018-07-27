@@ -330,7 +330,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void acceptCreateByOwnPolicy() {
+    public void acceptCreateByInlinePolicy() {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
@@ -383,6 +383,31 @@ public final class ThingCommandEnforcementTest {
             // verify cache is loaded twice
             assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
         }};
+    }
+
+    @Test
+    public void acceptCreateByInlinePolicyWithDifferentId() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder("policy:id")
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .build();
+        final Thing thing = newThing().build();
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+            underTest.tell(createThing, getRef());
+            final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
+            assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
+        }};
+
     }
 
     @Test

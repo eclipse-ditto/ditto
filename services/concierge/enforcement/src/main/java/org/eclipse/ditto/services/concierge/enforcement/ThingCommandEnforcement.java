@@ -548,7 +548,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     /**
-     * Report timeout of {@code ThingQueryComand}.
+     * Report timeout of {@code ThingQueryCommand}.
      *
      * @param command the original command.
      * @param sender sender of the command.
@@ -821,13 +821,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         try {
             // Java doesn't permit conversion of this early return into assignment to final variable.
             return Optional.of(PoliciesModelFactory.newPolicy(inlinedPolicy));
-        } catch (JsonRuntimeException | DittoJsonException e) {
+        } catch (final JsonRuntimeException | DittoJsonException e) {
             final String thingId = createThing.getThingId();
             final DittoRuntimeException error = PolicyInvalidException.newBuilderForCause(e, thingId)
                     .dittoHeaders(createThing.getDittoHeaders())
                     .build();
             replyToSender(error, sender);
-        } catch (DittoRuntimeException e) {
+        } catch (final DittoRuntimeException e) {
             final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
             if (e instanceof PolicyException) {
                 // user error; no need to log stack trace.
@@ -1079,7 +1079,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private static Optional<DittoRuntimeException> checkPolicyIdValidityForCreateThing(final CreateThing createThing) {
         final Thing thing = createThing.getThing();
-        final Optional<String> thingIdOpt = thing.getId();
         final Optional<String> policyIdOpt = thing.getPolicyId();
         final Optional<String> policyIdInPolicyOpt = createThing.getInitialPolicy()
                 .flatMap(jsonObject -> jsonObject.getValue(Thing.JsonFields.POLICY_ID));
@@ -1088,7 +1087,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (policyIdOpt.isPresent()) {
             isValid = !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(policyIdOpt);
         } else {
-            isValid = !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(thingIdOpt);
+            isValid = true;
         }
 
         if (!isValid) {
