@@ -26,7 +26,7 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.SecurityDirectives;
 
 /**
- * Custom Akka Http directive performing basic auth for 2 realms, {@value #REALM_DEVOPS}.
+ * Custom Akka Http directive performing basic auth for {@value #REALM_DEVOPS} realm.
  */
 public class DevopsBasicAuthenticationDirective {
 

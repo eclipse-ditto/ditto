@@ -116,7 +116,6 @@ public final class RootRoute {
      */
     public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
             OverallStatusRoute.PATH_STATUS + "|" +
-            CachingHealthRoute.PATH_HEALTH + "|" +
             DevOpsRoute.PATH_DEVOPS + ").*"
     );
 
@@ -243,16 +242,16 @@ public final class RootRoute {
                 extractRequestContext(ctx ->
                         route(
                                 statsRoute.buildStatsRoute(correlationId), // /stats
+                                cachingHealthRoute.buildHealthRoute(), // /health
                                 api(ctx, correlationId), // /api
                                 ws(correlationId), // /ws
-                                publicHealth(), // /health
                                 pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
-                                        authenticateDevopsBasic(REALM_DEVOPS,
-                                                route(
-                                                        overallStatusRoute.buildStatusRoute(), // /status
-                                                        devopsRoute.buildDevopsRoute(ctx) // /devops
-                                                )
-                                        )
+                                    authenticateDevopsBasic(REALM_DEVOPS,
+                                            route(
+                                                    overallStatusRoute.buildStatusRoute(), // /status
+                                                    devopsRoute.buildDevopsRoute(ctx) // /devops
+                                            )
+                                    )
                                 )
                         )
                 )
@@ -305,10 +304,6 @@ public final class RootRoute {
 
     private Route wsAuthentication(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return wsAuthenticationDirective.authenticate(correlationId, inner);
-    }
-
-    private Route publicHealth() {
-        return cachingHealthRoute.buildHealthRoute();
     }
 
     /*
