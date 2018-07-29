@@ -44,6 +44,72 @@ can achieve this via [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
 For more information on the `mappingContext` see the corresponding [Payload Mapping Documentation](connectivity-mapping.html)
 
+## Placeholders
+
+The configuration of a connection allows to use placeholders at certain places. This allows more fine grained control 
+over how messages are consumed or where they are published to. The general syntax of a placeholder is 
+`{% raw %}{{ placeholder }}{% endraw %}`. A missing placeholder results in an error which is passed back to the sender (if a _reply-to_
+ header was provided). Which placeholder values are available depends on the context where the placeholder is used. 
+
+### Placeholder for source authorization subjects
+Processing the messages received via a source using the _same fixed authorization subject_ may not be 
+suitable for every scenario. For example you want to declare fine-grained write permissions per device which would not 
+be possible with a fixed global subject. For this use case we introduced placeholder substitution for authorization subjects of 
+source addresses that are resolved when processing messages from a source. Of course this requires the sender of the 
+message to provide necessary information about the original issuer of the message. 
+
+  {%
+    include important.html content="Only use this kind of placeholder if you trust the source of the message. The value from the header is used as the **authorized subject**."
+  %}
+                                                                           
+You can access any header value of the incoming message by using a placeholder like `{% raw %}{{ header.name }}{% endraw %}`.
+
+Example:
+Assuming the messages received from the source _telemetry_ contain a `device-id` header (e.g. _sensor-123_), 
+you may configure your source's authorization subject as follows:
+```json
+   {
+      "id": "auth-subject-placeholder-example",
+      "sources": [
+        {
+          "addresses": [ "telemetry" ],
+          "authorizationContext": ["device:{% raw %}{{ header:device-id }}{% endraw %}"]
+        }
+      ]
+  }
+```
+The placeholder is then replaced by the value from the message headers and the message is forwarded and processed under the 
+subject _device:sensor-123_.
+In case the header cannot be resolved or the header contains unexpected characters an exception is thrown which is sent 
+back to the sender as an error message, if a valid _reply-to_ header was provided, otherwise the message is dropped.
+
+### Placeholder for target addresses
+Another use case for placeholders may be to publish thing events or live commands and events to a target address 
+containing Thing-specific information e.g. you can distribute Things from different namespaces to different target addresses.
+You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
+For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders are resolved as follows:
+
+| Placeholder | Resolved value |
+|--------|------------|
+| thing:id  | org.eclipse.ditto:device-123 |
+| thing:namespace  | org.eclipse.ditto |
+| thing:name | device-123 |
+
+
+Example:
+Sending live commands and events to a target address that contains the Things' namespace.
+```json
+   {
+      "id": "target-placeholder-example",
+      "targets": [
+        {
+          "addresses": [ "live/{% raw %}{{ thing:namespace }}{% endraw %}" ],
+          "authorizationContext": ["ditto:auth-subject"],
+          "topics": [ "_/_/things/live/events", "_/_/things/live/commands" ]
+        }
+      ]
+  }
+``` 
 
 [Connectivity API]: connectivity-overview.html
 [Ditto Protocol]: protocol-overview.html
