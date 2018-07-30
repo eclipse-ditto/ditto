@@ -15,6 +15,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 
 import com.typesafe.config.Config;
@@ -29,7 +31,7 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
 
     private static final String PATH = "akka.contrib.persistence.mongodb.mongo.suffix-builder";
 
-    private final SuffixBuilderConfig suffixBuilderConfig;
+    @Nullable private final SuffixBuilderConfig suffixBuilderConfig;
 
     /**
      * Creates a AbstractConfigReader.
@@ -67,6 +69,9 @@ public final class SuffixBuilderConfigReader extends AbstractConfigReader {
         return new SuffixBuilderConfigReader(suffixBuilderConfig);
     }
 
+    /**
+     * @return the {@link SuffixBuilderConfig} which is used in this reader.
+     */
     public Optional<SuffixBuilderConfig> getSuffixBuilderConfig() {
         if (suffixBuilderConfig == null) {
             return Optional.empty();

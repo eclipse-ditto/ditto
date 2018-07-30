@@ -21,23 +21,31 @@ import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
 /**
  * Class to get suffix of a collection name based on the persistenceId of an entity.
  */
-public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames {
+public final class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NamespaceSuffixCollectionNames.class);
 
-    private static final char[] forbiddenCharactersInMongoCollectionNames =
-            new char[]{'/', '\\', '.', ' ', '\"', '$', '*', '<', '>', ':', '|', '?'};
+    private static final char[] FORBIDDEN_CHARS_IN_MONGO_COLLECTION_NAMES = new char[]{'$'};
 
     private static final String REPLACE_REGEX =
-            String.format("[%s]", Pattern.quote(new String(forbiddenCharactersInMongoCollectionNames)));
+            String.format("[%s]", Pattern.quote(new String(FORBIDDEN_CHARS_IN_MONGO_COLLECTION_NAMES)));
+
+    static final int MAX_SUFFIX_CHARS_LENGTH = 45;
 
     private static SuffixBuilderConfig suffixBuilderConfig;
 
+    /**
+     * Injects the {@link SuffixBuilderConfig} to use for the instance of this service.
+     * @param suffixBuilderConfig the SuffixBuilderConfig to use
+     */
     public static void setConfig(final SuffixBuilderConfig suffixBuilderConfig) {
         NamespaceSuffixCollectionNames.suffixBuilderConfig = suffixBuilderConfig;
         LOGGER.info("Namespace appending to mongodb collection names is enabled");
     }
 
+    /**
+     * Resets the SuffixBuilderConfig to use.
+     */
     static void resetConfig() {
         suffixBuilderConfig = null;
     }
@@ -64,18 +72,26 @@ public class NamespaceSuffixCollectionNames implements CanSuffixCollectionNames 
             return "";
         }
 
-        return validateMongoCharacters(persistenceIdSplitByColons[1]);
+        return validateMongoCharacters(persistenceIdSplitByColons[1]); // take the namespace of the entity
     }
 
     /**
      * Removes all characters that are forbidden in mongodb collection names.
      *
      * @param input The original input
-     * @return The input without forbidden characters. Dots will be replaced by "%" all other forbidden
-     * characters are replaced by "#"
+     * @return The input without forbidden characters which  are replaced by "#"
      */
     @Override
     public String validateMongoCharacters(final String input) {
-        return input.replace('.', '%').replaceAll(REPLACE_REGEX, "#");
+        final String escaped = input.replaceAll(REPLACE_REGEX, "#");
+        // the max length of a collection or index name (including the DB name) in MongoDB is 120 bytes
+        // so we assume that we need ~66 characters for the longest "static" part of the collection/index name, e.g.:
+        // "concierge.batch_supervisor_journal@...$batch_supervisor_journal_index" and leave some spare
+        // characters for the added hash
+        if (escaped.length() > MAX_SUFFIX_CHARS_LENGTH) {
+            final String hash = Integer.toHexString(escaped.hashCode());
+            return escaped.substring(0, MAX_SUFFIX_CHARS_LENGTH) + "@" + hash;
+        }
+        return escaped;
     }
 }

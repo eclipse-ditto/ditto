@@ -36,6 +36,9 @@ public final class SuffixBuilderConfig {
         }
     }
 
+    /**
+     * @return a list of which entity suffixes (e.g. "thing", "policy") are supported,
+     */
     List<String> getSupportedPrefixes() {
         return new ArrayList<>(supportedPrefixes);
     }

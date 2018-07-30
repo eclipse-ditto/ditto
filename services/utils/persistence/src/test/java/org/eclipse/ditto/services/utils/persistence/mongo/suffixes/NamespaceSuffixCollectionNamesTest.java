@@ -35,7 +35,7 @@ public class NamespaceSuffixCollectionNamesTest {
 
         final String suffix = sut.getSuffixFromPersistenceId(persistenceId);
 
-        final String expectedSuffix = "org%eclipse%ditto";
+        final String expectedSuffix = "org.eclipse.ditto";
         assertThat(suffix).isEqualTo(expectedSuffix);
     }
 
@@ -61,12 +61,27 @@ public class NamespaceSuffixCollectionNamesTest {
     public void validateMongoCharacters() {
         NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
         final String invalidInput =
-                "This/should\\be.a string\"separated$by*hashes<and>not:by|strange?characters";
+                "This/should\\be.a s|tg\"with$so?me*has:hes<b";
 
         final String sanitizedString = sut.validateMongoCharacters(invalidInput);
 
-        final String expected = "This#should#be%a#string#separated#by#hashes#and#not#by#strange#characters";
+        final String expected = invalidInput.replace('$', '#');
         assertThat(sanitizedString).isEqualTo(expected);
+    }
+
+    @Test
+    public void validateVeryLongNamespace() {
+        NamespaceSuffixCollectionNames.setConfig(new SuffixBuilderConfig(Collections.singletonList("thing")));
+        final String invalidInput =
+                "this.is.a.namespace.which.is.quite.long.so.that.not.all.characters.would.fit.as.collection.name";
+
+        final String sanitizedString = sut.validateMongoCharacters(invalidInput);
+
+        assertThat(sanitizedString).startsWith(invalidInput.substring(0, 20));
+        final String expected = invalidInput.substring(0, NamespaceSuffixCollectionNames.MAX_SUFFIX_CHARS_LENGTH) +
+                "@" + Integer.toHexString(invalidInput.hashCode());
+        assertThat(sanitizedString).isEqualTo(expected);
+        assertThat(sanitizedString).doesNotEndWith(invalidInput);
     }
 
     @Test(expected = NullPointerException.class)
