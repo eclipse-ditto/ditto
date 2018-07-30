@@ -106,7 +106,7 @@ public final class PoliciesRoute extends AbstractRoute {
         );
     }
 
-    private JsonObject createPolicyJsonObjectForPut(final String jsonString, final String policyId) {
+    private static JsonObject createPolicyJsonObjectForPut(final String jsonString, final String policyId) {
         final JsonObject policyJsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         policyJsonObject.getValue(Policy.JsonFields.ID.getPointer())
                 .ifPresent(policyIdJsonValue -> {
