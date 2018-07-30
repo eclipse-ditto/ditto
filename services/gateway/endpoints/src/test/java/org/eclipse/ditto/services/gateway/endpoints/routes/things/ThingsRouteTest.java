@@ -20,7 +20,10 @@ import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsExcep
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
@@ -51,15 +54,23 @@ public class ThingsRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
 
-    // THIS TEST SHOULD FAIL!
-    @Test(expected = StackOverflowError.class)
+    @Test
     public void getThingWithVeryLongId() {
         final int numberOfUUIDs = 100;
-        final StringBuilder pathBuilder = new StringBuilder("/things/");
+        final StringBuilder pathBuilder = new StringBuilder("/things/").append("namespace");
         for (int i = 0; i < numberOfUUIDs; ++i) {
             pathBuilder.append(':').append(UUID.randomUUID());
         }
-        underTest.run(HttpRequest.GET(pathBuilder.toString()));
+        final TestRouteResult result = underTest.run(HttpRequest.GET(pathBuilder.toString()));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void createThingWithInvalidInitialPolicy() {
+        final String body = "{\"_policy\":1234}";
+        final RequestEntity requestEntity = HttpEntities.create(ContentTypes.APPLICATION_JSON, body);
+        final TestRouteResult result = underTest.run(HttpRequest.POST("/things").withEntity(requestEntity));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test

@@ -23,6 +23,7 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.SUBJECT
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_ID;
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_SUDO;
 
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +38,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
@@ -49,6 +51,7 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibl
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -327,7 +330,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     @Test
-    public void acceptCreateByOwnPolicy() {
+    public void acceptCreateByInlinePolicy() {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT.getId())
@@ -380,6 +383,89 @@ public final class ThingCommandEnforcementTest {
             // verify cache is loaded twice
             assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
         }};
+    }
+
+    @Test
+    public void acceptCreateByInlinePolicyWithDifferentId() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder("policy:id")
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .build();
+        final Thing thing = newThing().build();
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+            underTest.tell(createThing, getRef());
+            final CreateThingResponse expectedCreateThingResponse = expectMsgClass(CreateThingResponse.class);
+            assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
+        }};
+
+    }
+
+    @Test
+    public void rejectCreateByInlinePolicyWithInvalidId() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .build();
+        final JsonObject invalidPolicyJson = policy.toJson()
+                .setValue("policyId", "invalid-policy-id");
+        final Thing thing = newThing().build();
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+            underTest.tell(createThing, getRef());
+
+            // result may not be an instance of PolicyIdInvalidException but should have the same error code.
+            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(PolicyIdInvalidException.ERROR_CODE);
+        }};
+    }
+
+    @Test
+    public void rejectCreateByInvalidPolicy() {
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(THING_ID)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, SUBJECT.getId())
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()), WRITE.name())
+                .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()), WRITE.name())
+                .setModified(Instant.now())
+                .build();
+        final JsonObject invalidPolicyJson = policy.toJson()
+                .setValue("_modified", "invalid-timestamp");
+        final Thing thing = newThing().build();
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
+            mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
+                    .setReply(CreatePolicyResponse.of(THING_ID, policy, headers(V_2)));
+            underTest.tell(createThing, getRef());
+
+            // result may not be an instance of PolicyInvalidException but should have the same error code.
+            final DittoRuntimeException response = expectMsgClass(DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(PolicyInvalidException.ERROR_CODE);
+        }};
+
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {

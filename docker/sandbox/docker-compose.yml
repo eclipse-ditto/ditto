@@ -97,7 +97,6 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
       - DEVOPS_SECURE_STATUS=false
-      - GATEWAY_PUBLIC_HEALTH_SECURE=false
       - IBM_JAVA_OPTIONS=-Xms256m -Xms256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
