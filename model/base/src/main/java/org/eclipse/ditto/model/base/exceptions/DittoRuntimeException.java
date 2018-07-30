@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -262,6 +263,36 @@ public class DittoRuntimeException extends RuntimeException implements
      */
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
         // empty per default
+    }
+
+    /**
+     * Deserialize an error whose java class isn't known.
+     *
+     * @param jsonObject the error object.
+     * @param headers the headers.
+     * @return a generic {@code DittoRuntimeException} object if the JSON can be parsed as such; an empty optional
+     * otherwise.
+     */
+    public static Optional<DittoRuntimeException> fromUnknownErrorJson(final JsonObject jsonObject,
+            final DittoHeaders headers) {
+        return jsonObject.getValue(JsonFields.ERROR_CODE).flatMap(errorCode ->
+                jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).map(status -> {
+                    final Builder builder = new Builder(errorCode, status);
+                    builder.dittoHeaders(headers);
+                    jsonObject.getValue(JsonFields.MESSAGE).ifPresent(builder::message);
+                    jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
+                    jsonObject.getValue(JsonFields.HREF)
+                            .flatMap(uriString -> {
+                                try {
+                                    return Optional.of(new URI(uriString));
+                                } catch (URISyntaxException e) {
+                                    return Optional.empty();
+                                }
+                            })
+                            .ifPresent(builder::href);
+                    return builder.build();
+                })
+        );
     }
 
 

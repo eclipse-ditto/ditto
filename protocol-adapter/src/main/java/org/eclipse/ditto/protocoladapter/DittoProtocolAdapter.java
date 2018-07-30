@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -361,7 +362,14 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
-                .map(jsonObject -> errorRegistry.parse(jsonObject, dittoHeaders))
+                .map(jsonObject -> {
+                    try {
+                        return errorRegistry.parse(jsonObject, dittoHeaders);
+                    } catch (final JsonTypeNotParsableException e) {
+                        return DittoRuntimeException.fromUnknownErrorJson(jsonObject, dittoHeaders)
+                                .orElseThrow(() -> e);
+                    }
+                })
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();
