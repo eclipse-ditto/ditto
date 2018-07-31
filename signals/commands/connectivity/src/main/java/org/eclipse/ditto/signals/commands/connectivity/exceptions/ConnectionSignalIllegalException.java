@@ -29,21 +29,23 @@ import org.eclipse.ditto.model.connectivity.ConnectivityException;
  * Thrown if a connection command arrives while a connection operation is underway.
  */
 @Immutable
-public final class ConnectionBusyException extends DittoRuntimeException implements ConnectivityException {
+public final class ConnectionSignalIllegalException extends DittoRuntimeException implements ConnectivityException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.busy";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "signal.illegal";
 
-    private static final String MESSAGE_TEMPLATE = "The Connection with ID ''{0}'' is {1}.";
+    private static final String OPERATING_MESSAGE_TEMPLATE = "The Connection with ID ''{0}'' is {1}.";
+    private static final String OPERATING_DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
 
-    private static final String DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
+    private static final String STAYING_MESSAGE_TEMPLATE = "The message ''{2}'' is illegal for the {1} Connection " +
+            "with ID ''{0}''";
 
     private static final long serialVersionUID = 2648721759252899991L;
 
 
-    private ConnectionBusyException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private ConnectionSignalIllegalException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
     }
@@ -68,7 +70,7 @@ public final class ConnectionBusyException extends DittoRuntimeException impleme
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static ConnectionBusyException fromJson(final JsonObject jsonObject,
+    public static ConnectionSignalIllegalException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final Builder builder = new Builder();
         builder.message(readMessage(jsonObject));
@@ -78,15 +80,12 @@ public final class ConnectionBusyException extends DittoRuntimeException impleme
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link ConnectionBusyException}.
+     * A mutable builder with a fluent API for a {@link ConnectionSignalIllegalException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionBusyException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionSignalIllegalException> {
 
         private String connectionId = "UNKNOWN";
-
-        private String operationName = "performing an unknown operation";
-        private int timeout = 0;
 
         private Builder() {}
 
@@ -98,7 +97,6 @@ public final class ConnectionBusyException extends DittoRuntimeException impleme
          */
         public Builder connectionId(final String connectionId) {
             this.connectionId = connectionId;
-            setMessage();
             return this;
         }
 
@@ -110,36 +108,39 @@ public final class ConnectionBusyException extends DittoRuntimeException impleme
          * @return this builder.
          */
         public Builder operationName(final String operationName) {
-            this.operationName = operationName;
-            setMessage();
+            message(MessageFormat.format(OPERATING_MESSAGE_TEMPLATE, connectionId, operationName));
             return this;
         }
 
         /**
-         * Set after how many seconds the user should attempt the command again.
+         * Set description to after how many seconds the user should attempt the command again.
          *
          * @param timeout timeout of the current connection operation in seconds.
          * @return this builder.
          */
         public Builder timeout(final int timeout) {
-            this.timeout = timeout;
-            setDescription();
+            final String timeoutUnit = timeout == 1 ? "second" : "seconds";
+            description(MessageFormat.format(OPERATING_DESCRIPTION_TEMPLATE, timeout, timeoutUnit));
             return this;
         }
 
-        private void setMessage() {
-            message(MessageFormat.format(MESSAGE_TEMPLATE, connectionId, operationName));
-        }
-
-        private void setDescription() {
-            final String timeoutUnit = timeout == 1 ? "second" : "seconds";
-            description(MessageFormat.format(DESCRIPTION_TEMPLATE, timeout, timeoutUnit));
+        /**
+         * Set message to about a signal arriving when the connection state does not handle it.
+         *
+         * @param signalType type of the signal.
+         * @param state state of the connection. Should be an adjective.
+         * @return this builder.
+         */
+        public Builder illegalSignalForState(final String signalType, final String state) {
+            message(MessageFormat.format(STAYING_MESSAGE_TEMPLATE, connectionId, state, signalType));
+            return this;
         }
 
         @Override
-        protected ConnectionBusyException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
+        protected ConnectionSignalIllegalException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
                 @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
-            return new ConnectionBusyException(dittoHeaders, message, description, cause, href);
+            return new ConnectionSignalIllegalException(dittoHeaders, message, description, cause, href);
         }
     }
 

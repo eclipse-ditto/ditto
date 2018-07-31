@@ -65,6 +65,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
+import akka.pattern.PatternsCS;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -145,8 +146,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> unhandledHandler(final String connectionId) {
-        return super.unhandledHandler(connectionId)
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> commonHandler(final String connectionId) {
+        return super.commonHandler(connectionId)
                 .event(ChannelCreated.class, BaseClientData.class, (channelCreated, data) -> {
                     handleChannelCreated(channelCreated);
                     return stay();
@@ -164,23 +165,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
         createConnectionSender = origin;
         connect(connection, origin)
                 .thenAccept(status -> log.info("Status of connecting in doConnectClient: {}", status));
-    }
-
-    @Override
-    protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        stopCommandConsumers();
-        stopCommandPublisher();
-
-        onClientDisconnected(Optional::empty, stateData());
-
-        createConnectionSender = origin;
-
-        // wait a little until connecting again:
-        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
-                () -> connect(connection, origin)
-                        .thenAccept(status -> {
-                            log.info("Reconnected successfully");
-                        }), getContext().getSystem().dispatcher());
     }
 
     @Override
@@ -296,21 +280,41 @@ public final class RabbitMQClientActor extends BaseClientActor {
         consumerChannelActor = channelCreated.channel();
     }
 
+    private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
+            final RabbitConnectionFactoryFactory factoryFactory,
+            final Connection connection,
+            final RabbitMQExceptionHandler rabbitMQExceptionHandler) {
+
+        try {
+            return Optional.of(factoryFactory.createConnectionFactory(connection, rabbitMQExceptionHandler));
+        } catch (final Throwable throwable) {
+            // error creating factory; return early.)
+            rabbitMQExceptionHandler.exceptionHandler.accept(throwable);
+            return Optional.empty();
+        }
+    }
+
     private CompletionStage<Status.Status> connect(final Connection connection, @Nullable final ActorRef origin) {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         if (rmqConnectionActor == null) {
             final ActorRef self = getSelf();
-            try {
-                final ConnectionFactory connectionFactory = rabbitConnectionFactoryFactory
-                        .createConnectionFactory(connection, new RabbitMQExceptionHandler(throwable -> {
-                            self.tell(new ImmutableConnectionFailure(origin, throwable, null), self);
-                            future.complete(new Status.Failure(throwable));
-                        }));
+
+            // complete the future if something went wrong during creation of the connection-factory-factory
+            final RabbitMQExceptionHandler rabbitMQExceptionHandler =
+                    new RabbitMQExceptionHandler(throwable -> {
+                        self.tell(new ImmutableConnectionFailure(origin, throwable, null), self);
+                        future.complete(new Status.Failure(throwable));
+                    });
+
+            final Optional<ConnectionFactory> connectionFactoryOpt =
+                    tryToCreateConnectionFactory(rabbitConnectionFactoryFactory, connection, rabbitMQExceptionHandler);
+
+            if (connectionFactoryOpt.isPresent()) {
+                final ConnectionFactory connectionFactory = connectionFactoryOpt.get();
 
                 final Props props = com.newmotion.akka.rabbitmq.ConnectionActor.props(connectionFactory,
                         FiniteDuration.apply(10, TimeUnit.SECONDS), (rmqConnection, connectionActorRef) -> {
                             log.info("Established RMQ connection: {}", rmqConnection);
-                            self.tell((ClientConnected) () -> Optional.ofNullable(createConnectionSender), origin);
                             return null;
                         });
                 rmqConnectionActor = startChildActor(RMQ_CONNECTION_ACTOR_NAME, props);
@@ -318,17 +322,26 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 rmqPublisherActor = startRmqPublisherActor().orElse(null);
 
                 // create publisher channel
-                rmqConnectionActor.tell(
-                        CreateChannel.apply(
-                                ChannelActor.props((channel, s) -> {
-                                    log.info("Did set up publisher channel: {}", channel);
-                                    future.complete(new Status.Success("channel created"));
-                                    return null;
-                                }),
-                                Option.apply(PUBLISHER_CHANNEL)), rmqPublisherActor);
-            } catch (final Exception exception) {
-                self.tell(new ImmutableConnectionFailure(origin, exception, null), self);
-                future.complete(new Status.Failure(exception));
+                final CreateChannel createChannel = CreateChannel.apply(
+                        ChannelActor.props((channel, s) -> {
+                            log.info("Did set up publisher channel: {}", channel);
+                            return null;
+                        }),
+                        Option.apply(PUBLISHER_CHANNEL));
+                final long timeoutMillis = CONNECTING_TIMEOUT * 750; // 75% of connection timeout
+                PatternsCS.ask(rmqConnectionActor, createChannel, timeoutMillis)
+                        .handle((reply, throwable) -> {
+                            if (throwable != null) {
+                                self.tell(new ImmutableConnectionFailure(origin, throwable, null), self);
+                                future.complete(new Status.Failure(throwable));
+                            } else {
+                                // ChannelActor replies ChannelCreated always; no need to check.
+                                rmqPublisherActor.tell(reply, rmqConnectionActor);
+                                self.tell((ClientConnected) () -> Optional.ofNullable(origin), origin);
+                                future.complete(new Status.Success("channel created"));
+                            }
+                            return null;
+                        });
             }
         } else {
             log.debug("Connection '{}' is already open.", connectionId());
@@ -375,7 +388,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         break;
                     }
                 }
-                ;
             }
         });
     }

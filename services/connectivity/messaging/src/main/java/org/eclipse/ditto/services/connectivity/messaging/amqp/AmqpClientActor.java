@@ -180,13 +180,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected void doReconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        startConnectionHandlingActor("reconnect", connection).tell(new JmsReconnect(origin, jmsConnection),
-                getSelf());
-    }
-
-    @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         startConnectionHandlingActor("disconnect", connection)

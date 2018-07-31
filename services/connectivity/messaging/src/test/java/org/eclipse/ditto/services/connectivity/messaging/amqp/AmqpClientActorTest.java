@@ -157,7 +157,7 @@ public class AmqpClientActorTest {
                 ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
-                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0,"source1")))
+                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0, "source1")))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
@@ -230,10 +230,11 @@ public class AmqpClientActorTest {
             amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            // trigger a reconnect:
             amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-            Mockito.verify(mockConnection, Mockito.times(2)).start();
+
+            // no reconnect happens
+            Mockito.verify(mockConnection, Mockito.times(1)).start();
         }};
     }
 
