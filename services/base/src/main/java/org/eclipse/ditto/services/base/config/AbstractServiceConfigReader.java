@@ -74,6 +74,11 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
         return new MetricsConfigReader(getChildOrEmpty(PATH_METRICS));
     }
 
+    @Override
+    public SuffixBuilderConfigReader mongoCollectionNameSuffix() {
+        return SuffixBuilderConfigReader.fromRawConfig(rawConfig);
+    }
+
     private static Config getOrEmpty(final Config config, final String path) {
         return config.hasPath(path) ? config.getConfig(path) : ConfigFactory.empty();
     }

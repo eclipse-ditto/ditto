@@ -36,13 +36,15 @@ public final class MongoClientActor extends AbstractMongoClientActor {
 
     private final String connectionString;
     private final Duration timeout;
+    private final boolean sslEnabled;
 
     /**
      * Constructs a {@code MongoClientActor}.
      */
-    private MongoClientActor(final String connectionString, final Duration timeout) {
+    private MongoClientActor(final String connectionString, final Duration timeout, final Boolean sslEnabled) {
         this.connectionString = connectionString;
         this.timeout = timeout;
+        this.sslEnabled = sslEnabled;
     }
 
     /**
@@ -52,13 +54,13 @@ public final class MongoClientActor extends AbstractMongoClientActor {
      * @param timeout the timeout for database operations.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String connectionString, final Duration timeout) {
+    public static Props props(final String connectionString, final Duration timeout, final Boolean sslEnabled) {
         return Props.create(MongoClientActor.class, new Creator<MongoClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MongoClientActor create() throws Exception {
-                return new MongoClientActor(connectionString, timeout);
+                return new MongoClientActor(connectionString, timeout, sslEnabled);
             }
         });
     }
@@ -71,6 +73,11 @@ public final class MongoClientActor extends AbstractMongoClientActor {
     @Override
     protected Duration getTimeout() {
         return timeout;
+    }
+
+    @Override
+    protected boolean isSSLEnabled() {
+        return sslEnabled;
     }
 
     @Override

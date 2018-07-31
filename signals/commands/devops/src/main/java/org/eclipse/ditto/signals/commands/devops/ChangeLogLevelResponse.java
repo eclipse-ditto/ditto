@@ -45,7 +45,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     private final boolean successful;
 
-    private ChangeLogLevelResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+    private ChangeLogLevelResponse(@Nullable final String serviceName, @Nullable final String instance,
             final boolean successful, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, successful ? HttpStatusCode.OK : HttpStatusCode.INTERNAL_SERVER_ERROR,
                 dittoHeaders);
@@ -56,12 +56,12 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * Creates a new ChangeLogLevelResponse instance.
      *
      * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
+     * @param instance the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
      * @param successful indicates whether the persistence snapshot was successful.
      * @param dittoHeaders the DittoHeaders of the repsonse.
      * @return the new ChangeLogLevelResponse instance.
      */
-    public static ChangeLogLevelResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static ChangeLogLevelResponse of(@Nullable final String serviceName, @Nullable final String instance,
             final boolean successful, final DittoHeaders dittoHeaders) {
         return new ChangeLogLevelResponse(serviceName, instance, successful, dittoHeaders);
     }
@@ -96,7 +96,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
                 (statusCode) -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
-                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
                             .orElse(null);
                     final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
                     return ChangeLogLevelResponse.of(serviceName, instance, successful, dittoHeaders);

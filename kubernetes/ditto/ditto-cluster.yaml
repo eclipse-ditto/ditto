@@ -1,0 +1,358 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: concierge
+  labels:
+    app: concierge
+spec:
+  template:
+    metadata:
+      labels:
+        app: concierge
+        actorSystemName: ditto-cluster
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: concierge
+        image: docker.io/eclipse/ditto-concierge:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: connectivity
+  labels:
+    app: connectivity
+spec:
+  template:
+    metadata:
+      labels:
+        app: connectivity
+        actorSystemName: ditto-cluster
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: connectivity
+        image: docker.io/eclipse/ditto-connectivity:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: things
+  labels:
+    app: things
+spec:
+  template:
+    metadata:
+      labels:
+        app: things
+        actorSystemName: ditto-cluster
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: things
+        image: docker.io/eclipse/ditto-things:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+        - name: LOG_LEVEL
+          value: DEBUG
+        - name: LOG_LEVEL_APPLICATION
+          value: DEBUG
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: things-search
+  labels:
+    app: things-search
+spec:
+  template:
+    metadata:
+      labels:
+        app: things-search
+        actorSystemName: ditto-cluster
+    spec:
+      containers:
+      - name: things-search
+        image: docker.io/eclipse/ditto-things-search:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: policies
+  labels:
+    app: policies
+spec:
+  template:
+    metadata:
+      labels:
+        app: policies
+        actorSystemName: ditto-cluster
+    spec:
+      containers:
+      - name: policies
+        image: docker.io/eclipse/ditto-policies:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gateway
+  labels:
+    app: gateway
+spec:
+  template:
+    metadata:
+      labels:
+        app: gateway
+        actorSystemName: ditto-cluster
+    spec:
+      containers:
+      - name: gateway
+        image: docker.io/eclipse/ditto-gateway:latest
+        imagePullPolicy: IfNotPresent
+        command: ["java"]
+        args: ["-jar", "/opt/ditto/starter.jar"]
+        ports:
+        - name: akka-remoting
+          containerPort: 2551
+          protocol: TCP
+        - name: akka-mgmt-http
+          containerPort: 8558
+          protocol: TCP
+        readinessProbe:
+          tcpSocket:
+            port: 8558
+          initialDelaySeconds: 45
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 2551
+          initialDelaySeconds: 180
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 4
+        env:
+        - name: ENABLE_DUMMY_AUTH
+          value: "true"
+        - name: INSTANCE_INDEX
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: DISCOVERY_METHOD
+          value: "kubernetes-api"
+        - name: TZ
+          value: "Europe/Berlin"
+        - name: IBM_JAVA_OPTIONS
+          value: "-Xms256m -Xmx256m -Xss512k"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+spec:
+  clusterIP: None
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: gateway

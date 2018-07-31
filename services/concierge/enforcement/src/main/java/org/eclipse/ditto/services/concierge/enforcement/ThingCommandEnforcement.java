@@ -695,10 +695,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final String policyId) {
 
         final String message = String.format(
-                "The Thing with ID ''%s'' could not be accessed as its Policy with ID ''%s'' is not or no longer existing.",
+                "The Thing with ID '%s' could not be accessed as its Policy with ID '%s' is not or no longer existing.",
                 thingId, policyId);
         final String description = String.format(
-                "Recreate/create the Policy with ID ''%s'' in order to get access to the Thing again.",
+                "Recreate/create the Policy with ID '%s' in order to get access to the Thing again.",
                 policyId);
 
         if (thingCommand instanceof ThingModifyCommand) {
@@ -1027,7 +1027,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             } else {
                 // cannot create policy.
                 final String thingId = createThing.getThingId();
-                final String message = String.format("The Thing with ID ''%s'' could not be created with implicit " +
+                final String message = String.format("The Thing with ID '%s' could not be created with implicit " +
                         "Policy because no authorization subject is present.", thingId);
                 final ThingNotCreatableException error =
                         ThingNotCreatableException.newBuilderForPolicyMissing(thingId, thingId)

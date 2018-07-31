@@ -32,7 +32,7 @@ public final class Status {
         versionsJson = JsonFactory.readFrom(new Scanner(versionsInputStream).useDelimiter("\\Z").next()).asObject()
                 .setValue("hostname", ConfigUtil.getHostNameFromEnv()) //
                 .setValue("local-address", ConfigUtil.getLocalHostAddress()) //
-                .setValue("instance-index", ConfigUtil.instanceIndex()) //
+                .setValue("instance", ConfigUtil.instanceIdentifier()) //
                 .setValue("processor-count", Runtime.getRuntime().availableProcessors()) //
                 .setValue("total-memory", (Runtime.getRuntime().totalMemory() / 1024 / 1024) + " MB");
     }

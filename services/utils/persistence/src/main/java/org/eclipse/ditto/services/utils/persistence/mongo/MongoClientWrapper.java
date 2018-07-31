@@ -12,12 +12,15 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.io.Closeable;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 
@@ -28,6 +31,7 @@ import com.mongodb.async.client.MongoClientSettings;
 import com.mongodb.connection.ClusterSettings;
 import com.mongodb.connection.ConnectionPoolSettings;
 import com.mongodb.connection.SslSettings;
+import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.mongodb.management.JMXConnectionPoolListener;
@@ -35,6 +39,9 @@ import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoClients;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
+
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 /**
  * MongoDB Client Wrapper.
@@ -44,6 +51,7 @@ public class MongoClientWrapper implements Closeable {
 
     private final MongoClient mongoClient;
     private final MongoDatabase mongoDatabase;
+    private static EventLoopGroup eventLoopGroup = null;
 
     /**
      * Initializes the persistence with a passed in {@code database} and {@code clientSettings}.
@@ -74,12 +82,25 @@ public class MongoClientWrapper implements Closeable {
         final String uri = MongoConfig.getMongoUri(config);
         final ConnectionString connectionString = new ConnectionString(uri);
         final String database = connectionString.getDatabase();
+
         final MongoClientSettings.Builder builder =
                 MongoClientSettings.builder()
                         .readPreference(ReadPreference.secondaryPreferred())
-                        .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build())
-                        .credentialList(connectionString.getCredentialList())
-                        .sslSettings(SslSettings.builder().applyConnectionString(connectionString).build());
+                        .clusterSettings(ClusterSettings.builder().applyConnectionString(connectionString).build());
+
+        if (connectionString.getCredential() != null) {
+            builder.credential(connectionString.getCredential());
+        }
+
+        if (MongoConfig.getSSLEnabled(config)) {
+            eventLoopGroup = new NioEventLoopGroup();
+            builder.streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
+                    .sslSettings(buildSSLSettings());
+        } else {
+            builder.sslSettings(SslSettings.builder()
+                    .applyConnectionString(connectionString)
+                    .build());
+        }
 
         if (customCommandListener != null) {
             builder.addCommandListener(customCommandListener);
@@ -115,7 +136,6 @@ public class MongoClientWrapper implements Closeable {
      * @param maxPoolWaitQueueSize the max queue size of the pool.
      * @param maxPoolWaitTimeSecs the max wait time in the pool.
      * @return a new {@code MongoClientWrapper} object.
-     *
      * @see #newInstance(Config) for production purposes
      */
     public static MongoClientWrapper newInstance(final String host, final int port, final String dbName,
@@ -131,7 +151,6 @@ public class MongoClientWrapper implements Closeable {
                 maxPoolWaitQueueSize, Duration.of(maxPoolWaitTimeSecs, ChronoUnit.SECONDS), false, null);
         return new MongoClientWrapper(dbName, mongoClientSettings);
     }
-
 
     private static MongoClientSettings buildClientSettings(final MongoClientSettings.Builder builder,
             final int maxPoolSize,
@@ -157,6 +176,24 @@ public class MongoClientWrapper implements Closeable {
         return builder.build();
     }
 
+    private static SslSettings buildSSLSettings() {
+
+        final SSLContext sslContext;
+        try {
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, null, null);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException("No such Algorithm is supported ",  e);
+        } catch (KeyManagementException e) {
+            throw new IllegalStateException("KeyManagementException ", e);
+        }
+
+        return SslSettings.builder()
+                .context(sslContext)
+                .enabled(true)
+                .build();
+    }
+
     /**
      * @return the MongoDB client.
      */
@@ -173,6 +210,9 @@ public class MongoClientWrapper implements Closeable {
 
     @Override
     public void close() {
+        if (eventLoopGroup != null) {
+            eventLoopGroup.shutdownGracefully();
+        }
         mongoClient.close();
     }
 }

@@ -142,7 +142,7 @@ final class GatewayRootActor extends AbstractActor {
 
         final ActorRef devOpsCommandsActor = startChildActor(DevOpsCommandsActor.ACTOR_NAME,
                 DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
-                        ConfigUtil.instanceIndex()));
+                        ConfigUtil.instanceIdentifier()));
 
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorSystem)
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,
