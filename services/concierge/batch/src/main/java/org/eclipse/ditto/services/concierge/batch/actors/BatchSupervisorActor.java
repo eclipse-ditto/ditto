@@ -147,7 +147,6 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
                 .match(BatchExecutionFinished.class, event ->
                         persistEvent(event, e -> {
                             if (batchIds.contains(e.getBatchId())) {
-                                log.error("FINISHED! {}", e); // TODO: remove
                                 batchIds.remove(e.getBatchId());
                                 // only publish event after it is persisted
                                 publishEvent(e);
