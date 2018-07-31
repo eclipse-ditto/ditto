@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
@@ -176,7 +177,8 @@ public class RabbitMQClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            expectMsgClass(ConnectionSignalIllegalException.class);
+
             verify(mockConnection, Mockito.atLeast(1)).createChannel();
         }};
     }

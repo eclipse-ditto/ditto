@@ -62,6 +62,7 @@ import org.eclipse.ditto.services.connectivity.messaging.UnmappedOutboundSignal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
@@ -231,7 +232,7 @@ public class AmqpClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            expectMsgClass(ConnectionSignalIllegalException.class);
 
             // no reconnect happens
             Mockito.verify(mockConnection, Mockito.times(1)).start();
