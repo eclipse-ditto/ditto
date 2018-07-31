@@ -17,14 +17,9 @@ import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
 import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
-import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.slf4j.Logger;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -73,4 +68,5 @@ public abstract class AbstractThingsService extends DittoService<ServiceConfigRe
 
         return ThingsRootActor.props(configReader, pubSubMediator, materializer, thingSnapshotterCreate);
     }
+
 }

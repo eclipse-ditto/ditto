@@ -17,14 +17,9 @@ import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.connectivity.actors.ConnectivityRootActor;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
-import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -67,4 +62,5 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
 
         return ConnectivityRootActor.props(configReader, pubSubMediator, materializer, Function.identity());
     }
+
 }
