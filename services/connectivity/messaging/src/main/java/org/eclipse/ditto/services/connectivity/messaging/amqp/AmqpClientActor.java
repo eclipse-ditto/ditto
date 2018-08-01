@@ -325,7 +325,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     "new command..", name);
             return child.get();
         } else {
-            final Props props = JMSConnectionHandlingActor.props(connection, this, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory);
             return getContext().actorOf(props, name);
         }
     }

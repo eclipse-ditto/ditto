@@ -49,6 +49,9 @@ import scala.concurrent.duration.FiniteDuration;
  * This actor executes single operation (connect/disconnect) on JMS Connection/Session. It is separated into an actor
  * because the JMS Client is blocking which makes it impossible to e.g. cancel a pending connection attempts with
  * another actor message when done in the same actor.
+ * <p>
+ * WARNING: This actor blocks! Start with its own dispatcher!
+ * </p>
  */
 public class JMSConnectionHandlingActor extends AbstractActor {
 
@@ -56,6 +59,11 @@ public class JMSConnectionHandlingActor extends AbstractActor {
      * The Actor name prefix.
      */
     static final String ACTOR_NAME_PREFIX = "jmsConnectionHandling-";
+
+    /**
+     * Config key of the dispatcher for this actor.
+     */
+    public static final String DISPATCHER_NAME = "jms-connection-handling-dispatcher";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -90,6 +98,12 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                 return new JMSConnectionHandlingActor(connection, exceptionListener, jmsConnectionFactory);
             }
         });
+    }
+
+    static Props propsWithOwnDispatcher(final Connection connection, final ExceptionListener exceptionListener,
+            final JmsConnectionFactory jmsConnectionFactory) {
+        return props(connection, exceptionListener, jmsConnectionFactory)
+                .withDispatcher(DISPATCHER_NAME);
     }
 
     @Override
