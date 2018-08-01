@@ -92,8 +92,6 @@ public class JmsConnectionHandlingActorTest {
 
             final ClientConnected connected = expectMsgClass(ClientConnected.class);
             assertThat(connected.getOrigin()).contains(origin.ref());
-
-            expectTerminated(connectionHandlingActor);
         }};
     }
 
@@ -114,8 +112,6 @@ public class JmsConnectionHandlingActorTest {
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
             assertThat(connectionFailure1.getFailure().cause()).isSameAs(exception);
-
-            expectTerminated(connectionHandlingActor);
         }};
     }
 
@@ -136,8 +132,6 @@ public class JmsConnectionHandlingActorTest {
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
             assertThat(connectionFailure1.getFailure().cause()).isSameAs(exception);
-
-            expectTerminated(connectionHandlingActor);
         }};
     }
 
@@ -154,8 +148,6 @@ public class JmsConnectionHandlingActorTest {
 
             final ClientConnected connected = expectMsgClass(ClientConnected.class);
             assertThat(connected.getOrigin()).contains(origin.ref());
-
-            expectTerminated(connectionHandlingActor);
 
             verify(mockConnection).start();
             verify(mockSession, times(connection.getSources()
@@ -179,8 +171,6 @@ public class JmsConnectionHandlingActorTest {
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
             assertThat(disconnected.getOrigin()).contains(origin.ref());
 
-            expectTerminated(connectionHandlingActor);
-
             verify(mockConnection).close();
         }};
     }
@@ -201,8 +191,6 @@ public class JmsConnectionHandlingActorTest {
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
             assertThat(disconnected.getOrigin()).contains(origin.ref());
-
-            expectTerminated(connectionHandlingActor);
 
             verify(mockConnection).close();
         }};

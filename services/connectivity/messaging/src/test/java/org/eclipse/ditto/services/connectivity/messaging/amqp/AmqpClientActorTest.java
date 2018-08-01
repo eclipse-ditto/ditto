@@ -205,6 +205,31 @@ public class AmqpClientActorTest {
     }
 
     @Test
+    public void testReconnect() {
+        new TestKit(actorSystem) {{
+            final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (connection1, exceptionListener) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+            watch(amqpClientActor);
+
+            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
+
+            // introduce artificial code difference from RabbitMQClientActorTest.testReconnect
+            for (int i = 0; i < 10; ++i) {
+                amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+                expectMsg(DISCONNECTED_SUCCESS);
+
+                amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+                expectMsg(CONNECTED_SUCCESS);
+            }
+
+            amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
+        }};
+    }
+
+    @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final CountDownLatch latch = new CountDownLatch(1);

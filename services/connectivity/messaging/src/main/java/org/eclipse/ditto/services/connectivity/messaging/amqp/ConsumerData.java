@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 /**
  * Wraps associated data of a JMS message consumer.
  */
-public class ConsumerData {
+public final class ConsumerData {
 
     private final Source source;
     private final String address;
@@ -51,7 +51,7 @@ public class ConsumerData {
         return messageConsumer;
     }
 
-    String getActorName() {
+    String getActorNamePrefix() {
         return AmqpConsumerActor.ACTOR_NAME_PREFIX + source.getIndex() + "-" + addressWithIndex;
     }
 

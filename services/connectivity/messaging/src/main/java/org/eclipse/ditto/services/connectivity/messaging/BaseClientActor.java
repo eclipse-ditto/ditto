@@ -23,7 +23,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilt
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
-import java.util.stream.Collector;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -63,7 +62,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -156,6 +154,88 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     /**
+     * Handles {@link TestConnection} commands by returning a CompletionState of
+     * {@link akka.actor.Status.Status Status} which may be {@link akka.actor.Status.Success Success} or
+     * {@link akka.actor.Status.Failure Failure}.
+     *
+     * @param connection the Connection to test
+     * @return the CompletionStage with the test result
+     */
+    protected abstract CompletionStage<Status.Status> doTestConnection(final Connection connection);
+
+    /**
+     * Allocate resources once this {@code Client} connected successfully.
+     *
+     * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
+     */
+    protected abstract void allocateResourcesOnConnection(final ClientConnected clientConnected);
+
+    /**
+     * Clean up everything spawned in {@code allocateResourcesOnConnection}. It should be idempotent.
+     */
+    protected abstract void cleanupResourcesForConnection();
+
+    /**
+     * @return the optional Actor to use for Publishing commandResponses/events
+     */
+    protected abstract Optional<ActorRef> getPublisherActor();
+
+    /**
+     * Invoked when this {@code Client} should connect.
+     *
+     * @param connection the Connection to use for connecting
+     * @param origin the ActorRef which caused the ConnectClient command
+     */
+    protected abstract void doConnectClient(final Connection connection, @Nullable final ActorRef origin);
+
+    /**
+     * Invoked when this {@code Client} should disconnect.
+     *
+     * @param connection the Connection to use for disconnecting
+     * @param origin the ActorRef which caused the DisconnectClient command
+     */
+    protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
+
+    /**
+     * Retrieves the connection status of the passed {@link Source}.
+     *
+     * @param source the Source to retrieve the connection status for
+     * @return the result as Map containing an entry for each source
+     */
+    protected abstract CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source);
+
+    /**
+     * Retrieves the connection status of the passed {@link Target}.
+     *
+     * @param target the Target to retrieve the connection status for
+     * @return the result as Map containing an entry for each target
+     */
+    protected abstract CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target);
+
+    /**
+     * Release any temporary resources allocated during a connection operation when the operation times out.
+     * Do nothing by default.
+     *
+     * @param state current state of the client actor.
+     */
+    protected void cleanupFurtherResourcesOnConnectionTimeout(final BaseClientState state) {
+        // do nothing by default
+    }
+
+    /**
+     * Check whether a {@code ClientConnected}, {@code ClientDisconnected} or {@code ConnectionFailed} is up to date.
+     * All events are interpreted as up-to-date by default.
+     *
+     * @param event an event from somewhere.
+     * @param state the current actor state.
+     * @param sender sender of the event.
+     * @return whether the event is up-to-date and should be interpreted.
+     */
+    protected boolean isEventUpToDate(final Object event, final BaseClientState state, final ActorRef sender) {
+        return true;
+    }
+
+    /**
      * Creates the handler for messages common to all states.
      * <p>
      * Overwrite and extend by additional matchers.
@@ -174,6 +254,210 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     handleOutboundSignal(signal);
                     return stay();
                 });
+    }
+
+    /**
+     * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
+     * {@code childActorName}.
+     *
+     * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
+     * @param childActorLabel what to call the child actor
+     * @param childActorRef the actor reference of the child to ask for the AddressMetric
+     * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
+     */
+    protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
+            final String addressIdentifier, final String childActorLabel, @Nullable final ActorRef childActorRef) {
+
+        if (childActorRef != null) {
+            final Timeout timeout = Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
+            return PatternsCS.ask(childActorRef, RetrieveAddressMetric.getInstance(), timeout)
+                    .handle((response, throwable) -> {
+                        if (response != null) {
+                            return Pair.create(addressIdentifier, (AddressMetric) response);
+                        } else {
+                            return Pair.create(addressIdentifier,
+                                    ConnectivityModelFactory.newAddressMetric(
+                                            ConnectionStatus.FAILED,
+                                            throwable.getClass().getSimpleName() + ": " +
+                                                    throwable.getMessage(),
+                                            -1, Instant.now()));
+                        }
+                    }).toCompletableFuture();
+        } else {
+            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorLabel,
+                    StreamSupport
+                            .stream(getContext().getChildren().spliterator(), false)
+                            .map(ref -> ref.path().name())
+                            .collect(Collectors.toList()));
+            return CompletableFuture.completedFuture(Pair.create(addressIdentifier,
+                    ConnectivityModelFactory.newAddressMetric(
+                            ConnectionStatus.FAILED,
+                            "child <" + childActorLabel + "> not found",
+                            -1, Instant.now())));
+        }
+    }
+
+    /**
+     * Increments the consumed message counter by 1.
+     */
+    protected final void incrementConsumedMessageCounter() {
+        consumedMessageCounter++;
+    }
+
+    /**
+     * Increments the published message counter by 1.
+     */
+    protected final void incrementPublishedMessageCounter() {
+        publishedMessageCounter++;
+    }
+
+    /**
+     * @return the optional MessageMappingProcessorActor
+     */
+    protected final Optional<ActorRef> getMessageMappingProcessorActor() {
+        return Optional.ofNullable(messageMappingProcessorActor);
+    }
+
+    /**
+     * Escapes the passed actorName in a actorName valid way.
+     *
+     * @param name the actorName to escape
+     * @return the escaped name
+     */
+    protected static String escapeActorName(final String name) {
+        return name.replace('/', '_');
+    }
+
+    /**
+     * Transforms a List of CompletableFutures to a CompletableFuture of a List.
+     *
+     * @param futures the stream of futures
+     * @param <T> the type of the CompletableFuture and the List elements
+     * @return the CompletableFuture of a List
+     */
+    protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
+
+        final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
+                .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futureArray).thenApply(_void ->
+                Arrays.stream(futureArray)
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList()));
+    }
+
+    /**
+     * Starts a child actor.
+     *
+     * @param name the Actor's name
+     * @param props the Props
+     * @return the created ActorRef
+     */
+    protected final ActorRef startChildActor(final String name, final Props props) {
+        log.debug("Starting child actor '{}'", name);
+        final String nameEscaped = escapeActorName(name);
+        return getContext().actorOf(props, nameEscaped);
+    }
+
+    /**
+     * Start a child actor whose name is guaranteed to be different from all other child actors started by this method.
+     *
+     * @param prefix prefix of the child actor name.
+     * @param props props of the child actor.
+     * @return the created ActorRef.
+     */
+    protected final ActorRef startChildActorConflictFree(final String prefix, final Props props) {
+        return startChildActor(nextChildActorName(prefix), props);
+    }
+
+    /**
+     * Stops a child actor.
+     *
+     * @param name the Actor's name
+     */
+    protected final void stopChildActor(final String name) {
+        final String nameEscaped = escapeActorName(name);
+        final Optional<ActorRef> child = getContext().findChild(nameEscaped);
+        if (child.isPresent()) {
+            log.debug("Stopping child actor '{}'", nameEscaped);
+            getContext().stop(child.get());
+        } else {
+            log.debug("Cannot stop child actor '{}' because it does not exist.", nameEscaped);
+        }
+    }
+
+    /**
+     * Stops a child actor.
+     *
+     * @param actor the ActorRef
+     */
+    protected final void stopChildActor(final ActorRef actor) {
+        log.debug("Stopping child actor '{}'", actor.path());
+        getContext().stop(actor);
+    }
+
+    /**
+     * @return whether this client is consuming at all
+     */
+    protected final boolean isConsuming() {
+        return !connection().getSources().isEmpty();
+    }
+
+    /**
+     * @return whether this client is publishing at all
+     */
+    protected final boolean isPublishing() {
+        return !connection().getTargets().isEmpty();
+    }
+
+    /**
+     * @return the currently managed Connection
+     */
+    protected final Connection connection() {
+        return stateData().getConnection();
+    }
+
+    /**
+     * @return the Connection Id
+     */
+    protected final String connectionId() {
+        return stateData().getConnectionId();
+    }
+
+    /**
+     * @return the sources configured for this connection or an empty set if no sources were configured.
+     */
+    protected final List<Source> getSourcesOrEmptySet() {
+        return connection().getSources();
+    }
+
+    /**
+     * @return the targets configured for this connection or an empty set if no targets were configured.
+     */
+    protected final Set<Target> getTargetsOrEmptySet() {
+        return connection().getTargets();
+    }
+
+    protected final AuthorizationContext resolveAuthorizationContext(final Source source) {
+        if (source.getAuthorizationContext().isEmpty()) {
+            return connection().getAuthorizationContext();
+        } else {
+            return source.getAuthorizationContext();
+        }
+    }
+
+    /**
+     * Invoked on each transition {@code from} a {@link BaseClientState} {@code to} another.
+     * <p>
+     * May be extended to react on special transitions.
+     * </p>
+     *
+     * @param from the previous State
+     * @param to the next State
+     */
+    private void onTransition(final BaseClientState from, final BaseClientState to) {
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        log.debug("Transition: {} -> {}", from, to);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -372,6 +656,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             sender.tell(new Status.Failure(error), getSelf());
         });
         cleanupResourcesForConnection();
+        cleanupFurtherResourcesOnConnectionTimeout(stateName());
         return goTo(UNKNOWN).using(data.resetSession()
                 .setConnectionStatus(ConnectionStatus.FAILED)
                 .setConnectionStatusDetails("Connection timed out at " + Instant.now() + " while " + stateName()));
@@ -380,38 +665,56 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
-        allocateResourcesOnConnection(clientConnected);
-        data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
-        return goTo(CONNECTED).using(data.resetSession()
-                .setConnectionStatus(ConnectionStatus.OPEN)
-                .setConnectionStatusDetails("Connected at " + Instant.now()));
+        return ifEventUpToDate(clientConnected, () -> {
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
+            allocateResourcesOnConnection(clientConnected);
+            data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+            return goTo(CONNECTED).using(data.resetSession()
+                    .setConnectionStatus(ConnectionStatus.OPEN)
+                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+        });
     }
 
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        stopMessageMappingProcessorActor();
-        cleanupResourcesForConnection();
-        data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
-        return goTo(DISCONNECTED).using(data.resetSession()
-                .setConnectionStatus(ConnectionStatus.CLOSED)
-                .setConnectionStatusDetails("Disconnected at " + Instant.now()));
+        return ifEventUpToDate(event, () -> {
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            stopMessageMappingProcessorActor();
+            cleanupResourcesForConnection();
+            data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
+            return goTo(DISCONNECTED).using(data.resetSession()
+                    .setConnectionStatus(ConnectionStatus.CLOSED)
+                    .setConnectionStatusDetails("Disconnected at " + Instant.now()));
+        });
     }
 
     private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
             final BaseClientData data) {
+        return ifEventUpToDate(event, () -> {
+            LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+            cleanupResourcesForConnection();
+            data.getSessionSender().ifPresent(sender -> sender.tell(event.getFailure(), getSelf()));
+            return goTo(UNKNOWN).using(data.resetSession()
+                    .setConnectionStatus(ConnectionStatus.FAILED)
+                    .setConnectionStatusDetails(event.getFailureDescription())
+                    .setSessionSender(getSender())
+            );
+        });
+    }
 
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        cleanupResourcesForConnection();
-        data.getSessionSender().ifPresent(sender -> sender.tell(event.getFailure(), getSelf()));
-        return goTo(UNKNOWN).using(data.resetSession()
-                .setConnectionStatus(ConnectionStatus.FAILED)
-                .setConnectionStatusDetails(event.getFailureDescription())
-                .setSessionSender(getSender())
-        );
+    private State<BaseClientState, BaseClientData> ifEventUpToDate(final Object event,
+            final Supplier<State<BaseClientState, BaseClientData>> thenExecute) {
+
+        final BaseClientState state = stateName();
+        final ActorRef sender = getSender();
+        if (isEventUpToDate(event, state, sender)) {
+            return thenExecute.get();
+        } else {
+            log.warning("Received stale event <{}> at state <{}>", event, state);
+            return stay();
+        }
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
@@ -511,149 +814,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.warning("Socket could not be opened for <{}:{}>", host, port);
         }
         return false;
-    }
-
-    /**
-     * Invoked on each transition {@code from} a {@link BaseClientState} {@code to} another.
-     * <p>
-     * May be extended to react on special transitions.
-     * </p>
-     *
-     * @param from the previous State
-     * @param to the next State
-     */
-    private void onTransition(final BaseClientState from, final BaseClientState to) {
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        log.info("Transition: {} -> {}", from, to);
-    }
-
-    /**
-     * Handles {@link TestConnection} commands by returning a CompletionState of
-     * {@link akka.actor.Status.Status Status} which may be {@link akka.actor.Status.Success Success} or
-     * {@link akka.actor.Status.Failure Failure}.
-     *
-     * @param connection the Connection to test
-     * @return the CompletionStage with the test result
-     */
-    protected abstract CompletionStage<Status.Status> doTestConnection(final Connection connection);
-
-    /**
-     * Allocate resources once this {@code Client} connected successfully.
-     *
-     * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
-     */
-    protected abstract void allocateResourcesOnConnection(final ClientConnected clientConnected);
-
-    /**
-     * Clean up everything spawned in {@code allocateResourcesOnConnection}. It should be idempotent.
-     */
-    protected abstract void cleanupResourcesForConnection();
-
-    /**
-     * @return the optional Actor to use for Publishing commandResponses/events
-     */
-    protected abstract Optional<ActorRef> getPublisherActor();
-
-    /**
-     * Invoked when this {@code Client} should connect.
-     *
-     * @param connection the Connection to use for connecting
-     * @param origin the ActorRef which caused the ConnectClient command
-     */
-    protected abstract void doConnectClient(final Connection connection, @Nullable final ActorRef origin);
-
-    /**
-     * Invoked when this {@code Client} should disconnect.
-     *
-     * @param connection the Connection to use for disconnecting
-     * @param origin the ActorRef which caused the DisconnectClient command
-     */
-    protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
-
-    /**
-     * Retrieves the connection status of the passed {@link Source}.
-     *
-     * @param source the Source to retrieve the connection status for
-     * @return the result as Map containing an entry for each source
-     */
-    protected abstract CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source);
-
-    /**
-     * Retrieves the connection status of the passed {@link Target}.
-     *
-     * @param target the Target to retrieve the connection status for
-     * @return the result as Map containing an entry for each target
-     */
-    protected abstract CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target);
-
-    /**
-     * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
-     * {@code childActorName}.
-     *
-     * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
-     * @param childActorName name of the child actor
-     * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
-     */
-    protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
-            final String addressIdentifier, final String childActorName) {
-
-        final ActorRef childActorRef = getContext().findChild(childActorName).orElse(null);
-        return retrieveAddressMetric(addressIdentifier, childActorName, childActorRef);
-    }
-
-    /**
-     * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
-     * {@code childActorName}.
-     *
-     * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
-     * @param childActorLabel what to call the child actor
-     * @param childActorRef the actor reference of the child to ask for the AddressMetric
-     * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
-     */
-    protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
-            final String addressIdentifier, final String childActorLabel, @Nullable final ActorRef childActorRef) {
-
-        if (childActorRef != null) {
-            final Timeout timeout = Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-            return PatternsCS.ask(childActorRef, RetrieveAddressMetric.getInstance(), timeout)
-                    .handle((response, throwable) -> {
-                        if (response != null) {
-                            return Pair.create(addressIdentifier, (AddressMetric) response);
-                        } else {
-                            return Pair.create(addressIdentifier,
-                                    ConnectivityModelFactory.newAddressMetric(
-                                            ConnectionStatus.FAILED,
-                                            throwable.getClass().getSimpleName() + ": " +
-                                                    throwable.getMessage(),
-                                            -1, Instant.now()));
-                        }
-                    }).toCompletableFuture();
-        } else {
-            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorLabel,
-                    StreamSupport
-                            .stream(getContext().getChildren().spliterator(), false)
-                            .map(ref -> ref.path().name())
-                            .collect(Collectors.toList()));
-            return CompletableFuture.completedFuture(Pair.create(addressIdentifier,
-                    ConnectivityModelFactory.newAddressMetric(
-                            ConnectionStatus.FAILED,
-                            "child <" + childActorLabel + "> not found",
-                            -1, Instant.now())));
-        }
-    }
-
-    /**
-     * Increments the consumed message counter by 1.
-     */
-    protected final void incrementConsumedMessageCounter() {
-        consumedMessageCounter++;
-    }
-
-    /**
-     * Increments the published message counter by 1.
-     */
-    protected final void incrementPublishedMessageCounter() {
-        publishedMessageCounter++;
     }
 
     private void handleOutboundSignal(final OutboundSignal signal) {
@@ -777,163 +937,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
-    /**
-     * @return the optional MessageMappingProcessorActor
-     */
-    protected final Optional<ActorRef> getMessageMappingProcessorActor() {
-        return Optional.ofNullable(messageMappingProcessorActor);
-    }
-
     private void stopMessageMappingProcessorActor() {
         if (messageMappingProcessorActor != null) {
             log.debug("Stopping MessageMappingProcessorActor.");
             getContext().stop(messageMappingProcessorActor);
             messageMappingProcessorActor = null;
-        }
-    }
-
-    private void cannotHandle(final Command<?> command, @Nullable final Connection connection) {
-        enhanceLogUtil(command);
-        log.info("Command <{}> cannot be handled in current state <{}>.", command.getType(), stateName());
-        final String message =
-                MessageFormat.format("Cannot execute command <{0}> in current state <{1}>.", command.getType(),
-                        stateName());
-        final String connectionId = connection != null ? connection.getId() : "?";
-        final ConnectionFailedException failedException =
-                ConnectionFailedException.newBuilder(connectionId).message(message).build();
-        getSender().tell(new Status.Failure(failedException), getSelf());
-    }
-
-    /**
-     * Escapes the passed actorName in a actorName valid way.
-     *
-     * @param name the actorName to escape
-     * @return the escaped name
-     */
-    protected static String escapeActorName(final String name) {
-        return name.replace('/', '_');
-    }
-
-    /**
-     * Transforms a List of CompletableFutures to a CompletableFuture of a List.
-     *
-     * @param futures the stream of futures
-     * @param <T> the type of the CompletableFuture and the List elements
-     * @return the CompletableFuture of a List
-     */
-    protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
-        return collect(futures, Collectors.toList());
-    }
-
-    private static <T, A, R> CompletableFuture<R> collect(final Stream<CompletionStage<T>> futures,
-            final Collector<T, A, R> collector) {
-
-        final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
-                .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
-
-        return CompletableFuture.allOf(futureArray).thenApply(_void ->
-                Arrays.stream(futureArray)
-                        .map(CompletableFuture::join)
-                        .collect(collector));
-    }
-
-    /**
-     * Starts a child actor.
-     *
-     * @param name the Actor's name
-     * @param props the Props
-     * @return the created ActorRef
-     */
-    protected final ActorRef startChildActor(final String name, final Props props) {
-        log.debug("Starting child actor '{}'", name);
-        final String nameEscaped = escapeActorName(name);
-        return getContext().actorOf(props, nameEscaped);
-    }
-
-    /**
-     * Start a child actor whose name is guaranteed to be different from all other child actors started by this method.
-     *
-     * @param prefix prefix of the child actor name.
-     * @param props props of the child actor.
-     * @return the created ActorRef.
-     */
-    protected final ActorRef startChildActorConflictFree(final String prefix, final Props props) {
-        return startChildActor(nextChildActorName(prefix), props);
-    }
-
-    /**
-     * Stops a child actor.
-     *
-     * @param name the Actor's name
-     */
-    protected final void stopChildActor(final String name) {
-        final String nameEscaped = escapeActorName(name);
-        final Optional<ActorRef> child = getContext().findChild(nameEscaped);
-        if (child.isPresent()) {
-            log.debug("Stopping child actor '{}'", nameEscaped);
-            getContext().stop(child.get());
-        } else {
-            log.debug("Cannot stop child actor '{}' because it does not exist.", nameEscaped);
-        }
-    }
-
-    /**
-     * Stops a child actor.
-     *
-     * @param actor the ActorRef
-     */
-    protected final void stopChildActor(final ActorRef actor) {
-        log.debug("Stopping child actor '{}'", actor.path());
-        getContext().stop(actor);
-    }
-
-    /**
-     * @return whether this client is consuming at all
-     */
-    protected final boolean isConsuming() {
-        return !connection().getSources().isEmpty();
-    }
-
-    /**
-     * @return whether this client is publishing at all
-     */
-    protected final boolean isPublishing() {
-        return !connection().getTargets().isEmpty();
-    }
-
-    /**
-     * @return the currently managed Connection
-     */
-    protected final Connection connection() {
-        return stateData().getConnection();
-    }
-
-    /**
-     * @return the Connection Id
-     */
-    protected final String connectionId() {
-        return stateData().getConnectionId();
-    }
-
-    /**
-     * @return the sources configured for this connection or an empty set if no sources were configured.
-     */
-    protected final List<Source> getSourcesOrEmptySet() {
-        return connection().getSources();
-    }
-
-    /**
-     * @return the targets configured for this connection or an empty set if no targets were configured.
-     */
-    protected final Set<Target> getTargetsOrEmptySet() {
-        return connection().getTargets();
-    }
-
-    protected final AuthorizationContext resolveAuthorizationContext(final Source source) {
-        if (source.getAuthorizationContext().isEmpty()) {
-            return connection().getAuthorizationContext();
-        } else {
-            return source.getAuthorizationContext();
         }
     }
 

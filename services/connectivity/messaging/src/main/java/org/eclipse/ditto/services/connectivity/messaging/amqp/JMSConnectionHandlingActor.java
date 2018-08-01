@@ -116,61 +116,57 @@ public class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
-        stopSelfAfter(() -> maybeConnectAndTell(getSender(), connect.getOrigin().orElse(null)));
+        maybeConnectAndTell(getSender(), connect.getOrigin().orElse(null));
     }
 
     private void handleReconnect(final AmqpClientActor.JmsReconnect reconnect) {
         final javax.jms.Connection connection = reconnect.getConnection();
+        final ActorRef origin = reconnect.getOrigin().orElse(null);
+        final ActorRef sender = getSender();
         log.info("Reconnecting");
         disconnectAndTell(connection, null); // do not pass origin as only the disconnect would be acked
 
         // wait a little until connecting again:
-        final ActorRef sender = getSender();
-        getContext().getSystem().scheduler().scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
-                () -> stopSelfAfter(() -> maybeConnectAndTell(sender, reconnect.getOrigin().orElse(null))),
-                getContext().getSystem().dispatcher());
+        getContext().getSystem()
+                .scheduler()
+                .scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
+                        // this should be thread-safe
+                        () -> maybeConnectAndTell(sender, origin),
+                        getContext().getSystem().dispatcher());
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
-        stopSelfAfter(() -> {
-            final Optional<javax.jms.Connection> connectionOpt = disconnect.getConnection();
-            if (connectionOpt.isPresent()) {
-                disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null));
-            } else {
-                getSender().tell(new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null)),
-                        disconnect.getOrigin().orElse(null));
-            }
-        });
-    }
-
-    private void stopSelfAfter(final Runnable r) {
-        try {
-            r.run();
-        } catch (final Exception e) {
-            log.warning("Operation failed: {}", e.getMessage());
-        } finally {
-            log.debug("Stopping myself {}", getSelf());
-            getContext().stop(getSelf());
+        final Optional<javax.jms.Connection> connectionOpt = disconnect.getConnection();
+        if (connectionOpt.isPresent()) {
+            disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null));
+        } else {
+            final Object answer = new AmqpClientActor.JmsDisconnected(disconnect.getOrigin().orElse(null));
+            getSender().tell(answer, getSelf());
         }
     }
 
+    /*
+     * This method should be thread-safe.
+     */
     private void maybeConnectAndTell(final ActorRef sender, @Nullable final ActorRef origin) {
+        final ActorRef self = getSelf(); // getSelf() is thread-safe
         try {
             final JmsConnection jmsConnection = createJmsConnection();
-            final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, jmsConnection);
-            sender.tell(connectedMessage, origin);
+            final AmqpClientActor.JmsConnected connectedMessage = tryConnect(jmsConnection, origin);
+            sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connection.getId());
         } catch (final ConnectionFailedException e) {
-            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), getSelf());
+            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
-            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), getSelf());
+            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
             log.error("Unexpected error: {}", e.getMessage());
         }
     }
 
-    private AmqpClientActor.JmsConnected tryConnect(@Nullable final ActorRef origin,
-            final JmsConnection jmsConnection) {
+    private AmqpClientActor.JmsConnected tryConnect(final JmsConnection jmsConnection,
+            @Nullable final ActorRef origin) {
+
         try {
             jmsConnection.start();
             log.debug("Connection started successfully");
@@ -289,7 +285,7 @@ public class JMSConnectionHandlingActor extends AbstractActor {
         terminateConnection(connection);
         log.info("Connection <{}> closed.", this.connection.getId());
 
-        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), origin);
+        getSender().tell(new AmqpClientActor.JmsDisconnected(origin), getSelf());
     }
 
 }
