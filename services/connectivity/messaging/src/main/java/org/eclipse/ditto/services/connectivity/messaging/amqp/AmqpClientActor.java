@@ -93,6 +93,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     /*
      * This constructor is called via reflection by the static method propsForTest.
      */
+    @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final JmsConnectionFactory jmsConnectionFactory, final ActorRef conciergeForwarder) {
         super(connection, connectionStatus, conciergeForwarder);
@@ -105,7 +106,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     /*
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
-    @SuppressWarnings("unused") // called via reflection
+    @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef conciergeForwarder) {
         this(connection, connectionStatus, ConnectionBasedJmsConnectionFactory.getInstance(), conciergeForwarder);

@@ -83,6 +83,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     /*
      * This constructor is called via reflection by the static method propsForTest.
      */
+    @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final ActorRef conciergeForwarder) {
@@ -96,6 +97,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     /*
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
+    @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection, final ConnectionStatus connectionStatus,
             final ActorRef conciergeForwarder) {
         this(connection, connectionStatus, ConnectionBasedRabbitConnectionFactoryFactory.getInstance(),

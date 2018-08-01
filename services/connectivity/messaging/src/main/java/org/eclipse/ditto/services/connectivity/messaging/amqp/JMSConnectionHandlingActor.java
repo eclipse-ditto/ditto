@@ -46,7 +46,7 @@ import akka.japi.Creator;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * This actor executes single operation (connect/disconnect) on JMS Connection/Session. It is separated into an actor
+ * This actor executes operations (connect/disconnect) on JMS Connection/Session. It is separated into an actor
  * because the JMS Client is blocking which makes it impossible to e.g. cancel a pending connection attempts with
  * another actor message when done in the same actor.
  * <p>
