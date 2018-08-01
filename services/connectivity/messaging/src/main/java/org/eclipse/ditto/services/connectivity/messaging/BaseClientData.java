@@ -41,8 +41,8 @@ public final class BaseClientData {
     private final ConnectionStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
-    @Nullable private final ActorRef origin;
-    @Nullable private final DittoHeaders lastCommandHeaders;
+    @Nullable private final ActorRef sessionSender;
+    @Nullable private final DittoHeaders sessionHeaders;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
@@ -53,23 +53,23 @@ public final class BaseClientData {
      * @param desiredConnectionStatus the desired {@link ConnectionStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
-     * @param origin the ActorRef which caused the latest state data change.
+     * @param sessionSender the ActorRef which caused the latest state data change.
      */
     BaseClientData(final String connectionId, final Connection connection,
             final ConnectionStatus connectionStatus,
             final ConnectionStatus desiredConnectionStatus,
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
-            @Nullable final ActorRef origin,
-            @Nullable DittoHeaders lastCommandHeaders) {
+            @Nullable final ActorRef sessionSender,
+            @Nullable DittoHeaders sessionHeaders) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
         this.desiredConnectionStatus = desiredConnectionStatus;
         this.connectionStatusDetails = connectionStatusDetails;
         this.inConnectionStatusSince = inConnectionStatusSince;
-        this.origin = origin;
-        this.lastCommandHeaders = lastCommandHeaders;
+        this.sessionSender = sessionSender;
+        this.sessionHeaders = sessionHeaders;
     }
 
     public String getConnectionId() {
@@ -96,42 +96,53 @@ public final class BaseClientData {
         return inConnectionStatusSince;
     }
 
-    public Optional<ActorRef> getOrigin() {
-        return Optional.ofNullable(origin);
+    public Optional<ActorRef> getSessionSender() {
+        return Optional.ofNullable(sessionSender);
     }
 
-    public DittoHeaders getLastCommandHeaders() {
-        return Optional.ofNullable(lastCommandHeaders).orElseGet(DittoHeaders::empty);
+    public DittoHeaders getSessionHeaders() {
+        return Optional.ofNullable(sessionHeaders).orElseGet(DittoHeaders::empty);
     }
 
     public BaseClientData setConnection(final Connection connection) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     public BaseClientData setConnectionStatus(final ConnectionStatus connectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, Instant.now(), origin, lastCommandHeaders);
+                connectionStatusDetails, Instant.now(), sessionSender, sessionHeaders);
     }
 
     public BaseClientData setDesiredConnectionStatus(final ConnectionStatus desiredConnectionStatus) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     public BaseClientData setConnectionStatusDetails(@Nullable final String connectionStatusDetails) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
-    public BaseClientData setOrigin(@Nullable final ActorRef origin) {
+    public BaseClientData setSessionSender(@Nullable final ActorRef origin) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, origin, sessionHeaders);
     }
 
-    public BaseClientData setLastCommandHeaders(@Nullable final DittoHeaders lastCommandHeaders) {
+    public BaseClientData setSessionHeaders(@Nullable final DittoHeaders lastCommandHeaders) {
         return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, lastCommandHeaders);
+    }
+
+    /**
+     * Remove info related to the last command. Should be called when entering a stable state (UNKNOWN, CONNECTED,
+     * DISCONNECTED).
+     *
+     * @return data without info related to the last command.
+     */
+    public BaseClientData resetSession() {
+        return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
+                connectionStatusDetails, inConnectionStatusSince, null, null);
     }
 
     @Override
@@ -145,14 +156,14 @@ public final class BaseClientData {
                 desiredConnectionStatus == that.desiredConnectionStatus &&
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
-                Objects.equals(origin, that.origin) &&
-                Objects.equals(lastCommandHeaders, that.lastCommandHeaders);
+                Objects.equals(sessionSender, that.sessionSender) &&
+                Objects.equals(sessionHeaders, that.sessionHeaders);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, origin, lastCommandHeaders);
+                connectionStatusDetails, inConnectionStatusSince, sessionSender, sessionHeaders);
     }
 
     @Override
@@ -164,8 +175,8 @@ public final class BaseClientData {
                 ", desiredConnectionStatus=" + desiredConnectionStatus +
                 ", connectionStatusDetails=" + connectionStatusDetails +
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
-                ", origin=" + origin +
-                ", lastCommandHeaders=" + lastCommandHeaders +
+                ", sessionSender=" + sessionSender +
+                ", sessionHeaders=" + sessionHeaders +
                 "]";
     }
 }

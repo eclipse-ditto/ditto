@@ -233,7 +233,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected void onClientConnected(final ClientConnected clientConnected, final BaseClientData data) {
+    protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             log.info("Received JmsConnected");
@@ -250,8 +250,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected void onClientDisconnected(final ClientDisconnected clientDisconnected, final BaseClientData data) {
-        log.info("Received ClientDisconnected");
+    protected void cleanupResourcesForConnection() {
+        log.debug("cleaning up");
         stopCommandConsumers();
         stopCommandProducer();
         this.jmsSession = null;

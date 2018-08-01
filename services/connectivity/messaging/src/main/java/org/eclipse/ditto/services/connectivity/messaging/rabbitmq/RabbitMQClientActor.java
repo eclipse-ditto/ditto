@@ -31,7 +31,6 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -43,7 +42,6 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -83,7 +81,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Nullable private ActorRef rmqConnectionActor;
     @Nullable private ActorRef consumerChannelActor;
     @Nullable private ActorRef rmqPublisherActor;
-    @Nullable private ActorRef createConnectionSender;
 
     private final Map<String, String> consumedTagsToAddresses;
 
@@ -146,8 +143,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> commonHandler(final String connectionId) {
-        return super.commonHandler(connectionId)
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
+        return super.inAnyState()
                 .event(ChannelCreated.class, BaseClientData.class, (channelCreated, data) -> {
                     handleChannelCreated(channelCreated);
                     return stay();
@@ -156,13 +153,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        createConnectionSender = getSender();
         return connect(connection, getSender());
     }
 
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        createConnectionSender = origin;
         connect(connection, origin)
                 .thenAccept(status -> log.info("Status of connecting in doConnectClient: {}", status));
     }
@@ -175,8 +170,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected void onClientConnected(final ClientConnected clientConnected, final BaseClientData data) {
-        log.info("Received ClientConnected");
+    protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
+        log.debug("Received ClientConnected");
         if (rmqConnectionActor != null) {
             if (consumerChannelActor == null) {
                 // create a consumer channel - if source is configured
@@ -191,17 +186,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
                                     }),
                                     Option.apply(CONSUMER_CHANNEL)), getSelf());
                 } else {
-                    log.info("Not starting channels, no sources were configured");
+                    log.debug("Not starting channels, no sources were configured");
                 }
             } else {
-                log.info("Consumer is already created, didn't create it again..");
+                log.debug("Consumer is already created, didn't create it again..");
             }
             log.debug("Connection '{}' opened.", connectionId());
         }
     }
 
     @Override
-    protected void onClientDisconnected(final ClientDisconnected clientDisconnected, final BaseClientData data) {
+    protected void cleanupResourcesForConnection() {
         log.info("Received ClientDisconnected");
         if (consumerChannelActor != null) {
             stopChildActor(consumerChannelActor);
@@ -220,25 +215,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected Optional<ActorRef> getPublisherActor() {
         return Optional.ofNullable(rmqPublisherActor);
-    }
-
-    @Override
-    protected void onConnectionFailure(final ConnectionFailure connectionFailure, final BaseClientData data) {
-        super.onConnectionFailure(connectionFailure, data);
-
-        final Throwable exception = connectionFailure.getFailure().cause();
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        log.warning("Got unexpected ConnectionDriver exception on connection <{}> {}: {}", connectionId(),
-                exception.getClass().getSimpleName(), exception.getMessage());
-        if (createConnectionSender != null) {
-            createConnectionSender.tell(
-                    ConnectionFailedException.newBuilder(connectionId())
-                            .description("The requested Connection could not be connected due to '" +
-                                    exception.getClass().getSimpleName() + ": " + exception.getMessage() + "'")
-                            .cause(exception)
-                            .build(), null);
-            createConnectionSender = null;
-        }
     }
 
     @Override
@@ -394,25 +370,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private void startCommandConsumers(final Channel channel) {
         log.info("Starting to consume queues...");
-        try {
-            ensureQueuesExist(channel);
-            stopCommandConsumers();
-            startConsumers(channel);
-        } catch (final DittoRuntimeException dre) {
-            if (createConnectionSender != null) {
-                createConnectionSender.tell(new Status.Failure(dre), getSelf());
-                createConnectionSender = null;
-            }
-            if (consumerChannelActor != null) {
-                // stop consumer channel actor
-                stopChildActor(consumerChannelActor);
-                consumerChannelActor = null;
-            }
-        }
-        if (createConnectionSender != null) {
-            createConnectionSender.tell(new Status.Success(BaseClientState.CONNECTED), getSelf());
-            createConnectionSender = null;
-        }
+        ensureQueuesExist(channel);
+        stopCommandConsumers();
+        startConsumers(channel);
     }
 
     private void startConsumers(final Channel channel) {

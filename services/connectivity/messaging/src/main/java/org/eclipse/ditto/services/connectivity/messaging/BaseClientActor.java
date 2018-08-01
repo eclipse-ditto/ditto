@@ -145,9 +145,30 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
         onTransition(this::onTransition);
 
-        whenUnhandled(commonHandler(connection.getId()).anyEvent(this::onUnknownEvent));
+        whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
         initialize();
+    }
+
+    /**
+     * Creates the handler for messages common to all states.
+     * <p>
+     * Overwrite and extend by additional matchers.
+     * </p>
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
+        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
+                .event(ModifyConnection.class, BaseClientData.class, this::translateModifyToCreateConnection)
+                .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
+                    handleExternalMessage(outboundSignal);
+                    return stay();
+                })
+                .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
+                    handleOutboundSignal(signal);
+                    return stay();
+                });
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
@@ -179,8 +200,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
-                .event(ConnectionFailure.class, BaseClientData.class, this::handleConnectionFailure)
-                .event(ClientConnected.class, BaseClientData.class, this::handleClientConnected);
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
@@ -190,8 +211,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
-                .event(ConnectionFailure.class, BaseClientData.class, this::handleConnectionFailure)
-                .event(ClientDisconnected.class, BaseClientData.class, this::handleClientDisconnected);
+                .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
+                .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
@@ -200,10 +221,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     final Status.Status answerToPublish;
                     if (status instanceof Status.Failure) {
                         final Status.Failure failure = (Status.Failure) status;
-                        log().error(failure.cause(), "test failed");
+                        log.error(failure.cause(), "test failed");
                         if (!(failure.cause() instanceof DittoRuntimeException)) {
                             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                                    .dittoHeaders(data.getLastCommandHeaders())
+                                    .dittoHeaders(data.getSessionHeaders())
                                     .build();
                             answerToPublish = new Status.Failure(error);
                         } else {
@@ -212,43 +233,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     } else {
                         answerToPublish = status;
                     }
-                    data.getOrigin().ifPresent(sender -> sender.tell(answerToPublish, getSelf()));
+                    data.getSessionSender().ifPresent(sender -> sender.tell(answerToPublish, getSelf()));
                     return stop();
                 })
                 .eventEquals(StateTimeout(), BaseClientData.class, (stats, data) -> {
-                    log().error("test timed out.");
-                    data.getOrigin().ifPresent(sender -> {
+                    log.error("test timed out.");
+                    data.getSessionSender().ifPresent(sender -> {
                         final DittoRuntimeException error = ConnectionUnavailableException.newBuilder(connectionId())
-                                .dittoHeaders(data.getLastCommandHeaders())
+                                .dittoHeaders(data.getSessionHeaders())
                                 .build();
                         sender.tell(new Status.Failure(error), getSelf());
                     });
                     return stop();
                 });
-    }
-
-    private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
-            final BaseClientState state) {
-        final DittoHeaders headers = signal instanceof WithDittoHeaders
-                ? ((WithDittoHeaders) signal).getDittoHeaders()
-                : DittoHeaders.empty();
-        switch (state) {
-            case CONNECTING:
-            case DISCONNECTING:
-                return ConnectionSignalIllegalException.newBuilder(connectionId())
-                        .operationName(state.name().toLowerCase())
-                        .timeout(CONNECTING_TIMEOUT)
-                        .dittoHeaders(headers)
-                        .build();
-            default:
-                final String signalType = signal instanceof Signal
-                        ? ((Signal) signal).getType()
-                        : "unknown"; // no need to disclose Java class of signal to clients
-                return ConnectionSignalIllegalException.newBuilder(connectionId())
-                        .illegalSignalForState(signalType, state.name().toLowerCase())
-                        .dittoHeaders(headers)
-                        .build();
-        }
     }
 
     private State<BaseClientState, BaseClientData> onUnknownEvent(final Object event,
@@ -270,10 +267,13 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private FSM.State<BaseClientState, BaseClientData> closeConnection(final Object closeOrDeleteConnection,
             final BaseClientData data) {
 
+        final DittoHeaders dittoHeaders = closeOrDeleteConnection instanceof WithDittoHeaders
+                ? ((WithDittoHeaders) closeOrDeleteConnection).getDittoHeaders()
+                : DittoHeaders.empty();
+
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
-        return goTo(DISCONNECTING).using(data
-                .setOrigin(sender)
+        return goTo(DISCONNECTING).using(setSession(data, sender, dittoHeaders)
                 .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
     }
@@ -289,11 +289,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         final Connection connection = data.getConnection();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
-            return goTo(CONNECTING).using(data.setOrigin(sender));
+            return goTo(CONNECTING).using(setSession(data, sender, dittoHeaders));
         } else {
+            cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(UNKNOWN);
+            return goTo(UNKNOWN).using(data.resetSession());
         }
     }
 
@@ -311,9 +312,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay().using(data
                 .setConnection(connection)
                 .setDesiredConnectionStatus(connection.getConnectionStatus())
-                .setConnectionStatusDetails("creating connection at " + Instant.now())
-                .setOrigin(getSender())
-                .setLastCommandHeaders(dittoHeaders));
+                .setConnectionStatusDetails("creating connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> testConnection(final TestConnection testConnection,
@@ -353,36 +352,61 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
 
         return goTo(TESTING)
-                .using(data.setConnection(connection)
-                        .setOrigin(sender)
-                        .setLastCommandHeaders(testConnection.getDittoHeaders())
+                .using(setSession(data, sender, testConnection.getDittoHeaders())
+                        .setConnection(connection)
                         .setConnectionStatusDetails("Testing connection since " + Instant.now()));
-    }
-
-    private static ConnectionFailedException newConnectionFailedException(final Connection connection,
-            final DittoHeaders dittoHeaders) {
-
-        return ConnectionFailedException
-                .newBuilder(connection.getId())
-                .dittoHeaders(dittoHeaders)
-                .description("Could not establish a connection on '" +
-                        connection.getHostname() + ":" + connection.getPort() + "'. Make sure the " +
-                        "endpoint is reachable and that no firewall prevents the connection.")
-                .build();
     }
 
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final Object event,
             final BaseClientData data) {
 
-        data.getOrigin().ifPresent(sender -> {
+        data.getSessionSender().ifPresent(sender -> {
             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                    .dittoHeaders(data.getLastCommandHeaders())
+                    .dittoHeaders(data.getSessionHeaders())
                     .build();
             sender.tell(new Status.Failure(error), getSelf());
         });
-        return goTo(UNKNOWN).using(data
+        cleanupResourcesForConnection();
+        return goTo(UNKNOWN).using(data.resetSession()
                 .setConnectionStatus(ConnectionStatus.FAILED)
                 .setConnectionStatusDetails("Connection timed out at " + Instant.now() + " while " + stateName()));
+    }
+
+    private State<BaseClientState, BaseClientData> clientConnected(final ClientConnected clientConnected,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
+        allocateResourcesOnConnection(clientConnected);
+        data.getSessionSender().ifPresent(origin -> origin.tell(new Status.Success(CONNECTED), getSelf()));
+        return goTo(CONNECTED).using(data.resetSession()
+                .setConnectionStatus(ConnectionStatus.OPEN)
+                .setConnectionStatusDetails("Connected at " + Instant.now()));
+    }
+
+    private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        stopMessageMappingProcessorActor();
+        cleanupResourcesForConnection();
+        data.getSessionSender().ifPresent(sender -> sender.tell(new Status.Success(DISCONNECTED), getSelf()));
+        return goTo(DISCONNECTED).using(data.resetSession()
+                .setConnectionStatus(ConnectionStatus.CLOSED)
+                .setConnectionStatusDetails("Disconnected at " + Instant.now()));
+    }
+
+    private State<BaseClientState, BaseClientData> connectionFailure(final ConnectionFailure event,
+            final BaseClientData data) {
+
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
+        cleanupResourcesForConnection();
+        data.getSessionSender().ifPresent(sender -> sender.tell(event.getFailure(), getSelf()));
+        return goTo(UNKNOWN).using(data.resetSession()
+                .setConnectionStatus(ConnectionStatus.FAILED)
+                .setConnectionStatusDetails(event.getFailureDescription())
+                .setSessionSender(getSender())
+        );
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
@@ -418,26 +442,40 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    /**
-     * Creates the handler for messages common to all states.
-     * <p>
-     * Overwrite and extend by additional matchers.
-     * </p>
-     *
-     * @param connectionId the connection ID
-     * @return an FSM function builder
-     */
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> commonHandler(final String connectionId) {
-        return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
-                .event(ModifyConnection.class, BaseClientData.class, this::translateModifyToCreateConnection)
-                .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
-                    handleExternalMessage(outboundSignal);
-                    return stay();
-                })
-                .event(OutboundSignal.class, BaseClientData.class, (signal, data) -> {
-                    handleOutboundSignal(signal);
-                    return stay();
-                });
+    private static ConnectionFailedException newConnectionFailedException(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+
+        return ConnectionFailedException
+                .newBuilder(connection.getId())
+                .dittoHeaders(dittoHeaders)
+                .description("Could not establish a connection on '" +
+                        connection.getHostname() + ":" + connection.getPort() + "'. Make sure the " +
+                        "endpoint is reachable and that no firewall prevents the connection.")
+                .build();
+    }
+
+    private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
+            final BaseClientState state) {
+        final DittoHeaders headers = signal instanceof WithDittoHeaders
+                ? ((WithDittoHeaders) signal).getDittoHeaders()
+                : DittoHeaders.empty();
+        switch (state) {
+            case CONNECTING:
+            case DISCONNECTING:
+                return ConnectionSignalIllegalException.newBuilder(connectionId())
+                        .operationName(state.name().toLowerCase())
+                        .timeout(CONNECTING_TIMEOUT)
+                        .dittoHeaders(headers)
+                        .build();
+            default:
+                final String signalType = signal instanceof Signal
+                        ? ((Signal) signal).getType()
+                        : "unknown"; // no need to disclose Java class of signal to clients
+                return ConnectionSignalIllegalException.newBuilder(connectionId())
+                        .illegalSignalForState(signalType, state.name().toLowerCase())
+                        .dittoHeaders(headers)
+                        .build();
+        }
     }
 
     private boolean canConnectViaSocket(final Connection connection) {
@@ -453,44 +491,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             log.warning("Socket could not be opened for <{}:{}>", host, port);
         }
         return false;
-    }
-
-    private State<BaseClientState, BaseClientData> handleClientConnected(final ClientConnected clientConnected,
-            final BaseClientData data) {
-
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        startMessageMappingProcessor(data.getConnection().getMappingContext().orElse(null));
-        onClientConnected(clientConnected, data);
-        return goTo(CONNECTED)
-                .using(data.setConnectionStatus(ConnectionStatus.OPEN)
-                        .setConnectionStatusDetails("Connected at " + Instant.now()))
-                .replying(new Status.Success(CONNECTED));
-    }
-
-    private State<BaseClientState, BaseClientData> handleClientDisconnected(final ClientDisconnected event,
-            final BaseClientData data) {
-
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        if (this.isConsuming()) {
-            stopMessageMappingProcessorActor();
-        }
-        onClientDisconnected(event, data);
-        return goTo(DISCONNECTED)
-                .using(data.setConnectionStatus(ConnectionStatus.CLOSED)
-                        .setConnectionStatusDetails("Disconnected at " + Instant.now()))
-                .replying(new Status.Success(DISCONNECTED));
-    }
-
-    private State<BaseClientState, BaseClientData> handleConnectionFailure(final ConnectionFailure event,
-            final BaseClientData data) {
-
-        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-        onConnectionFailure(event, data);
-        return goTo(UNKNOWN).using(data
-                .setConnectionStatus(ConnectionStatus.FAILED)
-                .setConnectionStatusDetails(event.getFailureDescription())
-                .setOrigin(getSender())
-        );
     }
 
     /**
@@ -518,36 +518,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected abstract CompletionStage<Status.Status> doTestConnection(final Connection connection);
 
     /**
-     * Called when this {@code Client} connected successfully.
+     * Allocate resources once this {@code Client} connected successfully.
      *
      * @param clientConnected the ClientConnected message which may be subclassed and thus adding more information
-     * @param data the data of the current State
      */
-    protected abstract void onClientConnected(final ClientConnected clientConnected, final BaseClientData data);
+    protected abstract void allocateResourcesOnConnection(final ClientConnected clientConnected);
 
     /**
-     * Called when this {@code Client} disconnected.
-     *
-     * @param clientDisconnected the ClientDisconnected message which may be subclassed and thus adding more information
-     * @param data the data of the current State
+     * Clean up everything spawned in {@code allocateResourcesOnConnection}. It should be idempotent.
      */
-    protected abstract void onClientDisconnected(final ClientDisconnected clientDisconnected,
-            final BaseClientData data);
+    protected abstract void cleanupResourcesForConnection();
 
     /**
      * @return the optional Actor to use for Publishing commandResponses/events
      */
     protected abstract Optional<ActorRef> getPublisherActor();
-
-    /**
-     * Called when this {@code Client} encountered a Failure.
-     *
-     * @param connectionFailure the ConnectionFailure message which may be subclassed and thus adding more information
-     * @param data the data of the current State
-     */
-    protected void onConnectionFailure(final ConnectionFailure connectionFailure, final BaseClientData data) {
-        connectionFailure.getOrigin().ifPresent(o -> o.tell(connectionFailure.getFailure(), getSelf()));
-    }
 
     /**
      * Invoked when this {@code Client} should connect.
@@ -743,6 +728,15 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     .props(props), MessageMappingProcessorActor.ACTOR_NAME);
         } else {
             log.info("MessageMappingProcessor already instantiated, don't initialize again..");
+        }
+    }
+
+    private BaseClientData setSession(final BaseClientData data, final ActorRef sender, final DittoHeaders headers) {
+        if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
+            return data.setSessionSender(sender)
+                    .setSessionHeaders(headers);
+        } else {
+            return data.resetSession();
         }
     }
 
