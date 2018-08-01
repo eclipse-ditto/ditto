@@ -17,15 +17,12 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -187,49 +184,38 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
-    protected Map<String, AddressMetric> getSourceConnectionStatus(final Source source) {
-        try {
-            return collectAsList(consumers.stream()
-                    .map(consumerData -> retrieveAddressMetric(consumerData.getAddressWithIndex(),
-                            consumerData.getActorName()))
-                    .collect(Collectors.toList())).thenApply(
-                    entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
-                    .get(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            log.error(e, "Aggregating ConnectionStatus for sources was interrupted: {}", e.getMessage());
-            Thread.currentThread().interrupt();
-            return Collections.emptyMap();
-        } catch (final ExecutionException e) {
-            log.error(e, "Error while aggregating sources ConnectionStatus: {}", e.getMessage());
-            return Collections.emptyMap();
-        } catch (final TimeoutException e) {
-            log.error(e, "Aggregating ConnectionStatus for sources timed out: {}", e.getMessage());
-            return Collections.emptyMap();
-        }
+    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
+        return collectAsList(consumers.stream()
+                .map(consumerData ->
+                        retrieveAddressMetric(consumerData.getAddressWithIndex(), consumerData.getActorName())))
+                .thenApply(entries ->
+                        entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
+                .handle((result, error) -> {
+                    if (error == null) {
+                        return result;
+                    } else {
+                        log.error(error, "Error while aggregating sources ConnectionStatus: {}", error.getMessage());
+                        return Collections.emptyMap();
+                    }
+                });
     }
 
     @Override
-    protected Map<String, AddressMetric> getTargetConnectionStatus(final Target target) {
+    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
 
         final String actorName = AmqpPublisherActor.ACTOR_NAME;
-        final HashMap<String, AddressMetric> targetStatus = new HashMap<>();
-        try {
-            final Pair<String, AddressMetric> targetEntry =
-                    retrieveAddressMetric(target.getAddress(), actorName).get(RETRIEVE_METRICS_TIMEOUT,
-                            TimeUnit.SECONDS);
-            targetStatus.put(targetEntry.first(), targetEntry.second());
-            return targetStatus;
-        } catch (final InterruptedException e) {
-            log.error(e, "Aggregating ConnectionStatus for targets was interrupted: {}", e.getMessage());
-            Thread.currentThread().interrupt();
-            return Collections.emptyMap();
-        } catch (final ExecutionException e) {
-            log.error(e, "Error while aggregating target ConnectionStatus: {}", e.getMessage());
-            return Collections.emptyMap();
-        } catch (final TimeoutException e) {
-            log.error(e, "Aggregating ConnectionStatus for targets timed out: {}", e.getMessage());
-            return Collections.emptyMap();
-        }
+        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
+                retrieveAddressMetric(target.getAddress(), actorName);
+        return targetEntryFuture
+                .thenApply(targetEntry -> Collections.singletonMap(targetEntry.first(), targetEntry.second()))
+                .handle((result, error) -> {
+                    if (error == null) {
+                        return result;
+                    } else {
+                        log.error(error, "Error while aggregating target ConnectionStatus: {}", error.getMessage());
+                        return Collections.emptyMap();
+                    }
+                });
     }
 
     @Override

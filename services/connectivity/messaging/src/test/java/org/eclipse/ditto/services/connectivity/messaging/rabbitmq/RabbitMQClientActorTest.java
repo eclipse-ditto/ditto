@@ -37,6 +37,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -152,6 +153,30 @@ public class RabbitMQClientActorTest {
     }
 
     @Test
+    public void testReconnection() {
+        new TestKit(actorSystem) {{
+            final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
+            final ActorRef rabbitClientActor = actorSystem.actorOf(props);
+
+            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
+
+            rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
+
+            // reconnect many times
+            for (int i = 0; i < 10; ++i) {
+                rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+                expectMsg(CONNECTED_SUCCESS);
+
+                rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+                expectMsg(DISCONNECTED_SUCCESS);
+            }
+        }};
+    }
+
+    @Test
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final Props props = RabbitMQClientActor.propsForTests(connection, connectionStatus, getRef(),
@@ -179,7 +204,8 @@ public class RabbitMQClientActorTest {
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsgClass(ConnectionSignalIllegalException.class);
 
-            verify(mockConnection, Mockito.atLeast(1)).createChannel();
+            // a publisher and a consumer channel should be created
+            verify(mockConnection, Mockito.times(2)).createChannel();
         }};
     }
 

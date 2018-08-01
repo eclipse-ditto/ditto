@@ -34,8 +34,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -115,6 +117,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private long consumedMessageCounter = 0L;
     private long publishedMessageCounter = 0L;
+
+    // counter for all child actors ever started to disambiguate between them
+    private int childActorCount = 0;
 
     protected BaseClientActor(final Connection connection, final ConnectionStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
@@ -413,16 +418,31 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final RetrieveConnectionMetrics command,
             final BaseClientData data) {
 
-        final ConnectionMetrics connectionMetrics = ConnectivityModelFactory.newConnectionMetrics(
-                getCurrentConnectionStatus(), getCurrentConnectionStatusDetails().orElse(null),
-                getInConnectionStatusSince(), stateName().name(),
-                getCurrentSourcesMetrics(), getCurrentTargetsMetrics());
+        final ActorRef sender = getSender();
+        final ActorRef self = getSelf();
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(org.eclipse.ditto.services.utils.config.ConfigUtil.calculateInstanceUniqueSuffix())
                 .build();
 
-        final Object response = RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, dittoHeaders);
-        getSender().tell(response, getSelf());
+        final CompletionStage<ConnectionMetrics> metricsFuture =
+                getCurrentSourcesMetrics().thenCompose(sourceMetrics ->
+                        getCurrentTargetsMetrics().thenApply(targetMetrics ->
+                                ConnectivityModelFactory.newConnectionMetrics(
+                                        getCurrentConnectionStatus(),
+                                        getCurrentConnectionStatusDetails().orElse(null),
+                                        getInConnectionStatusSince(),
+                                        stateName().name(),
+                                        sourceMetrics,
+                                        targetMetrics)
+                        )
+                );
+
+        metricsFuture.thenAccept(connectionMetrics -> {
+            final Object response =
+                    RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, dittoHeaders);
+            sender.tell(response, self);
+        });
 
         return stay();
     }
@@ -556,7 +576,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param source the Source to retrieve the connection status for
      * @return the result as Map containing an entry for each source
      */
-    protected abstract Map<String, AddressMetric> getSourceConnectionStatus(final Source source);
+    protected abstract CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source);
 
     /**
      * Retrieves the connection status of the passed {@link Target}.
@@ -564,24 +584,38 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param target the Target to retrieve the connection status for
      * @return the result as Map containing an entry for each target
      */
-    protected abstract Map<String, AddressMetric> getTargetConnectionStatus(final Target target);
+    protected abstract CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target);
 
     /**
      * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
      * {@code childActorName}.
      *
      * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
-     * @param childActorName the actor name of the child to ask for the AddressMetric
+     * @param childActorName name of the child actor
      * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
      */
     protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
             final String addressIdentifier, final String childActorName) {
 
-        final Optional<ActorRef> childActor = getContext().findChild(childActorName);
-        if (childActor.isPresent()) {
-            final ActorRef actorRef = childActor.get();
-            return PatternsCS.ask(actorRef, RetrieveAddressMetric.getInstance(),
-                    Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS))
+        final ActorRef childActorRef = getContext().findChild(childActorName).orElse(null);
+        return retrieveAddressMetric(addressIdentifier, childActorName, childActorRef);
+    }
+
+    /**
+     * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
+     * {@code childActorName}.
+     *
+     * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
+     * @param childActorLabel what to call the child actor
+     * @param childActorRef the actor reference of the child to ask for the AddressMetric
+     * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
+     */
+    protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
+            final String addressIdentifier, final String childActorLabel, @Nullable final ActorRef childActorRef) {
+
+        if (childActorRef != null) {
+            final Timeout timeout = Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
+            return PatternsCS.ask(childActorRef, RetrieveAddressMetric.getInstance(), timeout)
                     .handle((response, throwable) -> {
                         if (response != null) {
                             return Pair.create(addressIdentifier, (AddressMetric) response);
@@ -595,7 +629,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                         }
                     }).toCompletableFuture();
         } else {
-            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorName,
+            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorLabel,
                     StreamSupport
                             .stream(getContext().getChildren().spliterator(), false)
                             .map(ref -> ref.path().name())
@@ -603,7 +637,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return CompletableFuture.completedFuture(Pair.create(addressIdentifier,
                     ConnectivityModelFactory.newAddressMetric(
                             ConnectionStatus.FAILED,
-                            "child <" + childActorName + "> not found",
+                            "child <" + childActorLabel + "> not found",
                             -1, Instant.now())));
         }
     }
@@ -655,24 +689,23 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stateData().getConnectionStatusDetails();
     }
 
-    private List<SourceMetrics> getCurrentSourcesMetrics() {
-        return getSourcesOrEmptySet()
+    private CompletionStage<List<SourceMetrics>> getCurrentSourcesMetrics() {
+        return collectAsList(getSourcesOrEmptySet()
                 .stream()
-                .map(source -> ConnectivityModelFactory.newSourceMetrics(
-                        getSourceConnectionStatus(source),
-                        consumedMessageCounter)
-                )
-                .collect(Collectors.toList());
+                .map(this::getSourceConnectionStatus)
+                .map(future -> future.thenApply(status ->
+                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessageCounter)
+                ))
+        );
     }
 
-    private List<TargetMetrics> getCurrentTargetsMetrics() {
-        return getTargetsOrEmptySet()
+    private CompletionStage<List<TargetMetrics>> getCurrentTargetsMetrics() {
+        return collectAsList(getTargetsOrEmptySet()
                 .stream()
-                .map(target -> ConnectivityModelFactory.newTargetMetrics(
-                        getTargetConnectionStatus(target),
-                        publishedMessageCounter)
-                )
-                .collect(Collectors.toList());
+                .map(this::getTargetConnectionStatus)
+                .map(future -> future.thenApply(status ->
+                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessageCounter)
+                )));
     }
 
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
@@ -725,10 +758,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             messageMappingProcessorActor = getContext().actorOf(new RoundRobinPool(1)
                     .withDispatcher("message-mapping-processor-dispatcher")
                     .withResizer(resizer)
-                    .props(props), MessageMappingProcessorActor.ACTOR_NAME);
+                    .props(props), nextChildActorName(MessageMappingProcessorActor.ACTOR_NAME));
         } else {
             log.info("MessageMappingProcessor already instantiated, don't initialize again..");
         }
+    }
+
+    private String nextChildActorName(final String prefix) {
+        return prefix + ++childActorCount;
     }
 
     private BaseClientData setSession(final BaseClientData data, final ActorRef sender, final DittoHeaders headers) {
@@ -780,19 +817,24 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     /**
      * Transforms a List of CompletableFutures to a CompletableFuture of a List.
      *
-     * @param futures the List of futures
+     * @param futures the stream of futures
      * @param <T> the type of the CompletableFuture and the List elements
      * @return the CompletableFuture of a List
      */
-    protected static <T> CompletableFuture<List<T>> collectAsList(final List<CompletableFuture<T>> futures) {
+    protected static <T> CompletableFuture<List<T>> collectAsList(final Stream<CompletionStage<T>> futures) {
         return collect(futures, Collectors.toList());
     }
 
-    private static <T, A, R> CompletableFuture<R> collect(final List<CompletableFuture<T>> futures,
+    private static <T, A, R> CompletableFuture<R> collect(final Stream<CompletionStage<T>> futures,
             final Collector<T, A, R> collector) {
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
-                .thenApply(v -> futures.stream().map(CompletableFuture::join).collect(collector));
+        final CompletableFuture<T>[] futureArray = futures.map(CompletionStage::toCompletableFuture)
+                .toArray((IntFunction<CompletableFuture<T>[]>) CompletableFuture[]::new);
+
+        return CompletableFuture.allOf(futureArray).thenApply(_void ->
+                Arrays.stream(futureArray)
+                        .map(CompletableFuture::join)
+                        .collect(collector));
     }
 
     /**
@@ -806,6 +848,17 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         log.debug("Starting child actor '{}'", name);
         final String nameEscaped = escapeActorName(name);
         return getContext().actorOf(props, nameEscaped);
+    }
+
+    /**
+     * Start a child actor whose name is guaranteed to be different from all other child actors started by this method.
+     *
+     * @param prefix prefix of the child actor name.
+     * @param props props of the child actor.
+     * @return the created ActorRef.
+     */
+    protected final ActorRef startChildActorConflictFree(final String prefix, final Props props) {
+        return startChildActor(nextChildActorName(prefix), props);
     }
 
     /**
