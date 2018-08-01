@@ -811,7 +811,8 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             return true;
         } catch (final IOException ex) {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
-            log.warning("Socket could not be opened for <{}:{}>", host, port);
+            log.warning("Socket could not be opened for <{}:{}> due to <{}:{}>", host, port,
+                    ex.getClass().getCanonicalName(), ex.getMessage());
         }
         return false;
     }
