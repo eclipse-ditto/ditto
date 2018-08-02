@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Retrieves an enforcer by using an ID Cache and Enforcer Cache.
  */
+@SuppressWarnings("WeakerAccess")
 public final class EnforcerRetriever {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EnforcerRetriever.class);
@@ -42,6 +43,7 @@ public final class EnforcerRetriever {
      * @param idCache the ID Cache.
      * @param enforcerCache the Enforcer Cache.
      */
+    @SuppressWarnings("WeakerAccess")
     public EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
@@ -67,10 +69,11 @@ public final class EnforcerRetriever {
      * @param idCache the ID Cache.
      * @param enforcerCaches the Enforcer Caches per resource type.
      */
-    EnforcerRetriever(
+    @SuppressWarnings("WeakerAccess")
+    public EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Map<String, Cache<EntityId, Entry<Enforcer>>> enforcerCaches) {
-        this(idCache, enforcerCaches::get);
+        this(idCache, requireNonNull(enforcerCaches)::get);
     }
 
     /**
@@ -80,6 +83,7 @@ public final class EnforcerRetriever {
      * @param consumer handler of cache lookup results.
      * @return future after retrieved cache entries are given to the consumer.
      */
+    @SuppressWarnings("WeakerAccess")
     public CompletionStage<Void> retrieve(final EntityId entityKey,
             final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
         return idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
@@ -111,6 +115,7 @@ public final class EnforcerRetriever {
      * @param enforcerKey key of the enforcer.
      * @param consumer what to do with the enforcer.
      */
+    @SuppressWarnings("WeakerAccess")
     public void retrieveByEnforcerKey(final EntityId enforcerKey, final Consumer<Entry<Enforcer>> consumer) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityId, Entry<Enforcer>> enforcerCache =
