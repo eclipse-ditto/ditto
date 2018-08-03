@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils
 import org.eclipse.ditto.services.gateway.security.HttpHeader;
 import org.eclipse.ditto.services.gateway.security.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.services.gateway.security.jwt.JsonWebToken;
+import org.eclipse.ditto.services.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
 import org.eclipse.ditto.services.utils.tracing.TracingTags;
@@ -44,9 +45,9 @@ import org.slf4j.LoggerFactory;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.impl.DefaultJwtParser;
+import io.jsonwebtoken.security.SignatureException;
 
 /**
  * Implementation of {@link AuthenticationProvider} handling JWT authentication.
@@ -156,10 +157,11 @@ public final class JwtAuthenticationDirective implements AuthenticationProvider 
 
     private void validateToken(final JsonWebToken authorizationToken, final PublicKey publicKey,
             final String correlationId) {
-        final DefaultJwtParser defaultJwtParser = new DefaultJwtParser();
 
         try {
-            defaultJwtParser.setSigningKey(publicKey).parse(authorizationToken.getToken());
+            Jwts.parser().deserializeJsonWith(JjwtDeserializer.getInstance())
+                    .setSigningKey(publicKey)
+                    .parse(authorizationToken.getToken());
         } catch (final ExpiredJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
             LOGGER.info("Got Exception '{}' during parsing JWT: {}", e.getClass().getSimpleName(), e.getMessage(),
                     e);

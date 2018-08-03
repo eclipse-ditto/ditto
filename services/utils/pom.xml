@@ -31,6 +31,7 @@
         <module>config</module>
         <module>devops</module>
         <module>health</module>
+        <module>jwt</module>
         <module>persistence</module>
         <module>protocol</module>
         <module>test</module>

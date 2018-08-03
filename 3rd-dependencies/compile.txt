@@ -2,9 +2,6 @@
    ch.qos.logback:logback-core:jar:1.2.3:compile
    com.chuusai:shapeless_2.12:jar:2.3.2:compile
    com.eclipsesource.minimal-json:minimal-json:jar:0.9.5:compile
-   com.fasterxml.jackson.core:jackson-annotations:jar:2.9.5:compile
-   com.fasterxml.jackson.core:jackson-core:jar:2.9.5:compile
-   com.fasterxml.jackson.core:jackson-databind:jar:2.9.5:compile
    com.github.ben-manes.caffeine:caffeine:jar:2.6.2:compile
    com.github.jnr:jffi:jar:1.2.16:compile
    com.github.jnr:jnr-constants:jar:0.9.9:compile
@@ -40,21 +37,22 @@
    io.aeron:aeron-driver:jar:1.9.1:compile
    io.dropwizard.metrics:metrics-core:jar:3.1.2:compile
    io.dropwizard.metrics:metrics-healthchecks:jar:3.1.2:compile
-   io.jsonwebtoken:jjwt:jar:0.7.0:compile
+   io.jsonwebtoken:jjwt-api:jar:0.10.1:compile
+   io.jsonwebtoken:jjwt-impl:jar:0.10.1:compile
    io.kamon:kamon-core_2.12:jar:1.1.2:compile
    io.kamon:kamon-prometheus_2.12:jar:1.1.1:compile
    io.kamon:kamon-system-metrics_2.12:jar:1.0.0:compile
-   io.netty:netty-buffer:jar:4.1.25.Final:compile
-   io.netty:netty-codec-http:jar:4.1.25.Final:compile
-   io.netty:netty-codec:jar:4.1.25.Final:compile
-   io.netty:netty-common:jar:4.1.25.Final:compile
-   io.netty:netty-handler:jar:4.1.25.Final:compile
+   io.netty:netty-buffer:jar:4.1.27.Final:compile
+   io.netty:netty-codec-http:jar:4.1.27.Final:compile
+   io.netty:netty-codec:jar:4.1.27.Final:compile
+   io.netty:netty-common:jar:4.1.27.Final:compile
+   io.netty:netty-handler:jar:4.1.27.Final:compile
    io.netty:netty:jar:3.10.6.Final:compile
-   io.netty:netty-resolver:jar:4.1.25.Final:compile
-   io.netty:netty-transport:jar:4.1.25.Final:compile
-   io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.25.Final:compile
-   io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.25.Final:compile
-   io.netty:netty-transport-native-unix-common:jar:4.1.25.Final:compile
+   io.netty:netty-resolver:jar:4.1.27.Final:compile
+   io.netty:netty-transport:jar:4.1.27.Final:compile
+   io.netty:netty-transport-native-epoll:jar:linux-x86_64:4.1.27.Final:compile
+   io.netty:netty-transport-native-kqueue:jar:osx-x86_64:4.1.27.Final:compile
+   io.netty:netty-transport-native-unix-common:jar:4.1.27.Final:compile
    io.prometheus:simpleclient_common:jar:0.4.0:compile
    io.prometheus:simpleclient_dropwizard:jar:0.4.0:compile
    io.prometheus:simpleclient:jar:0.4.0:compile
@@ -63,8 +61,8 @@
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile
    org.agrona:agrona:jar:0.9.17:compile
    org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
-   org.apache.qpid:proton-j:jar:0.27.1:compile
-   org.apache.qpid:qpid-jms-client:jar:0.33.0:compile
+   org.apache.qpid:proton-j:jar:0.28.0:compile
+   org.apache.qpid:qpid-jms-client:jar:0.35.0:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile
    org.joda:joda-convert:jar:1.2:compile
    org.lmdbjava:lmdbjava:jar:0.6.0:compile
