@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
@@ -19,15 +20,15 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+
 import io.jsonwebtoken.io.DeserializationException;
 import io.jsonwebtoken.io.Deserializer;
-import io.jsonwebtoken.lang.Assert;
-import io.jsonwebtoken.lang.Strings;
-
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
 /**
  * JJWT library Deserializer implementation which translates JSON strings to Java Objects (e.g. Maps).
@@ -51,14 +52,14 @@ public final class JjwtDeserializer implements Deserializer {
     @Override
     public Object deserialize(byte[] bytes) {
 
-        Assert.notNull(bytes, "JSON byte array cannot be null");
+        ConditionChecker.argumentNotNull(bytes, "JSON byte array cannot be null");
 
         if (bytes.length == 0) {
             throw new DeserializationException("Invalid JSON: zero length byte array.");
         }
 
         try {
-            return parse(new String(bytes, Strings.UTF_8));
+            return parse(new String(bytes, StandardCharsets.UTF_8));
         } catch (final Exception e) {
             throw new DeserializationException("Invalid JSON: " + e.getMessage(), e);
         }
@@ -66,14 +67,14 @@ public final class JjwtDeserializer implements Deserializer {
 
     private static Object parse(final String json) {
 
-        return toJavaObject(Json.parse(json));
+        return toJavaObject(JsonFactory.readFrom(json));
     }
 
     private static Map<String, Object> toJavaMap(final JsonObject jsonObject) {
         return StreamSupport.stream(jsonObject.spliterator(), false)
                 .collect(Collectors.toMap(
-                        JsonObject.Member::getName,
-                        member -> toJavaObject(member.getValue())));
+                        JsonField::getKeyName,
+                        field -> toJavaObject(field.getValue())));
     }
 
     private static List<Object> toJavaList(final JsonArray jsonArray) {

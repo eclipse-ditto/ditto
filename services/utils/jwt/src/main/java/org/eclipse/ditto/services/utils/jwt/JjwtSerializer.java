@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.utils.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -18,18 +19,19 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+
 import io.jsonwebtoken.io.Encoders;
 import io.jsonwebtoken.io.SerializationException;
 import io.jsonwebtoken.io.Serializer;
 import io.jsonwebtoken.lang.Collections;
 import io.jsonwebtoken.lang.DateFormats;
 import io.jsonwebtoken.lang.Objects;
-import io.jsonwebtoken.lang.Strings;
-
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 
 /**
  * JJWT library Serializer implementation which translates Java Objects (e.g. Maps) to JSON strings.
@@ -53,7 +55,7 @@ public final class JjwtSerializer<T> implements Serializer<T> {
     public byte[] serialize(T t) {
 
         try {
-            return toJson(t).toString().getBytes(Strings.UTF_8);
+            return toJson(t).toString().getBytes(StandardCharsets.UTF_8);
         } catch (final SerializationException se) {
             throw se;
         } catch (final Exception e) {
@@ -65,27 +67,27 @@ public final class JjwtSerializer<T> implements Serializer<T> {
     private static JsonValue toJson(final Object input) {
 
         if (input == null) {
-            return Json.NULL;
+            return JsonFactory.nullLiteral();
         } else if (input instanceof Boolean) {
-            return Json.value((boolean) input);
+            return JsonFactory.newValue((boolean) input);
         } else if (input instanceof Byte || input instanceof Short || input instanceof Integer) {
-            return Json.value((int) input);
+            return JsonFactory.newValue((int) input);
         } else if (input instanceof Long) {
-            return Json.value((long) input);
+            return JsonFactory.newValue((long) input);
         } else if (input instanceof Float) {
-            return Json.value((float) input);
+            return JsonFactory.newValue((float) input);
         } else if (input instanceof Double) {
-            return Json.value((double) input);
+            return JsonFactory.newValue((double) input);
         } else if (input instanceof Character || input instanceof String || input instanceof Enum) {
-            return Json.value(input.toString());
+            return JsonFactory.newValue(input.toString());
         } else if (input instanceof Calendar) {
-            return Json.value(DateFormats.formatIso8601(((Calendar) input).getTime()));
+            return JsonFactory.newValue(DateFormats.formatIso8601(((Calendar) input).getTime()));
         } else if (input instanceof Date) {
-            return Json.value(DateFormats.formatIso8601((Date) input));
+            return JsonFactory.newValue(DateFormats.formatIso8601((Date) input));
         } else if (input instanceof byte[]) {
-            return Json.value(Encoders.BASE64.encode((byte[]) input));
+            return JsonFactory.newValue(Encoders.BASE64.encode((byte[]) input));
         } else if (input instanceof char[]) {
-            return Json.value(new String((char[]) input));
+            return JsonFactory.newValue(new String((char[]) input));
         } else if (input instanceof Map) {
             return toJsonObject((Map<?, ?>) input);
         } else if (input instanceof Collection) {
@@ -100,16 +102,16 @@ public final class JjwtSerializer<T> implements Serializer<T> {
 
     private static JsonObject toJsonObject(final Map<?, ?> map) {
 
-        final JsonObject obj = new JsonObject();
-        map.forEach((key, value) -> obj.add(String.valueOf(key), toJson(value)));
-        return obj;
+        final JsonObjectBuilder objectBuilder = JsonObject.newBuilder();
+        map.forEach((key, value) -> objectBuilder.set(String.valueOf(key), toJson(value)));
+        return objectBuilder.build();
     }
 
     private static JsonArray toJsonArray(final Collection<?> c) {
 
-        final JsonArray array = new JsonArray();
-        c.stream().map(JjwtSerializer::toJson).forEach(array::add);
-        return array;
+        final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
+        c.stream().map(JjwtSerializer::toJson).forEach(arrayBuilder::add);
+        return arrayBuilder.build();
     }
 
 }
