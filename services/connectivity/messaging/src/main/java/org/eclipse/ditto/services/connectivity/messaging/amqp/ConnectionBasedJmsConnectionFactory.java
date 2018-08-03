@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -191,13 +190,16 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .collect(Collectors.toList());
 
         final List<String> defaultFailoverParams =
-                Stream.of(FAILOVER_OPTION_PREFIX + "initialReconnectDelay=" + TimeUnit.SECONDS.toMillis(10),
-                        FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts=1",
-                        // important, we cannot interrupt connection initiation
-                        FAILOVER_OPTION_PREFIX + "reconnectDelay=" + TimeUnit.SECONDS.toMillis(1),
-                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=" + TimeUnit.MINUTES.toMillis(60),
-                        FAILOVER_OPTION_PREFIX + "useReconnectBackOff=true",
-                        FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=1.0").collect(Collectors.toList());
+                // Important: we cannot interrupt connection initiation.
+                // These failover parameters ensure qpid client gives up after at most
+                // 128 + 256 + 512 + 1024 + 2048 + 4096 = 8064 ms < 10_000 ms = 10 s
+                Stream.of(FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts=5",
+                        FAILOVER_OPTION_PREFIX + "maxReconnectAttempts=5",
+                        FAILOVER_OPTION_PREFIX + "initialReconnectDelay=128",
+                        FAILOVER_OPTION_PREFIX + "reconnectDelay=128",
+                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=4096",
+                        FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=2",
+                        FAILOVER_OPTION_PREFIX + "useReconnectBackOff=true").collect(Collectors.toList());
 
         defaultFailoverParams.addAll(failoverParams);
         return defaultFailoverParams;
