@@ -20,10 +20,10 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 
 import io.jsonwebtoken.io.Encoders;
@@ -102,16 +102,16 @@ public final class JjwtSerializer<T> implements Serializer<T> {
 
     private static JsonObject toJsonObject(final Map<?, ?> map) {
 
-        final JsonObjectBuilder objectBuilder = JsonObject.newBuilder();
-        map.forEach((key, value) -> objectBuilder.set(String.valueOf(key), toJson(value)));
-        return objectBuilder.build();
+        return map.entrySet().stream()
+                .map(entry -> JsonField.newInstance(String.valueOf(entry.getKey()), toJson(entry.getValue())))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
     private static JsonArray toJsonArray(final Collection<?> c) {
 
-        final JsonArrayBuilder arrayBuilder = JsonArray.newBuilder();
-        c.stream().map(JjwtSerializer::toJson).forEach(arrayBuilder::add);
-        return arrayBuilder.build();
+        return c.stream()
+                .map(JjwtSerializer::toJson)
+                .collect(JsonCollectors.valuesToArray());
     }
 
 }

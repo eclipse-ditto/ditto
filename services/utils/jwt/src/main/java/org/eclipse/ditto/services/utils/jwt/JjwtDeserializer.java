@@ -16,7 +16,6 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -71,14 +70,14 @@ public final class JjwtDeserializer implements Deserializer {
     }
 
     private static Map<String, Object> toJavaMap(final JsonObject jsonObject) {
-        return StreamSupport.stream(jsonObject.spliterator(), false)
+        return jsonObject.stream()
                 .collect(Collectors.toMap(
                         JsonField::getKeyName,
                         field -> toJavaObject(field.getValue())));
     }
 
     private static List<Object> toJavaList(final JsonArray jsonArray) {
-        return StreamSupport.stream(jsonArray.spliterator(), false)
+        return jsonArray.stream()
                 .map(JjwtDeserializer::toJavaObject)
                 .collect(Collectors.toList());
     }
