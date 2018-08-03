@@ -348,7 +348,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         /**
          * Regex for the protocol part of an URI.
          */
-        private static final String PROTOCOL_REGEX = "(?<" + PROTOCOL_REGEX_GROUP + ">amqps?)://";
+        private static final String PROTOCOL_REGEX = "(?<" + PROTOCOL_REGEX_GROUP + ">(amqps|tcp)?)://";
 
         /**
          * Regex group for the username part of an URI.

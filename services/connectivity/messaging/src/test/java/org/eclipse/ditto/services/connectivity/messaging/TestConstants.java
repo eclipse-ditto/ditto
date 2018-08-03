@@ -43,6 +43,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -196,6 +197,12 @@ public class TestConstants {
                 Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, Things.THING_ID, "ditto").build())
                         .build();
         return SendThingMessage.of(Things.THING_ID, message, dittoHeaders);
+    }
+
+    public static String signalToDittoProtocolJsonString(final Signal<?> signal) {
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(signal);
+        final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+        return jsonifiable.toJsonString();
     }
 
     public static String modifyThing() {

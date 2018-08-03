@@ -140,6 +140,15 @@
         </dependency>
 
         <dependency>
+            <groupId>com.lightbend.akka</groupId>
+            <artifactId>akka-stream-alpakka-mqtt_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-test</artifactId>
             <scope>test</scope>
@@ -157,6 +166,13 @@
         <dependency>
             <groupId>com.github.dnvriend</groupId>
             <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.moquette</groupId>
+            <artifactId>moquette-broker</artifactId>
+            <version>0.11</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

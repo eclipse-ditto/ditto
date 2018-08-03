@@ -79,6 +79,7 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
+        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
     </properties>
 
     <dependencyManagement>
@@ -291,6 +292,12 @@
                 <groupId>com.rabbitmq</groupId>
                 <artifactId>amqp-client</artifactId>
                 <version>${amqp-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.lightbend.akka</groupId>
+                <artifactId>akka-stream-alpakka-mqtt_2.12</artifactId>
+                <version>${alpakka-mqtt.version}</version>
             </dependency>
 
             <dependency>
