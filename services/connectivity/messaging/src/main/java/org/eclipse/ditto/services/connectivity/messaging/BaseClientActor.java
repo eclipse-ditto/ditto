@@ -21,8 +21,11 @@ import static org.eclipse.ditto.services.connectivity.messaging.BaseClientState.
 import static org.eclipse.ditto.services.connectivity.messaging.DittoHeadersFilter.Mode.EXCLUDE;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -320,12 +323,19 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Escapes the passed actorName in a actorName valid way.
+     * Actor name should be a valid URL with ASCII letters, see also {@code akka.actor.ActorPath#isValidPathElement},
+     * therefor we encode the name as an ASCII URL.
      *
      * @param name the actorName to escape
      * @return the escaped name
      */
     protected static String escapeActorName(final String name) {
-        return name.replace('/', '_');
+        try {
+            return URLEncoder.encode(name, StandardCharsets.US_ASCII.name());
+        } catch (final UnsupportedEncodingException e) {
+            // should never happen, every JDK must support US_ASCII
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -945,5 +955,4 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             messageMappingProcessorActor = null;
         }
     }
-
 }
