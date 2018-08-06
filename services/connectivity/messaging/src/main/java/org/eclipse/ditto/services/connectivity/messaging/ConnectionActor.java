@@ -436,7 +436,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
                             parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
                             self.tell(performTask, ActorRef.noSender());
                         },
-                        error -> handleException("connect", origin, error, false)
+                        error -> {
+                            // log error but send response anyway
+                            handleException("connect", origin, error, false);
+                            respondWithCreateConnectionResponse(connection, command, origin);
+                        }
                 );
             } else {
                 log.debug("Connection <{}> has status <{}> and will therefore stay closed.", connection.getId(),
