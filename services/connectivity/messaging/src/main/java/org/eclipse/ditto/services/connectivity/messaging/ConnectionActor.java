@@ -758,7 +758,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final RoundRobinPool roundRobinPool = new RoundRobinPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(roundRobinPool, clusterRouterPoolSettings).props(props);
-            clientActor = getContext().actorOf(clusterRouterPoolProps, "client-router");
+
+            // start client actor without name so it does not conflict with its previous incarnation
+            clientActor = getContext().actorOf(clusterRouterPoolProps);
         } else {
             log.debug("ClientActor already started.");
         }
@@ -767,19 +769,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void stopClientActor() {
         if (clientActor != null) {
             log.debug("Stopping the client actor.");
-            final String name = clientActor.path().name();
             stopChildActor(clientActor);
             clientActor = null;
-            // TODO: Don't block until client actor is stopped
-            int counter = 20;
-            while (getContext().findChild(name).isPresent() && --counter >= 0) {
-                log.debug("Client actor '{}' still running.", name);
-                try {
-                    Thread.sleep(50);
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
         }
     }
 
