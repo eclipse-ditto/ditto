@@ -176,6 +176,12 @@ public final class ConfigKeys {
          */
         public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
 
+        /**
+         * Timeout for flushing pending responses in connection actor.
+         * It should be enough time for Akka pub/sub to reach consensus in the cluster.
+         */
+        public static final String FLUSH_PENDING_RESPONSES_TIMEOUT = PREFIX + "flush-pending-responses-timeout";
+
         private Connection() {
             throw new AssertionError();
         }
