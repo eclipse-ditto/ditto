@@ -31,7 +31,7 @@
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-distributed-data_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
-|com.typesafe.akka|akka-http_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
+|com.typesafe.akka|akka-http_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) TODO upgrade to 10.1.3 |
 |com.typesafe.akka|akka-http-core_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-http-spray-json_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-parsing_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
@@ -46,11 +46,12 @@
 |io.aeron|aeron-driver|1.9.1| [16552](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16552) |
 |io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
 |io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
-|io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
+|io.jsonwebtoken|jjwt-api|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
+|io.jsonwebtoken|jjwt-impl|0.10.1| [17097](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17097) |
 |io.kamon|kamon-core_2.12|1.1.2 | [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
 |io.kamon|kamon-prometheus_2.12|1.1.1 | [16742](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16742) |
 |io.kamon|kamon-system-metrics_2.12|1.0.0 | [16741](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16741) |
-|io.netty|netty-buffer|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.netty|netty-buffer|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) TODO upgrade |
 |io.netty|netty-codec-http|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-codec|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-common|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
@@ -69,8 +70,8 @@
 |nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.17| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
-|org.apache.qpid|proton-j|0.27.1| [16557](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16557) |
-|org.apache.qpid|qpid-jms-client|0.32.0| [16556](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16556) |
+|org.apache.qpid|proton-j|0.27.1| [16557](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16557) TODO upgrade |
+|org.apache.qpid|qpid-jms-client|0.32.0| [16556](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16556) TODO upgrade |
 |org.hdrhistogram|HdrHistogram|2.1.9| [14471](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14471) |
 |org.joda|joda-convert|1.2| [14472](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14472) |
 |org.lmdbjava|lmdbjava|0.6.0| [16336](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16336) |
