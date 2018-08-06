@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -161,6 +162,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     @Override
+    public void postStop() {
+        ensureJmsConnectionClosed();
+        super.postStop();
+    }
+
+    @Override
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return super.inAnyState()
                 .event(StatusReport.class, this::handleStatusReport);
@@ -245,7 +252,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             log.info("Received JmsConnected");
-            this.jmsConnection = c.connection; // TODO: close old connection
+            ensureJmsConnectionClosed();
+            this.jmsConnection = c.connection;
             this.jmsConnection.addConnectionListener(connectionListener);
             this.jmsSession = c.session;
             consumers.clear();
@@ -262,15 +270,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         log.debug("cleaning up");
         stopCommandConsumers();
         stopCommandProducer();
-        this.jmsSession = null;
-        if (jmsConnection != null) {
-            jmsConnection.removeConnectionListener(connectionListener);
-        }
+        // closing JMS connection closes all sessions and consumers
+        ensureJmsConnectionClosed();
         this.jmsConnection = null;
-        if (amqpPublisherActor != null) {
-            stopChildActor(amqpPublisherActor);
-            amqpPublisherActor = null;
-        }
+        this.jmsSession = null;
         this.consumers.clear();
     }
 
@@ -403,6 +406,30 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Props props =
                 JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory);
         return startChildActorConflictFree(namePrefix, props);
+    }
+
+    /**
+     * Close the JMS connection known to this actor in an isolated dispatcher because it is blocking.
+     *
+     * @return future where the closing operation executes.
+     */
+    private CompletableFuture<Void> ensureJmsConnectionClosed() {
+        if (jmsConnection != null) {
+            final JmsConnection jmsConnectionToClose = jmsConnection;
+            final Runnable closeJmsConnectionRunnable = () -> {
+                try {
+                    jmsConnectionToClose.close();
+                } catch (final JMSException exception) {
+                    // 'log' is final.
+                    log.error(exception, "RESOURCE-LEAK: failed to close JMSConnection");
+                    throw new RuntimeException(exception);
+                }
+            };
+            return CompletableFuture.runAsync(closeJmsConnectionRunnable,
+                    JMSConnectionHandlingActor.getOwnDispatcher(getContext().system()));
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     /**

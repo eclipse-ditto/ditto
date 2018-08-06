@@ -40,7 +40,9 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFail
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import scala.concurrent.duration.FiniteDuration;
@@ -104,6 +106,16 @@ public class JMSConnectionHandlingActor extends AbstractActor {
             final JmsConnectionFactory jmsConnectionFactory) {
         return props(connection, exceptionListener, jmsConnectionFactory)
                 .withDispatcher(DISPATCHER_NAME);
+    }
+
+    /**
+     * Get dispatcher of this actor, which should be good for blocking operations.
+     *
+     * @param actorSystem actor system where this actor is configured.
+     * @return the dispatcher.
+     */
+    static MessageDispatcher getOwnDispatcher(final ActorSystem actorSystem) {
+        return actorSystem.dispatchers().lookup(DISPATCHER_NAME);
     }
 
     @Override
