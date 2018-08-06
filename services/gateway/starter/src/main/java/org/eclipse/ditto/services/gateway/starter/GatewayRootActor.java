@@ -12,8 +12,10 @@
 package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -40,10 +42,12 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -131,7 +135,8 @@ final class GatewayRootActor extends AbstractActor {
 
         // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
         ClusterSharding.get(actorSystem)
-                .startProxy(PoliciesMessagingConstants.SHARD_REGION, Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
+                .startProxy(PoliciesMessagingConstants.SHARD_REGION,
+                        Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
         ClusterSharding.get(actorSystem)
                 .startProxy(ThingsMessagingConstants.SHARD_REGION, Optional.of(ThingsMessagingConstants.CLUSTER_ROLE),
@@ -175,7 +180,16 @@ final class GatewayRootActor extends AbstractActor {
                         healthCheckActor).flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.exceptionally(failure -> {
+        binding.thenAccept(theBinding -> {
+                    log.info("Serving HTTP requests on port {} ...", theBinding.localAddress().getPort());
+                    CoordinatedShutdown.get(actorSystem).addTask(
+                            CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
+                                log.info("Gracefully shutting down user HTTP endpoint..");
+                                return theBinding.terminate(Duration.ofSeconds(10))
+                                        .handle((httpTerminated, e) -> Done.getInstance());
+                            });
+                }
+        ).exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
             actorSystem.terminate();
             return null;

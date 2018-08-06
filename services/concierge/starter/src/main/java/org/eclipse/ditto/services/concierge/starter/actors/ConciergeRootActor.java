@@ -16,7 +16,9 @@ import static akka.http.javadsl.server.Directives.logResult;
 import static java.util.Objects.requireNonNull;
 
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -38,11 +40,13 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorInitializationException;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
@@ -166,7 +170,7 @@ public final class ConciergeRootActor extends AbstractActor {
      * @param materializer the materializer for the Akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static  <C extends AbstractConciergeConfigReader> Props props(final C configReader,
+    public static <C extends AbstractConciergeConfigReader> Props props(final C configReader,
             final ActorRef pubSubMediator,
             final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
             final ActorMaterializer materializer) {
@@ -252,17 +256,17 @@ public final class ConciergeRootActor extends AbstractActor {
                 .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                         materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.thenAccept(this::logServerBinding)
-                .exceptionally(failure -> {
-                    log.error(failure, "Something very bad happened: {}", failure.getMessage());
-                    getContext().system().terminate();
-                    return null;
-                });
-    }
-
-    private void logServerBinding(final ServerBinding serverBinding) {
-        log.info("Bound to address {}:{}", serverBinding.localAddress().getHostString(),
-                serverBinding.localAddress().getPort());
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    return theBinding.terminate(Duration.ofSeconds(1))
+                            .handle((httpTerminated, e) -> Done.getInstance());
+                })
+        ).exceptionally(failure -> {
+            log.error(failure, "Something very bad happened: {}", failure.getMessage());
+            getContext().system().terminate();
+            return null;
+        });
     }
 
 }

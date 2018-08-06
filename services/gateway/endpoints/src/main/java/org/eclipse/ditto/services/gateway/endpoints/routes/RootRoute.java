@@ -24,7 +24,6 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPath
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
@@ -264,11 +263,9 @@ public final class RootRoute {
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
                         ensureCorrelationId(correlationId ->
-                                rewriteResponse(materializer, correlationId, () ->
-                                        RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
-                                                logRequestResult(correlationId, () ->
-                                                        innerRouteProvider.apply(correlationId)
-                                                )
+                                RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
+                                        logRequestResult(correlationId, () ->
+                                                innerRouteProvider.apply(correlationId)
                                         )
                                 )
                         )

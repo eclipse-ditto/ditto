@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayBadGatewayException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
@@ -73,9 +72,6 @@ public class JsonExamplesProducer {
                 GatewayAuthenticationProviderUnavailableException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("gatewayAuthenticationProviderUnavailableException.json")),
                 gatewayAuthenticationProviderUnavailableException);
-
-        final GatewayBadGatewayException gatewayBadGatewayException = GatewayBadGatewayException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("gatewayBadGatewayException.json")), gatewayBadGatewayException);
 
         final GatewayInternalErrorException gatewayInternalErrorException =
                 GatewayInternalErrorException.newBuilder().build();
