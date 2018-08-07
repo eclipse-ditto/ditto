@@ -418,10 +418,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final Runnable closeJmsConnectionRunnable = () -> {
                 try {
                     jmsConnectionToClose.close();
-                } catch (final JMSException exception) {
-                    // 'log' is final.
-                    log.error(exception, "RESOURCE-LEAK: failed to close JMSConnection");
-                    throw new RuntimeException(exception);
+                } catch (final Throwable error) {
+                    // 'log' is final. It is okay to use it in a future.
+                    log.error(error, "RESOURCE-LEAK: failed to close JMSConnection");
+                    throw new RuntimeException(error);
                 }
             };
             return CompletableFuture.runAsync(closeJmsConnectionRunnable,
