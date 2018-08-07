@@ -41,7 +41,7 @@ import akka.actor.ActorRef;
 @Immutable
 public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<EntityId, Entry<EntityId>> {
 
-    private final ActorAskCacheLoader<EntityId> delegate;
+    private final ActorAskCacheLoader<EntityId, Command> delegate;
 
     /**
      * Constructor.
@@ -55,7 +55,7 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Ent
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
         this.delegate =
-                new ActorAskCacheLoader<>(askTimeout, ThingCommand.RESOURCE_TYPE, shardRegionProxy, commandCreator,
+                ActorAskCacheLoader.forShard(askTimeout, ThingCommand.RESOURCE_TYPE, shardRegionProxy, commandCreator,
                         responseTransformer);
     }
 

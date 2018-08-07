@@ -44,7 +44,7 @@ import akka.actor.ActorRef;
 @Immutable
 public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityId, Entry<Enforcer>> {
 
-    private final ActorAskCacheLoader<Enforcer> delegate;
+    private final ActorAskCacheLoader<Enforcer, Command> delegate;
 
     /**
      * Constructor.
@@ -61,7 +61,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
-        this.delegate = new ActorAskCacheLoader<>(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
+        this.delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
                 commandCreator, responseTransformer);
     }
 
