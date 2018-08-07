@@ -18,10 +18,13 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -51,21 +54,28 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
     private final ThingEventAdapter thingEventAdapter;
 
     private final AbstractErrorRegistry<DittoRuntimeException> errorRegistry;
-
-    private DittoProtocolAdapter(final boolean removeInternalMessageHeaders) {
-        this(ProtocolAdapterErrorRegistry.newInstance(), removeInternalMessageHeaders);
-    }
+    private final HeaderTranslator headerTranslator;
 
     protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
-            final boolean removeInternalMessageHeaders) {
+            final HeaderTranslator headerTranslator) {
         this.errorRegistry = errorRegistry;
-        this.messageCommandAdapter = MessageCommandAdapter.of(removeInternalMessageHeaders);
-        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(removeInternalMessageHeaders);
-        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.newInstance();
-        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.newInstance();
-        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.newInstance();
-        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.newInstance();
-        this.thingEventAdapter = ThingEventAdapter.newInstance();
+        this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
+        this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
+        this.thingModifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        this.thingModifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        this.thingQueryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
+        this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
+        this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.headerTranslator = headerTranslator;
+    }
+
+    /**
+     * Creates a new {@code DittoProtocolAdapter} instance with the given header translator.
+     *
+     * @param headerTranslator translator between external and Ditto headers.
+     */
+    public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator);
     }
 
     /**
@@ -74,17 +84,16 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the instance.
      */
     public static DittoProtocolAdapter newInstance() {
-        return of(Boolean.TRUE);
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator());
     }
 
     /**
-     * Creates a new {@code DittoProtocolAdapter} instance.
+     * Create a default header translator for this protocol adapter.
      *
-     * @param removeInternalMessageHeaders whether or not to remove internal message headers.
-     * @return the instance.
+     * @return the default header translator.
      */
-    public static DittoProtocolAdapter of(final boolean removeInternalMessageHeaders) {
-        return new DittoProtocolAdapter(removeInternalMessageHeaders);
+    public static HeaderTranslator headerTranslator() {
+        return HeaderTranslator.of(DittoHeaderDefinition.values(), MessageHeaderDefinition.values());
     }
 
     @Override
@@ -249,9 +258,12 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
             throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }
 
+        final DittoHeaders responseHeaders =
+                ProtocolFactory.newHeadersWithDittoContentType(thingErrorResponse.getDittoHeaders());
+
         return Adaptable.newBuilder(topicPathBuildable.build())
-                .withPayload(payload) //
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(thingErrorResponse.getDittoHeaders())) //
+                .withPayload(payload)
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
                 .build();
     }
 
@@ -343,13 +355,21 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @return the ThingErrorResponse.
      */
     private ThingErrorResponse thingErrorResponseFromAdaptable(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders = adaptable.getHeaders().orElse(DittoHeaders.empty());
+        final DittoHeaders dittoHeaders =
+                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
-                .map(jsonObject -> errorRegistry.parse(jsonObject, dittoHeaders))
+                .map(jsonObject -> {
+                    try {
+                        return errorRegistry.parse(jsonObject, dittoHeaders);
+                    } catch (final JsonTypeNotParsableException e) {
+                        return DittoRuntimeException.fromUnknownErrorJson(jsonObject, dittoHeaders)
+                                .orElseThrow(() -> e);
+                    }
+                })
                 .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
 
         final String thingId = topicPath.getNamespace() + ":" + topicPath.getId();

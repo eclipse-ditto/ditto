@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -77,9 +78,11 @@ public final class EnforcerRetriever {
      *
      * @param entityKey cache key of an entity.
      * @param consumer handler of cache lookup results.
+     * @return future after retrieved cache entries are given to the consumer.
      */
-    public void retrieve(final EntityId entityKey, final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
-        idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
+    public CompletionStage<Void> retrieve(final EntityId entityKey,
+            final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
+        return idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
             if (!enforcerKeyEntryOptional.isPresent()) {
                 // must not happen
                 LOGGER.error("Did not get id-cache value for entityKey <{}>.", entityKey);

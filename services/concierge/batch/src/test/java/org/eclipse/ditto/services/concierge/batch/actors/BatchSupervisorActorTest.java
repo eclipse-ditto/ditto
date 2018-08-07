@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
+import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
@@ -172,10 +173,8 @@ public final class BatchSupervisorActorTest {
                 // terminate and restart - only batch2 must resume execution and deliver an event
                 terminate(this, underTest);
 
-                // sometimes the actor name is not unique, wait a bit
-                Thread.sleep(500);
-
-                underTest = createBatchSupervisorActor();
+                // sometimes the actor name is not unique, try for a while
+                underTest = Retry.untilSuccess(BatchSupervisorActorTest::createBatchSupervisorActor);
 
                 final BatchExecutionFinished batchExecutionFinished2 = expectMsgClass(BatchExecutionFinished.class);
                 EventAssertions.assertThat(batchExecutionFinished2).hasCorrelationId(batchId2);

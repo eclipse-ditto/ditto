@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -79,6 +80,13 @@ public interface Payload extends Jsonifiable<JsonObject> {
     Optional<Long> getRevision();
 
     /**
+     * Returns the {@code timestamp} of this {@code Payload} if present.
+     *
+     * @return the optional timestamp.
+     */
+    Optional<Instant> getTimestamp();
+
+    /**
      * Returns the {@code fields} of this {@code Payload} if present.
      *
      * @return the optional fields.
@@ -110,6 +118,11 @@ public interface Payload extends Jsonifiable<JsonObject> {
          * JSON field containing the revision.
          */
         static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
+
+        /**
+         * JSON field containing the revision.
+         */
+        static final JsonFieldDefinition<String> TIMESTAMP = JsonFactory.newStringFieldDefinition("timestamp");
 
         /**
          * JSON field containing the fields.

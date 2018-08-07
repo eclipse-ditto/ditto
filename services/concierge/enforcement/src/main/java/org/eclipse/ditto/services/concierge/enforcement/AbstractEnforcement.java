@@ -16,6 +16,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
 
@@ -66,11 +69,24 @@ public abstract class AbstractEnforcement<T extends Signal> {
      * @param signal the signal to authorize.
      * @param sender sender of the signal.
      * @param log the logger to use for logging.
+     * @return future after enforcement was performed.
      */
-    public abstract void enforce(T signal, ActorRef sender, DiagnosticLoggingAdapter log);
+    public abstract CompletionStage<Void> enforce(T signal, ActorRef sender, DiagnosticLoggingAdapter log);
 
     Graph<SinkShape<WithSender<T>>, NotUsed> toGraph() {
-        return Consume.of((signal, sender) -> enforce(signal, sender, context.log));
+        return Consume.of((signal, sender) ->
+                enforce(signal, sender, context.log).whenComplete(handleEnforcementCompletion(signal, sender)));
+    }
+
+    private BiConsumer<Void, Throwable> handleEnforcementCompletion(final T signal, final ActorRef sender) {
+        return (_void, throwable) -> {
+            if (throwable != null) {
+                final Throwable error = throwable instanceof CompletionException
+                        ? throwable.getCause()
+                        : throwable;
+                reportError("Error thrown during enforcement", sender, error, signal.getDittoHeaders());
+            }
+        };
     }
 
     /**
@@ -141,7 +157,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
         if (error instanceof GatewayInternalErrorException) {
             return (GatewayInternalErrorException) error;
         } else {
-            log(dittoHeaders).error(error,"Unexpected non-DittoRuntimeException error - responding with " +
+            log(dittoHeaders).error(error, "Unexpected non-DittoRuntimeException error - responding with " +
                     "GatewayInternalErrorException: {} {}", error.getClass().getSimpleName(), error.getMessage());
             return GatewayInternalErrorException.newBuilder()
                     .cause(error)

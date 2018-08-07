@@ -4,9 +4,14 @@
     font-size:16px;
 }
 
+h2 {color: #3a8c9a; }
+h4 {color: #3a8c9a; }
 
-h3 {color: #696969; }
-h4 {color: #808080; }
+a {color: #3a8c9a;}
+code {
+    color: #3a8c9a;
+    background-color: #f5f5f5;}
+hr {color: #3a8c9a;}
 
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
     background-color: #248ec2;
@@ -31,15 +36,9 @@ div.navbar-collapse .dropdown-menu > li > a:hover {
     font-weight: bold;
 }
 
-a[data-toggle="tooltip"] {
-    color: #649345;
-    font-style: italic;
-    cursor: default;
-}
-
 .navbar-inverse {
     background-color: #3a8c9a;
-    border-color: #000000;
+    border-color: #3a8c9a;
 }
 .navbar-inverse .navbar-nav>li>a, .navbar-inverse .navbar-brand {
     color: white;
@@ -86,13 +85,13 @@ a.navbar-brand:hover {
 }
 
 .printTitle {
-    color: #015CAE !important;
+    color: #3a8c9a !important;
 }
 
-body.print h1 {color: #015CAE !important; font-size:28px !important;}
-body.print h2 {color: #595959 !important; font-size:20px !important;}
-body.print h3 {color: #E50E51 !important; font-size:14px !important;}
-body.print h4 {color: #679DCE !important; font-size:14px; font-style: italic !important;}
+body.print h1 {color: #3a8c9a !important; font-size:28px !important;}
+body.print h2 {color: #3a8c9a !important; font-size:20px !important;}
+body.print h3 {color: #3a8c9a !important; font-size:14px !important;}
+body.print h4 {color: #3a8c9a !important; font-size:14px; font-style: italic !important;}
 
 .anchorjs-link:hover {
     color: #216f9b;
@@ -117,4 +116,17 @@ li.sidebarTitle {
 
 .navbar-inverse .navbar-toggle {
     border-color: #ffffff;
+}
+
+/* info , tip box with icon -  warning stays red*/
+.alert-info {
+    color: #3a8c9a;
+    background-color: white;
+    border-color: #3a8c9a;
+}
+
+.alert-success {
+    color: #3a8c9a;
+    background-color: white;
+    border-color: #3a8c9a;
 }

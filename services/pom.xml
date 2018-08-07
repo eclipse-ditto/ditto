@@ -43,6 +43,7 @@
         <docker.daemon.protocol>http</docker.daemon.protocol>
         <docker.daemon.url>${docker.daemon.protocol}://${docker.daemon.hostname}:${docker.daemon.port}
         </docker.daemon.url>
+        <docker.certsPath />
 
         <docker.registry>docker.io</docker.registry>
         <docker.repository>${docker.registry}/eclipse</docker.repository>
@@ -117,6 +118,7 @@
                     <artifactId>docker-maven-plugin</artifactId>
                     <configuration>
                         <dockerHost>${docker.daemon.url}</dockerHost>
+                        <certPath>${docker.certsPath}</certPath>
                         <verbose>true</verbose>
                         <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
                     </configuration>

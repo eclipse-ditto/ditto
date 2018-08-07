@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -118,8 +119,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     }
 
     @Override
-    public void enforce(final Signal signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
-        enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
+    public CompletionStage<Void> enforce(final Signal signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+        return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Enforcer enforcer = enforcerEntry.getValue();
 
@@ -258,7 +260,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
 
-        log(command).info("The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
+        log(command).info(
+                "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationSubjects: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
                 command.getDittoHeaders().getAuthorizationSubjects());
         replyToSender(error, sender);

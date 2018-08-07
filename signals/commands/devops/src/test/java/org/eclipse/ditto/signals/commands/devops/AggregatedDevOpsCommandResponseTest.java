@@ -49,11 +49,11 @@ public class AggregatedDevOpsCommandResponseTest {
     public void testAggregatedPiggybackCommandResponseFromListOfCommandResponsesSerialization() {
 
         final ChangeLogLevelResponse changeLogLevelResponseForThings1 =
-                ChangeLogLevelResponse.of("things", 1, true, DittoHeaders.empty());
+                ChangeLogLevelResponse.of("things", "1", true, DittoHeaders.empty());
         final ChangeLogLevelResponse changeLogLevelResponseForThings2 =
-                ChangeLogLevelResponse.of("things", 2, true, DittoHeaders.empty());
+                ChangeLogLevelResponse.of("things", "2", true, DittoHeaders.empty());
         final ChangeLogLevelResponse changeLogLevelResponseForGateway1 =
-                ChangeLogLevelResponse.of("gateway", 1, true, DittoHeaders.empty());
+                ChangeLogLevelResponse.of("gateway", "1", true, DittoHeaders.empty());
 
         final AggregatedDevOpsCommandResponse aggregatedDevOpsCommandResponse = AggregatedDevOpsCommandResponse.of(
                 Arrays.asList(changeLogLevelResponseForThings1, changeLogLevelResponseForThings2,

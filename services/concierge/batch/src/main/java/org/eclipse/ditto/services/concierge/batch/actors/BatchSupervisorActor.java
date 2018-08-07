@@ -74,7 +74,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
     private Set<String> batchIds;
 
-    private BatchSupervisorActor( final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
+    private BatchSupervisorActor(final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
 
@@ -136,8 +136,22 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ExecuteBatch.class, this::forwardCommand)
-                .match(BatchExecutionStarted.class, event -> persistEvent(event, e -> batchIds.add(e.getBatchId())))
-                .match(BatchExecutionFinished.class, event -> persistEvent(event, e -> batchIds.remove(e.getBatchId())))
+                .match(BatchExecutionStarted.class, event ->
+                        persistEvent(event, e -> {
+                            if (!batchIds.contains(e.getBatchId())) {
+                                batchIds.add(e.getBatchId());
+                                // only publish event after it is persisted
+                                publishEvent(e);
+                            }
+                        }))
+                .match(BatchExecutionFinished.class, event ->
+                        persistEvent(event, e -> {
+                            if (batchIds.contains(e.getBatchId())) {
+                                batchIds.remove(e.getBatchId());
+                                // only publish event after it is persisted
+                                publishEvent(e);
+                            }
+                        }))
                 .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
                         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
                                 subscribeAck.subscribe().topic())
@@ -155,8 +169,6 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
     @Override
     public void preStart() {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionStarted.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BatchExecutionFinished.TYPE, ACTOR_NAME, getSelf()),
                 getSelf());
     }
@@ -168,6 +180,10 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
                 .match(ActorKilledException.class, e -> SupervisorStrategy.stop())
                 .matchAny(e -> SupervisorStrategy.escalate())
                 .build());
+    }
+
+    private void publishEvent(final Event e) {
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(e.getType(), e, true), getSelf());
     }
 
     private void forwardCommand(final ExecuteBatch command) {
@@ -185,7 +201,7 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
         if (batchCoordinatorActor.isDefined()) {
             return batchCoordinatorActor.get();
         } else {
-            final Props props = BatchCoordinatorActor.props(batchId, pubSubMediator, conciergeForwarder);
+            final Props props = BatchCoordinatorActor.props(batchId, getSelf(), conciergeForwarder);
             return getContext().actorOf(props, BatchCoordinatorActor.ACTOR_NAME_PREFIX + batchId);
         }
     }
@@ -222,7 +238,8 @@ public final class BatchSupervisorActor extends AbstractPersistentActor {
 
             if (snapshotEntityFromDb instanceof DBObject) {
                 final DBObject dbObject = (DBObject) snapshotEntityFromDb;
-                final JsonArray jsonValues = JsonFactory.newArray(DittoBsonJson.getInstance().serialize(dbObject).toString());
+                final JsonArray jsonValues =
+                        JsonFactory.newArray(DittoBsonJson.getInstance().serialize(dbObject).toString());
                 return jsonValues.stream()
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet());

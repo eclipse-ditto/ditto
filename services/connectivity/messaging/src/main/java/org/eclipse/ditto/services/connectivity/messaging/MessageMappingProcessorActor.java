@@ -66,21 +66,18 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final AuthorizationContext authorizationContext;
     private final Map<String, StartedTimer> timers;
 
-    private final DittoHeadersFilter headerFilter;
     private final MessageMappingProcessor processor;
     private final String connectionId;
     private final ActorRef conciergeForwarder;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
-            final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.authorizationContext = authorizationContext;
         this.processor = processor;
-        this.headerFilter = headerFilter;
         this.connectionId = connectionId;
 
         timers = new ConcurrentHashMap<>();
@@ -92,14 +89,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
      * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
-     * @param headerFilter the header filter used to apply on responses.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection id.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
             final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
-            final DittoHeadersFilter headerFilter,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
@@ -109,34 +104,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             @Override
             public MessageMappingProcessorActor create() {
                 return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
-                        headerFilter, processor, connectionId);
+                        processor, connectionId);
             }
         });
     }
-
-    /**
-     * Creates Akka configuration object for this actor.
-     *
-     * @param publisherActor actor that handles outgoing messages.
-     * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
-     * @param processor the MessageMappingProcessor to use.
-     * @param connectionId the connection id.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder,
-            final AuthorizationContext authorizationContext,
-            final MessageMappingProcessor processor,
-            final String connectionId) {
-
-        return props(publisherActor,
-                conciergeForwarder,
-                authorizationContext,
-                new DittoHeadersFilter(DittoHeadersFilter.Mode.EXCLUDE, Collections.emptyList()),
-                processor, connectionId);
-    }
-
 
     @Override
     public Receive createReceive() {
@@ -239,10 +210,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling signal: {}", signal);
 
         try {
-            final DittoHeaders filteredDittoHeaders = headerFilter.apply(signal.getDittoHeaders());
-            final Signal signalWithFilteredHeaders = signal.setDittoHeaders(filteredDittoHeaders);
-
-            processor.process(signalWithFilteredHeaders)
+            processor.process(signal)
                     .ifPresent(message -> publisherActor.forward(message, getContext()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),

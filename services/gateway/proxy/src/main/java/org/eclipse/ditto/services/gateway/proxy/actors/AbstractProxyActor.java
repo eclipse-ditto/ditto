@@ -18,6 +18,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -84,6 +85,10 @@ public abstract class AbstractProxyActor extends AbstractActor {
                 .match(RetrieveStatistics.class, retrieveStatistics -> {
                     log.debug("Got 'RetrieveStatistics' message");
                     statisticsActor.forward(retrieveStatistics, getContext());
+                })
+                .match(RetrieveStatisticsDetails.class, retrieveStatisticsDetails -> {
+                    log.debug("Got 'RetrieveStatisticsDetails' message");
+                    statisticsActor.forward(retrieveStatisticsDetails, getContext());
                 });
 
         // specific commands

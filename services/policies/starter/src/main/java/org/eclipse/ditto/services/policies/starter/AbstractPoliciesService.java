@@ -44,9 +44,9 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
     }
 
     @Override
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem,
+            final ServiceConfigReader configReader) {
         DropwizardMetricsPrometheusReporter.addMetricRegistry(
                 MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
-
 }

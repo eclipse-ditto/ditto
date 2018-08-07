@@ -35,20 +35,20 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
         implements DevOpsCommandResponse<T> {
 
     @Nullable private final String serviceName;
-    @Nullable private final Integer instance;
+    @Nullable private final String instance;
 
     /**
      * Constructs a new {@code AbstractDevOpsCommandResponse} object.
      *
      * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
+     * @param instance the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
      * @param responseType the name of this command response.
      * @param statusCode the status code of this command response.
      * @param dittoHeaders the headers of this command response.
      * @throws NullPointerException if any argument is {@code null}.
      */
     protected AbstractDevOpsCommandResponse(final String responseType, @Nullable final String serviceName,
-            @Nullable final Integer instance, final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+            @Nullable final String instance, final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
         super(responseType, statusCode, dittoHeaders);
         this.serviceName = serviceName;
         this.instance = instance;
@@ -58,7 +58,7 @@ abstract class AbstractDevOpsCommandResponse<T extends AbstractDevOpsCommandResp
         return Optional.ofNullable(serviceName);
     }
 
-    public Optional<Integer> getInstance() {
+    public Optional<String> getInstance() {
         return Optional.ofNullable(instance);
     }
 

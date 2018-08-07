@@ -16,6 +16,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -41,6 +43,7 @@ public final class ImmutableJsonifiableAdaptableTest {
     private static final JsonValue KNOWN_VALUE = JsonValue.of("foo");
     private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.OK;
     private static final long KNOWN_REVISION = 1337;
+    private static final Instant KNOWN_TIMESTAMP = Instant.now();
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
 
     @Test
@@ -70,11 +73,13 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
                 .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
                 .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
         final ImmutablePayload payload =
-                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
+                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_TIMESTAMP,
+                        KNOWN_FIELDS);
 
         final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), payload,
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
@@ -88,11 +93,13 @@ public final class ImmutableJsonifiableAdaptableTest {
     @Test
     public void jsonDeserializationWorksAsExpected() {
         final ImmutablePayload payload =
-                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_FIELDS);
+                ImmutablePayload.of(KNOWN_PATH, KNOWN_VALUE, KNOWN_STATUS, KNOWN_REVISION, KNOWN_TIMESTAMP,
+                        KNOWN_FIELDS);
 
         final Adaptable adaptable = ImmutableAdaptable.of(ProtocolFactory.newTopicPath(KNOWN_TOPIC), payload,
                 DittoHeaders.newBuilder(KNOWN_HEADERS).build());
-        final JsonifiableAdaptable expected = ImmutableJsonifiableAdaptable.of(adaptable);
+        final JsonifiableAdaptable expected =
+                ImmutableJsonifiableAdaptable.of(adaptable);
 
         final JsonObject payloadJsonObject = JsonObject.newBuilder()
                 .set(JsonifiableAdaptable.JsonFields.TOPIC, KNOWN_TOPIC)
@@ -101,6 +108,7 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
                 .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
                 .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
+                .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 

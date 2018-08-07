@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Permissions;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
@@ -92,7 +93,10 @@ import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -102,6 +106,7 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
@@ -136,6 +141,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
         assertThat(actualThing.getModified()).isPresent(); // we cannot check exact timestamp
     }
+
+    @Rule
+    public final TestWatcher watchman = new TestedMethodLoggingWatcher(LoggerFactory.getLogger(getClass()));
 
     /** */
     @Before
@@ -350,35 +358,61 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     /** */
     @Test
-    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecified() {
-        final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
-        final String thingId = thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new);
-
+    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV1() {
+        final Thing thingWithFirstLevelFields = createThingV1WithRandomId();
         final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
-                .setId(thingId)
+                .setId(thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new))
+                .setPermissions(AclEntry.newInstance(AuthorizationSubject.newInstance("foobar"), Permission.READ))
+                .setAttributes(Attributes.newBuilder().set("changedAttrKey", "changedAttrVal").build())
+                .setFeatures(Features.newBuilder().set(Feature.newBuilder().withId("changedFeatureId").build()))
+                .build();
+        doTestModifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecified(thingWithFirstLevelFields,
+                thingWithDifferentFirstLevelFields, dittoHeadersV1);
+    }
+
+    /** */
+    @Test
+    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
+        final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
+        final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
+                .setId(thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new))
                 .setPolicyId("org.eclipse.ditto:changedPolicyId")
                 .setAttributes(Attributes.newBuilder().set("changedAttrKey", "changedAttrVal").build())
                 .setFeatures(Features.newBuilder().set(Feature.newBuilder().withId("changedFeatureId").build()))
                 .build();
+        doTestModifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecified(thingWithFirstLevelFields,
+                thingWithDifferentFirstLevelFields, dittoHeadersV2);
+    }
+
+    private void doTestModifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecified(
+            final Thing thingWithFirstLevelFields, final Thing thingWithDifferentFirstLevelFields, final DittoHeaders dittoHeaders) {
+        final String thingId = thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new);
+
         final ModifyThing modifyThingCommand =
-                ModifyThing.of(thingId, thingWithDifferentFirstLevelFields, null, dittoHeadersV2);
+                ModifyThing.of(thingId, thingWithDifferentFirstLevelFields, null, dittoHeaders);
 
         new TestKit(actorSystem) {
             {
-                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
+                final TestKit pubSub = new TestKit(actorSystem);
+                final ActorRef underTest =
+                        createPersistenceActorWithPubSubFor(thingWithFirstLevelFields, pubSub.getRef());
 
-                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeadersV2);
+                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
+                assertPublishEvent(pubSub, ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeadersV2));
+                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeaders));
+
+                assertPublishEvent(pubSub, ThingModified.of(thingWithDifferentFirstLevelFields, 2L, dittoHeaders));
 
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.getBuilder(thingId, dittoHeadersV2)
+                        RetrieveThing.getBuilder(thingId, dittoHeaders)
                                 .withSelectedFields(ALL_FIELDS_SELECTOR)
                                 .build();
                 underTest.tell(retrieveThing, getRef());
@@ -391,32 +425,53 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
     /** */
     @Test
-    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten() {
+    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV1() {
+        final Thing thingWithFirstLevelFields = createThingV1WithRandomId();
+        doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(thingWithFirstLevelFields,
+                dittoHeadersV1);
+    }
+
+    /** */
+    @Test
+    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
+        doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(thingWithFirstLevelFields,
+                dittoHeadersV2);
+    }
+
+    private void doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(
+            final Thing thingWithFirstLevelFields, final DittoHeaders dittoHeaders) {
         final String thingId = thingWithFirstLevelFields.getId().orElseThrow(IllegalStateException::new);
 
         final Thing minimalThing = Thing.newBuilder()
                 .setId(thingId)
                 .build();
         final ModifyThing modifyThingCommand =
-                ModifyThing.of(thingId, minimalThing, null, dittoHeadersV2);
+                ModifyThing.of(thingId, minimalThing, null, dittoHeaders);
 
         new TestKit(actorSystem) {
             {
-                final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
+                final TestKit pubSub = new TestKit(actorSystem);
+                final ActorRef underTest =
+                        createPersistenceActorWithPubSubFor(thingWithFirstLevelFields, pubSub.getRef());
 
-                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeadersV2);
+                final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
+                assertPublishEvent(pubSub, ThingCreated.of(thingWithFirstLevelFields, 1L, dittoHeaders));
+
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeadersV2));
+                expectMsgEquals(ModifyThingResponse.modified(thingId, dittoHeaders));
+
+                // we expect that in the Event the minimalThing was merged with thingWithFirstLevelFields:
+                assertPublishEvent(pubSub, ThingModified.of(thingWithFirstLevelFields, 2L, dittoHeaders));
 
                 final RetrieveThing retrieveThing =
-                        RetrieveThing.getBuilder(thingId, dittoHeadersV2)
+                        RetrieveThing.getBuilder(thingId, dittoHeaders)
                                 .withSelectedFields(ALL_FIELDS_SELECTOR)
                                 .build();
                 underTest.tell(retrieveThing, getRef());
@@ -1527,7 +1582,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final ActorRef underTest = actorSystem.actorOf(props);
                 watch(underTest);
 
-                final Object checkForActivity = new ThingPersistenceActor.CheckForActivity(1L, 1L);
+                final Object checkForActivity = new CheckForActivity(1L, 1L);
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());
                 underTest.tell(checkForActivity, ActorRef.noSender());

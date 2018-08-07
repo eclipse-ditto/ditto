@@ -22,7 +22,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CorrelationIdEnsuringDirective.ensureCorrelationId;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_HEALTH;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
@@ -46,8 +45,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
-import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
-import org.eclipse.ditto.services.base.config.HeadersConfigReader;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -77,6 +75,8 @@ import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.gateway.starter.service.util.HttpClientFacade;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +116,6 @@ public final class RootRoute {
      */
     public static final Pattern DEVOPS_AUTH_SECURED = Pattern.compile("(" +
             OverallStatusRoute.PATH_STATUS + "|" +
-            CachingHealthRoute.PATH_HEALTH + "|" +
             DevOpsRoute.PATH_DEVOPS + ").*"
     );
 
@@ -136,6 +135,7 @@ public final class RootRoute {
     private final List<Integer> supportedSchemaVersions;
     private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
+    private final ProtocolAdapter protocolAdapter;
 
     /**
      * Constructs the {@code /} route builder.
@@ -179,12 +179,9 @@ public final class RootRoute {
                 config.getDuration(ConfigKeys.CLAIMMESSAGE_MAX_TIMEOUT));
         thingSearchRoute = new ThingSearchRoute(proxyActor, actorSystem);
 
-        final HeadersConfigReader headersConfig = HeadersConfigReader.fromRawConfig(config);
         websocketRoute = new WebsocketRoute(streamingActor,
                 config.getInt(ConfigKeys.WEBSOCKET_SUBSCRIBER_BACKPRESSURE),
                 config.getInt(ConfigKeys.WEBSOCKET_PUBLISHER_BACKPRESSURE),
-                headersConfig.blacklist(),
-                DittoProtocolAdapter.of(!headersConfig.compatibilityMode()),
                 actorSystem.eventStream());
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
@@ -193,6 +190,10 @@ public final class RootRoute {
                 generateGatewayAuthenticationDirective(config, httpClient);
         wsAuthenticationDirective = apiAuthenticationDirective;
         exceptionHandler = createExceptionHandler();
+
+        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
+        final ProtocolAdapterProvider protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
+        protocolAdapter = protocolAdapterProvider.createProtocolAdapter();
     }
 
     private GatewayAuthenticationDirective generateGatewayAuthenticationDirective(final Config config,
@@ -241,20 +242,17 @@ public final class RootRoute {
                 extractRequestContext(ctx ->
                         route(
                                 statsRoute.buildStatsRoute(correlationId), // /stats
+                                cachingHealthRoute.buildHealthRoute(), // /health
                                 api(ctx, correlationId), // /api
                                 ws(correlationId), // /ws
-                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment -> {
-                                    final String realm = getRealmFromSegment(segment);
-                                    return authenticateDevopsBasic(realm,
+                                pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
+                                    authenticateDevopsBasic(REALM_DEVOPS,
                                             route(
                                                     overallStatusRoute.buildStatusRoute(), // /status
-                                                    cachingHealthRoute.buildHealthRoute(), // /health
                                                     devopsRoute.buildDevopsRoute(ctx) // /devops
                                             )
-                                    );
-                                })
-
-
+                                    )
+                                )
                         )
                 )
         );
@@ -384,7 +382,7 @@ public final class RootRoute {
                                         authContextWithPrefixedSubjects,
                                         authContext ->
                                                 websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                        authContext)
+                                                        authContext, protocolAdapter)
                                 )
                         )
                 )
@@ -439,20 +437,5 @@ public final class RootRoute {
 
         return builder.build();
     }
-
-    /**
-     * Computes the basic-auth realm from the path segment.
-     *
-     * @param segment The path segment, should match {@link this#DEVOPS_AUTH_SECURED}
-     * @return Basic-auth realm for the path
-     */
-    private static String getRealmFromSegment(final String segment) {
-        if (segment.startsWith(CachingHealthRoute.PATH_HEALTH)) {
-            return REALM_HEALTH;
-        } else {
-            return REALM_DEVOPS;
-        }
-    }
-
 }
 

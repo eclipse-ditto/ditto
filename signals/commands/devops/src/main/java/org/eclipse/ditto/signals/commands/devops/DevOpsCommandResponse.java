@@ -57,9 +57,9 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends 
     Optional<String> getServiceName();
 
     /**
-     * @return the instance index of the serviceName from which the DevOpsCommandResponse originated.
+     * @return the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
      */
-    Optional<Integer> getInstance();
+    Optional<String> getInstance();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of a DevOpsCommandResponse.
@@ -74,11 +74,11 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends 
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the instance index of the serviceName serviceName from which the DevOpsCommandResponse
+         * JSON field containing the instance identifier of the serviceName serviceName from which the DevOpsCommandResponse
          * originates.
          */
-        public static final JsonFieldDefinition<Integer> JSON_INSTANCE =
-                JsonFactory.newIntFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<String> JSON_INSTANCE =
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
     }

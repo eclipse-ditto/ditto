@@ -24,6 +24,8 @@ import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
+import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
@@ -93,6 +95,8 @@ public final class ThingSupervisorActor extends AbstractActor {
      * @param maxBackOff the exponential back-off is capped to this duration.
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
      * is added, e.g. `0.2` adds up to `20%` delay. In order to skip this additional delay pass in `0`.
+     * @param thingPersistenceActorPropsFactory factory for creating Props to be used for creating
+     * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
     public static Props props(final Duration minBackOff,
@@ -141,10 +145,9 @@ public final class ThingSupervisorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         final Collection<ReceiveStrategy<?>> receiveStrategies = initReceiveStrategies();
-        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
-        receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
+        final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder(log);
+        strategyAwareReceiveBuilder.matchEach(receiveStrategies);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
-
         return strategyAwareReceiveBuilder.build();
     }
 

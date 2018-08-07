@@ -45,10 +45,10 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
 
     @Nullable private final String serviceName;
-    @Nullable private final Integer instance;
+    @Nullable private final String instance;
     private final JsonObject dittoRuntimeException;
 
-    private DevOpsErrorResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+    private DevOpsErrorResponse(@Nullable final String serviceName, @Nullable final String instance,
             final JsonObject dittoRuntimeException, final DittoHeaders dittoHeaders) {
         super(TYPE,
                 HttpStatusCode.forInt(dittoRuntimeException.getValueOrThrow(DittoRuntimeException.JsonFields.STATUS))
@@ -67,7 +67,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
      * @return the response.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    public static DevOpsErrorResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static DevOpsErrorResponse of(@Nullable final String serviceName, @Nullable final String instance,
             final JsonObject dittoRuntimeException, final DittoHeaders dittoHeaders) {
         return new DevOpsErrorResponse(serviceName, instance, dittoRuntimeException, dittoHeaders);
     }
@@ -99,7 +99,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
 
         final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                 .orElse(null);
-        final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+        final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
                 .orElse(null);
         final JsonObject exception = jsonObject.getValueOrThrow(DevOpsCommandResponse.JsonFields.PAYLOAD).asObject();
 
@@ -124,7 +124,7 @@ public final class DevOpsErrorResponse extends AbstractCommandResponse<DevOpsErr
     }
 
     @Override
-    public Optional<Integer> getInstance() {
+    public Optional<String> getInstance() {
         return Optional.ofNullable(instance);
     }
 

@@ -56,6 +56,13 @@ public interface ServiceConfigReader {
     MetricsConfigReader metrics();
 
     /**
+     * Retrieve a mongo collection name suffix configuration reader.
+     *
+     * @return The reader.
+     */
+    SuffixBuilderConfigReader mongoCollectionNameSuffix();
+
+    /**
      * Retrieve the underlying {@code Config} object for backward compatibility.
      *
      * @return the underlying {@code Config} object.

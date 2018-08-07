@@ -45,17 +45,20 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
  */
 final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand> {
 
-    private ThingModifyCommandAdapter(final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies) {
-        super(mappingStrategies);
+    private ThingModifyCommandAdapter(
+            final Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new ThingModifyCommandAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingModifyCommandAdapter newInstance() {
-        return new ThingModifyCommandAdapter(mappingStrategies());
+    public static ThingModifyCommandAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingModifyCommandAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {
@@ -131,7 +134,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     }
 
     @Override
-    public Adaptable toAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final ThingModifyCommand command, final TopicPath.Channel channel) {
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(command.getThingId());
 
         final CommandsTopicPathBuilder commandsTopicPathBuilder =
