@@ -447,7 +447,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
         if (statusReport.getFailure().isPresent()) {
             final ConnectionFailure failure = statusReport.getFailure().get();
-            final String message = MessageFormat.format("Failure: {}, Description: {}",
+            final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                     failure.getFailure().cause(), failure.getFailureDescription());
             data = data.setConnectionStatus(ConnectionStatus.FAILED)
                     .setConnectionStatusDetails(message);
