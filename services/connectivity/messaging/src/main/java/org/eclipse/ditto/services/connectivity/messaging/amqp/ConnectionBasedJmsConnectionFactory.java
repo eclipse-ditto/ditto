@@ -18,6 +18,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -189,15 +190,20 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.toList());
 
+        final long oneHour = Duration.ofHours(1L).toMillis();
+
         final List<String> defaultFailoverParams =
                 // Important: we cannot interrupt connection initiation.
                 // These failover parameters ensure qpid client gives up after at most
                 // 128 + 256 + 512 + 1024 + 2048 + 4096 = 8064 ms < 10_000 ms = 10 s
+                // at the first attempt. The client will retry endlessly after the connection
+                // is established with reasonable max reconnect delay until the user terminates
+                // the connection manually.
                 Stream.of(FAILOVER_OPTION_PREFIX + "startupMaxReconnectAttempts=5",
-                        FAILOVER_OPTION_PREFIX + "maxReconnectAttempts=5",
+                        FAILOVER_OPTION_PREFIX + "maxReconnectAttempts=-1",
                         FAILOVER_OPTION_PREFIX + "initialReconnectDelay=128",
                         FAILOVER_OPTION_PREFIX + "reconnectDelay=128",
-                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=4096",
+                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=" + oneHour,
                         FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=2",
                         FAILOVER_OPTION_PREFIX + "useReconnectBackOff=true").collect(Collectors.toList());
 

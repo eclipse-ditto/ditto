@@ -42,12 +42,11 @@ public final class HeaderTranslator {
     }
 
     /**
-     * Construct a Ditto header translator that knows about all header definitions enumerated in
-     * {@link DittoHeaderDefinition}.
+     * Construct a Ditto header translator that knows about nothing.
      *
      * @return the Ditto header translator.
      */
-    public static HeaderTranslator of() {
+    public static HeaderTranslator empty() {
         return of(DittoHeaderDefinition.values());
     }
 
