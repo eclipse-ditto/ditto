@@ -51,7 +51,7 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.BAD_GATEWAY, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
     /**

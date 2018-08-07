@@ -70,9 +70,8 @@ import kamon.system.SystemMetrics;
  * well as all Akka actors of this service which are required for startup.
  * </p>
  * <p>
- * Each hook method may be overridden to change this particular part of the startup procedure. Please have a look at
- * the Javadoc comment before overriding a hook method. The hook methods are automatically called in the following
- * order:
+ * Each hook method may be overridden to change this particular part of the startup procedure. Please have a look at the
+ * Javadoc comment before overriding a hook method. The hook methods are automatically called in the following order:
  * </p>
  * <ol>
  * <li>{@link #determineConfig()},</li>
@@ -190,8 +189,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     /**
      * Starts the Akka actor system as well as all required actors.
      * <p>
-     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this
-     * method is overridden, none of the following mentioned methods and their descendant methods will be called
+     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this method is
+     * overridden, none of the following mentioned methods and their descendant methods will be called
      * automatically:</em>
      * </p>
      * <ul>
@@ -220,14 +219,14 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final AtomicBoolean gracefulShutdown = new AtomicBoolean(false);
 
         CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
+                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "log_shutdown_initiation",
                 () -> {
                     logger.info("Initiated coordinated shutdown - gracefully shutting down..");
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
 
         CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "Log successful graceful shutdown",
+                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "log_successful_graceful_shutdown",
                 () -> {
                     logger.info("Graceful shutdown completed.");
                     gracefulShutdown.set(true);
@@ -247,9 +246,9 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         final String message = String.format("Exiting JVM with status code '%d'", status);
         scheduler.schedule(() -> {
-            if(status == 0) {
+            if (status == 0) {
                 logger.info(message);
-            }else {
+            } else {
                 logger.warn(message);
             }
             System.exit(status);
@@ -269,7 +268,14 @@ public abstract class DittoService<C extends ServiceConfigReader> {
                             ConnectHttp.toHost(configReader.metrics().getPrometheusHostname(),
                                     configReader.metrics().getPrometheusPort()), materializer);
 
-            binding.exceptionally(failure -> {
+            binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
+                    CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_prometheus_http_endpoint", () -> {
+                        logger.info("Gracefully shutting down Prometheus HTTP endpoint..");
+                        // prometheus requests don't get the luxury of being processed a long time after shutdown:
+                        return theBinding.terminate(Duration.ofSeconds(1))
+                                .handle((httpTerminated, e) -> Done.getInstance());
+                    })
+            ).exceptionally(failure -> {
                 logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
                 logger.error("Terminating actorSystem!");
                 actorSystem.terminate();
@@ -350,8 +356,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     /**
      * Starts the root actor(s) of this service.
      * <p>
-     * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this
-     * method is overridden, the following methods will not be called automatically:</em>
+     * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this method
+     * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
      * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
