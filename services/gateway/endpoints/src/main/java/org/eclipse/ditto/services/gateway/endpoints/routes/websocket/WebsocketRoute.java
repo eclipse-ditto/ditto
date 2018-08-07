@@ -15,7 +15,10 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -87,6 +90,8 @@ public final class WebsocketRoute {
     private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
+
+    private static final String PARAM_FILTER = "filter";
 
     private final ActorRef streamingActor;
     private final int subscriberBackpressureQueueSize;
@@ -212,16 +217,14 @@ public final class WebsocketRoute {
                 messageToTellStreamingActor = null;
         }
 
-        if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + ":")) {
-            // parse the optional eventFilter string (RQL):
-            final String eventFilter = protocolMessage.split(":", 2)[1];
-            messageToTellStreamingActor =
-                    new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext, eventFilter);
-        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + ":")) {
-            // parse the optional eventFilter string (RQL):
-            final String eventFilter = protocolMessage.split(":", 2)[1];
-            messageToTellStreamingActor =
-                    new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext, eventFilter);
+        if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + "?")) {
+            final Map<String, String> params = determineParams(protocolMessage);
+            messageToTellStreamingActor = new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
+                            authContext, params.get(PARAM_FILTER));
+        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + "?")) {
+            final Map<String, String> params = determineParams(protocolMessage);
+            messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId,
+                    authContext, params.get(PARAM_FILTER));
         }
 
         if (messageToTellStreamingActor != null) {
@@ -230,6 +233,20 @@ public final class WebsocketRoute {
         }
         // let all other messages pass:
         return true;
+    }
+
+    /**
+     * Parses the passed {@code protocolMessage} for an optional parameters string (e.g. containing a "filter") and
+     * creating a Map from it.
+     *
+     * @param protocolMessage the protocolMessage containing parameters, e.g.: {@code START-SEND-EVENTS?filter=eq(foo,1)}
+     * @return the map containing the resolved params
+     */
+    private Map<String, String> determineParams(final String protocolMessage) {
+        final String parametersString = protocolMessage.split("\\?", 2)[1];
+        return Arrays.stream(parametersString.split("&"))
+                .map(paramWithValue -> paramWithValue.split("=", 2))
+                .collect(Collectors.toMap(pv -> pv[0], pv -> pv[1]));
     }
 
     private Source<Message, NotUsed> createSource(final String connectionCorrelationId, final ProtocolAdapter adapter) {
