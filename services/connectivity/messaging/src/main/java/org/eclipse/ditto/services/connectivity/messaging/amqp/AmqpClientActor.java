@@ -444,6 +444,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (statusReport.hasConsumedMessage()) {
             incrementConsumedMessageCounter();
         }
+        if (statusReport.isConnectionRestored()) {
+            data = data.setConnectionStatus(ConnectionStatus.OPEN)
+                    .setConnectionStatusDetails("Connection restored at " + Instant.now());
+        }
         if (statusReport.getFailure().isPresent()) {
             final ConnectionFailure failure = statusReport.getFailure().get();
             final String message = MessageFormat.format("Failure: {0}, Description: {1}",
@@ -560,39 +564,50 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private static final class StatusReport {
 
         private final boolean consumedMessage;
+        private final boolean connectionRestored;
         @Nullable private final ConnectionFailure failure;
         @Nullable private final MessageConsumer closedConsumer;
         @Nullable private final MessageProducer closedProducer;
 
         private StatusReport(
                 final boolean consumedMessage,
+                final boolean connectionRestored,
                 @Nullable final ConnectionFailure failure,
                 @Nullable final MessageConsumer closedConsumer,
                 @Nullable final MessageProducer closedProducer) {
             this.consumedMessage = consumedMessage;
+            this.connectionRestored = connectionRestored;
             this.failure = failure;
             this.closedConsumer = closedConsumer;
             this.closedProducer = closedProducer;
         }
 
+        private static StatusReport connectionRestored() {
+            return new StatusReport(false, true, null, null, null);
+        }
+
         private static StatusReport failure(final ConnectionFailure failure) {
-            return new StatusReport(false, failure, null, null);
+            return new StatusReport(false, false, failure, null, null);
         }
 
         private static StatusReport consumedMessage() {
-            return new StatusReport(true, null, null, null);
+            return new StatusReport(true, false, null, null, null);
         }
 
         private static StatusReport consumerClosed(final MessageConsumer consumer) {
-            return new StatusReport(false, null, consumer, null);
+            return new StatusReport(false, false, null, consumer, null);
         }
 
         private static StatusReport producerClosed(final MessageProducer producer) {
-            return new StatusReport(false, null, null, producer);
+            return new StatusReport(false, false, null, null, producer);
         }
 
         private boolean hasConsumedMessage() {
             return consumedMessage;
+        }
+
+        private boolean isConnectionRestored() {
+            return connectionRestored;
         }
 
         private Optional<ConnectionFailure> getFailure() {
@@ -651,6 +666,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         public void onConnectionRestored(final URI remoteURI) {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
             log.info("Connection restored: {}", remoteURI);
+            self.tell(StatusReport.connectionRestored(), ActorRef.noSender());
         }
 
         @Override

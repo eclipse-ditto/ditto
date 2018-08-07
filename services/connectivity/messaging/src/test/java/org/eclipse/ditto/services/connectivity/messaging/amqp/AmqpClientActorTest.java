@@ -16,14 +16,17 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createRandomConnectionId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
@@ -45,11 +48,13 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 
 import org.apache.qpid.jms.JmsConnection;
+import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.assertj.core.api.ThrowableAssert;
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -102,6 +107,7 @@ public class AmqpClientActorTest {
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
+    private static final URI DUMMY = URI.create("amqp://test:1234");
 
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
@@ -127,6 +133,7 @@ public class AmqpClientActorTest {
     private final TextMessage mockReplyMessage = Mockito.mock(TextMessage.class);
     @Mock
     private final TextMessage mockErrorMessage = Mockito.mock(TextMessage.class);
+    private ArgumentCaptor<JmsConnectionListener> listenerArgumentCaptor;
 
     @BeforeClass
     public static void setUp() {
@@ -143,6 +150,10 @@ public class AmqpClientActorTest {
     @Before
     public void init() throws JMSException {
         when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
+
+        listenerArgumentCaptor = ArgumentCaptor.forClass(JmsConnectionListener.class);
+        doNothing().when(mockConnection).addConnectionListener(listenerArgumentCaptor.capture());
+
         when(mockSession.createConsumer(any(JmsQueue.class))).thenReturn(mockConsumer);
         when(mockSession.createProducer(any(Destination.class))).thenReturn(mockProducer);
         when(mockSession.createTextMessage(anyString())).thenAnswer(invocation -> {
@@ -236,6 +247,46 @@ public class AmqpClientActorTest {
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
+
+
+    @Test
+    public void testReconnectAndVerifyConnectionStatus() {
+        new TestKit(actorSystem) {
+            {
+                final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
+                        (connection1, exceptionListener) -> mockConnection);
+                final ActorRef amqpClientActor = actorSystem.actorOf(props);
+                watch(amqpClientActor);
+
+                amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+                expectMsg(CONNECTED_SUCCESS);
+
+                amqpClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+                final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
+
+                final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
+
+                connectionListener.onConnectionInterrupted(DUMMY);
+                Awaitility.await().until(() -> awaitStatusInMetricsResponse(amqpClientActor, ConnectionStatus.FAILED));
+
+                connectionListener.onConnectionRestored(DUMMY);
+                Awaitility.await().until(() -> awaitStatusInMetricsResponse(amqpClientActor, ConnectionStatus.OPEN));
+
+                amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+                expectMsg(DISCONNECTED_SUCCESS);
+
+            }
+
+            private Boolean awaitStatusInMetricsResponse(final ActorRef amqpClientActor, final ConnectionStatus open) {
+                amqpClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+                final RetrieveConnectionMetricsResponse metrics =
+                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
+                return open.equals(metrics.getConnectionMetrics().getConnectionStatus());
+            }
+        };
+    }
+
 
     @Test
     public void sendCommandDuringInit() {
