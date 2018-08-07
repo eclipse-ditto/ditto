@@ -16,7 +16,6 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
@@ -29,17 +28,19 @@ import org.eclipse.ditto.signals.commands.messages.SendThingMessageResponse;
 final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommandResponse> {
 
     private MessageCommandResponseAdapter(
-            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies) {
-        super(mappingStrategies);
+            final Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies,
+            final HeaderTranslator headerTranslator) {
+        super(mappingStrategies, headerTranslator);
     }
 
     /**
      * Returns a new MessageCommandResponseAdapter.
      *
+     * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static MessageCommandResponseAdapter newInstance() {
-        return new MessageCommandResponseAdapter(mappingStrategies());
+    public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
+        return new MessageCommandResponseAdapter(mappingStrategies(), headerTranslator);
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {
@@ -59,7 +60,8 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
                 adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        MessageAdaptableHelper.messageHeadersFrom(adaptable),statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        MessageAdaptableHelper.messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
@@ -75,7 +77,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
             return SendClaimMessageResponse.TYPE;
         } else if (!adaptable.getHeaders().map(DittoHeaders::isResponseRequired).orElse(true)) {
             return SendMessageAcceptedResponse.TYPE;
-        } else if (adaptable.containsHeaderForKey(MessageHeaderDefinition.FEATURE_ID.getKey())) {
+        } else if (adaptable.getPayload().getPath().getFeatureId().isPresent()) {
             return SendFeatureMessageResponse.TYPE;
         } else {
             return SendThingMessageResponse.TYPE;
@@ -83,10 +85,10 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
     }
 
     @Override
-    public Adaptable toAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
+    public Adaptable constructAdaptable(final MessageCommandResponse command, final TopicPath.Channel channel) {
 
         return MessageAdaptableHelper.adaptableFrom(channel, command.getThingId(), command.toJson(),
-                command.getResourcePath(), command.getMessage(), command.getDittoHeaders());
+                command.getResourcePath(), command.getMessage(), command.getDittoHeaders(), headerTranslator());
     }
 
 }

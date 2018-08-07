@@ -32,7 +32,10 @@
         <module>devops</module>
         <module>health</module>
         <module>persistence</module>
+        <module>protocol</module>
         <module>test</module>
+        <module>tracing</module>
+        <module>metrics</module>
     </modules>
 
 </project>

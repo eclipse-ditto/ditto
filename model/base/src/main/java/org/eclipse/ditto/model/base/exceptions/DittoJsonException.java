@@ -92,14 +92,15 @@ public final class DittoJsonException extends DittoRuntimeException {
         } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
             throw new DittoJsonException(e);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
     /**
-     * Executes the given Supplier. An occurring {@link JsonRuntimeException}, {@code IllegalArgumentException} or
-     * {@code NullPointerException} is caught, wrapped and re-thrown as {@code DittoJsonException}.
+     * Executes the given Supplier. An occurring {@link JsonRuntimeException}, {@code IllegalArgumentException},
+     * {@code UnsupportedOperationException}, or {@code NullPointerException} is caught, wrapped and re-thrown as
+     * {@code DittoJsonException}.
      *
      * @param supplier the supplier which potentially throws a {@code JsonRuntimeException}.
      * @param <T> the type of results the supplier returns.
@@ -109,12 +110,15 @@ public final class DittoJsonException extends DittoRuntimeException {
     public static <T> T wrapJsonRuntimeException(final Supplier<T> supplier) {
         try {
             return supplier.get();
-        } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
+        } catch (final JsonRuntimeException
+                | IllegalArgumentException
+                | NullPointerException
+                | UnsupportedOperationException e) {
             throw new DittoJsonException(e);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
     /**
@@ -138,9 +142,9 @@ public final class DittoJsonException extends DittoRuntimeException {
         } catch (final JsonRuntimeException | IllegalArgumentException | NullPointerException e) {
             throw new DittoJsonException(e, dittoHeaders);
         }
-        // "cr-json" library also throws IllegalArgumentException when for example strings which may not be empty
+        // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
-        // "cr-json" library also throws NullPointerException when for example non-nullable objects are null
+        // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
     }
 
 }

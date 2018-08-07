@@ -42,31 +42,27 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveStatistics.NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_STATISTICS =
+    private static final JsonFieldDefinition<JsonObject> JSON_STATISTICS =
             JsonFactory.newJsonObjectFieldDefinition("statistics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private final JsonObject statistics;
 
-    private RetrieveStatisticsResponse(@Nullable final String serviceName, @Nullable final Integer instance,
-            final JsonObject statistics, final DittoHeaders dittoHeaders) {
-        super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
+    private RetrieveStatisticsResponse(final JsonObject statistics, final DittoHeaders dittoHeaders) {
+        super(TYPE, null, null, HttpStatusCode.OK, dittoHeaders);
         this.statistics = Objects.requireNonNull(statistics, "The statistics JSON must not be null!");
     }
 
     /**
      * Returns a new instance of {@code RetrieveStatisticsResponse}.
      *
-     * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
      * @param statistics the JSON representation of the retrieved Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused this ThingCommandResponse.
      * @return a new statistics command response object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveStatisticsResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
-            final JsonObject statistics, final DittoHeaders dittoHeaders) {
-        return new RetrieveStatisticsResponse(serviceName, instance, statistics, dittoHeaders);
+    public static RetrieveStatisticsResponse of(final JsonObject statistics, final DittoHeaders dittoHeaders) {
+        return new RetrieveStatisticsResponse(statistics, dittoHeaders);
     }
 
     /**
@@ -96,13 +92,9 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      */
     public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
-                            .orElse(null);
-                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
-                            .orElse(null);
+                .deserialize(statusCode -> {
                     final JsonObject statistics = jsonObject.getValueOrThrow(JSON_STATISTICS);
-                    return RetrieveStatisticsResponse.of(serviceName, instance, statistics, dittoHeaders);
+                    return RetrieveStatisticsResponse.of(statistics, dittoHeaders);
                 });
     }
 
@@ -117,7 +109,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
 
     @Override
     public RetrieveStatisticsResponse setEntity(final JsonValue entity) {
-        return of(getServiceName().orElse(null), getInstance().orElse(null), entity.asObject(), getDittoHeaders());
+        return of(entity.asObject(), getDittoHeaders());
     }
 
     @Override
@@ -137,7 +129,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
 
     @Override
     public RetrieveStatisticsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getServiceName().orElse(null), getInstance().orElse(null), statistics, dittoHeaders);
+        return of(statistics, dittoHeaders);
     }
 
     @SuppressWarnings("squid:S109")

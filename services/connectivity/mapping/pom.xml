@@ -46,11 +46,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.mozilla</groupId>
             <artifactId>rhino</artifactId>
         </dependency>
@@ -58,6 +53,11 @@
         <dependency>
             <groupId>org.webjars.npm</groupId>
             <artifactId>bytebuffer</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>long</artifactId>
         </dependency>
 
         <dependency>

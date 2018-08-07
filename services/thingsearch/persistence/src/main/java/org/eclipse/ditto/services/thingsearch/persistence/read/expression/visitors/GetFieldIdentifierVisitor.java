@@ -12,7 +12,6 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FieldExpressionVisitor;
 

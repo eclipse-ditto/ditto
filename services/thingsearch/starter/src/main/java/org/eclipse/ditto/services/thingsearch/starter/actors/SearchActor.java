@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -39,6 +40,8 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -66,11 +69,6 @@ import akka.stream.SourceShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import kamon.Kamon;
-import kamon.trace.Segment;
-import kamon.trace.TraceContext;
-import scala.Option;
-import scala.Some;
 import scala.concurrent.ExecutionContextExecutor;
 
 /**
@@ -103,12 +101,12 @@ public final class SearchActor extends AbstractActor {
     private static final int QUERY_ASK_TIMEOUT = 500;
     private static final int THINGS_ASK_TIMEOUT = 60 * 1000;
 
-    private static final String TRACE_SEARCH_QUERY_PREFIX = "things.search.query.";
-    private static final String TRACE_SEARCH_COUNT_PREFIX = "things.search.count.";
-    private static final String THINGS_SEARCH = "Things_Search";
-    private static final String QUERY_PARSING = "Things_Search_Query_Parsing";
-    private static final String DATABASE_ACCESS = "Things_Search_DB_access";
-    private static final String THINGS_SERVICE_ACCESS = "Things_Service_access";
+    private static final String TRACING_THINGS_SEARCH = "things_search_query";
+    private static final String QUERY_PARSING_SEGMENT_NAME = "query_parsing";
+    private static final String DATABASE_ACCESS_SEGMENT_NAME = "database_access";
+    private static final String THINGS_SERVICE_ACCESS_SEGMENT_NAME = "things_service_access";
+    private static final String QUERY_TYPE_TAG = "query_type";
+    private static final String API_VERSION_TAG = "api_version";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
@@ -185,18 +183,16 @@ public final class SearchActor extends AbstractActor {
 
     private void count(final Command countThings) {
         final DittoHeaders dittoHeaders = countThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         log.info("Processing CountThings command: {}", countThings);
         final JsonSchemaVersion version = countThings.getImplementedSchemaVersion();
 
+        final String queryType = "count";
 
-        final Option<String> token = dittoHeaders.getCorrelationId()
-                .<Option<String>>map(Some::apply)
-                .orElse(Option.empty());
-        final TraceContext traceContext = Kamon.tracer()
-                .newContext(prefixJsonSchemaVersion(TRACE_SEARCH_COUNT_PREFIX, version), token);
-        final Segment querySegment =
-                traceContext.startSegment(QUERY_PARSING, THINGS_SEARCH, SearchActor.class.getSimpleName());
+        final StartedTimer countTimer = startNewTimer(version, queryType);
+
+        final StartedTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -206,18 +202,30 @@ public final class SearchActor extends AbstractActor {
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, countThings, QUERY_ASK_TIMEOUT))
                         .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                            querySegment.finish();
+                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                            queryParsingTimer.stop();
                             if (query instanceof PolicyRestrictedSearchAggregation) {
+                                final StartedTimer databaseAccessTimer =
+                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // aggregation-based count for things with policies
                                 return processSearchPersistenceResult(
                                         () -> searchPersistence.count((PolicyRestrictedSearchAggregation) query),
-                                        traceContext, dittoHeaders)
+                                        dittoHeaders)
+                                        .via(Flow.fromFunction(result -> {
+                                            databaseAccessTimer.stop();
+                                            return result;
+                                        }))
                                         .map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof Query) {
+                                final StartedTimer databaseAccessTimer =
+                                        countTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // count without aggregation for things without policies
                                 return processSearchPersistenceResult(() -> searchPersistence.count((Query) query),
-                                        traceContext, dittoHeaders)
+                                        dittoHeaders)
+                                        .via(Flow.fromFunction(result -> {
+                                            databaseAccessTimer.stop();
+                                            return result;
+                                        }))
                                         .map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
@@ -227,31 +235,24 @@ public final class SearchActor extends AbstractActor {
                                 return Source.single(CountThingsResponse.of(-1, dittoHeaders));
                             }
                         })
-                        .via(Flow.fromFunction(foo -> {
-                            traceContext.finish(); // finish kamon trace
-                            return foo;
+                        .via(Flow.fromFunction(result -> {
+                            countTimer.stop();
+                            return result;
                         }))
                         .runWith(Sink.head(), materializer), dispatcher)
                 .to(sender);
     }
 
-    private static String prefixJsonSchemaVersion(final String prefix, final JsonSchemaVersion version) {
-        return prefix + version.toInt();
-    }
-
     private void query(final QueryThings queryThings) {
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         log.info("Processing QueryThings command: {}", queryThings);
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
-        final Option<String> token = dittoHeaders.getCorrelationId()
-                .<Option<String>>map(Some::apply)
-                .orElse(Option.empty());
-        final TraceContext traceContext = Kamon.tracer()
-                .newContext(prefixJsonSchemaVersion(TRACE_SEARCH_QUERY_PREFIX, version), token);
-        final Segment querySegment = traceContext.startSegment(QUERY_PARSING, THINGS_SEARCH,
-                SearchActor.class.getSimpleName());
+        final String queryType = "query";
+        final StartedTimer searchTimer = startNewTimer(version, queryType);
+        final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
 
         final ActorRef sender = getSender();
 
@@ -261,22 +262,34 @@ public final class SearchActor extends AbstractActor {
         PatternsCS.pipe(
                 Source.fromCompletionStage(PatternsCS.ask(chosenQueryActor, queryThings, QUERY_ASK_TIMEOUT))
                         .flatMapConcat(query -> {
-                            LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                            querySegment.finish();
+                            LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
+                            queryParsingTimer.stop();
 
                             if (query instanceof PolicyRestrictedSearchAggregation) {
+                                final StartedTimer databaseAccessTimer =
+                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // policy-based search via aggregation
                                 return processSearchPersistenceResult(
                                         () -> searchPersistence.findAll((PolicyRestrictedSearchAggregation) query),
-                                        traceContext, dittoHeaders)
+                                        dittoHeaders)
+                                        .via(Flow.fromFunction(result -> {
+                                            databaseAccessTimer.stop();
+                                            return result;
+                                        }))
                                         .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings,
-                                                traceContext));
+                                                searchTimer));
                             } else if (query instanceof Query) {
+                                final StartedTimer databaseAccessTimer =
+                                        searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME);
                                 // api/1 search via 'find'
                                 return processSearchPersistenceResult(() -> searchPersistence.findAll((Query) query),
-                                        traceContext, dittoHeaders)
+                                        dittoHeaders)
+                                        .via(Flow.fromFunction(result -> {
+                                            databaseAccessTimer.stop();
+                                            return result;
+                                        }))
                                         .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings,
-                                                traceContext));
+                                                searchTimer));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
                                 return Source.failed((Throwable) query);
@@ -287,27 +300,22 @@ public final class SearchActor extends AbstractActor {
                                         QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                             }
                         })
-                        .via(Flow.fromFunction(foo -> {
-                            traceContext.finish(); // finish kamon trace
-                            return foo;
+                        .via(Flow.fromFunction(result -> {
+                            searchTimer.stop();
+                            return result;
                         }))
                         .runWith(Sink.head(), materializer), dispatcher)
                 .to(sender);
     }
 
     private <T> Source<T, NotUsed> processSearchPersistenceResult(final Supplier<Source<T, NotUsed>> resultSupplier,
-            final TraceContext traceContext, final DittoHeaders dittoHeaders) {
-
-        final Segment persistenceSegment =
-                traceContext.startSegment(DATABASE_ACCESS, THINGS_SEARCH, SearchActor.class.getSimpleName());
-
+            final DittoHeaders dittoHeaders) {
         final Source<T, NotUsed> source = resultSupplier.get();
 
         final Flow<T, T, NotUsed> logAndFinishPersistenceSegmentFlow =
                 Flow.fromFunction(result -> {
                     // we know that the source provides exactly one ResultList
                     LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
-                    persistenceSegment.finish();
                     log.debug("Persistence returned: {}", result);
                     return result;
                 });
@@ -316,12 +324,13 @@ public final class SearchActor extends AbstractActor {
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
-            final QueryThings queryThings, final TraceContext traceContext) {
+            final QueryThings queryThings, final StartedTimer searchTimer) {
 
         final Graph<SourceShape<QueryThingsResponse>, NotUsed> result;
 
         final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
-        LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
+        final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
+        LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         if (thingIds.isEmpty()) {
             result = Source.single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
         } else if (queryThings.getFields()
@@ -348,10 +357,10 @@ public final class SearchActor extends AbstractActor {
                     .build();
 
             log.debug("About to send command to Things: {}", retrieveThings);
-            final Segment thingsSegment =
-                    traceContext.startSegment(THINGS_SERVICE_ACCESS, THINGS_SEARCH, SearchActor.class.getSimpleName());
+            final StartedTimer thingsServiceAccessTimer =
+                    searchTimer.startNewSegment(THINGS_SERVICE_ACCESS_SEGMENT_NAME);
 
-            result = retrieveFromThings(thingIds, retrieveThings, thingsSegment);
+            result = retrieveFromThings(thingIds, retrieveThings, thingsServiceAccessTimer);
         }
 
         return result;
@@ -377,7 +386,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveFromThings(final ResultList<String> thingIds,
-            final RetrieveThings retrieveThings, final Segment thingsSegment) {
+            final RetrieveThings retrieveThings, final StartedTimer thingsSegment) {
         final DittoHeaders dittoHeaders = retrieveThings.getDittoHeaders();
         return Source.fromCompletionStage(
                 PatternsCS.ask(pubSubMediator, new DistributedPubSubMediator.Send(
@@ -385,7 +394,7 @@ public final class SearchActor extends AbstractActor {
                 .flatMapConcat(response -> {
                     LogUtil.enhanceLogWithCorrelationId(log, dittoHeaders.getCorrelationId());
                     log.debug("Thing search returned: {}", response);
-                    thingsSegment.finish();
+                    thingsSegment.stop();
 
                     if (response instanceof ThingCommandResponse) {
                         final ThingCommandResponse tcr = (ThingCommandResponse) response;
@@ -403,6 +412,13 @@ public final class SearchActor extends AbstractActor {
                     return Source.single(
                             QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                 });
+    }
+
+    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType) {
+        return DittoMetrics.expiringTimer(TRACING_THINGS_SEARCH)
+                .tag(QUERY_TYPE_TAG, queryType)
+                .tag(API_VERSION_TAG, version.toString())
+                .build();
     }
 
 }

@@ -27,12 +27,11 @@ import java.util.function.Supplier;
 
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FieldExpressionUtil;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FieldExpressionVisitor;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates the Bson object to filter out irrelevant fields.

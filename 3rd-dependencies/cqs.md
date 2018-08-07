@@ -12,7 +12,6 @@
 |com.fasterxml.jackson.core|jackson-core|2.9.5| [16308](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16308) |
 |com.fasterxml.jackson.core|jackson-databind|2.9.5| [16307](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16307) |
 |com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
-|com.github.jjagged|metrics-statsd|1.0.0    | []() TODO - wait for switch to Kamon 1.0 |
 |com.github.jnr|jffi|1.2.16| [16301](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16301) |
 |com.github.jnr|jnr-constants|0.9.9| [16302](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16302) |
 |com.github.jnr|jnr-ffi|2.1.6| [16303](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16303) |
@@ -20,27 +19,27 @@
 |com.github.nscala-time|nscala-time_2.12|2.14.0| [16310](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16310) |
 |com.github.scullxbones|akka-persistence-mongo-casbah_2.12|2.0.9| [16312](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16312) |
 |com.github.scullxbones|akka-persistence-mongo-common_2.12|2.0.9| [16313](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16313) |
-|com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| []() |
-|com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| []() |
-|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|0.14.0| []() |
-|com.lightbend.akka.management|akka-management_2.12|0.14.0| []() |
-|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| []() |
+|com.lightbend.akka.discovery|akka-discovery_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
+|com.lightbend.akka.discovery|akka-discovery-dns_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
+|com.lightbend.akka.discovery|akka-discovery-kubernetes-api_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
+|com.lightbend.akka.management|akka-management_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
+|com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
 |com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
-|com.typesafe.akka|akka-actor_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-cluster_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-distributed-data_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-actor_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-cluster_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-cluster-tools_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-distributed-data_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-http_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-http-core_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-http-spray-json_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-parsing_2.12|10.1.1| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
-|com.typesafe.akka|akka-persistence_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-protobuf_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-remote_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-slf4j_2.12|2.5.13| []() |
-|com.typesafe.akka|akka-stream_2.12|2.5.13| []() |
+|com.typesafe.akka|akka-persistence_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-protobuf_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-remote_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-slf4j_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-stream_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe|config|1.3.1| [14400](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14400) |
 |com.typesafe|ssl-config-core_2.12|0.2.3| [16314](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16314) |
 |io.aeron|aeron-client|1.9.1| [16553](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16553) |
@@ -48,12 +47,9 @@
 |io.dropwizard.metrics|metrics-core|3.1.2| [14465](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14465) |
 |io.dropwizard.metrics|metrics-healthchecks|3.1.2| [16317](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16317) |
 |io.jsonwebtoken|jjwt|0.7.0| [16315](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16315) |
-|io.kamon|kamon-akka-2.5_2.12|0.6.7         | []() TODO - wait for switch to Kamon 1.0 |
-|io.kamon|kamon-akka-remote-2.4_2.12|0.6.7  | []() TODO - wait for switch to Kamon 1.0 |
-|io.kamon|kamon-core_2.12|0.6.7             | []() TODO - wait for switch to Kamon 1.0 |
-|io.kamon|kamon-scala_2.12|0.6.7            | []() TODO - wait for switch to Kamon 1.0 |
-|io.kamon|kamon-statsd_2.12|0.6.7           | []() TODO - wait for switch to Kamon 1.0 |
-|io.kamon|kamon-system-metrics_2.12|0.6.7   | []() TODO - wait for switch to Kamon 1.0 |
+|io.kamon|kamon-core_2.12|1.1.2 | [16740](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16740) |
+|io.kamon|kamon-prometheus_2.12|1.1.1 | [16742](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16742) |
+|io.kamon|kamon-system-metrics_2.12|1.0.0 | [16741](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16741) |
 |io.netty|netty-buffer|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-codec-http|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-codec|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
@@ -65,9 +61,12 @@
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-kqueue|osx-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-unix-common|4.1.24.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
+|io.prometheus|simpleclient_common|0.4.0| [16949](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16949) |
+|io.prometheus|simpleclient_dropwizard|0.4.0| [16950](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16950) |
+|io.prometheus|simpleclient|0.4.0| [16948](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16948) |
 |io.spray|spray-json_2.12|1.3.3| [16555](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16555) |
 |joda-time|joda-time|2.9.4| [14468](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14468) |
-|nl.grons|metrics-scala_2.12|3.5.5_a2.4| []() TODO - after switch to Kamon 1.0 |
+|nl.grons|metrics-scala_2.12|3.5.5_a2.4| [14491](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14491) |
 |org.agrona|agrona|0.9.17| [16554](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16554) |
 |org.apache.geronimo.specs|geronimo-jms_2.0_spec|1.0-alpha-2| [16327](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16327) |
 |org.apache.qpid|proton-j|0.27.1| [16557](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16557) |
@@ -98,8 +97,8 @@
 |org.scala-lang|scala-library|2.12.6| [16335](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16335) |
 |org.slf4j|slf4j-api|1.7.25| [14404](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=14404) |
 |org.typelevel|macro-compat_2.12|1.1.1| [16326](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16326) |
-|org.webjars.npm|bytebuffer|5.0.1| []() |
-|org.webjars.npm|long|3.2.0| []() |
+|org.webjars.npm|bytebuffer|5.0.1| [16728](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16728) |
+|org.webjars.npm|long|3.2.0| [16729](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16729) |
 
 ## Works-With dependencies
 

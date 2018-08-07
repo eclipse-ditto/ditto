@@ -28,6 +28,7 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
     private static final String PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT =
             "things-aggregator.single-retrieve-thing-timeout";
 
+
     protected AbstractConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
     }
@@ -58,4 +59,5 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
     public Duration thingsAggregatorSingleRetrieveThingTimeout() {
         return config.getDuration(PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
     }
+
 }

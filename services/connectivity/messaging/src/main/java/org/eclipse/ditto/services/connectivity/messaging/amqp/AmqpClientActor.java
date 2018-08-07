@@ -78,8 +78,6 @@ import akka.util.Timeout;
  */
 public final class AmqpClientActor extends BaseClientActor implements ExceptionListener {
 
-    private static final int TEST_CONNECTION_TIMEOUT = 5;
-
     private final JmsConnectionFactory jmsConnectionFactory;
     private final StatusReportingListener connectionListener;
     private final List<ConsumerData> consumers;
@@ -413,6 +411,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      *
      * @return future where the closing operation executes.
      */
+    @SuppressWarnings("UnusedReturnValue")
     private CompletableFuture<Void> ensureJmsConnectionClosed() {
         if (jmsConnection != null) {
             final JmsConnection jmsConnectionToClose = jmsConnection;

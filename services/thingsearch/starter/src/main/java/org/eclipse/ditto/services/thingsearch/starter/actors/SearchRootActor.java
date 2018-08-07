@@ -16,6 +16,8 @@ import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.POLICIES_SYNC_STATE_COLLECTION_NAME;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
+import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
@@ -49,9 +51,11 @@ import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -168,7 +172,13 @@ public final class SearchRootActor extends AbstractActor {
                                 materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.exceptionally(failure -> {
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    return theBinding.terminate(Duration.ofSeconds(1))
+                            .handle((httpTerminated, e) -> Done.getInstance());
+                })
+        ).exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
             getContext().system().terminate();
             return null;

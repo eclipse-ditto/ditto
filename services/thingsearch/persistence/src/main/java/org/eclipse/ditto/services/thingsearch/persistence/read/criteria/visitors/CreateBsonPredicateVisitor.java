@@ -15,11 +15,10 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.bson.conversions.Bson;
-
-import com.mongodb.client.model.Filters;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.PredicateVisitor;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Creates Bson of a predicate.

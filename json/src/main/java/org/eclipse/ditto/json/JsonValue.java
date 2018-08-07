@@ -222,4 +222,12 @@ public interface JsonValue {
     @Override
     String toString();
 
+    /**
+     * Return this JSON value in string representation, without quoting if this is a JSON string already.
+     *
+     * @return the string representation.
+     */
+    default String formatAsString() {
+        return isString() ? asString() : toString();
+    }
 }

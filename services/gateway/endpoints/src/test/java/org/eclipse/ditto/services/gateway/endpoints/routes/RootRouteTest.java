@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
+import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.status.OverallStatusRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
@@ -47,23 +48,21 @@ public final class RootRouteTest extends EndpointTestBase {
 
     private static final String ROOT_PATH = "/";
     private static final String STATUS_PATH = ROOT_PATH + OverallStatusRoute.PATH_STATUS;
-    private static final String THINGS_1_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion
-            .V_1.toInt() + "/" + ThingsRoute.PATH_THINGS;
-    private static final String THINGS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion
-            .V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
+    private static final String HEALTH_PATH = ROOT_PATH + CachingHealthRoute.PATH_HEALTH;
+    private static final String THINGS_1_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
+            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS;
+    private static final String THINGS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
+            JsonSchemaVersion.V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THING_SEARCH_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + ThingSearchRoute.PATH_SEARCH + "/" + ThingSearchRoute.PATH_THINGS;
     private static final String UNKNOWN_SEARCH_PATH =
             ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion.V_2.toInt() + "/" +
                     ThingSearchRoute.PATH_SEARCH + "/foo";
-    private static final String THINGS_1_PATH_WITH_IDS = THINGS_1_PATH + "?" +
-            ThingsParameter.IDS + "=bumlux";
-    private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion
-            .V_2.toInt();
+    private static final String THINGS_1_PATH_WITH_IDS = THINGS_1_PATH + "?" + ThingsParameter.IDS + "=bumlux";
+    private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
     private static final String PATH_WITH_INVALID_ENCODING = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
-            JsonSchemaVersion
-                    .V_1.toInt() + "/" + ThingsRoute.PATH_THINGS + "/:bumlux/features?fields=feature-1%2properties";
+            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS + "/:bumlux/features?fields=feature-1%2properties";
 
     private static final String HTTPS = "https";
 
@@ -88,6 +87,12 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDummyAuthentication(HttpRequest.GET(ROOT_PATH))));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
+    }
+
+    @Test
+    public void getHealthWithoutAuthReturnsOK() {
+        final TestRouteResult result = rootTestRoute.run(withHttps(HttpRequest.GET(HEALTH_PATH)));
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test

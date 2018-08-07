@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -110,7 +111,10 @@ public class MongoIndexAssertions {
     private static <T> T runBlocking(final CompletionStage<T> completionStage) {
         try {
             return completionStage.toCompletableFuture().get();
-        } catch (final InterruptedException | ExecutionException e) {
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (final ExecutionException e) {
             throw new IllegalStateException(e);
         }
     }

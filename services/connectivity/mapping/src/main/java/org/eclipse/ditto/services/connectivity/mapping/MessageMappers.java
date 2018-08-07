@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
@@ -26,10 +27,10 @@ import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMess
  * Factory for creating known {@link MessageMapper} instances and helpers useful for {@link MessageMapper}
  * implementations.
  */
+@Immutable
 public final class MessageMappers {
 
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
-
 
     private MessageMappers() {
         throw new AssertionError();
@@ -39,8 +40,8 @@ public final class MessageMappers {
      * Determines the charset from the passed {@code contentType}, falls back to UTF-8 if no specific one was present
      * in contentType.
      *
-     * @param contentType the Content-Type to determine the charset from
-     * @return the charset
+     * @param contentType the Content-Type to determine the charset from.
+     * @return the charset.
      */
     public static Charset determineCharset(@Nullable final CharSequence contentType) {
         if (contentType != null) {
@@ -53,33 +54,29 @@ public final class MessageMappers {
     }
 
     /**
-     * Creates a mapper configuration from the given properties
+     * Creates a mapper configuration from the given properties.
      *
-     * @param properties the properties
-     * @return the configuration
+     * @param properties the properties.
+     * @return the configuration.
      */
     public static MessageMapperConfiguration configurationOf(final Map<String, String> properties) {
         return DefaultMessageMapperConfiguration.of(properties);
     }
 
     /**
-     * Creates a new
-     * {@link JavaScriptMessageMapperConfiguration.Builder}
+     * Creates a new {@link JavaScriptMessageMapperConfiguration.Builder}.
      *
-     * @return the builder
+     * @return the builder.
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder() {
-
         return createJavaScriptMapperConfigurationBuilder(Collections.emptyMap());
     }
 
     /**
-     * Creates a new
-     * {@link JavaScriptMessageMapperConfiguration.Builder}
-     * with options.
+     * Creates a new {@link JavaScriptMessageMapperConfiguration.Builder} with options.
      *
-     * @param options
-     * @return
+     * @param options configuration properties to initialize the builder with.
+     * @return the builder.
      */
     public static JavaScriptMessageMapperConfiguration.Builder createJavaScriptMapperConfigurationBuilder(
             final Map<String, String> options) {
@@ -88,11 +85,12 @@ public final class MessageMappers {
     }
 
     /**
-     * Factory method for a rhino mapper
+     * Factory method for a rhino mapper.
      *
-     * @return the mapper
+     * @return the mapper.
      */
     public static MessageMapper createJavaScriptMessageMapper() {
         return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
     }
+
 }

@@ -58,7 +58,7 @@ import akka.testkit.javadsl.TestKit;
  * Unit test for {@link ConnectionActor}.
  */
 @SuppressWarnings("NullableProblems")
-public class ConnectionActorTest {
+public final class ConnectionActorTest {
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;

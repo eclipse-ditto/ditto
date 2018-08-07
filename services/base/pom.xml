@@ -38,6 +38,15 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-config</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-metrics</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-persistence</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -61,18 +70,17 @@
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-prometheus_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.jjagged</groupId>
-            <artifactId>metrics-statsd</artifactId>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-system-metrics_${scala.version}</artifactId>
         </dependency>
     </dependencies>
 

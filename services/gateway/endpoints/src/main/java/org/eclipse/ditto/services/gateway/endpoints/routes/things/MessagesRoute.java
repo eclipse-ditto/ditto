@@ -26,12 +26,12 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
 
@@ -43,10 +43,11 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -89,7 +90,7 @@ final class MessagesRoute extends AbstractRoute {
     private final Duration maxMessageTimeout;
     private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
-    private final List<String> headerBlacklist;
+    private final HeaderTranslator headerTranslator;
 
     /**
      * Constructs the MessagesService route builder.
@@ -116,7 +117,9 @@ final class MessagesRoute extends AbstractRoute {
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
 
-        headerBlacklist = actorSystem.settings().config().getStringList(ConfigKeys.MESSAGE_HEADER_BLACKLIST);
+        headerTranslator = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
+                .loadProtocolAdapterProvider(actorSystem)
+                .createHttpHeaderTranslator();
     }
 
     /**
@@ -149,10 +152,10 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /inbox/claim} route.
-    *
-    * @return route for claim messages resource.
-    */
+     * Describes {@code /inbox/claim} route.
+     *
+     * @return route for claim messages resource.
+     */
     private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
@@ -171,11 +174,11 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /messages/<messageSubject>} sub route of the things route: {@code
-    * ../things/<thingId>/{inbox|outbox}}.
-    *
-    * @return the sub route for things messages resource.
-    */
+     * Describes {@code /messages/<messageSubject>} sub route of the things route: {@code
+     * ../things/<thingId>/{inbox|outbox}}.
+     *
+     * @return the sub route for things messages resource.
+     */
     private Route thingMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId, final String inboxOutbox) {
         final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
@@ -202,11 +205,11 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     /*
-    * Describes {@code /messages/<messageSubject>} sub route of the features route: {@code
-    * ../features/<featureId>/{inbox|outbox}}.
-    *
-    * @return the sub route for feature messages resource.
-    */
+     * Describes {@code /messages/<messageSubject>} sub route of the features route: {@code
+     * ../features/<featureId>/{inbox|outbox}}.
+     *
+     * @return the sub route for feature messages resource.
+     */
     private Route featureMessages(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String thingId, final String featureId, final String inboxOutbox) {
         final MessageDirection direction = PATH_INBOX.equalsIgnoreCase(inboxOutbox) ? MessageDirection.TO :
@@ -258,14 +261,10 @@ final class MessagesRoute extends AbstractRoute {
 
     @Nonnull
     private Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
-        final Map<String, String> result = new HashMap<>();
-        for (final HttpHeader httpHeader : httpRequest.getHeaders()) {
-            final String lowerCaseHeaderName = httpHeader.name().toLowerCase();
-            if (!headerBlacklist.contains(lowerCaseHeaderName)) {
-                result.put(lowerCaseHeaderName, httpHeader.value());
-            }
-        }
-        return result;
+        final Map<String, String> externalHeaders =
+                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
+                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
+        return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 
     private Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,

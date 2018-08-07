@@ -58,6 +58,11 @@ public final class ConfigUtil {
      */
     static final String AKKA_PERSISTENCE_MONGO_URI = "akka.contrib.persistence.mongodb.mongo.mongouri";
 
+    /**
+     * Resource name of base service configuration.
+     */
+    private static final String DITTO_BASE_CONFIG_NAME = "ditto-service-base";
+
     private static final String HOSTING_ENVIRONMENT_DOCKER = "docker";
     private static final String HOSTING_ENVIRONMENT_FILEBASED = "filebased";
 
@@ -127,8 +132,12 @@ public final class ConfigUtil {
                     .withValue(HOSTING_ENVIRONMENT, ConfigValueFactory.fromAnyRef(environment));
         }
 
-        final Config loadedConfig = setAkkaPersistenceMongoUri(
-                ConfigFactory.load(config.withFallback(ConfigFactory.parseResourcesAnySyntax(resourceBasename))));
+        final Config configWithFallbacks =
+                config.withFallback(ConfigFactory.parseResourcesAnySyntax(resourceBasename))
+                        .withFallback(ConfigFactory.parseResourcesAnySyntax(DITTO_BASE_CONFIG_NAME));
+
+        final Config loadedConfig = setAkkaPersistenceMongoUri(ConfigFactory.load(configWithFallbacks));
+
         LOGGER.debug("Using config: {}", loadedConfig.root().render(ConfigRenderOptions.concise()));
         // resolve all properties with default config at the end:
         return loadedConfig;
@@ -208,25 +217,15 @@ public final class ConfigUtil {
     }
 
     /**
-     * Returns the instance index integer.
-     *
-     * @return the instance index
-     */
-    public static Integer instanceIndex() {
-        return Optional.ofNullable(System.getenv(ENV_INSTANCE_INDEX)).map(Integer::parseInt).orElse(-1);
-    }
-
-    /**
-     * Calculates a unique suffix for instance-specific resources (e.g. response queues or kamon "Host" value) based on
-     * the environment the service runs in. E.g.:
+     * Returns the instance identifier based on the environment the service runs in. E.g.:
      * <ul>
      * <li>for Docker Swarm environment the suffix would be the Swarm Instance Index (starting from "1")</li>
      * <li>as fallback the "HOSTNAME" environment variable is used</li>
      * </ul>
      *
-     * @return the calculated unique suffix.
+     * @return the instance identifier
      */
-    public static String calculateInstanceUniqueSuffix() {
+    public static String instanceIdentifier() {
         return Optional.ofNullable(System.getenv(ENV_INSTANCE_INDEX)).orElseGet(ConfigUtil::getHostNameFromEnv);
     }
 

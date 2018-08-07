@@ -46,14 +46,14 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
     /**
      * The regex pattern a Policy Namespace has to conform to.
      */
-    String NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*)(?:\\.[a-zA-Z]\\w*)*))";
+    String NAMESPACE_PREFIX_REGEX = "(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a-zA-Z]\\w*+)*+))";
 
     /**
      * The regex pattern a Policy ID has to conform to. Defined by
      * <a href="http://www.ietf.org/rfc/rfc2396.txt">RFC-2396</a>.
      */
     String ID_NON_NAMESPACE_REGEX =
-            "(?<id>|(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*)";
+            "(?<id>|(?:[-\\w:@&=+,.!~*'_;]|%\\p{XDigit}{2})(?:[-\\w:@&=+,.!~*'$_;]|%\\p{XDigit}{2})*+)";
 
     /**
      * The regex pattern a Policy ID has to conform to. Combines "namespace" pattern (java package notation + a

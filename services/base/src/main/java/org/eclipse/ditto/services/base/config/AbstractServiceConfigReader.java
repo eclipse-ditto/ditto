@@ -23,7 +23,7 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     private static final String PATH_CLUSTER = "cluster";
     private static final String PATH_HEALTH_CHECK = "health-check";
     private static final String PATH_HTTP = "http";
-    private static final String PATH_STATSD = "statsd";
+    private static final String PATH_METRICS = "metrics";
 
     private final Config rawConfig;
 
@@ -70,8 +70,13 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     }
 
     @Override
-    public StatsdConfigReader statsd() {
-        return new StatsdConfigReader(getChildOrEmpty(PATH_STATSD));
+    public MetricsConfigReader metrics() {
+        return new MetricsConfigReader(getChildOrEmpty(PATH_METRICS));
+    }
+
+    @Override
+    public SuffixBuilderConfigReader mongoCollectionNameSuffix() {
+        return SuffixBuilderConfigReader.fromRawConfig(rawConfig);
     }
 
     private static Config getOrEmpty(final Config config, final String path) {

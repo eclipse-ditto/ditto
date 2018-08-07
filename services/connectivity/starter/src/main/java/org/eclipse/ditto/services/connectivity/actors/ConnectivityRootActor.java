@@ -20,6 +20,7 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -41,6 +42,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
@@ -50,10 +52,12 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterc
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
@@ -160,7 +164,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
         final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
                 .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT)));
+                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT),
+                        MongoConfig.getSSLEnabled(config)));
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
@@ -178,7 +183,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                         Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
 
-        final ActorRef conciergeForwarder =  startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+        final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
                         conciergeForwarderSignalTransformer));
 
@@ -211,8 +216,13 @@ public final class ConnectivityRootActor extends AbstractActor {
                 ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.Http.PORT)),
                 materializer);
 
-        binding.exceptionally(failure ->
-        {
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    return theBinding.terminate(Duration.ofSeconds(1))
+                            .handle((httpTerminated, e) -> Done.getInstance());
+                })
+        ).exceptionally(failure -> {
             log.error("Something very bad happened! " + failure.getMessage(), failure);
             getContext().system().terminate();
             return null;

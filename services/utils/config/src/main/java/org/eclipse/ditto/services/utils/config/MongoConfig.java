@@ -69,6 +69,11 @@ public final class MongoConfig {
     public static final String POOL_JMX_LISTENER_ENABLED = POOL_PREFIX + ".jmxListenerEnabled";
 
     /**
+     * config key for mongodb ssl options.
+     */
+    public static final String SSL_ENABLED = OPTIONS + ".ssl";
+
+    /**
      * Fallback client configuration.
      */
     private static final Config fallbackMongoConfig;
@@ -81,6 +86,7 @@ public final class MongoConfig {
         fallbackMap.put(POOL_MAX_WAIT_TIME, Duration.ofSeconds(30));
         fallbackMap.put(POOL_JMX_LISTENER_ENABLED, false);
         fallbackMap.put(MAX_QUERY_TIME, Duration.ofSeconds(60));
+        fallbackMap.put(SSL_ENABLED, false);
         fallbackMongoConfig = ConfigFactory.parseMap(fallbackMap);
     }
 
@@ -134,6 +140,16 @@ public final class MongoConfig {
      */
     public static boolean getJmxListenerEnabled(final Config config) {
         return config.withFallback(fallbackMongoConfig).getBoolean(POOL_JMX_LISTENER_ENABLED);
+    }
+
+    /**
+     * Retrieve the ssl option
+     *
+     * @param config The configuration.
+     * @return whether ssl is enabled or not.
+     */
+    public static boolean getSSLEnabled(final Config config) {
+        return config.withFallback(fallbackMongoConfig).getBoolean(SSL_ENABLED);
     }
 
     /**

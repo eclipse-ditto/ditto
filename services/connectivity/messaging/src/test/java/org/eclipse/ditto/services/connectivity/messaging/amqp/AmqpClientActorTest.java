@@ -71,6 +71,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -87,6 +88,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -479,7 +481,6 @@ public class AmqpClientActorTest {
         }};
     }
 
-
     @Test
     public void testSpecialCharactersInSourceAndRequestMetrics() throws JMSException {
         new TestKit(actorSystem) {{
@@ -521,7 +522,39 @@ public class AmqpClientActorTest {
                         .map(AddressMetric::getStatus))
                         .contains(ConnectionStatus.OPEN);
             });
+        }};
+    }
 
+    @Test
+    public void testTestConnection() {
+        new TestKit(actorSystem) {{
+            final Props props =
+                    AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsgClass(Status.Success.class);
+        }};
+    }
+
+    @Test
+    public void testTestConnectionFailsOnTimeout() throws JMSException {
+        new TestKit(actorSystem) {{
+            when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenAnswer(
+                    (Answer<Session>) invocationOnMock -> {
+                        try {
+                            Thread.sleep(15000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return mockSession;
+                    });
+            final Props props =
+                    AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            expectMsgClass(java.time.Duration.ofSeconds(11), Status.Failure.class);
         }};
     }
 

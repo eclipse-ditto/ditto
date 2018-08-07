@@ -13,12 +13,15 @@ package org.eclipse.ditto.services.connectivity.util;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+
 /**
  * This class encloses everything regarding configuration keys.
  */
 public final class ConfigKeys {
 
     private static final String CONNECTIVITY_PREFIX = "ditto.connectivity.";
+    private static final String ENABLED_SUFFIX = "enabled";
 
     /**
      * Key of the uri for mongodb.
@@ -99,7 +102,7 @@ public final class ConfigKeys {
         /**
          * Whether the health check for persistence should be enabled or not.
          */
-        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + "enabled";
+        public static final String PERSISTENCE_ENABLED = PERSISTENCE_PREFIX + ENABLED_SUFFIX;
 
         /**
          * The interval of the health check.
@@ -109,33 +112,9 @@ public final class ConfigKeys {
         /**
          * Whether the health check should be enabled (globally) or not.
          */
-        public static final String ENABLED = PREFIX + "enabled";
+        public static final String ENABLED = PREFIX + ENABLED_SUFFIX;
 
         private HealthCheck() {
-            throw new AssertionError();
-        }
-
-    }
-
-    /**
-     * Configuration keys for StatsD.
-     */
-    @Immutable
-    public static final class StatsD {
-
-        private static final String PREFIX = CONNECTIVITY_PREFIX + "statsd.";
-
-        /**
-         * The StatsD port used for sending metrics to.
-         */
-        public static final String PORT = PREFIX + "port";
-
-        /**
-         * The StatsD hostname used for sending metrics to.
-         */
-        public static final String HOSTNAME = PREFIX + "hostname";
-
-        private StatsD() {
             throw new AssertionError();
         }
 
@@ -224,15 +203,6 @@ public final class ConfigKeys {
             throw new AssertionError();
         }
     }
-
-    @Immutable
-    public static final class Message {
-
-        private static final String PREFIX = CONNECTIVITY_PREFIX + "message.";
-
-        public static final String HEADER_BLACKLIST = PREFIX + "header-blacklist";
-    }
-
 
     /*
      * This class is not designed for instantiation.

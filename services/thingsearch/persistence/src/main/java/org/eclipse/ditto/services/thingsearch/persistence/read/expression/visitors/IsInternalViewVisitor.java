@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.bson.Document;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FieldExpressionVisitor;
 
 /**

@@ -17,8 +17,6 @@ import static org.mockito.Mockito.mock;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Test;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AndCriteriaImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AnyCriteriaImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
@@ -34,6 +32,7 @@ import org.eclipse.ditto.services.thingsearch.querymodel.criteria.OrCriteriaImpl
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.junit.Test;
 
 /**
  * Tests {@link CriteriaFactoryImpl}.

@@ -35,7 +35,6 @@ import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
@@ -68,8 +67,7 @@ public final class MessageCommandAdapterTest {
                 TestPayload.of(APPLICATION_JSON, JsonValue.of(null)),
                 TestPayload.of(APPLICATION_JSON, null),
                 TestPayload.of(APPLICATION_OCTET_STREAM, binaryPayloadAsJson(), BINARY_PAYLOAD, true),
-                TestPayload.of("text/xml", JsonValue.of(XML_PAYLOAD), XML_PAYLOAD.getBytes(StandardCharsets.UTF_8),
-                        true),
+                TestPayload.of("text/xml", JsonValue.of(XML_PAYLOAD), XML_PAYLOAD, false),
                 TestPayload.of(null, null)
         );
         final Collection<String> messageTypes =
@@ -106,7 +104,7 @@ public final class MessageCommandAdapterTest {
 
     @Before
     public void setUp() {
-        underTest = MessageCommandAdapter.newInstance();
+        underTest = MessageCommandAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test
@@ -114,7 +112,7 @@ public final class MessageCommandAdapterTest {
         final String subject = subject();
         final String contentType = payload.contentType;
         final JsonPointer path = path(subject);
-        final DittoHeaders theHeaders = expectedDittoHeaders(subject, contentType);
+        final DittoHeaders theHeaders = expectedDittoHeaders(contentType);
 
         // build expected message and message command
         final MessageHeaders messageHeaders = messageHeaders(subject, contentType);
@@ -144,6 +142,7 @@ public final class MessageCommandAdapterTest {
                 .correlationId(TestConstants.CORRELATION_ID)
                 .schemaVersion(version)
                 .contentType(contentType)
+                .channel(TopicPath.Channel.LIVE.getName())
                 .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
                 .build();
     }
@@ -160,7 +159,7 @@ public final class MessageCommandAdapterTest {
                 .messages()
                 .subject(subject)
                 .build();
-        final DittoHeaders expectedHeaders = expectedDittoHeaders(subject, contentType);
+        final DittoHeaders expectedHeaders = expectedDittoHeaders(contentType);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
         if (payload.asJson != null) {
@@ -169,7 +168,7 @@ public final class MessageCommandAdapterTest {
 
         final Adaptable expectedAdaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
-                .withHeaders(expectedHeaders)
+                .withHeaders(expectedAdaptableHeaders(contentType))
                 .build();
 
         // build the message that will be converted to an adaptable
@@ -215,16 +214,16 @@ public final class MessageCommandAdapterTest {
         return headersBuilder.build();
     }
 
-    private DittoHeaders expectedDittoHeaders(final CharSequence subject, final CharSequence contentType) {
+    private DittoHeaders expectedDittoHeaders(final CharSequence contentType) {
+        return expectedAdaptableHeaders(contentType).toBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build();
+    }
+
+    private DittoHeaders expectedAdaptableHeaders(final CharSequence contentType) {
         final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);
-        headersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(), TestConstants.THING_ID);
-        headersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(), subject);
-        headersBuilder.putHeader(MessageHeaderDefinition.DIRECTION.getKey(), direction.name());
-        if (SendFeatureMessage.TYPE.equals(type)) {
-            headersBuilder.putHeader(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
-        }
         if (contentType != null) {
             headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
         }

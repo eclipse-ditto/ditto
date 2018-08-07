@@ -15,26 +15,20 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.AdaptableBuilder;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
@@ -44,9 +38,9 @@ import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -98,25 +92,25 @@ public final class WebsocketRoute {
     private final int subscriberBackpressureQueueSize;
     private final int publisherBackpressureBufferSize;
 
-    private final ProtocolAdapter protocolAdapter;
     private final EventStream eventStream;
 
     /**
      * Constructs the {@code /ws} route builder.
-     *  @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
+     *
+     * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param subscriberBackpressureQueueSize the max queue size of how many inflight Commands a single Websocket client
      * can have.
      * @param publisherBackpressureBufferSize the max buffer size of how many outstanding CommandResponses and Events a
      * single Websocket client can have - additionally incoming CommandResponses and Events are dropped if this size is
      * @param eventStream eventStream used to publish events within the actor system
      */
-    public WebsocketRoute(final ActorRef streamingActor, final int subscriberBackpressureQueueSize,
-            final int publisherBackpressureBufferSize, final ProtocolAdapter protocolAdapter,
+    public WebsocketRoute(final ActorRef streamingActor,
+            final int subscriberBackpressureQueueSize,
+            final int publisherBackpressureBufferSize,
             final EventStream eventStream) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
-        this.protocolAdapter = protocolAdapter;
         this.eventStream = eventStream;
     }
 
@@ -126,8 +120,9 @@ public final class WebsocketRoute {
      * @return the {@code /ws} route.
      */
     public Route buildWebsocketRoute(final Integer version, final String correlationId,
-            final AuthorizationContext connectionAuthContext) {
-        return buildWebsocketRoute(version, correlationId, connectionAuthContext, DittoHeaders.empty());
+            final AuthorizationContext connectionAuthContext, final ProtocolAdapter chosenProtocolAdapter) {
+        return buildWebsocketRoute(version, correlationId, connectionAuthContext, DittoHeaders.empty(),
+                chosenProtocolAdapter);
     }
 
     /**
@@ -136,26 +131,29 @@ public final class WebsocketRoute {
      * @return the {@code /ws} route.
      */
     public Route buildWebsocketRoute(final Integer version, final String correlationId,
-            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
+            final ProtocolAdapter chosenProtocolAdapter) {
+
         return extractUpgradeToWebSocket(upgradeToWebSocket ->
                 complete(
                         createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
-                                additionalHeaders)
+                                additionalHeaders, chosenProtocolAdapter)
                 )
         );
     }
 
     private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket, final Integer version,
             final String connectionCorrelationId, final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders) {
+            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter) {
         // build Sink and Source in order to support rpc style patterns as well as server push:
         return upgradeToWebSocket.handleMessagesWith(
-                createSink(version, connectionCorrelationId, connectionAuthContext, additionalHeaders),
-                createSource(connectionCorrelationId));
+                createSink(version, connectionCorrelationId, connectionAuthContext, additionalHeaders, adapter),
+                createSource(connectionCorrelationId, adapter));
     }
 
     private Sink<Message, NotUsed> createSink(final Integer version, final String connectionCorrelationId,
-            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter) {
         return Flow.<Message>create()
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
@@ -172,7 +170,7 @@ public final class WebsocketRoute {
                         Logging.WarningLevel()))
                 .filter(strictText -> processProtocolMessage(connectionAuthContext, connectionCorrelationId,
                         strictText))
-                .map(buildSignal(version, connectionCorrelationId, connectionAuthContext, additionalHeaders))
+                .map(buildSignal(version, connectionCorrelationId, connectionAuthContext, additionalHeaders, adapter))
                 .to(Sink.actorSubscriber(
                         CommandSubscriber.props(streamingActor, subscriberBackpressureQueueSize, eventStream)));
 
@@ -222,7 +220,7 @@ public final class WebsocketRoute {
         return true;
     }
 
-    private Source<Message, NotUsed> createSource(final String connectionCorrelationId) {
+    private Source<Message, NotUsed> createSource(final String connectionCorrelationId, final ProtocolAdapter adapter) {
         return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                 EventAndResponsePublisher.props(publisherBackpressureBufferSize))
                 .mapMaterializedValue(actorRef -> {
@@ -230,7 +228,7 @@ public final class WebsocketRoute {
                     return NotUsed.getInstance();
                 })
                 .map(this::publishResponsePublishedEvent)
-                .map(this::jsonifiableToString)
+                .map(jsonifiableToString(adapter))
                 .map(TextMessage::create);
     }
 
@@ -246,88 +244,62 @@ public final class WebsocketRoute {
     }
 
     private Function<String, Signal> buildSignal(final Integer version, final String connectionCorrelationId,
-            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders) {
+            final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
+            final ProtocolAdapter adapter) {
         return cmdString -> {
-            final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder()
-                    .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                    .authorizationContext(connectionAuthContext)
-                    .correlationId(connectionCorrelationId)
-                    .origin(connectionCorrelationId);
-
-            if (cmdString.isEmpty()) {
-                throw new DittoJsonException(new IllegalArgumentException("Empty json."), dittoHeadersBuilder.build());
-            }
-
-            final JsonObject jsonObject = wrapJsonRuntimeException(cmdString, dittoHeadersBuilder.build(),
-                    (str, headers) -> JsonFactory.readFrom(str).asObject());
-            final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(jsonObject,
-                    DittoHeaders.newBuilder()
-                            .schemaVersion(JsonSchemaVersion.forInt(version).orElse(JsonSchemaVersion.LATEST))
-                            .authorizationContext(connectionAuthContext)
-                            .correlationId(jsonObject.getValue(JsonifiableAdaptable.JsonFields.HEADERS.getPointer()
-                                    .append(JsonPointer.of(DittoHeaderDefinition.CORRELATION_ID.getKey())))
-                                    .filter(JsonValue::isString)
-                                    .map(JsonValue::asString)
-                                    .orElse(connectionCorrelationId)
-                            )
-                            .build(),
-                    (jo, cmdHeaders) -> ProtocolFactory.jsonifiableAdaptableFromJson(jo));
-
-            final DittoHeaders headers = jsonifiableAdaptable.getHeaders().orElse(ProtocolFactory.emptyHeaders());
-            final String wsCorrelationId = headers.getCorrelationId()
-                    .orElseGet(() -> UUID.randomUUID().toString());
 
             final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
                     .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
 
-            final Map<String, String> allHeaders = new HashMap<>(headers);
-
-            final DittoHeaders adjustedHeaders = DittoHeaders.newBuilder()
-                    .authorizationContext(connectionAuthContext)
+            // initial internal header values
+            final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder()
                     .schemaVersion(jsonSchemaVersion)
-                    .correlationId(wsCorrelationId)
-                    .origin(connectionCorrelationId)
-                    .build();
+                    .authorizationContext(connectionAuthContext)
+                    .correlationId(connectionCorrelationId) // for logging
+                    .origin(connectionCorrelationId);
 
-            allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
-            allHeaders.putAll(additionalHeaders);
+            if (cmdString.isEmpty()) {
+                final RuntimeException cause = new IllegalArgumentException("Empty json.");
+                throw new DittoJsonException(cause, internalHeadersBuilder.build());
+            }
 
-            final AdaptableBuilder adaptableBuilder = ProtocolFactory.newAdaptableBuilder(jsonifiableAdaptable)
-                    .withHeaders(DittoHeaders.of(allHeaders))
-                    .withPayload(jsonifiableAdaptable.getPayload());
+            final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(cmdString,
+                    DittoHeaders.empty(), // unused
+                    (s, unused) -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s)));
 
-            return protocolAdapter.fromAdaptable(adaptableBuilder.build());
+            final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            final DittoHeaders signalHeaders = signal.getDittoHeaders();
+
+            // add headers given by parent route first so that protocol message may override them
+            internalHeadersBuilder.putHeaders(additionalHeaders);
+            // add any headers from protocol adapter to internal headers
+            internalHeadersBuilder.putHeaders(signalHeaders);
+            // generate correlation ID if it is not set in protocol message
+            if (!signalHeaders.getCorrelationId().isPresent()) {
+                internalHeadersBuilder.correlationId(UUID.randomUUID().toString());
+            }
+
+            return signal.setDittoHeaders(internalHeadersBuilder.build());
         };
     }
 
-    private String jsonifiableToString(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-        if (jsonifiable instanceof StreamingAck) {
-            return streamingAckToString((StreamingAck) jsonifiable);
-        }
+    private static Function<Jsonifiable.WithPredicate<JsonObject, JsonField>, String> jsonifiableToString(
+            final ProtocolAdapter adapter) {
+        return jsonifiable -> {
+            if (jsonifiable instanceof StreamingAck) {
+                return streamingAckToString((StreamingAck) jsonifiable);
+            }
 
-        final Adaptable adaptable;
-        if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
-            adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE);
-        } else {
-            adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN);
-        }
+            final Adaptable adaptable;
+            if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
+                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE, adapter);
+            } else {
+                adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN, adapter);
+            }
 
-        final DittoHeaders dittoHeaders = ((WithDittoHeaders) jsonifiable).getDittoHeaders();
-        // only choose relevant dittoHeaders for responses/events:
-        final DittoHeadersBuilder dittoHeadersBuilder = DittoHeaders.newBuilder();
-        // schemaVersion
-        dittoHeaders.getSchemaVersion().ifPresent(dittoHeadersBuilder::schemaVersion);
-        // source
-        dittoHeaders.getSource().ifPresent(dittoHeadersBuilder::source);
-        final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
-
-        final Map<String, String> allHeaders = new HashMap<>(adaptable.getHeaders().orElse(DittoHeaders.empty()));
-        allHeaders.remove(DittoHeaderDefinition.ORIGIN.getKey());
-        allHeaders.putAll(DittoHeaders.of(adjustedHeaders));
-
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-        final JsonObject jsonObject = jsonifiableAdaptable.toJson(DittoHeaders.of(allHeaders));
-        return jsonObject.toString();
+            final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+            return jsonifiableAdaptable.toJsonString();
+        };
     }
 
     private static String streamingAckToString(final StreamingAck streamingAck) {
@@ -357,22 +329,22 @@ public final class WebsocketRoute {
         return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
-    private Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
-            final TopicPath.Channel channel) {
+    private static Adaptable jsonifiableToAdaptable(final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
+            final TopicPath.Channel channel, final ProtocolAdapter adapter) {
         final Adaptable adaptable;
         if (jsonifiable instanceof Command) {
-            adaptable = protocolAdapter.toAdaptable((Command) jsonifiable, channel);
+            adaptable = adapter.toAdaptable((Command) jsonifiable, channel);
         } else if (jsonifiable instanceof Event) {
-            adaptable = protocolAdapter.toAdaptable((Event) jsonifiable, channel);
+            adaptable = adapter.toAdaptable((Event) jsonifiable, channel);
         } else if (jsonifiable instanceof CommandResponse) {
-            adaptable = protocolAdapter.toAdaptable((CommandResponse) jsonifiable, channel);
+            adaptable = adapter.toAdaptable((CommandResponse) jsonifiable, channel);
         } else if (jsonifiable instanceof DittoRuntimeException) {
             final DittoHeaders enhancedHeaders = ((DittoRuntimeException) jsonifiable).getDittoHeaders().toBuilder()
                     .channel(channel.getName())
                     .build();
             final ThingErrorResponse errorResponse =
                     ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
-            adaptable = protocolAdapter.toAdaptable(errorResponse, channel);
+            adaptable = adapter.toAdaptable(errorResponse, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Command nor CommandResponse nor"
                     + " Event nor DittoRuntimeException: " + jsonifiable.getClass().getSimpleName());
