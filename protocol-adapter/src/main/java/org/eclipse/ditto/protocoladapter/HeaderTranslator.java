@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
@@ -47,7 +46,7 @@ public final class HeaderTranslator {
      * @return the Ditto header translator.
      */
     public static HeaderTranslator empty() {
-        return of(DittoHeaderDefinition.values());
+        return new HeaderTranslator(Collections.emptyMap());
     }
 
     /**
