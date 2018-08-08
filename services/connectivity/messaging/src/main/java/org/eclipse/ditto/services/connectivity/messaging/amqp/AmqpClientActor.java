@@ -11,8 +11,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-
 import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -57,7 +55,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ReconnectClient;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -493,23 +490,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         JmsConnect(@Nullable final ActorRef origin) {
             super(origin);
-        }
-    }
-
-    /**
-     * {@code Reconnect} message for internal communication with {@link JMSConnectionHandlingActor}.
-     */
-    static class JmsReconnect extends AbstractWithOrigin implements ReconnectClient {
-
-        private final javax.jms.Connection connection;
-
-        JmsReconnect(@Nullable final ActorRef origin, @Nullable final javax.jms.Connection connection) {
-            super(origin);
-            this.connection = checkNotNull(connection, "connection");
-        }
-
-        javax.jms.Connection getConnection() {
-            return connection;
         }
     }
 
