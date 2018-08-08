@@ -101,7 +101,7 @@ public final class ConnectionActorTest {
         final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
         final Connection closedConnection =
                 TestConstants.createConnection(connectionId, actorSystem, ConnectionStatus.CLOSED,
-                        TestConstants.Sources.SOURCES);
+                        TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
         createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
         final Connection modifiedConnection = connection.toBuilder().failoverEnabled(false).build();
