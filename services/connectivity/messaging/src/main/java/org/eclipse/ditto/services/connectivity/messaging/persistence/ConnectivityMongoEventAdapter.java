@@ -39,11 +39,14 @@ public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapt
 
         final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies = new HashMap<>();
         parseStrategies.put(ConnectionCreated.TYPE, (jsonObject, dittoHeaders) -> {
-            final Connection connection = ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+            final Connection connection = ConnectionMigrationUtil.connectionFromJsonWithMigration(
+                    jsonObject.getValueOrThrow(ConnectionCreated.JsonFields.CONNECTION));
             return ConnectionCreated.of(connection, dittoHeaders);
         });
         parseStrategies.put(ConnectionModified.TYPE, (jsonObject, dittoHeaders) -> {
-            final Connection connection = ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
+            final Connection connection = ConnectionMigrationUtil.connectionFromJsonWithMigration(
+                    jsonObject.getValueOrThrow(ConnectionCreated.JsonFields.CONNECTION)
+            );
             return ConnectionModified.of(connection, dittoHeaders);
         });
         return ConnectivityEventRegistry.newInstance(parseStrategies);
