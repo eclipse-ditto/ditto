@@ -122,7 +122,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
      *
      * @see ConfigKeys.Connection#FLUSH_PENDING_RESPONSES_TIMEOUT
      */
-    private static java.time.Duration DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT = java.time.Duration.ofSeconds(5L);
+    private static final java.time.Duration DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT = java.time.Duration.ofSeconds(5L);
 
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
@@ -747,7 +747,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         } else if (connection != null) {
             snapshotInProgress = true;
             log.info("Attempting to save Snapshot for Connection: <{}> ...", connection);
-// save a snapshot
+            // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connection);
             saveSnapshot(snapshotToStore);
         } else {

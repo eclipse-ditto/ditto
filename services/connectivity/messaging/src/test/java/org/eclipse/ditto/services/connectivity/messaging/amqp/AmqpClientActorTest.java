@@ -175,9 +175,8 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
                 ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
-                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .specificConfig(specificOptions)
-                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0, "source1")))
+                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0, TestConstants.Authorization.AUTHORIZATION_CONTEXT, "source1")))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
@@ -396,7 +395,7 @@ public class AmqpClientActorTest {
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT));
+                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     @Test
@@ -417,7 +416,7 @@ public class AmqpClientActorTest {
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.AUTHORIZATION_CONTEXT)) {
+                            .equals(TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -524,7 +523,7 @@ public class AmqpClientActorTest {
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final UnmappedOutboundSignal outboundSignal = new UnmappedOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget("target", Topic.TWIN_EVENTS)));
+                    singleton(ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 
@@ -544,7 +543,7 @@ public class AmqpClientActorTest {
                     "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
 
             final Source source =
-                    ConnectivityModelFactory.newSource(1, 0, sourceWithSpecialCharacters, sourceWithUnicodeCharacters);
+                    ConnectivityModelFactory.newSource(1, 0, TestConstants.Authorization.AUTHORIZATION_CONTEXT, sourceWithSpecialCharacters, sourceWithUnicodeCharacters);
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =

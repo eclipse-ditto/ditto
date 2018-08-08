@@ -339,7 +339,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     source.getAddresses().forEach(sourceAddress -> {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
-                            final AuthorizationContext authorizationContext = resolveAuthorizationContext(source);
+                            final AuthorizationContext authorizationContext = source.getAuthorizationContext();
                             final ActorRef consumer = startChildActorConflictFree(
                                     CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                     RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),

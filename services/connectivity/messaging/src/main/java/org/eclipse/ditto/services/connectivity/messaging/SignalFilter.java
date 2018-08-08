@@ -49,7 +49,7 @@ public class SignalFilter {
         final Topic topic = topicFromSignal(signal).orElse(null);
         return connection.getTargets().stream()
                 .filter(t -> isTargetSubscribedForTopic(t, topic))
-                .filter(t -> isTargetAuthorized(t, signal, connection))
+                .filter(t -> isTargetAuthorized(t, signal))
                 .collect(Collectors.toSet());
     }
 
@@ -57,17 +57,11 @@ public class SignalFilter {
         return t.getTopics().contains(topicFromSignal);
     }
 
-    private static boolean isTargetAuthorized(final Target target, final Signal<?> signal,
-            final Connection connection) {
+    private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
         final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
-        final AuthorizationContext authorizationContext = getAuthorizationContextForTarget(connection, target);
+        final AuthorizationContext authorizationContext = target.getAuthorizationContext();
         final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
         return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
-    }
-
-    private static AuthorizationContext getAuthorizationContextForTarget(final Connection connection, final Target t) {
-        return t.getAuthorizationContext().isEmpty() ? connection.getAuthorizationContext() :
-                t.getAuthorizationContext();
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {

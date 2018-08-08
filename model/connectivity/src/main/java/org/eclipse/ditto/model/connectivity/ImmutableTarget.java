@@ -106,7 +106,7 @@ final class ImmutableTarget implements Target {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
-        final JsonArray authContext = jsonObject.getValue(Connection.JsonFields.AUTHORIZATION_CONTEXT)
+        final JsonArray authContext = jsonObject.getValue(Target.JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)

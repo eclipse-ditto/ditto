@@ -37,7 +37,6 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -102,8 +101,8 @@ public class RabbitMQClientActorTest {
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
                 ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
-                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", Topic.TWIN_EVENTS)))
+                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly",
+                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =

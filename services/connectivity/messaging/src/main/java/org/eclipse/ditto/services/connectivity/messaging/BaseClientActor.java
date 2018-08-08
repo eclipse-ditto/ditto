@@ -43,7 +43,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -444,14 +443,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected final Set<Target> getTargetsOrEmptySet() {
         return connection().getTargets();
-    }
-
-    protected final AuthorizationContext resolveAuthorizationContext(final Source source) {
-        if (source.getAuthorizationContext().isEmpty()) {
-            return connection().getAuthorizationContext();
-        } else {
-            return source.getAuthorizationContext();
-        }
     }
 
     /**

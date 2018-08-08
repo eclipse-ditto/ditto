@@ -53,14 +53,14 @@ public final class ImmutableConnectionTest {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(0, "amqp/source1");
+    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(0, AUTHORIZATION_CONTEXT, "amqp/source1");
     private static final Source SOURCE2 =
             ConnectivityModelFactory.newSource(1, 1, AUTHORIZATION_CONTEXT, "amqp/source2");
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET3 =
             ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES,
@@ -116,10 +116,6 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.CONNECTION_STATUS, STATUS.getName())
             .set(Connection.JsonFields.URI, URI)
-            .set(Connection.JsonFields.AUTHORIZATION_CONTEXT, AUTHORIZATION_CONTEXT.stream()
-                    .map(AuthorizationSubject::getId)
-                    .map(JsonFactory::newValue)
-                    .collect(JsonCollectors.valuesToArray()))
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_JSON)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_JSON)
             .set(Connection.JsonFields.CLIENT_COUNT, 2)
@@ -149,7 +145,6 @@ public final class ImmutableConnectionTest {
     @Test
     public void createMinimalConnectionConfigurationInstance() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .build();
@@ -157,7 +152,6 @@ public final class ImmutableConnectionTest {
         assertThat(connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
         assertThat(connection.getUri()).isEqualTo(URI);
-        assertThat(connection.getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT);
         assertThat(connection.getSources()).isEqualTo(SOURCES);
     }
 
@@ -212,7 +206,6 @@ public final class ImmutableConnectionTest {
     public void fromJsonReturnsExpected() {
         final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .name(NAME)
-                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(SOURCES)
                 .targets(TARGETS)
                 .clientCount(2)
@@ -238,20 +231,9 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
-    public void fromJsonWithoutValidAuthorizationContextFails() {
-        final JsonObject invalidJson = KNOWN_JSON.remove(Connection.JsonFields.AUTHORIZATION_CONTEXT.getPointer());
-        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> ImmutableConnection.fromJson(invalidJson))
-                .withMessageContaining("Sources " + SOURCE1.getAddresses())
-                .withMessageContaining("Targets " + Arrays.asList(TARGET1.getAddress(), TARGET2.getAddress()))
-                .withNoCause();
-    }
-
-    @Test
     public void toJsonReturnsExpected() {
         final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                 .name(NAME)
-                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(Arrays.asList(SOURCE2, SOURCE1)) // use different order to test sorting
                 .targets(TARGETS)
                 .clientCount(2)
@@ -359,7 +341,6 @@ public final class ImmutableConnectionTest {
         final String uri = "amqps://foo:" + password + "@host.com:5671";
 
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, uri)
-                .authorizationContext(AUTHORIZATION_CONTEXT)
                 .sources(Collections.singletonList(SOURCE1))
                 .build();
 

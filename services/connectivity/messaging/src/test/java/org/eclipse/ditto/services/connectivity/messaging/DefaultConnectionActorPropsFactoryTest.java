@@ -102,7 +102,6 @@ public class DefaultConnectionActorPropsFactoryTest {
                         connectionType,
                         template.getConnectionStatus(),
                         template.getUri())
-                .authorizationContext(template.getAuthorizationContext())
                 .sources(template.getSources())
                 .targets(template.getTargets())
                 .build();

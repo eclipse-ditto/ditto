@@ -333,7 +333,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final AuthorizationContext authorizationContext = resolveAuthorizationContext(consumer.getSource());
+        final AuthorizationContext authorizationContext = consumer.getSource().getAuthorizationContext();
         final Props props = AmqpConsumerActor.props(consumer.getAddress(), consumer.getMessageConsumer(),
                 messageMappingProcessor, authorizationContext);
 
