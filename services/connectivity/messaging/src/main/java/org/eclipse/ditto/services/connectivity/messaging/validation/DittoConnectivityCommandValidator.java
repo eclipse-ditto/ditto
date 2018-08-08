@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
@@ -26,11 +26,11 @@ import akka.actor.ActorRef;
  */
 public class DittoConnectivityCommandValidator implements ConnectivityCommandInterceptor {
 
-    private final ConnectionActorPropsFactory propsFactory;
+    private final ClientActorPropsFactory propsFactory;
     private final ActorRef conciergeForwarder;
 
     public DittoConnectivityCommandValidator(
-            final ConnectionActorPropsFactory propsFactory, final ActorRef conciergeForwarder) {
+            final ClientActorPropsFactory propsFactory, final ActorRef conciergeForwarder) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;
     }

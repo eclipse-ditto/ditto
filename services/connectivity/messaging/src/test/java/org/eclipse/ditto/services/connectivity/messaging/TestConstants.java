@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static java.util.Arrays.asList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
-import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
+import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -129,7 +129,12 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final List<Source> sources) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
+        return createConnection(connectionId, actorSystem, STATUS, sources);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final ConnectionStatus status, final List<Source> sources) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri(actorSystem))
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .build();
@@ -151,17 +156,17 @@ public class TestConstants {
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
-                mockConnectionActorPropsFactory);
+                mockClientActorPropsFactory);
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ClientActorPropsFactory clientActorPropsFactory) {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, connectionActorPropsFactory, null);
+                conciergeForwarder, clientActorPropsFactory, null);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;

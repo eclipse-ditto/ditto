@@ -20,7 +20,6 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -30,9 +29,9 @@ import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.connectivity.messaging.DefaultConnectionActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -187,7 +186,7 @@ public final class ConnectivityRootActor extends AbstractActor {
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
                         conciergeForwarderSignalTransformer));
 
-        final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
+        final ClientActorPropsFactory propsFactory = DefaultClientActorPropsFactory.getInstance();
         final Props connectionSupervisorProps =
                 ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
                         conciergeForwarder, propsFactory, commandValidator);

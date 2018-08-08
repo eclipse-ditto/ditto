@@ -135,7 +135,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
-    private final ConnectionActorPropsFactory propsFactory;
+    private final ClientActorPropsFactory propsFactory;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
 
@@ -149,13 +149,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
     private final FiniteDuration flushPendingResponsesTimeout;
-    private Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
+    private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
     @Nullable private Cancellable flushPendingResponsesTrigger;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory propsFactory,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
 
         this.connectionId = connectionId;
@@ -199,7 +199,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     public static Props props(final String connectionId,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory propsFactory,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
 
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
@@ -459,8 +459,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void modifyConnection(final ModifyConnection command) {
         final ActorRef origin = getSender();
-        final ActorRef parent = getContext().getParent();
-        final ActorRef self = getSelf();
 
         if (connection != null &&
                 !connection.getConnectionType().equals(command.getConnection().getConnectionType())) {
@@ -474,36 +472,60 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
 
         persistEvent(ConnectionModified.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
+            final boolean clientCountWasChanged = hasClientCountChanged(persistedEvent.getConnection(), connection);
             connection = persistedEvent.getConnection();
             getContext().become(connectionCreatedBehaviour);
-            if (persistedEvent.getConnection().getClientCount() != connection.getClientCount()) {
-                log.info("Client count changed: old client count: <{}>, new client count: <{}>. " +
-                                "Stopping client actor to apply new config.",
-                        connection.getClientCount(), persistedEvent.getConnection().getClientCount());
-                // send an artificial CloseConnection command to gracefully disconnect and stop the child actors
-                askClientActor(CloseConnection.of(connectionId, DittoHeaders.empty()),
-                        onSuccess -> {
-                            log.info("Connection closed, now stopping client actor.");
-                            final PerformTask performTask = new PerformTask(
-                                    "stop client actor and handle modify connection",
-                                    connectionActor -> {
-                                        connectionActor.stopClientActor();
-                                        connectionActor.handleModifyConnection(command, origin, parent, self);
-                                    });
-                            self.tell(performTask, ActorRef.noSender());
-                        },
-                        error -> handleException("connect-after-modify", origin, error));
+            if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+                if (clientCountWasChanged) {
+                    handleModifyConnectionIfClientCountChanged(command, origin);
+                } else {
+                    handleModifyConnection(command, origin);
+                }
             } else {
-                handleModifyConnection(command, origin, parent, self);
+                log.debug("Connection <{}> has status <{}> and will therefore stay closed.",
+                        connection.getId(),
+                        connection.getConnectionStatus().getName());
+                respondWithModifyConnectionResponse(command, origin);
             }
         });
     }
 
+    private boolean hasClientCountChanged(final Connection changedConnection, final Connection previousConnection) {
+        return changedConnection.getClientCount() != previousConnection.getClientCount();
+    }
+
+    private void handleModifyConnectionIfClientCountChanged(final ModifyConnection command, final ActorRef origin) {
+        log.info("Client count changed: new client count: <{}>. Stopping client actor to apply new config.",
+                connection.getClientCount());
+        final ActorRef self = getSelf();
+        // send an artificial CloseConnection command to gracefully disconnect and stop the child actors
+        askClientActor(CloseConnection.of(connectionId, DittoHeaders.empty()),
+                onSuccess -> {
+                    log.info("Connection closed, now stopping client actor.");
+                    final PerformTask performTask = new PerformTask(
+                            "stop client actor and handle modify connection",
+                            connectionActor -> {
+                                connectionActor.stopClientActor();
+                                connectionActor.handleModifyConnection(command, origin);
+                            });
+                    self.tell(performTask, ActorRef.noSender());
+                },
+                error -> handleException("connect-after-modify", origin, error));
+    }
+
+    private void respondWithModifyConnectionResponse(final ModifyConnection command,
+            final ActorRef origin) {
+        origin.tell(ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()), getSelf());
+        getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
+    }
+
+
     /*
      * NOT thread-safe.
      */
-    private void handleModifyConnection(final ModifyConnection command,
-            final ActorRef origin, final ActorRef parent, final ActorRef self) {
+    private void handleModifyConnection(final ModifyConnection command, final ActorRef origin) {
+        final ActorRef self = getSelf();
+        final ActorRef parent = getContext().getParent();
         askClientActor(command,
                 response -> {
                     final ConnectivityCommandResponse commandResponse =
@@ -627,7 +649,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         } else {
             final String message =
                     MessageFormat.format(
-                            "NOT asking client actor <{}> for connection <{}> because one of them is null.",
+                            "NOT asking client actor <{0}> for connection <{1}> because one of them is null.",
                             clientActor, connection);
             final NullPointerException nullPointerException = new NullPointerException(message);
             log.error(message);

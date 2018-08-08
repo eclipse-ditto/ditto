@@ -32,19 +32,19 @@ import akka.serialization.SerializationExtension;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit tests for {@link DefaultConnectionActorPropsFactory}.
+ * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
-public class DefaultConnectionActorPropsFactoryTest {
+public class DefaultClientActorPropsFactoryTest {
 
     private ActorSystem actorSystem;
     private Serialization serialization;
-    private ConnectionActorPropsFactory underTest;
+    private ClientActorPropsFactory underTest;
 
     @Before
     public void setUp() throws java.io.NotSerializableException {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
-        underTest = DefaultConnectionActorPropsFactory.getInstance();
+        underTest = DefaultClientActorPropsFactory.getInstance();
     }
 
     @After

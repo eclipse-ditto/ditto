@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
+import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
 import java.util.Collections;
 import java.util.Set;
@@ -52,6 +52,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.Creator;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -65,9 +66,12 @@ public final class ConnectionActorTest {
     private static ActorRef conciergeForwarder;
     private String connectionId;
     private CreateConnection createConnection;
+    private CreateConnection createClosedConnection;
     private ModifyConnection modifyConnection;
+    private ModifyConnection modifyClosedConnection;
     private DeleteConnection deleteConnection;
     private CreateConnectionResponse createConnectionResponse;
+    private CreateConnectionResponse createClosedConnectionResponse;
     private ModifyConnectionResponse modifyConnectionResponse;
     private CloseConnection closeConnection;
     private CloseConnectionResponse closeConnectionResponse;
@@ -95,11 +99,17 @@ public final class ConnectionActorTest {
     public void init() {
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
+        final Connection closedConnection =
+                TestConstants.createConnection(connectionId, actorSystem, ConnectionStatus.CLOSED,
+                        TestConstants.Sources.SOURCES);
         createConnection = CreateConnection.of(connection, DittoHeaders.empty());
+        createClosedConnection = CreateConnection.of(closedConnection, DittoHeaders.empty());
         final Connection modifiedConnection = connection.toBuilder().failoverEnabled(false).build();
         modifyConnection = ModifyConnection.of(modifiedConnection, DittoHeaders.empty());
+        modifyClosedConnection = ModifyConnection.of(closedConnection, DittoHeaders.empty());
         deleteConnection = DeleteConnection.of(connectionId, DittoHeaders.empty());
         createConnectionResponse = CreateConnectionResponse.of(connection, DittoHeaders.empty());
+        createClosedConnectionResponse = CreateConnectionResponse.of(closedConnection, DittoHeaders.empty());
         modifyConnectionResponse = ModifyConnectionResponse.modified(connectionId, DittoHeaders.empty());
         closeConnection = CloseConnection.of(connectionId, DittoHeaders.empty());
         closeConnectionResponse = CloseConnectionResponse.of(connectionId, DittoHeaders.empty());
@@ -150,6 +160,82 @@ public final class ConnectionActorTest {
             underTest.tell(deleteConnection, getRef());
             expectMsg(deleteConnectionResponse);
             expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void createConnectionInClosedState() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createClosedConnection, getRef());
+            expectMsg(createClosedConnectionResponse);
+
+            // assert that client actor is not called for closed connection
+            probe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void modifyConnectionInClosedState() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+
+            // create connection
+            underTest.tell(createClosedConnection, getRef());
+            expectMsg(createClosedConnectionResponse);
+
+            // assert that client actor is not called for closed connection
+            probe.expectNoMessage();
+
+            // modify connection
+            underTest.tell(modifyClosedConnection, getRef());
+            expectMsg(modifyConnectionResponse);
+
+            // assert that client actor is not called for closed connection
+            probe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void changingClientCountClosesAndRestartsClientActor() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            probe.expectMsg(createConnection);
+            final ActorRef lastSender = probe.sender();
+            watch(lastSender);
+            expectMsg(createConnectionResponse);
+
+            // modify connection
+            final ModifyConnection modifyConnectionWithHigherClientCount =
+                    ModifyConnection.of(createConnection.getConnection().toBuilder().clientCount(3).build(),
+                            DittoHeaders.empty());
+            underTest.tell(modifyConnectionWithHigherClientCount, getRef());
+
+            probe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
+
+            expectTerminated(lastSender);
+
+            probe.expectMsg(modifyConnectionWithHigherClientCount);
+
+            expectMsg(modifyConnectionResponse);
         }};
     }
 
@@ -299,7 +385,7 @@ public final class ConnectionActorTest {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionActor.props(TestConstants.createRandomConnectionId(), pubSubMediator,
-                            conciergeForwarder, mockConnectionActorPropsFactory,
+                            conciergeForwarder, mockClientActorPropsFactory,
                             command -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
                                         .dittoHeaders(command.getDittoHeaders())
