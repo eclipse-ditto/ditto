@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -105,7 +104,31 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "origin"}, Java type: {@link String}.
      * </p>
      */
-    ORIGIN("origin", String.class, false, false);
+    ORIGIN("origin", String.class, false, false),
+
+    /**
+     * Header definition for "ETag".
+     * <p>
+     * Key: {@code "ETag"}, Java type: {@link String}.
+     * </p>
+     */
+    ETAG("ETag", String.class, false, true),
+
+    /**
+     * Header definition for "If-Match".
+     * <p>
+     * Key: {@code "If-Match"}, Java type: {@link String}.
+     * </p>
+     */
+    IF_MATCH("If-Match", String.class, true, false),
+
+    /**
+     * Header definition for "If-None-Match".
+     * <p>
+     * Key: {@code "If-None-Match"}, Java type: {@link String}.
+     * </p>
+     */
+    IF_NONE_MATCH("If-None-Match", String.class, true, false);
 
     /**
      * Map to speed up lookup of header definition by key.
@@ -162,7 +185,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
         return writeToExternalHeaders;
     }
 
-    @Nonnull
     @Override
     public String toString() {
         return getKey();
