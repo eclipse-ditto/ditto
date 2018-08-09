@@ -217,36 +217,37 @@ public final class ConnectionActorTest {
     @Test
     public void modifyConnectionClosesAndRestartsClientActor() {
         new TestKit(actorSystem) {{
-            final TestProbe probe = TestProbe.apply(actorSystem);
+            final TestProbe mockClientProbe = TestProbe.apply(actorSystem);
+            final TestProbe commandSender = TestProbe.apply(actorSystem);
             final AtomicReference<Connection> latestConnection = new AtomicReference<>();
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder, (connection, concierge) -> {
                                 latestConnection.set(connection);
-                                return MockClientActor.props(probe.ref());
+                                return MockClientActor.props(mockClientProbe.ref());
                             });
-            watch(underTest);
 
             // create connection
-            underTest.tell(createConnection, getRef());
-            probe.expectMsg(openConnection);
-            expectMsg(createConnectionResponse);
+            underTest.tell(createConnection, commandSender.ref());
+            mockClientProbe.expectMsg(openConnection);
+            commandSender.expectMsg(createConnectionResponse);
 
-            final ActorRef clientActor = watch(probe.sender());
+            final ActorRef clientActor = watch(mockClientProbe.sender());
+            watch(clientActor);
 
 
             // modify connection
-            underTest.tell(modifyConnection, getRef());
+            underTest.tell(modifyConnection, commandSender.ref());
             // modify triggers a CloseConnection
-            probe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
+            mockClientProbe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
 
 
-            // expectTerminated(clientActor);
+            expectTerminated(clientActor);
 
             // and sends an open connection (if desired state is open)
-            probe.expectMsg(openConnection);
+            mockClientProbe.expectMsg(openConnection);
             // finally the response is sent
-            expectMsg(modifyConnectionResponse);
+            commandSender.expectMsg(modifyConnectionResponse);
 
             Awaitility.await().untilAtomic(latestConnection, CoreMatchers.is(modifyConnection.getConnection()));
         }};
