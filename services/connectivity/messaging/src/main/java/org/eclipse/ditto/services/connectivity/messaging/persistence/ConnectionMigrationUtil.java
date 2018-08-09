@@ -79,27 +79,41 @@ final class ConnectionMigrationUtil {
         }
     }
 
-    private static Optional<JsonArray> migrateSources(@Nonnull final JsonObject connectionJsonObject,
+    static Optional<JsonArray> migrateSources(@Nonnull final JsonObject connectionJsonObject,
             final JsonArray authContext) {
         return connectionJsonObject.getValue(Connection.JsonFields.SOURCES)
                 .map(sourcesArray -> IntStream.range(0, sourcesArray.getSize())
                         .mapToObj(index -> sourcesArray.get(index)
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
-                                .map(object -> object.set(Source.JsonFields.AUTHORIZATION_CONTEXT, authContext))
+                                .map(object -> {
+                                    if (object.contains(Source.JsonFields.AUTHORIZATION_CONTEXT.getPointer())) {
+                                        // keep the authContext if it was already set in the target
+                                        return object;
+                                    } else {
+                                        return object.set(Source.JsonFields.AUTHORIZATION_CONTEXT, authContext);
+                                    }
+                                })
                                 .orElse(null)
                         ).collect(JsonCollectors.valuesToArray())
                 );
     }
 
-    private static Optional<JsonArray> migrateTargets(@Nonnull final JsonObject connectionJsonObject,
+    static Optional<JsonArray> migrateTargets(@Nonnull final JsonObject connectionJsonObject,
             final JsonArray authContext) {
         return connectionJsonObject.getValue(Connection.JsonFields.TARGETS)
                 .map(targetsArray -> IntStream.range(0, targetsArray.getSize())
                         .mapToObj(index -> targetsArray.get(index)
                                 .filter(JsonValue::isObject)
                                 .map(JsonValue::asObject)
-                                .map(object -> object.set(Target.JsonFields.AUTHORIZATION_CONTEXT, authContext))
+                                .map(object -> {
+                                    if (object.contains(Target.JsonFields.AUTHORIZATION_CONTEXT.getPointer())) {
+                                        // keep the authContext if it was already set in the target
+                                        return object;
+                                    } else {
+                                        return object.set(Target.JsonFields.AUTHORIZATION_CONTEXT, authContext);
+                                    }
+                                })
                                 .orElse(null)
                         ).collect(JsonCollectors.valuesToArray())
                 );

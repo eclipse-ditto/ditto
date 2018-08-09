@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -36,7 +37,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.junit.Test;
 
 /**
- *
+ * Tests {@link ConnectionMigrationUtil}.
  */
 public class ConnectionMigrationUtilTest {
 
@@ -48,6 +49,9 @@ public class ConnectionMigrationUtilTest {
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
+
+    private static final AuthorizationContext ALT_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+            AuthorizationSubject.newInstance("altSolution:customSubject"));
 
     private static final JsonObject SOURCE1_JSON = JsonObject
             .newBuilder()
@@ -119,7 +123,7 @@ public class ConnectionMigrationUtilTest {
             .build();
 
     @Test
-    public void migrateConnectionWithGlobalAuthoriationContext() {
+    public void migrateConnectionWithGlobalAuthorizationContext() {
 
         final Connection migratedConnection = ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
         assertThat(migratedConnection.getId()).isEqualTo(ID);
@@ -130,5 +134,33 @@ public class ConnectionMigrationUtilTest {
                 assertThat(source.getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT));
         migratedConnection.getTargets().forEach(target ->
                 assertThat(target.getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT));
+    }
+
+    @Test
+    public void migrateConnectionContainingSourcesAndTargetsWithOwnAuthContextWithGlobalAuthContext() {
+
+        final JsonObjectBuilder builder = KNOWN_CONNECTION_JSON.toBuilder();
+        builder.set(Connection.JsonFields.SOURCES,
+                ConnectionMigrationUtil.migrateSources(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
+                        .getAuthorizationSubjectIds()
+                        .stream()
+                        .map(JsonValue::of)
+                        .collect(JsonCollectors.valuesToArray())).get());
+        builder.set(Connection.JsonFields.TARGETS,
+                ConnectionMigrationUtil.migrateTargets(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
+                        .getAuthorizationSubjectIds()
+                        .stream()
+                        .map(JsonValue::of)
+                        .collect(JsonCollectors.valuesToArray())).get());
+        final Connection migratedConnection = ConnectionMigrationUtil.connectionFromJsonWithMigration(builder.build());
+
+        assertThat(migratedConnection.getId()).isEqualTo(ID);
+        assertThat(migratedConnection.getName()).contains(NAME);
+        assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
+        assertThat(migratedConnection.getUri()).isEqualTo(URI);
+        migratedConnection.getSources().forEach(source ->
+                assertThat(source.getAuthorizationContext()).isEqualTo(ALT_AUTHORIZATION_CONTEXT));
+        migratedConnection.getTargets().forEach(target ->
+                assertThat(target.getAuthorizationContext()).isEqualTo(ALT_AUTHORIZATION_CONTEXT));
     }
 }
