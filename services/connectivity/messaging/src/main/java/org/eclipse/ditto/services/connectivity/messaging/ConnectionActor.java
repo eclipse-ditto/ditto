@@ -485,9 +485,20 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 log.debug("Connection <{}> has status <{}> and will therefore stay closed.",
                         connection.getId(),
                         connection.getConnectionStatus().getName());
+                updateConnectionInClientActorIfStarted();
                 respondWithModifyConnectionResponse(command, origin);
             }
         });
+    }
+
+    /**
+     * Send the current connection to the client actor, if it is started. Otherwise the connection will be passed to the
+     * actor on startup.
+     */
+    private void updateConnectionInClientActorIfStarted() {
+        if (clientActor != null) {
+            clientActor.tell(connection, getSelf());
+        }
     }
 
     private boolean hasClientCountChanged(final Connection changedConnection, final Connection previousConnection) {

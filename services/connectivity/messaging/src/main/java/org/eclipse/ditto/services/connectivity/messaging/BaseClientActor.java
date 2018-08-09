@@ -247,6 +247,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
                 .event(ModifyConnection.class, BaseClientData.class, this::translateModifyToCreateConnection)
+                .event(Connection.class, BaseClientData.class,
+                        (connection, data) -> stay().using(data.setConnection(connection)
+                                .setDesiredConnectionStatus(connection.getConnectionStatus())))
                 .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
                     handleExternalMessage(outboundSignal);
                     return stay();
@@ -256,6 +259,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     return stay();
                 });
     }
+
 
     /**
      * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
