@@ -73,8 +73,6 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
@@ -197,7 +195,7 @@ public class AmqpClientActorTest {
                     (ac, el) -> { throw JMS_EXCEPTION; });
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
-            connectionActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            connectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
             expectMsg(new Status.Failure(SESSION_EXCEPTION));
         }};
@@ -211,13 +209,10 @@ public class AmqpClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
-
-            amqpClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -230,7 +225,7 @@ public class AmqpClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             // introduce artificial code difference from RabbitMQClientActorTest.testReconnect
@@ -257,7 +252,7 @@ public class AmqpClientActorTest {
                 final ActorRef amqpClientActor = actorSystem.actorOf(props);
                 watch(amqpClientActor);
 
-                amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+                amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
                 expectMsg(CONNECTED_SUCCESS);
 
                 amqpClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
@@ -296,7 +291,7 @@ public class AmqpClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
             latch.countDown();
 
@@ -311,7 +306,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -343,7 +338,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Failure(SESSION_EXCEPTION));
         }};
     }
@@ -356,7 +351,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Failure(SESSION_EXCEPTION));
         }};
     }
@@ -370,7 +365,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Failure.class);
         }};
     }
@@ -383,10 +378,10 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            amqpClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -447,7 +442,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
@@ -492,7 +487,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             final ArgumentCaptor<MessageListener> captor = ArgumentCaptor.forClass(MessageListener.class);
@@ -518,7 +513,7 @@ public class AmqpClientActorTest {
                     AmqpClientActor.propsForTests(connection, connectionStatus, getRef(), (ac, el) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
-            amqpClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
