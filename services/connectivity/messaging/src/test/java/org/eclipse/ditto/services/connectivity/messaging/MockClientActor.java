@@ -84,7 +84,6 @@ public class MockClientActor extends AbstractActor {
                 .matchAny(unhandled -> {
                     log.info("Received unhandled message: {}", unhandled.getClass().getName());
                     forward(unhandled);
-
                 })
                 .build();
     }

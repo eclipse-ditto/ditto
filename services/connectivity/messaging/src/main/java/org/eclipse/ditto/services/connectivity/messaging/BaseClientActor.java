@@ -63,13 +63,10 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddres
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
@@ -246,10 +243,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
-                .event(ModifyConnection.class, BaseClientData.class, this::translateModifyToCreateConnection)
-                .event(Connection.class, BaseClientData.class,
-                        (connection, data) -> stay().using(data.setConnection(connection)
-                                .setDesiredConnectionStatus(connection.getConnectionStatus())))
                 .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
                     handleExternalMessage(outboundSignal);
                     return stay();
@@ -464,20 +457,22 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
-        final List<Object> closeOrDeleteConnection = Arrays.asList(CloseConnection.class, DeleteConnection.class);
-
-        return matchEvent(CreateConnection.class, BaseClientData.class, this::createConnection)
-                .event(OpenConnection.class, BaseClientData.class, this::openConnection)
-                .event(closeOrDeleteConnection, BaseClientData.class, this::closeConnection)
+        return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
+                .event(CloseConnection.class, BaseClientData.class, this::closeConnection)
                 .event(TestConnection.class, BaseClientData.class, this::testConnection)
                 .eventEquals(StateTimeout(), BaseClientData.class, (state, data) -> {
                     if (ConnectionStatus.OPEN == data.getDesiredConnectionStatus()) {
                         log.info("Did not receive connect command within init-timeout, connecting");
                         final OpenConnection openConnection = OpenConnection.of(connectionId(), DittoHeaders.empty());
                         getSelf().tell(openConnection, getSelf());
+                    } else if (ConnectionStatus.CLOSED == data.getDesiredConnectionStatus()) {
+                        log.info(
+                                "Did not receive connect command within init-timeout, desired state is closed, going to disconnected state.");
+                        return goTo(DISCONNECTED);
                     } else {
-                        log.info("Did not receive connect command within init-timeout, discopnnecting");
-
+                        log.info(
+                                "Did not receive connect command within init-timeout, desired state is {}, do nothing.",
+                                data.getDesiredConnectionStatus());
                     }
                     return stay(); // handle self-told commands later
                 });
@@ -485,9 +480,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
-                .event(CreateConnection.class, BaseClientData.class, this::createConnection)
-                .event(TestConnection.class, BaseClientData.class, this::testConnection)
-                .event(DeleteConnection.class, BaseClientData.class, this::replySuccess);
+                .event(TestConnection.class, BaseClientData.class, this::testConnection);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
@@ -497,8 +490,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        final List<Object> closeOrDeleteConnection = Arrays.asList(CloseConnection.class, DeleteConnection.class);
-        return matchEvent(closeOrDeleteConnection, BaseClientData.class, this::closeConnection);
+        return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
@@ -558,29 +550,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> closeConnection(final Object closeOrDeleteConnection,
+    private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
             final BaseClientData data) {
-
-        final DittoHeaders dittoHeaders = closeOrDeleteConnection instanceof WithDittoHeaders
-                ? ((WithDittoHeaders) closeOrDeleteConnection).getDittoHeaders()
-                : DittoHeaders.empty();
-
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
-        return goTo(DISCONNECTING).using(setSession(data, sender, dittoHeaders)
+        return goTo(DISCONNECTING).using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectionStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
     }
 
-    private FSM.State<BaseClientState, BaseClientData> openConnection(final Object openOrCreateConnection,
+    private FSM.State<BaseClientState, BaseClientData> openConnection(final OpenConnection openConnection,
             final BaseClientData data) {
-
-        final DittoHeaders dittoHeaders = openOrCreateConnection instanceof WithDittoHeaders
-                ? ((WithDittoHeaders) openOrCreateConnection).getDittoHeaders()
-                : DittoHeaders.empty();
 
         final ActorRef sender = getSender();
         final Connection connection = data.getConnection();
+        final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
             return goTo(CONNECTING).using(setSession(data, sender, dittoHeaders));
@@ -590,23 +574,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             sender.tell(new Status.Failure(error), getSelf());
             return goTo(UNKNOWN).using(data.resetSession());
         }
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> createConnection(final CreateConnection createConnection,
-            final BaseClientData data) {
-
-        final Connection connection = createConnection.getConnection();
-        final DittoHeaders dittoHeaders = createConnection.getDittoHeaders();
-
-        if (connection.getConnectionStatus() == ConnectionStatus.OPEN) {
-            final ConnectivityCommand nextStep = OpenConnection.of(connection.getId(), dittoHeaders);
-            getSelf().tell(nextStep, getSender());
-        }
-
-        return stay().using(data
-                .setConnection(connection)
-                .setDesiredConnectionStatus(connection.getConnectionStatus())
-                .setConnectionStatusDetails("creating connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> testConnection(final TestConnection testConnection,
@@ -751,21 +718,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             sender.tell(response, self);
         });
 
-        return stay();
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> translateModifyToCreateConnection(
-            final ModifyConnection command,
-            final BaseClientData data) {
-
-        final CreateConnection createConnection =
-                CreateConnection.of(command.getConnection(), command.getDittoHeaders());
-        getSelf().tell(createConnection, getSender());
-        return stay();
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> replySuccess(final Object event, final BaseClientData data) {
-        getSender().tell(new Status.Success(stateName()), getSelf());
         return stay();
     }
 
