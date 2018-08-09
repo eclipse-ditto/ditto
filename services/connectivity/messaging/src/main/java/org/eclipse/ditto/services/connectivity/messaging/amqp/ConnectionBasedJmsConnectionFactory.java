@@ -190,7 +190,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.toList());
 
-        final long oneHour = Duration.ofHours(1L).toMillis();
+        final long fifteenMinutes = Duration.ofMinutes(15L).toMillis();
 
         final List<String> defaultFailoverParams =
                 // Important: we cannot interrupt connection initiation.
@@ -203,7 +203,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                         FAILOVER_OPTION_PREFIX + "maxReconnectAttempts=-1",
                         FAILOVER_OPTION_PREFIX + "initialReconnectDelay=128",
                         FAILOVER_OPTION_PREFIX + "reconnectDelay=128",
-                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=" + oneHour,
+                        FAILOVER_OPTION_PREFIX + "maxReconnectDelay=" + fifteenMinutes,
                         FAILOVER_OPTION_PREFIX + "reconnectBackOffMultiplier=2",
                         FAILOVER_OPTION_PREFIX + "useReconnectBackOff=true").collect(Collectors.toList());
 
