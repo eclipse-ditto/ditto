@@ -75,14 +75,14 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
     "id": "rabbit-example-connection-123",
     "connectionType": "amqp-091",
     "connectionStatus": "open",
-    "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
     "failoverEnabled": true,
     "uri": "amqp://user:password@localhost:5672",
     "sources": [
       {
         "addresses": [
           "queueName"
-        ]
+        ],
+        "authorizationContext": ["<<<my-subject-id-included-in-policy-or-acl>>>"]
       }
     ],
     "targets": [
@@ -91,7 +91,8 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
         "topics": [
           "_/_/things/twin/events",
           "_/_/things/live/messages"
-        ]
+        ],
+        "authorizationContext": ["<<<my-subject-id-included-in-policy-or-acl>>>"]
       }
     ]
   }

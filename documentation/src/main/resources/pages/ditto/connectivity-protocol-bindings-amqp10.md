@@ -78,14 +78,14 @@ Example connection configuration to create a new AMQP 1.0 connection:
   "id": "hono-example-connection-123",
   "connectionType": "amqp-10",
   "connectionStatus": "open",
-  "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
   "failoverEnabled": true,
   "uri": "amqps://user:password@hono.eclipse.org:5671",
   "sources": [
     {
       "addresses": [
         "telemetry/FOO"
-      ]
+      ],
+      "authorizationContext": ["<<<my-subject-id-included-in-policy-or-acl>>>"]
     }
   ],
   "targets": [
@@ -93,7 +93,8 @@ Example connection configuration to create a new AMQP 1.0 connection:
       "address": "events/twin",
       "topics": [
         "_/_/things/twin/events"
-      ]
+      ],
+      "authorizationContext": ["<<<my-subject-id-included-in-policy-or-acl>>>"]
     }
   ]
 }

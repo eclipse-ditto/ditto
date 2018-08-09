@@ -36,6 +36,12 @@ div.navbar-collapse .dropdown-menu > li > a:hover {
     font-weight: bold;
 }
 
+a[data-toggle="tooltip"] {
+    color: #649345;
+    font-style: italic;
+    cursor: default;
+}
+
 .navbar-inverse {
     background-color: #3a8c9a;
     border-color: #3a8c9a;

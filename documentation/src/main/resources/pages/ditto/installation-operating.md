@@ -1,7 +1,7 @@
 ---
 title: Operating Ditto
 tags: [installation]
-keywords: operating, docker, docker-compose, devops, logging, logstash, elk, monitoring, graphite, grafana
+keywords: operating, docker, docker-compose, devops, logging, logstash, elk, monitoring, prometheus, grafana
 permalink: installation-operating.html
 ---
 
@@ -23,12 +23,12 @@ This option may also use an ELK stack with the right Docker logging driver.
 ## Monitoring
 
 Additionally to the obligatory logging monitoring is included in the Ditto images. That means that certain metrics are 
-automatically gathered and published via [StatsD](https://github.com/etsy/statsd) to a 
-[Graphite](https://graphite.readthedocs.io) backend from where the metrics can be accessed to display in dashboards 
-(e.g. with [Grafana](https://grafana.com)).
+automatically gathered and published on a HTTP port where it can be scraped from a [Prometheus](https://prometheus.io) 
+backend from where the metrics can be accessed to display in dashboards (e.g. with [Grafana](https://grafana.com)).
 
 ### Gathered metrics
 
+// TODO TJ adjust keys
 * JVM metrics: `stats.timers.$Application.$Host.system-metric.*`
     * amount of garbage collections + GC times
     * memory consumption (heap + non-heap)
@@ -41,18 +41,15 @@ automatically gathered and published via [StatsD](https://github.com/etsy/statsd
     * inserts, updates, reads per second
     * roundtrip times
 
-### Configuring the StatsD endpoint
+### Configuring
 
-The StatsD endpoint to use can simply be configured by setting the following environment variables for the Docker containers:
+In the default configuration each Ditto service opens a HTTP endpoint where it provides the Prometheus metrics on port
+`9095`. This can be changed via the environment variable `PROMETHEUS_PORT`.
 
-```
-STATSD_PORT_8125_UDP_ADDR=localhost
-STATSD_PORT_8125_UDP_PORT=8125
-```
+Ditto will automatically publish gathered metrics at the endpoint `http://<container-host-or-ip>:9095/`.
 
-Once that variable is configured, Ditto will automatically publish gathered metrics via UDP to the StatsD server.
-
-Grafana can then be configured to use Graphite (which StatsD sends the data to) as its data source and can display 
+Prometheus can then be configured to poll on all Ditto service endpoints in order to persist the historical metrics.
+Grafana can add a Prometheus server as its data source and can display 
 the metrics based on the keys mentioned in section ["Gathered metrics"](#gathered-metrics).
 
 
