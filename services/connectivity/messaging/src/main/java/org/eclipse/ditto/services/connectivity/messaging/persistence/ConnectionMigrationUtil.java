@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 
 /**
- * Utility for migrating already persited {@link Connection} JSONs to the current JSON structure.
+ * Utility for migrating already persisted {@link Connection} JSONs to the current JSON structure.
  */
 final class ConnectionMigrationUtil {
 
