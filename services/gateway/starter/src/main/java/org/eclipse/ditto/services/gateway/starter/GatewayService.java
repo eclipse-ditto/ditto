@@ -49,7 +49,7 @@ public final class GatewayService extends DittoService {
      */
     public static void main(final String[] args) {
         final GatewayService gatewayService = new GatewayService();
-        gatewayService.start();
+        gatewayService.start().getWhenTerminated().toCompletableFuture().join();
     }
 
     @Override
