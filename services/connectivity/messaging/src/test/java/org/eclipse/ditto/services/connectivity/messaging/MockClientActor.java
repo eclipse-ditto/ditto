@@ -49,6 +49,11 @@ public class MockClientActor extends AbstractActor {
     }
 
     @Override
+    public void preStart() {
+        log.info("Mock client actor started.");
+    }
+
+    @Override
     public void postStop() {
         log.info("Mock client actor was stopped.");
     }

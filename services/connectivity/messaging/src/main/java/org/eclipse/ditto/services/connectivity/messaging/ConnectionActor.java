@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +37,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
@@ -70,6 +73,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -138,6 +142,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ClientActorPropsFactory propsFactory;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
+    private Instant connectionClosedAt = null;
 
     @Nullable private ActorRef clientActorRouter;
     @Nullable private Connection connection;
@@ -532,7 +537,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
             );
         } else {
             log.debug("Desired connection state is {}, do not open connection.", connection.getConnectionStatus());
-            // TODO respond here or schedule?
             origin.tell(commandResponse, getSelf());
         }
     }
@@ -599,28 +603,18 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void deleteConnection(final DeleteConnection command) {
-
         final ConnectionDeleted connectionDeleted =
                 ConnectionDeleted.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
         final ActorRef self = getSelf();
 
-        final PerformTask deleteSucceededTask = new PerformTask("connection deleted", connectionActor -> {
-            connectionActor.stopClientActor();
+        persistEvent(connectionDeleted, persistedEvent -> {
+            stopClientActor();
             origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
-            connectionActor.stopSelf();
+            stopSelf();
             // All subscriptions stop automatically once this actor stops.
             // connectionActor.unsubscribeFromEvents();
         });
-
-
-        persistEvent(connectionDeleted, persistedEvent ->
-                askClientActor(command,
-                        response -> self.tell(deleteSucceededTask, ActorRef.noSender()),
-                        // we can safely ignore this error and do the same as in the "success" case
-                        error -> self.tell(deleteSucceededTask, ActorRef.noSender())
-                )
-        );
     }
 
     /*
@@ -719,9 +713,28 @@ public final class ConnectionActor extends AbstractPersistentActor {
         checkConnectionNotNull();
 
         final ActorRef origin = getSender();
-        askClientActor(command,
+        askClientActorIfStarted(command,
                 response -> origin.tell(response, getSelf()),
-                error -> handleException("retrieve-metrics", origin, error));
+                error -> handleException("retrieve-metrics", origin, error),
+                () -> respondWithEmptyMetrics(command, origin));
+    }
+
+    private void respondWithEmptyMetrics(final RetrieveConnectionMetrics command, final ActorRef origin) {
+        log.debug("ClientActor not started, responding with empty connection metrics with status closed.");
+        final ConnectionMetrics metrics =
+                ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.CLOSED,
+                        "connection is closed",
+                        connectionClosedAt != null ? connectionClosedAt : Instant.ofEpochSecond(0),
+                        BaseClientState.DISCONNECTED.name(), Collections.emptyList(),
+                        Collections.emptyList());
+        final RetrieveConnectionMetricsResponse metricsResponse =
+                RetrieveConnectionMetricsResponse.of(connectionId, metrics, command.getDittoHeaders());
+        final String responseType = metricsResponse.getType();
+        final AggregatedConnectivityCommandResponse response =
+                AggregatedConnectivityCommandResponse.of(connectionId, Collections.singletonList(metricsResponse),
+                        responseType,
+                        HttpStatusCode.OK, command.getDittoHeaders());
+        origin.tell(response, getSelf());
     }
 
     private void subscribeForEvents() {
@@ -818,6 +831,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void stopClientActor() {
         if (clientActorRouter != null) {
+            connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
             stopChildActor(clientActorRouter);
             clientActorRouter = null;
