@@ -38,7 +38,7 @@ public final class ThingsService extends AbstractThingsService {
      */
     public static void main(final String[] args) {
         final ThingsService thingsService = new ThingsService();
-        thingsService.start();
+        thingsService.start().getWhenTerminated().toCompletableFuture().join();
     }
 
 }
