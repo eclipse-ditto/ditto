@@ -241,7 +241,8 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Source}
      */
     public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0);
+        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0,
+                Collections.emptyMap());
     }
 
     /**
@@ -254,7 +255,7 @@ public final class ConnectivityModelFactory {
      */
     public static Source newSource(final Set<String> addresses, final int consumerCount,
             final AuthorizationContext authorizationContext) {
-        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0);
+        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0, Collections.emptyMap());
     }
 
     /**
@@ -268,7 +269,7 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final int index, final AuthorizationContext authorizationContext,
             final String... sources) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
-                authorizationContext, index);
+                authorizationContext, index, Collections.emptyMap());
     }
 
     /**
@@ -283,7 +284,26 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final int consumerCount, final int index,
             final AuthorizationContext authorizationContext,
             final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index,
+                Collections.emptyMap());
+    }
+
+    /**
+     * Creates a new {@link Source} with protocol-specific configuration.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param specificConfig protocol-specific configuration
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSourceWithSpecificConfig(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext,
+            final Map<String, String> specificConfig,
+            final String... sources) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index,
+                specificConfig);
     }
 
     /**
@@ -320,7 +340,7 @@ public final class ConnectivityModelFactory {
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
             final Set<Topic> topics) {
-        return new ImmutableTarget(address, topics, authorizationContext);
+        return new ImmutableTarget(address, topics, authorizationContext, Collections.emptyMap());
     }
 
     /**
@@ -336,7 +356,27 @@ public final class ConnectivityModelFactory {
             final Topic requiredTopic, final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return new ImmutableTarget(address, topics, authorizationContext);
+        return new ImmutableTarget(address, topics, authorizationContext, Collections.emptyMap());
+    }
+
+    /**
+     * Creates a new {@link Target} with protocol-specific configuration.
+     *
+     * @param address the address where the signals will be published
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param specificConfig the protocol-specific configuration
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newTargetWithSpecificConfig(final String address,
+            final AuthorizationContext authorizationContext,
+            final Map<String, String> specificConfig,
+            final Topic requiredTopic,
+            final Topic... additionalTopics) {
+        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics, authorizationContext, specificConfig);
     }
 
     /**

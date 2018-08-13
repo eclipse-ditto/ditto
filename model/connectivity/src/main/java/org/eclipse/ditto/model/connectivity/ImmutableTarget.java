@@ -12,8 +12,10 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +28,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -44,11 +47,14 @@ final class ImmutableTarget implements Target {
     private final String address;
     private final Set<Topic> topics;
     private final AuthorizationContext authorizationContext;
+    private final Map<String, String> specificConfig;
 
-    ImmutableTarget(final String address, final Set<Topic> topics, final AuthorizationContext authorizationContext) {
+    ImmutableTarget(final String address, final Set<Topic> topics, final AuthorizationContext authorizationContext,
+            final Map<String, String> specificConfig) {
         this.address = address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
+        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(specificConfig));
     }
 
     @Override
@@ -64,6 +70,11 @@ final class ImmutableTarget implements Target {
     @Override
     public AuthorizationContext getAuthorizationContext() {
         return authorizationContext;
+    }
+
+    @Override
+    public Map<String, String> getSpecificConfig() {
+        return specificConfig;
     }
 
     @Override
@@ -84,6 +95,13 @@ final class ImmutableTarget implements Target {
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
+        if (!specificConfig.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet()
+                    .stream()
+                    .map(e -> JsonFactory.newField(JsonKey.of(e.getKey()), JsonFactory.newValue(e.getValue())))
+                    .collect(JsonCollectors.fieldsToObject()));
+        }
+
         return jsonObjectBuilder.build();
     }
 
@@ -96,7 +114,7 @@ final class ImmutableTarget implements Target {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Target fromJson(final JsonObject jsonObject) {
-        final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
+        final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
         final Set<Topic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
@@ -106,7 +124,7 @@ final class ImmutableTarget implements Target {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
-        final JsonArray authContext = jsonObject.getValue(Target.JsonFields.AUTHORIZATION_CONTEXT)
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)
@@ -116,7 +134,12 @@ final class ImmutableTarget implements Target {
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
-        return new ImmutableTarget(readAddress, readTopics, readAuthorizationContext);
+        final Map<String, String> specificConfig = jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
+                .map(specificConfigJsonObject -> specificConfigJsonObject.stream()
+                        .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().asString())))
+                .orElse(Collections.emptyMap());
+
+        return new ImmutableTarget(readAddress, readTopics, readAuthorizationContext, specificConfig);
     }
 
     @Override
@@ -126,12 +149,13 @@ final class ImmutableTarget implements Target {
         final ImmutableTarget that = (ImmutableTarget) o;
         return Objects.equals(address, that.address) &&
                 Objects.equals(topics, that.topics) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(specificConfig, that.specificConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, authorizationContext);
+        return Objects.hash(address, topics, authorizationContext, specificConfig);
     }
 
     @Override
@@ -140,6 +164,7 @@ final class ImmutableTarget implements Target {
                 "address=" + address +
                 ", topics=" + topics +
                 ", authorizationContext=" + authorizationContext +
+                ", specificConfig=" + specificConfig +
                 "]";
     }
 }

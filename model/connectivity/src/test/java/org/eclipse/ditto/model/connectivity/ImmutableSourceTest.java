@@ -17,6 +17,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -25,13 +30,17 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class ImmutableSourceTest {
+public final class ImmutableSourceTest {
 
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
-    private static final Source SOURCE_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
+    private static final Source SOURCE_WITH_AUTH_CONTEXT =
+            ConnectivityModelFactory.newSourceWithSpecificConfig(2, 0, ctx,
+                    Stream.of(new AbstractMap.SimpleEntry<>("qos", "0"))
+                            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
+                    AMQP_SOURCE1);
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
@@ -41,6 +50,7 @@ public class ImmutableSourceTest {
 
     private static final JsonObject SOURCE_JSON_WITH_AUTH_CONTEXT = SOURCE_JSON.toBuilder()
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Source.JsonFields.SPECIFIC_CONFIG, JsonFactory.newObject("{\"qos\":\"0\"}"))
             .build();
 
 

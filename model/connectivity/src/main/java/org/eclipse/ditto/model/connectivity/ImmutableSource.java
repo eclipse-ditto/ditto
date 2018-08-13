@@ -12,8 +12,10 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -25,6 +27,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -46,13 +49,16 @@ final class ImmutableSource implements Source {
     private final int consumerCount;
     private final int index;
     private final AuthorizationContext authorizationContext;
+    private final Map<String, String> specificConfig;
 
     ImmutableSource(final Set<String> addresses, final int consumerCount,
-            final AuthorizationContext authorizationContext, final int index) {
+            final AuthorizationContext authorizationContext, final int index,
+            final Map<String, String> specificConfig) {
         this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
         this.index = index;
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
+        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(specificConfig));
     }
 
     @Override
@@ -76,23 +82,35 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Map<String, String> getSpecificConfig() {
+        return specificConfig;
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(Source.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(Source.JsonFields.ADDRESSES, addresses.stream()
+        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESSES, addresses.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
 
         if (!authorizationContext.isEmpty()) {
-            jsonObjectBuilder.set(Target.JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
+            jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
-        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
+        if (!specificConfig.isEmpty()) {
+            jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet()
+                    .stream()
+                    .map(e -> JsonFactory.newField(JsonKey.of(e.getKey()), JsonFactory.newValue(e.getValue())))
+                    .collect(JsonCollectors.fieldsToObject()));
+        }
+
         return jsonObjectBuilder.build();
     }
 
@@ -111,8 +129,8 @@ final class ImmutableSource implements Source {
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final int readConsumerCount =
-                jsonObject.getValue(Source.JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
-        final JsonArray authContext = jsonObject.getValue(Source.JsonFields.AUTHORIZATION_CONTEXT)
+                jsonObject.getValue(JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)
@@ -122,7 +140,12 @@ final class ImmutableSource implements Source {
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
-        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index);
+        final Map<String, String> specificConfig = jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
+                .map(specificConfigJsonObject -> specificConfigJsonObject.stream()
+                        .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().asString())))
+                .orElse(Collections.emptyMap());
+
+        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index, specificConfig);
     }
 
     @Override
@@ -133,12 +156,13 @@ final class ImmutableSource implements Source {
         return consumerCount == that.consumerCount &&
                 Objects.equals(addresses, that.addresses) &&
                 Objects.equals(index, that.index) &&
-                Objects.equals(authorizationContext, that.authorizationContext);
+                Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(specificConfig, that.specificConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, consumerCount, authorizationContext);
+        return Objects.hash(index, addresses, consumerCount, authorizationContext, specificConfig);
     }
 
     @Override
@@ -148,6 +172,7 @@ final class ImmutableSource implements Source {
                 ", addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
                 ", authorizationContext=" + authorizationContext +
+                ", specificConfig=" + specificConfig +
                 "]";
     }
 }
