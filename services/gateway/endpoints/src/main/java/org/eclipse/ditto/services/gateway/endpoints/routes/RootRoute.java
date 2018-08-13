@@ -360,7 +360,7 @@ public final class RootRoute {
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
-                sseThingsRoute.buildThingsSseRoute(ctx, dittoHeaders),
+                sseThingsRoute.buildThingsSseRoute(ctx, dittoHeaders, Function.identity()),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
