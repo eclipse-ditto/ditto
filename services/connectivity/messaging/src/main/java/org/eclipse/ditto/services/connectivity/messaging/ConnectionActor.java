@@ -39,8 +39,12 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -128,6 +132,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
 
+    /**
+     * Validator of all supported connections.
+     */
+    private static final ConnectionValidator CONNECTION_VALIDATOR = ConnectionValidator.of(
+            RabbitMQValidator.newInstance(),
+            AmqpValidator.newInstance(),
+            MqttValidator.newInstance());
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final String connectionId;
@@ -162,8 +174,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
-        final DittoConnectivityCommandValidator
-                dittoCommandValidator = new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder);
+        final DittoConnectivityCommandValidator dittoCommandValidator =
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
         if (customCommandValidator != null) {
             this.commandValidator =
                     new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
