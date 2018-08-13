@@ -26,14 +26,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,11 +38,9 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
-import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
@@ -59,7 +52,6 @@ import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpMessage;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.PathMatchers;
@@ -90,7 +82,6 @@ final class MessagesRoute extends AbstractRoute {
     private final Duration maxMessageTimeout;
     private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
-    private final HeaderTranslator headerTranslator;
 
     /**
      * Constructs the MessagesService route builder.
@@ -116,10 +107,6 @@ final class MessagesRoute extends AbstractRoute {
         this.maxMessageTimeout = maxMessageTimeout;
         this.defaultClaimTimeout = defaultClaimTimeout;
         this.maxClaimTimeout = maxClaimTimeout;
-
-        headerTranslator = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
-                .loadProtocolAdapterProvider(actorSystem)
-                .createHttpHeaderTranslator();
     }
 
     /**
@@ -251,20 +238,12 @@ final class MessagesRoute extends AbstractRoute {
                     .contentType(contentType.toString())
                     .timeout(optionalTimeout.map(this::checkMessageTimeout).orElse(defaultMessageTimeout))
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(getHeadersAsMap(httpRequest))
+                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
             return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders));
         };
-    }
-
-    @Nonnull
-    private Map<String, String> getHeadersAsMap(final HttpMessage httpRequest) {
-        final Map<String, String> externalHeaders =
-                StreamSupport.stream(httpRequest.getHeaders().spliterator(), false)
-                        .collect(Collectors.toMap(HttpHeader::name, HttpHeader::value));
-        return headerTranslator.fromExternalHeaders(externalHeaders);
     }
 
     private Function<ByteBuffer, MessageCommand<?, ?>> buildSendFeatureMessage(final MessageDirection direction,
@@ -291,7 +270,7 @@ final class MessagesRoute extends AbstractRoute {
                     .validationUrl(httpRequest.getHeader(X_DITTO_VALIDATION_URL)
                             .map(HttpHeader::value)
                             .orElse(null))
-                    .putHeaders(getHeadersAsMap(httpRequest))
+                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
@@ -321,7 +300,7 @@ final class MessagesRoute extends AbstractRoute {
                     .contentType(contentType.toString())
                     .timeout(optionalTimeout.map(this::checkClaimTimeout).orElse(defaultClaimTimeout))
                     .timestamp(OffsetDateTime.now())
-                    .putHeaders(getHeadersAsMap(ctx.getRequest()))
+                    .putHeaders(dittoHeaders)
                     .build();
 
             final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
