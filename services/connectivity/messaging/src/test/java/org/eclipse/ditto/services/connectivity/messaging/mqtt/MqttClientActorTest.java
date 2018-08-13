@@ -28,6 +28,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -36,12 +38,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.OutboundSignal;
@@ -53,6 +59,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
@@ -98,6 +106,7 @@ public class MqttClientActorTest {
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final Target TARGET = newTarget("target", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+    private static final String SOURCE_ADDRESS = "source";
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
     private String connectionId;
@@ -127,7 +136,7 @@ public class MqttClientActorTest {
         connection =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectionStatus.OPEN,
                         serverHost)
-                        .sources(singletonList(newSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, "test")))
+                        .sources(singletonList(newSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, SOURCE_ADDRESS)))
                         .targets(singleton(TARGET))
                         .build();
     }
@@ -166,7 +175,7 @@ public class MqttClientActorTest {
 
             final String modifyThing = TestConstants.modifyThing();
 
-            mqttClient.publish("test", modifyThing.getBytes(UTF_8), 0, false);
+            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
 
             expectMsgClass(ModifyThing.class);
         }};
@@ -187,7 +196,7 @@ public class MqttClientActorTest {
 
             final String modifyThing = TestConstants.modifyThing();
 
-            mqttClient.publish("test", modifyThing.getBytes(UTF_8), 0, false);
+            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
 
             expectMsgClass(ModifyThing.class);
 
@@ -197,7 +206,7 @@ public class MqttClientActorTest {
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            mqttClient.publish("test", modifyThing.getBytes(UTF_8), 0, false);
+            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
             expectMsgClass(ModifyThing.class);
 
             mqttClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -323,6 +332,71 @@ public class MqttClientActorTest {
             final Status.Failure failure = expectMsgClass(Status.Failure.class);
             assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
         }};
+    }
+
+    @Test
+    public void testRetrieveConnectionMetrics() throws MqttException {
+        new TestKit(actorSystem) {
+            {
+
+                final Connection connectionWithAdditionalSources = connection.toBuilder()
+                        .sources(singletonList(
+                                ConnectivityModelFactory.newSource(1, 2, Authorization.AUTHORIZATION_CONTEXT, "topic1",
+                                        "topic2"))).build();
+
+                final Props props = MqttClientActor.props(connectionWithAdditionalSources, getRef());
+                final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
+                // wait for 2 consumers + publisher + test client
+                Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(4L));
+
+                final String modifyThing = TestConstants.modifyThing();
+                mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
+                expectMsgClass(ModifyThing.class);
+
+                mqttClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+
+                final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
+
+                final ConnectionMetrics connectionMetrics = retrieveConnectionMetricsResponse.getConnectionMetrics();
+                assertThat((Object) connectionMetrics.getConnectionStatus()).isEqualTo(ConnectionStatus.OPEN);
+                assertThat(connectionMetrics.getClientState()).isEqualTo(BaseClientState.CONNECTED.name());
+                assertThat(findSourceAddressMetricForTopic(connectionMetrics, SOURCE_ADDRESS))
+                        .hasValueSatisfying(m -> assertThat(m.getMessageCount()).isEqualTo(1L));
+                assertThat(findSourceMetricsForTopic(connectionMetrics, SOURCE_ADDRESS))
+                        .hasValueSatisfying(m -> assertThat(m.getConsumedMessages()).isEqualTo(1L));
+                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic1")).isNotEmpty();
+                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic2")).isNotEmpty();
+                assertThat(findTargetMetricsForTopic(connectionMetrics, TARGET.getAddress())).isNotEmpty();
+            }
+
+            private Optional<AddressMetric> findSourceAddressMetricForTopic(final ConnectionMetrics connectionMetrics,
+                    final String address) {
+
+                return connectionMetrics.getSourcesMetrics().stream()
+                        .peek(m -> System.out.println(m.getAddressMetrics().keySet()))
+                        .flatMap(metric -> metric.getAddressMetrics()
+                                .entrySet()
+                                .stream()
+                                .filter(e -> e.getKey().contains(address))
+                                .map(Map.Entry::getValue))
+                        .findFirst();
+            }
+
+            private Optional<SourceMetrics> findSourceMetricsForTopic(final ConnectionMetrics connectionMetrics,
+                    final String address) {
+                return connectionMetrics.getSourcesMetrics().stream()
+                        .filter(metric -> metric.getAddressMetrics().containsKey(address)).findFirst();
+            }
+
+            private Optional<TargetMetrics> findTargetMetricsForTopic(final ConnectionMetrics connectionMetrics,
+                    final String address) {
+                return connectionMetrics.getTargetsMetrics().stream()
+                        .filter(metric -> metric.getAddressMetrics().keySet().contains(address))
+                        .findFirst();
+            }
+        };
     }
 
     private static class FreePortRule implements TestRule {

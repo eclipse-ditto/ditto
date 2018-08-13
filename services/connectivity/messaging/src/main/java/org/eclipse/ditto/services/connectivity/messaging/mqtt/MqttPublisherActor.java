@@ -13,12 +13,17 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.OutboundSignal;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.ActorRef;
@@ -35,9 +40,15 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef mqttPublisher;
 
+    private long publishedMessages = 0L;
+    private Instant lastMessagePublishedAt;
+    private AddressMetric addressMetric;
 
     private MqttPublisherActor(final ActorRef mqttPublisher) {
         this.mqttPublisher = mqttPublisher;
+        addressMetric =
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
+                        0, null);
     }
 
     static Props props(final ActorRef mqttPublisher) {
@@ -81,6 +92,12 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
                             .map(t -> toPublishTarget(t.getAddress()))
                             .forEach(destination -> publishMessage(destination, message));
                 })
+                .match(RetrieveAddressMetric.class, ram -> {
+                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
+                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
+                            publishedMessages, lastMessagePublishedAt), getSelf());
+                })
                 .matchAny(message -> {
                     unhandled(message);
                     log.info("Unknown message: {}", message.getClass().getName());
@@ -92,6 +109,9 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
             final ExternalMessage externalMessage) {
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, externalMessage);
         mqttPublisher.tell(mqttMessage, getSelf());
+
+        publishedMessages++;
+        lastMessagePublishedAt = Instant.now();
     }
 
     private MqttMessage mapExternalMessageToMqttMessage(

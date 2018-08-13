@@ -11,11 +11,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import java.time.Instant;
 import java.util.HashMap;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -33,11 +37,17 @@ public class MqttConsumerActor extends AbstractActor {
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext sourceAuthorizationContext;
 
+    private long consumedMessages = 0L;
+    private Instant lastMessageConsumedAt;
+    private final AddressMetric addressMetric;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext) {
         this.messageMappingProcessor = messageMappingProcessor;
         this.sourceAuthorizationContext = sourceAuthorizationContext;
+        addressMetric =
+                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
+                        0, null);
     }
 
     static Props props(final ActorRef messageMappingProcessor,
@@ -67,9 +77,20 @@ public class MqttConsumerActor extends AbstractActor {
                     .withAuthorizationContext(sourceAuthorizationContext)
                     .build();
 
+            lastMessageConsumedAt = Instant.now();
+            consumedMessages++;
+
             messageMappingProcessor.tell(externalMessage, getSelf());
 
-        }).matchEquals(MqttClientActor.COMPLETE_MESSAGE, cmplt -> {
+        })
+                .match(RetrieveAddressMetric.class, ram -> {
+                    final AddressMetric addressMetric = ConnectivityModelFactory.newAddressMetric(
+                            this.addressMetric != null ? this.addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
+                            this.addressMetric != null ? this.addressMetric.getStatusDetails().orElse(null) : null,
+                            consumedMessages, lastMessageConsumedAt);
+                    log.debug("addressMetric: {}", addressMetric);
+                    getSender().tell(addressMetric, getSelf());
+                }).matchEquals(MqttClientActor.COMPLETE_MESSAGE, cmplt -> {
             log.debug("Underlying stream completed, shutdown consumer actor.");
             getSelf().tell(PoisonPill.getInstance(), getSelf());
         }).matchAny(unhandled -> {

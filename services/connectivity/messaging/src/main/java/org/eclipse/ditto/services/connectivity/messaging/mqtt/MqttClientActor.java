@@ -13,11 +13,15 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -65,11 +69,14 @@ public class MqttClientActor extends BaseClientActor {
     private UniqueKillSwitch publisherKillSwitch;
     private ActorRef mqttPublisherActor;
 
+    private final Map<String, ActorRef> consumerByActorNameWithIndex;
+
     private MqttClientActor(final Connection connection,
             final ConnectionStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         materializer = ActorMaterializer.create(getContext().getSystem());
+        consumerByActorNameWithIndex = new HashMap<>();
     }
 
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
@@ -111,7 +118,7 @@ public class MqttClientActor extends BaseClientActor {
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
 
         final MqttConnectionSettings connectionSettings = createMqttConnectionSettings();
-        
+
         // TODO validateCertificates
 
         final Optional<ActorRef> mappingActorOptional = getMessageMappingProcessorActor();
@@ -154,6 +161,7 @@ public class MqttClientActor extends BaseClientActor {
 
         final Pair<Pair<ActorRef, UniqueKillSwitch>, CompletionStage<Done>> outbound =
                 akka.stream.javadsl.Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
+                        .map(this::countPublishedMqttMessage)
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(mqttSink, Keep.both())
                         .run(materializer);
@@ -178,7 +186,7 @@ public class MqttClientActor extends BaseClientActor {
             log.debug("Starting {}. consumer actor for source <{}> on connection <{}>.", i, source.getIndex(),
                     connectionId());
 
-            final String uniqueSuffix = source.getIndex() + "-" + i;
+            final String uniqueSuffix = getUniqueSourceSuffix(source.getIndex(), i);
             final String clientId = connectionId() + "-source-" + uniqueSuffix;
             final String actorName = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;
             final MqttSourceSettings settings =
@@ -188,6 +196,8 @@ public class MqttClientActor extends BaseClientActor {
             final ActorRef mqttConsumerActor =
                     startChildActor(actorName,
                             MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext()));
+
+            consumerByActorNameWithIndex.put(actorName, mqttConsumerActor);
 
             // TODO make configurable
             final Integer bufferSize = 8;
@@ -203,17 +213,14 @@ public class MqttClientActor extends BaseClientActor {
             // TODO use Sink.actorRefWithAck?
             //.runWith(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), materializer);
 
-
-            //Pair<Pair<CompletionStage<Done>, UniqueKillSwitch>, CompletionStage<Done>> completions =
             final Pair<Pair<CompletionStage<Done>, SharedKillSwitch>, NotUsed> completions = mqttSource
-//                    .viaMat(KillSwitches.single(), Keep.both()) // (4)
-                    .viaMat(consumerKillSwitch.flow(), Keep.both()) // (4)
+                    .viaMat(consumerKillSwitch.flow(), Keep.both())
+                    .map(this::countConsumedMqttMessage)
                     .toMat(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), Keep.both())
                     .run(materializer);
 
             final CompletionStage<Done> subscriptionInitialized = completions.first().first();
             subscriptionInitialized.thenAccept(d -> log.info("Subscriptions {} initialized", subscriptions));
-
 
             log.info("Waiting for subscriptions....");
             subscriptionInitialized.toCompletableFuture().join();
@@ -222,6 +229,20 @@ public class MqttClientActor extends BaseClientActor {
             log.info("kill switch: {}", consumerKillSwitch);
             log.info("kill switch: {}", ks);
         }
+    }
+
+    private MqttMessage countConsumedMqttMessage(final MqttMessage mqttMessage) {
+        incrementConsumedMessageCounter();
+        return mqttMessage;
+    }
+
+    private MqttMessage countPublishedMqttMessage(final MqttMessage mqttMessage) {
+        incrementPublishedMessageCounter();
+        return mqttMessage;
+    }
+
+    private String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
+        return sourceIndex + "-" + consumerIndex;
     }
 
     private <M> akka.stream.javadsl.Source<M, CompletionStage<Done>> wrapWithAsRestartSource(
@@ -265,12 +286,6 @@ public class MqttClientActor extends BaseClientActor {
             publisherKillSwitch = null;
         }
 
-        try {
-            Thread.sleep(1500);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         stopCommandConsumers();
         stopCommandProducers();
     }
@@ -304,13 +319,24 @@ public class MqttClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
-        // TODO
-        return null;
+        return collectAsList(IntStream.range(0, source.getConsumerCount())
+                .mapToObj(idx -> {
+                    final String topics = String.join(",", source.getAddresses());
+                    final String actorLabel =
+                            MqttConsumerActor.ACTOR_NAME_PREFIX + getUniqueSourceSuffix(source.getIndex(), idx);
+                    final ActorRef consumer = consumerByActorNameWithIndex.get(actorLabel);
+                    return retrieveAddressMetric(topics, actorLabel, consumer);
+                }))
+                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)));
     }
 
     @Override
     protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
-        // TODO
-        return null;
+        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
+                retrieveAddressMetric(target.getAddress(), MqttPublisherActor.ACTOR_NAME,
+                        getPublisherActor().orElse(null));
+
+        return targetEntryFuture.thenApply(targetEntry ->
+                Collections.singletonMap(targetEntry.first(), targetEntry.second()));
     }
 }
