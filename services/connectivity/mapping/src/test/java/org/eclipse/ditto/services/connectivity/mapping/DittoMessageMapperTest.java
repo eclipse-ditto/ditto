@@ -102,7 +102,7 @@ public class DittoMessageMapperTest {
                         .build())
                 .build());
 
-        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers, EXPECTED_TOPIC_PATH)
+        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
                 .withText(adaptable.toJsonString())
                 .build();
         final Optional<Adaptable> expected = Optional.of(ProtocolFactory.newAdaptableBuilder(adaptable).build());
@@ -123,7 +123,7 @@ public class DittoMessageMapperTest {
                 ProtocolFactory.newAdaptableBuilder(ProtocolFactory.jsonifiableAdaptableFromJson(json))
                         .withHeaders(DittoHeaders.of(headers))
                         .build());
-        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers, EXPECTED_TOPIC_PATH)
+        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
                 .withText(json.toString())
                 .build();
         return new AbstractMap.SimpleEntry<>(message, expected);
@@ -137,14 +137,14 @@ public class DittoMessageMapperTest {
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
 
         ExternalMessage message;
-        message = ConnectivityModelFactory.newExternalMessageBuilder(headers, EXPECTED_TOPIC_PATH).withText("").build();
+        message = ConnectivityModelFactory.newExternalMessageBuilder(headers).withText("").build();
         mappings.put(message, MessageMappingFailedException.newBuilder("").build());
 
         message =
-                ConnectivityModelFactory.newExternalMessageBuilder(headers, EXPECTED_TOPIC_PATH).withText("{}").build();
+                ConnectivityModelFactory.newExternalMessageBuilder(headers).withText("{}").build();
         mappings.put(message, new DittoJsonException(new JsonMissingFieldException("/path")));
 
-        message = ConnectivityModelFactory.newExternalMessageBuilder(headers, EXPECTED_TOPIC_PATH)
+        message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
                 .withText("no json")
                 .build();
         mappings.put(message, new DittoJsonException(
@@ -172,8 +172,7 @@ public class DittoMessageMapperTest {
                 .build());
 
         Optional<ExternalMessage> message =
-                Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers,
-                        expectedPath("org.eclipse.ditto/thing1", "modify"))
+                Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers)
                         .withText(adaptable.toJsonString())
                         .build());
         mappings.put(adaptable, message);
@@ -186,8 +185,7 @@ public class DittoMessageMapperTest {
         adaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(ProtocolFactory.newAdaptableBuilder(adaptable)
                 .withHeaders(DittoHeaders.of(headers)).build());
 
-        message = Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers,
-                expectedPath("org.eclipse.ditto/thing2", "create"))
+        message = Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers)
                 .withText(adaptable.toJsonString())
                 .build());
         mappings.put(adaptable, message);

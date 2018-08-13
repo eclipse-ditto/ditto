@@ -12,23 +12,27 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -50,8 +54,6 @@ import akka.testkit.javadsl.TestKit;
 public class MessageMappingProcessorActorTest {
 
     private static final String CONNECTION_ID = "testConnection";
-    private static final AuthorizationContext AUTHORIZATION_CONTEXT =
-            AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar"));
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -86,6 +88,7 @@ public class MessageMappingProcessorActorTest {
                     .withText(ProtocolFactory
                             .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
                             .toJsonString())
+                    .withAuthorizationContext(AUTHORIZATION_CONTEXT)
                     .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
@@ -93,6 +96,70 @@ public class MessageMappingProcessorActorTest {
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
             assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT);
+        }};
+    }
+
+    @Test
+    public void testReplacementOfPlaceholders() {
+        final String correlationId = UUID.randomUUID().toString();
+        final AuthorizationContext contextWithPlaceholders = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject(
+                        "integration:{{header:correlation-id}}:hub-{{   header:content-type   }}"),
+                AuthorizationModelFactory.newAuthSubject(
+                        "integration:{{header:content-type}}:hub-{{ header:correlation-id }}"));
+
+        final AuthorizationContext expectedAuthContext = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("integration:" + correlationId + ":hub-application/json"),
+                AuthorizationModelFactory.newAuthSubject("integration:application/json:hub-" + correlationId));
+
+        testMessageMapping(correlationId, contextWithPlaceholders, ModifyAttribute.class, modifyAttribute -> {
+            assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
+            assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
+            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+        });
+    }
+
+    @Test
+    public void testUnknownPlaceholdersExpectUnresolvedPlaceholderException() {
+        final String placeholder = "{{header:unknown}}";
+        final AuthorizationContext contextWithUnknownPlaceholder = AuthorizationModelFactory.newAuthContext(
+                AuthorizationModelFactory.newAuthSubject("integration:" + placeholder));
+
+        testMessageMapping(UUID.randomUUID().toString(), contextWithUnknownPlaceholder,
+                MappedOutboundSignal.class, error -> {
+                    final UnresolvedPlaceholderException exception = UnresolvedPlaceholderException.fromMessage(
+                            error.getExternalMessage()
+                                    .getTextPayload()
+                                    .orElseThrow(() -> new IllegalArgumentException("payload was empty")),
+                            DittoHeaders.of(error.getExternalMessage().getHeaders()));
+                    assertThat(exception.getMessage()).contains(placeholder);
+                });
+    }
+
+    private <T> void testMessageMapping(final String correlationId, final AuthorizationContext context,
+            final Class<T> expectedMessageClass,
+            final Consumer<T> verifyReceivedMessage) {
+        new TestKit(actorSystem) {{
+
+            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
+
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("correlation-id", correlationId);
+            headers.put("content-type", "application/json");
+            final ModifyAttribute modifyCommand = ModifyAttribute.of("my:thing", JsonPointer.of("foo"),
+                    JsonValue.of(42), DittoHeaders.empty());
+            final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                    .withText(ProtocolFactory
+                            .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
+                            .toJsonString())
+                    .withAuthorizationContext(context)
+                    .build();
+
+            messageMappingProcessorActor.tell(externalMessage, getRef());
+
+            final T received = expectMsgClass(expectedMessageClass);
+            verifyReceivedMessage.accept(received);
         }};
     }
 
@@ -111,9 +178,12 @@ public class MessageMappingProcessorActorTest {
 
             messageMappingProcessorActor.tell(commandResponse, getRef());
 
-            final ExternalMessage externalMessage = expectMsgClass(ExternalMessage.class);
-            assertThat(externalMessage.findContentType()).contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-            assertThat(externalMessage.getHeaders().get("correlation-id")).contains(correlationId);
+            final OutboundSignal.WithExternalMessage outboundSignal =
+                    expectMsgClass(OutboundSignal.WithExternalMessage.class);
+            assertThat(outboundSignal.getExternalMessage().findContentType())
+                    .contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+            assertThat(outboundSignal.getExternalMessage().getHeaders().get(CORRELATION_ID.getKey()))
+                    .contains(correlationId);
         }};
     }
 
@@ -141,7 +211,6 @@ public class MessageMappingProcessorActorTest {
         final Props props = MessageMappingProcessorActor.props(
                 publisherActor,
                 publisherActor,
-                AUTHORIZATION_CONTEXT,
                 getMessageMappingProcessor(null),
                 CONNECTION_ID);
         return actorSystem.actorOf(props);

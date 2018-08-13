@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -39,7 +40,15 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     /**
      * @return set of topics that should be published via this target
      */
-    Set<String> getTopics();
+    Set<Topic> getTopics();
+
+    /**
+     * Returns the Authorization Context of this {@code Target}. If an authorization context is set on a {@link Target}
+     * it overrides the authorization context set on the enclosing {@link Connection}.
+     *
+     * @return the Authorization Context of this {@link Target}.
+     */
+    AuthorizationContext getAuthorizationContext();
 
     /**
      * Returns all non hidden marked fields of this {@code Connection}.
@@ -71,19 +80,25 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} address.
+         * JSON field containing the {@code Target} address.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
                 JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} topics.
+         * JSON field containing the {@code Target} topics.
          */
         public static final JsonFieldDefinition<JsonArray> TOPICS =
                 JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        /**
+         * JSON field containing the {@code Target} authorization context (list of authorization subjects).
+         */
+        public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

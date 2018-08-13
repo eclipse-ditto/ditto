@@ -12,12 +12,11 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
  * A mutable builder for a {@link Connection} with a fluent API.
@@ -40,15 +39,6 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder name(@Nullable String name);
-
-    /**
-     * Sets the AuthorizationContext to use in the {@code Connection}.
-     *
-     * @param authorizationContext the AuthorizationContext.
-     * @return this builder to allow method chaining.
-     * @throws NullPointerException if {@code authorizationContext} is {@code null}.
-     */
-    ConnectionBuilder authorizationContext(AuthorizationContext authorizationContext);
 
     /**
      * Sets the URI to use in the {@code Connection}.
@@ -100,7 +90,7 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      * @throws NullPointerException if {@code sources} is {@code null}.
      */
-    ConnectionBuilder sources(Set<Source> sources);
+    ConnectionBuilder sources(List<Source> sources);
 
     /**
      * Adds additional targets to the connection.

@@ -27,22 +27,30 @@ Supported AMQP 0.9.1 properties which are interpreted in a specific way are:
 ### Source format
 
 An AMQP 0.9.1 connection requires the protocol configuration source object to have an `addresses` property with a list
-of queue names.
+of queue names and `authorizationContext` array that contains the authorization subjects in whose context 
+incoming messages are processed. These subjects may contain placeholders, see 
+[placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
+
 
 ```json
 {
   "addresses": [
     "<queue_name>",
     "..."
-  ]
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
 }
 ```
 
 ### Target format
 
 An AMQP 0.9.1 connection requires the protocol configuration target object to have an `address` property with a combined
- value of the `exchange_name` and `routing_key`. It is continued with a list of topic strings, each representing a
- subscription of a Ditto [protocol topic](protocol-specification-topic.html).
+ value of the `exchange_name` and `routing_key`. The target address may contain placeholders, see 
+ [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more information. 
+ It is continued with a list of topic strings, each representing a
+ subscription of a Ditto [protocol topic](protocol-specification-topic.html) and an array of authorization subjects. 
+ Outbound messages are published to the configured target address if one of these subjects have READ permission 
+ on the Thing that is associated with a message.
 
 
 ```json
@@ -51,7 +59,8 @@ An AMQP 0.9.1 connection requires the protocol configuration target object to ha
   "topics": [
     "_/_/things/twin/events",
     "_/_/things/live/messages"
-  ]
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
 
@@ -75,14 +84,14 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
     "id": "rabbit-example-connection-123",
     "connectionType": "amqp-091",
     "connectionStatus": "open",
-    "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
     "failoverEnabled": true,
-    "uri": "amqp://user:password@localhost:5672",
+    "uri": "amqp://user:password@localhost:5672/vhost",
     "sources": [
       {
         "addresses": [
           "queueName"
-        ]
+        ],
+        "authorizationContext": ["ditto:inbound-auth-subject", "..."]
       }
     ],
     "targets": [
@@ -91,7 +100,8 @@ Example connection configuration to create a new AMQP 0.9.1 connection (e.g. in 
         "topics": [
           "_/_/things/twin/events",
           "_/_/things/live/messages"
-        ]
+        ],
+        "authorizationContext": ["ditto:outbound-auth-subject", "..."]
       }
     ]
   }
