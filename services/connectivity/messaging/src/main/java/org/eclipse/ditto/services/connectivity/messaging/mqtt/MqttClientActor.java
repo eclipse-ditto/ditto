@@ -21,7 +21,6 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -156,8 +155,6 @@ public class MqttClientActor extends BaseClientActor {
 
     private void startMqttConsumers(final MqttConnectionSettings connectionSettings,
             final ActorRef messageMappingProcessorActor, final Source source) {
-        final AuthorizationContext sourceAuthorizationContext = resolveAuthorizationContext(source);
-
         consumerKillSwitch = KillSwitches.shared("consumerKillSwitch");
 
         final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
@@ -178,7 +175,7 @@ public class MqttClientActor extends BaseClientActor {
 
             final ActorRef mqttConsumerActor =
                     startChildActor(actorName,
-                            MqttConsumerActor.props(messageMappingProcessorActor, sourceAuthorizationContext));
+                            MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext()));
 
             // TODO make configurable
             final Integer bufferSize = 8;
