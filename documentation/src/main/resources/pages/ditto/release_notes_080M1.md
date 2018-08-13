@@ -2,7 +2,7 @@
 title: Release notes 0.8.0-M1
 tags: [release_notes]
 keywords: release notes, announcements, changelog
-summary: "Version 0.8.0-M1 of Eclipse Ditto, released on 10.08.2018"
+summary: "Version 0.8.0-M1 of Eclipse Ditto, released on 14.08.2018"
 permalink: release_notes_080-M1.html
 ---
 
