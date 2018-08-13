@@ -28,6 +28,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 
+import akka.actor.ActorSystem;
+
 /**
  * Unit test for {@link MainMethodExceptionHandler}.
  */
@@ -65,18 +67,19 @@ public final class MainMethodExceptionHandlerTest {
     @Test
     public void tryToRunNullRunnable() {
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.run(null))
+                .isThrownBy(() -> underTest.call(null))
                 .withMessage("The %s must not be null!", "Runnable to be executed")
                 .withNoCause();
     }
 
     @Test
     public void nothingIsLoggedIfRunnableThrowsNoException() {
-        underTest.run(() -> {
+        underTest.call(() -> {
             final int illuminati = 23;
             final int answer = 42;
             int i = illuminati;
             i += answer;
+            return ActorSystem.create();
         });
 
         Mockito.verifyZeroInteractions(logger);
@@ -90,7 +93,7 @@ public final class MainMethodExceptionHandlerTest {
         final String expectedLogMessage = MessageFormat.format(LOG_MESSAGE_PATTERN, CLASS_NAME);
 
         assertThatExceptionOfType(exception.getClass())
-                .isThrownBy(() -> underTest.run(() -> {
+                .isThrownBy(() -> underTest.call(() -> {
                     throw exception;
                 }))
                 .withMessage(exceptionMessage)
@@ -106,7 +109,7 @@ public final class MainMethodExceptionHandlerTest {
         final String expectedLogMessage = MessageFormat.format(LOG_MESSAGE_PATTERN, CLASS_NAME);
 
         assertThatExceptionOfType(error.getClass())
-                .isThrownBy(() -> underTest.run(() -> {
+                .isThrownBy(() -> underTest.call(() -> {
                     throw error;
                 }))
                 .withMessage(exceptionMessage)

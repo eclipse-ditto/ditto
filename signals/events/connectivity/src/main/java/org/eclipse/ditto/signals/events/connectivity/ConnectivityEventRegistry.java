@@ -32,18 +32,34 @@ public final class ConnectivityEventRegistry extends AbstractEventRegistry<Conne
     /**
      * Returns a new {@code ConnectivityEventRegistry}.
      *
+     * @param overwritingParseStrategies specifies parse strategies which should overwrite the default ones.
+     * @return the event registry.
+     */
+    public static ConnectivityEventRegistry newInstance(
+            final Map<String, JsonParsable<ConnectivityEvent>> overwritingParseStrategies) {
+        final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies = new HashMap<>();
+        createParseStrategies(parseStrategies);
+        parseStrategies.putAll(overwritingParseStrategies);
+        return new ConnectivityEventRegistry(parseStrategies);
+    }
+
+    /**
+     * Returns a new {@code ConnectivityEventRegistry}.
+     *
      * @return the event registry.
      */
     public static ConnectivityEventRegistry newInstance() {
         final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies = new HashMap<>();
+        createParseStrategies(parseStrategies);
+        return new ConnectivityEventRegistry(parseStrategies);
+    }
 
+    private static void createParseStrategies(final Map<String, JsonParsable<ConnectivityEvent>> parseStrategies) {
         parseStrategies.put(ConnectionCreated.TYPE, ConnectionCreated::fromJson);
         parseStrategies.put(ConnectionModified.TYPE, ConnectionModified::fromJson);
         parseStrategies.put(ConnectionOpened.TYPE, ConnectionOpened::fromJson);
         parseStrategies.put(ConnectionClosed.TYPE, ConnectionClosed::fromJson);
         parseStrategies.put(ConnectionDeleted.TYPE, ConnectionDeleted::fromJson);
-
-        return new ConnectivityEventRegistry(parseStrategies);
     }
 
 }

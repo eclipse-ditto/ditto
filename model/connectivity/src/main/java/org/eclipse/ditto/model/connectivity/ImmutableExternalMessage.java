@@ -21,6 +21,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+
 /**
  * Immutable implementation of {@link ExternalMessage}.
  */
@@ -28,26 +30,29 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
-    @Nullable private final String topicPath;
     private final boolean response;
+    private final boolean error;
     private final PayloadType payloadType;
 
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
+    @Nullable private final AuthorizationContext authorizationContext;
 
     ImmutableExternalMessage(final Map<String, String> headers,
-            @Nullable final String topicPath,
             final boolean response,
+            final boolean error,
             final PayloadType payloadType,
             @Nullable final String textPayload,
-            @Nullable final ByteBuffer bytePayload) {
+            @Nullable final ByteBuffer bytePayload,
+            @Nullable final AuthorizationContext authorizationContext) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
-        this.topicPath = topicPath;
         this.response = response;
+        this.error = error;
         this.payloadType = payloadType;
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
+        this.authorizationContext = authorizationContext;
     }
 
     @Override
@@ -97,11 +102,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<String> getTopicPath() {
-        return Optional.ofNullable(topicPath);
-    }
-
-    @Override
     public PayloadType getPayloadType() {
         return payloadType;
     }
@@ -109,6 +109,16 @@ final class ImmutableExternalMessage implements ExternalMessage {
     @Override
     public boolean isResponse() {
         return response;
+    }
+
+    @Override
+    public boolean isError() {
+        return error;
+    }
+
+    @Override
+    public Optional<AuthorizationContext> getAuthorizationContext() {
+        return Optional.ofNullable(authorizationContext);
     }
 
     @Override
@@ -123,22 +133,24 @@ final class ImmutableExternalMessage implements ExternalMessage {
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
-                Objects.equals(topicPath, that.topicPath) &&
+                Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(response, that.response) &&
+                Objects.equals(error, that.error) &&
                 payloadType == that.payloadType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, topicPath);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "headers=" + headers +
-                ", topicPath=" + topicPath +
                 ", response=" + response +
+                ", error=" + error +
+                ", authorizationContext=" + authorizationContext +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

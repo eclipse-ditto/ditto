@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 
 /**
@@ -29,9 +30,10 @@ public interface ExternalMessage {
     String CONTENT_TYPE_HEADER = DittoHeaderDefinition.CONTENT_TYPE.getKey();
 
     /**
-     * Message header for the reply to address.
+     * Message header for the reply to address. MUST be lower-case.
+     * "reply-to" is a standard internet message header (RFC-5322).
      */
-    String REPLY_TO_HEADER = "replyTo";
+    String REPLY_TO_HEADER = "reply-to";
 
     /**
      * @return the headers of the ExternalMessage
@@ -91,12 +93,6 @@ public interface ExternalMessage {
     Optional<ByteBuffer> getBytePayload();
 
     /**
-     * @return the TopicPath of this ExternalMessage, only makes sense for outgoing messages where the path was
-     * already known.
-     */
-    Optional<String> getTopicPath();
-
-    /**
      * @return the PayloadType of this ExternalMessage
      */
     PayloadType getPayloadType();
@@ -105,6 +101,16 @@ public interface ExternalMessage {
      * @return {@code true} if this message is a response
      */
     boolean isResponse();
+
+    /**
+     * @return {@code true} if this message is an error
+     */
+    boolean isError();
+
+    /**
+     * @return the {@link AuthorizationContext} assigned to this message
+     */
+    Optional<AuthorizationContext> getAuthorizationContext();
 
     /**
      * The known payload types of ExternalMessages.

@@ -42,6 +42,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
+import akka.actor.ActorNotFound;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -170,7 +171,6 @@ public class DefaultStreamSupervisorTest {
             expectStreamTriggerMsg(expectedQueryEnd, smallMaxIdleTime);
 
             // signal timeout to the supervisor
-            getForwarderActor(streamSupervisor).tell(STREAM_STARTED, ActorRef.noSender());
             expectForwarderTerminated(this, streamSupervisor, smallMaxIdleTime.plus(SHORT_TIMEOUT));
 
             // wait for the actor to re-start streaming
@@ -264,9 +264,12 @@ public class DefaultStreamSupervisorTest {
 
     private void expectForwarderTerminated(final TestKit testKit, final ActorRef superVisorActorRef,
             final Duration timeout) throws Exception {
-        final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
-
-        expectTerminated(testKit, forwarderActor, timeout);
+        try {
+            final ActorRef forwarderActor = getForwarderActor(superVisorActorRef);
+            expectTerminated(testKit, forwarderActor, timeout);
+        } catch (final ActorNotFound actorNotFound) {
+            // if forwarder actor died too early then it won't be found, which is fine
+        }
     }
 
     private ActorRef getForwarderActor(final ActorRef superVisorActorRef) throws Exception {

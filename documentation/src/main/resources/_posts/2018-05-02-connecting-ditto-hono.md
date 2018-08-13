@@ -202,13 +202,13 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             "connectionType": "amqp-10",
             "connectionStatus": "open",
             "uri": "amqp://consumer@HONO:verysecret@hono.eclipse.org:15672",
-            "authorizationContext": ["nginx:demo5"],
             "failoverEnabled": true,
             "sources": [{
                 "addresses": [
                     "telemetry/org.eclipse.ditto",
                     "event/org.eclipse.ditto"
-                ]
+                ],
+                "authorizationContext": ["nginx:demo5"]
             }]
         }
     }
@@ -345,13 +345,13 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             "connectionType": "amqp-10",
             "connectionStatus": "open",
             "uri": "amqp://consumer@HONO:verysecret@hono.eclipse.org:15672",
-            "authorizationContext": ["nginx:demo5"],
             "failoverEnabled": true,
             "sources": [{
                 "addresses": [
                     "telemetry/org.eclipse.ditto",
                     "event/org.eclipse.ditto"
-                ]
+                ],
+                "authorizationContext": ["nginx:demo5"],
             }],
             "mappingContext": {
                 "mappingEngine": "JavaScript",

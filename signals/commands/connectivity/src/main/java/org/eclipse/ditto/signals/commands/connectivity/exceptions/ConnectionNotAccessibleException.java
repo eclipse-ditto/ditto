@@ -45,7 +45,7 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
 
     private ConnectionNotAccessibleException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
     /**
