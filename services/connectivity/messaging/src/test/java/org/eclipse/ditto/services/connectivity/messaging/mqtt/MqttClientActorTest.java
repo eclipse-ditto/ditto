@@ -55,8 +55,6 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
@@ -149,7 +147,7 @@ public class MqttClientActorTest {
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
             watch(mqttClientActor);
 
-            mqttClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             // wait for consumer + publisher + test client
@@ -167,7 +165,7 @@ public class MqttClientActorTest {
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
             watch(mqttClientActor);
 
-            mqttClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             // wait for consumer + publisher + test client
@@ -188,7 +186,7 @@ public class MqttClientActorTest {
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
             watch(mqttClientActor);
 
-            mqttClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             // wait for consumer + publisher + test client
@@ -209,7 +207,7 @@ public class MqttClientActorTest {
             mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
             expectMsgClass(ModifyThing.class);
 
-            mqttClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -217,10 +215,6 @@ public class MqttClientActorTest {
     @Test
     public void testConsumeMultipleTopics() {
         new TestKit(actorSystem) {{
-            final String connectionId = TestConstants.createRandomConnectionId();
-            final Props props = MqttClientActor.props(connection, getRef());
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
 
             final List<String> subscriptions =
                     Arrays.asList("A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3");
@@ -249,7 +243,11 @@ public class MqttClientActorTest {
                             )
                             .build();
 
-            mqttClientActor.tell(CreateConnection.of(multipleSources, DittoHeaders.empty()), getRef());
+            final String connectionId = TestConstants.createRandomConnectionId();
+            final Props props = MqttClientActor.props(multipleSources, getRef());
+            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             Awaitility.await().until(expectedSubscriptions::isEmpty);
@@ -268,7 +266,7 @@ public class MqttClientActorTest {
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
             watch(mqttClientActor);
 
-            mqttClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             // wait for consumer + publisher + test client
@@ -301,7 +299,7 @@ public class MqttClientActorTest {
                 return expectedJson.equals(new String(receivedMessage.get().getPayload(), UTF_8));
             });
 
-            mqttClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -375,7 +373,6 @@ public class MqttClientActorTest {
                     final String address) {
 
                 return connectionMetrics.getSourcesMetrics().stream()
-                        .peek(m -> System.out.println(m.getAddressMetrics().keySet()))
                         .flatMap(metric -> metric.getAddressMetrics()
                                 .entrySet()
                                 .stream()
@@ -489,7 +486,6 @@ public class MqttClientActorTest {
         @Override
         protected void before() throws Throwable {
             final MemoryConfig memoryConfig = new MemoryConfig(new Properties());
-            System.out.println(port);
             memoryConfig.setProperty("port", Integer.toString(freePort.getPort()));
             server = new Server();
             server.startServer(memoryConfig);
