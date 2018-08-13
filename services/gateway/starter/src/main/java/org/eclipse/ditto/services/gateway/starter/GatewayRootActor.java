@@ -15,7 +15,6 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -176,8 +175,8 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, config, materializer, proxyActor, streamingActor,
-                        healthCheckActor).flow(actorSystem, materializer),
+                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
+                                .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
         binding.thenAccept(theBinding -> {
@@ -238,12 +237,11 @@ final class GatewayRootActor extends AbstractActor {
 
     private Route createRoute(final ActorSystem actorSystem,
             final Config config,
-            final ActorMaterializer materializer,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
         final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
-        final RootRoute rootRoute = new RootRoute(actorSystem, config, materializer, proxyActor, streamingActor,
+        final RootRoute rootRoute = new RootRoute(actorSystem, config, proxyActor, streamingActor,
                 healthCheckingActor, new ClusterStatusSupplier(Cluster.get(actorSystem)), httpClient);
         return rootRoute.buildRoute();
     }
