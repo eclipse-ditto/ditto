@@ -452,7 +452,7 @@ public class MqttClientActorTest {
         @Override
         protected void after() {
             try {
-                mqttClient.disconnectForcibly();
+                mqttClient.disconnect();
                 mqttClient.close(true);
             } catch (final MqttException e) {
                 LOGGER.error("Failed to disconnect: {}", e.getMessage(), e);
