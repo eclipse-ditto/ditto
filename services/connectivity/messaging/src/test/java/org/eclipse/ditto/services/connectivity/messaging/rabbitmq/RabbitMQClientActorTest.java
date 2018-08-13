@@ -34,10 +34,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -102,8 +99,8 @@ public class RabbitMQClientActorTest {
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
                 ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
-                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly", Topic.TWIN_EVENTS)))
+                .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly",
+                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
@@ -127,7 +124,7 @@ public class RabbitMQClientActorTest {
                     (con, exHandler) -> { throw CUSTOM_EXCEPTION; }).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef connectionActor = actorSystem.actorOf(props);
 
-            connectionActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            connectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
             expectMsg(new Status.Failure(CUSTOM_EXCEPTION));
         }};
@@ -141,13 +138,10 @@ public class RabbitMQClientActorTest {
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
-            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
-
-            rabbitClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
@@ -159,7 +153,7 @@ public class RabbitMQClientActorTest {
                     (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
-            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -184,7 +178,7 @@ public class RabbitMQClientActorTest {
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
             watch(rabbitClientActor);
 
-            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
             expectMsg(CONNECTED_SUCCESS);
         }};
@@ -198,7 +192,7 @@ public class RabbitMQClientActorTest {
                             (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
-            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -231,10 +225,10 @@ public class RabbitMQClientActorTest {
                             (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
             final ActorRef rabbitClientActor = actorSystem.actorOf(props);
 
-            rabbitClientActor.tell(CreateConnection.of(connection, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            rabbitClientActor.tell(DeleteConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }

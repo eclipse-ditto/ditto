@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Collections.emptySet;
-import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.emptyAuthContext;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthContext;
 import static org.eclipse.ditto.model.base.auth.AuthorizationModelFactory.newAuthSubject;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
@@ -74,7 +73,7 @@ public class SignalFilterTest {
         final Target live_unauthd =
                 newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED, DUMMY), LIVE_EVENTS, LIVE_MESSAGES);
         final Target emptyContext =
-                newTarget("live/unauthorized", emptyAuthContext(), LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS,
+                newTarget("live/unauthorized", newAuthContext(UNAUTHORIZED), LIVE_EVENTS, LIVE_MESSAGES, TWIN_EVENTS,
                         LIVE_COMMANDS);
 
         final Collection<Object[]> params = new ArrayList<>();
@@ -134,7 +133,7 @@ public class SignalFilterTest {
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION,
                         ConnectionType.AMQP_10,
                         ConnectionStatus.OPEN,
-                        URI).authorizationContext(newAuthContext(newAuthSubject("eclipse"))).targets(targets).build();
+                        URI).targets(targets).build();
 
         final Set<Target> filteredTargets = SignalFilter.filter(connection, signal(signalTopic, readSubjects));
         Assertions

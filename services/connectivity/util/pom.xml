@@ -26,6 +26,10 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-json</artifactId>
         </dependency>
         <dependency>

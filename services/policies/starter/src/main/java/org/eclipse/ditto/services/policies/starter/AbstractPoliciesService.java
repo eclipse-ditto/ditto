@@ -11,17 +11,12 @@
  */
 package org.eclipse.ditto.services.policies.starter;
 
-import java.util.Map;
-
 import org.eclipse.ditto.services.base.DittoService;
-import org.eclipse.ditto.services.base.metrics.MongoDbMetricRegistryFactory;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsStarter;
 import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
+import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
 import org.slf4j.Logger;
-
-import com.codahale.metrics.MetricRegistry;
 
 import akka.actor.ActorSystem;
 
@@ -39,8 +34,6 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
      */
     private static final String SERVICE_NAME = "policies";
 
-    private final Logger logger;
-
     /**
      * Constructs a new {@code AbstractPoliciesService}.
      *
@@ -48,16 +41,12 @@ public abstract class AbstractPoliciesService extends DittoService<ServiceConfig
      */
     protected AbstractPoliciesService(final Logger logger) {
         super(logger, SERVICE_NAME, PoliciesRootActor.ACTOR_NAME, DittoServiceConfigReader.from(SERVICE_NAME));
-        this.logger = logger;
     }
 
     @Override
-    protected void startStatsdMetricsReporter(final ActorSystem actorSystem, final ServiceConfigReader configReader) {
-        final Map.Entry<String, MetricRegistry> mongoDbMetrics =
-                MongoDbMetricRegistryFactory.createOrGet(actorSystem, configReader.getRawConfig());
-        StatsdMetricsReporter.getInstance().add(mongoDbMetrics);
-
-        StatsdMetricsStarter.newInstance(configReader, actorSystem, SERVICE_NAME).run();
+    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem,
+            final ServiceConfigReader configReader) {
+        DropwizardMetricsPrometheusReporter.addMetricRegistry(
+                MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig()));
     }
-
 }

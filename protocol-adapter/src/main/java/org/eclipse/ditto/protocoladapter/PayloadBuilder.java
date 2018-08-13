@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import java.time.Instant;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -51,6 +55,14 @@ public interface PayloadBuilder {
      * @return this builder to allow method chaining.
      */
     PayloadBuilder withRevision(long revision);
+
+    /**
+     * Sets the given {@code timestamp} to this builder. A previously set timestamp is replaced.
+     *
+     * @param timestamp the timestamp to set.
+     * @return this builder to allow method chaining.
+     */
+    PayloadBuilder withTimestamp(@Nullable Instant timestamp);
 
     /**
      * Sets the given {@code fields} to this builder. Previously set fields are replaced.

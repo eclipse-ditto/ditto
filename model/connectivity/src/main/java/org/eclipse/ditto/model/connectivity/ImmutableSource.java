@@ -100,6 +100,7 @@ final class ImmutableSource implements Source {
      * Creates a new {@code Source} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the Source to be created.
+     * @param index the index to distinguish between sources that would otherwise be different
      * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
@@ -111,7 +112,7 @@ final class ImmutableSource implements Source {
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final int readConsumerCount =
                 jsonObject.getValue(Source.JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
-        final JsonArray authContext = jsonObject.getValue(Connection.JsonFields.AUTHORIZATION_CONTEXT)
+        final JsonArray authContext = jsonObject.getValue(Source.JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)

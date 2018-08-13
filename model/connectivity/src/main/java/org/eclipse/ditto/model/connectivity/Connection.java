@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -62,13 +61,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return the persisted ConnectionStatus
      */
     ConnectionStatus getConnectionStatus();
-
-    /**
-     * Returns the Authorization Context of this {@code Connection}.
-     *
-     * @return the Authorization Context.
-     */
-    AuthorizationContext getAuthorizationContext();
 
     /**
      * Returns a list of the sources of this {@code Connection}.
@@ -260,14 +252,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} authorization context (list of authorization subjects).
-         */
-        public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
          * JSON field containing the {@code Connection} sources configuration.
          */
         public static final JsonFieldDefinition<JsonArray> SOURCES =
@@ -346,9 +330,15 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         public static final String PROTOCOL_REGEX_GROUP = "protocol";
 
         /**
+         * Regex that matches all supported protocols. Append as more protocols get supported.
+         */
+        private static final String SUPPORTED_PROTOCOLS_REGEX = "amqps?|mqtts?";
+
+        /**
          * Regex for the protocol part of an URI.
          */
-        private static final String PROTOCOL_REGEX = "(?<" + PROTOCOL_REGEX_GROUP + ">(amqps|tcp)?)://";
+        private static final String PROTOCOL_REGEX =
+                "(?<" + PROTOCOL_REGEX_GROUP + ">" + SUPPORTED_PROTOCOLS_REGEX + ")://";
 
         /**
          * Regex group for the username part of an URI.
@@ -358,7 +348,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
         /**
          * Regex for the username part of an URI.
          */
-        private static final String USERNAME_REGEX = "(?<" + USERNAME_REGEX_GROUP + ">(\\S+))";
+        private static final String USERNAME_REGEX = "(?<" + USERNAME_REGEX_GROUP + ">([\\S&&[^:]]+))";
 
 
         /**

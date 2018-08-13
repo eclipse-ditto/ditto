@@ -57,8 +57,8 @@ public final class ThingModifyCommandResponseAdapterTest {
     private ThingModifyCommandResponseAdapter underTest;
 
     @Before
-    public void setUp() throws Exception {
-        underTest = ThingModifyCommandResponseAdapter.newInstance();
+    public void setUp() {
+        underTest = ThingModifyCommandResponseAdapter.of(DittoProtocolAdapter.headerTranslator());
     }
 
     @Test(expected = UnknownCommandResponseException.class)
@@ -606,7 +606,7 @@ public final class ThingModifyCommandResponseAdapterTest {
 
         final ModifyAttributeResponse expectedCreated =
                 ModifyAttributeResponse.created(TestConstants.THING_ID, TestConstants.ATTRIBUTE_POINTER,
-                TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.ATTRIBUTE_VALUE, TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -1331,7 +1331,7 @@ public final class ThingModifyCommandResponseAdapterTest {
     public void deleteFeaturePropertyResponseFromAdaptable() {
         final DeleteFeaturePropertyResponse expected =
                 DeleteFeaturePropertyResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
-                TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
+                        TestConstants.FEATURE_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .things()

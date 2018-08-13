@@ -13,7 +13,6 @@ package org.eclipse.ditto.signals.commands.devops;
 
 import java.util.function.Predicate;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -40,22 +39,8 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private RetrieveStatistics(@Nullable final String serviceName, @Nullable final Integer instance,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, serviceName, instance, dittoHeaders);
-    }
-
-    /**
-     * Returns a Command for retrieving statistics.
-     *
-     * @param serviceName the service name to which to send the DevOpsCommand.
-     * @param instance the instance index of the serviceName to which to send the DevOpsCommand.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return a Command for retrieving statistics.
-     */
-    public static RetrieveStatistics of(@Nullable final String serviceName, @Nullable final Integer instance,
-            final DittoHeaders dittoHeaders) {
-        return new RetrieveStatistics(serviceName, instance, dittoHeaders);
+    private RetrieveStatistics(final DittoHeaders dittoHeaders) {
+        super(TYPE, null, null, dittoHeaders);
     }
 
     /**
@@ -65,7 +50,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      * @return a Command for retrieving statistics.
      */
     public static RetrieveStatistics of(final DittoHeaders dittoHeaders) {
-        return new RetrieveStatistics(null, null, dittoHeaders);
+        return new RetrieveStatistics(dittoHeaders);
     }
 
     /**
@@ -94,12 +79,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
      */
     public static RetrieveStatistics fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveStatistics>(TYPE, jsonObject)
-                .deserialize(() -> {
-                    final String serviceName =
-                            jsonObject.getValue(DevOpsCommand.JsonFields.JSON_SERVICE_NAME).orElse(null);
-                    final Integer instance = jsonObject.getValue(DevOpsCommand.JsonFields.JSON_INSTANCE).orElse(null);
-                    return RetrieveStatistics.of(serviceName, instance, dittoHeaders);
-                });
+                .deserialize(() -> RetrieveStatistics.of(dittoHeaders));
     }
 
     @Override
@@ -118,7 +98,7 @@ public final class RetrieveStatistics extends AbstractDevOpsCommand<RetrieveStat
 
     @Override
     public RetrieveStatistics setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getServiceName().orElse(null), getInstance().orElse(null), dittoHeaders);
+        return of(dittoHeaders);
     }
 
     @Override

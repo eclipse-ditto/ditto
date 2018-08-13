@@ -13,12 +13,9 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.services.base.metrics.StatsdMetricsReporter;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
@@ -38,8 +35,6 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
-import com.codahale.metrics.MetricRegistry;
-
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -49,14 +44,12 @@ import akka.actor.Props;
  */
 public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
 
-    private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.enforcer.cache.";
-    private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto.authorization.id.cache.";
+    private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
+    private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
     @Override
     public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfigReader configReader,
             final ActorRef pubSubMediator) {
-        final Consumer<Map.Entry<String, MetricRegistry>> metricsReportingConsumer =
-                namedMetricRegistry -> StatsdMetricsReporter.getInstance().add(namedMetricRegistry);
         final Duration askTimeout = configReader.caches().askTimeout();
 
 
@@ -70,22 +63,19 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
-                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
-                        metricsReportingConsumer);
+                        ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE);
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
-                        metricsReportingConsumer);
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy");
 
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
                 CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
-                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl",
-                        metricsReportingConsumer);
+                        ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl");
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,

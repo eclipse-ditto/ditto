@@ -45,11 +45,11 @@ public final class TestConstants {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2,0, "amqp/source1"),
-            ConnectivityModelFactory.newSource(2,1,"amqp/source2"));
+    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2,0, AUTHORIZATION_CONTEXT, "amqp/source1"),
+            ConnectivityModelFactory.newSource(2,1, AUTHORIZATION_CONTEXT, "amqp/source2"));
 
     private static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", Topic.TWIN_EVENTS)));
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
 
     private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
@@ -89,7 +89,6 @@ public final class TestConstants {
 
     public static Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
-                    .authorizationContext(AUTHORIZATION_CONTEXT)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)

@@ -237,16 +237,6 @@ public final class ConnectivityModelFactory {
      * Creates a new {@link Source}.
      *
      * @param addresses the source addresses where messages are consumed from
-     * @return the created {@link Source}
-     */
-    public static Source newSource(final Set<String> addresses) {
-        return new ImmutableSource(addresses, DEFAULT_CONSUMER_COUNT, AuthorizationModelFactory.emptyAuthContext(), 0);
-    }
-
-    /**
-     * Creates a new {@link Source}.
-     *
-     * @param addresses the source addresses where messages are consumed from
      * @param consumerCount how many consumer will consume of the new {@link Source}
      * @return the created {@link Source}
      */
@@ -270,30 +260,22 @@ public final class ConnectivityModelFactory {
     /**
      * Creates a new {@link Source}.
      *
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
-    public static Source newSource(final int index, final String... sources) {
+    public static Source newSource(final int index, final AuthorizationContext authorizationContext,
+            final String... sources) {
         return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
-                AuthorizationModelFactory.emptyAuthContext(), index);
+                authorizationContext, index);
     }
 
     /**
      * Creates a new {@link Source}.
      *
      * @param consumerCount how many consumer will consume from this source
-     * @param sources the sources where messages are consumed from
-     * @return the created {@link Source}
-     */
-    public static Source newSource(final int consumerCount, final int index, final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount,
-                AuthorizationModelFactory.emptyAuthContext(), index);
-    }
-
-    /**
-     * Creates a new {@link Source}.
-     *
-     * @param consumerCount how many consumer will consume from this source
+     * @param index the index to distinguish between sources that would otherwise be different
      * @param authorizationContext the authorization context of the new {@link Source}
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
@@ -305,39 +287,16 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@link Target}.
+     * Creates a new {@code Source} object from the specified JSON object.
      *
-     * @param address the address where the signals will be published
-     * @param topics the topics for which this target will receive signals
-     * @return the created {@link Target}
+     * @param jsonObject a JSON object which provides the data for the Source to be created.
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Target newTarget(final String address, final Set<Topic> topics) {
-        return new ImmutableTarget(address, topics, AuthorizationModelFactory.emptyAuthContext());
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param topics the topics for which this target will receive signals
-     * @param authorizationContext the authorization context of the new {@link Target}
-     * @return the created {@link Target}
-     */
-    public static Target newTarget(final String address, final Set<Topic> topics,
-            final AuthorizationContext authorizationContext) {
-        return new ImmutableTarget(address, topics, authorizationContext);
-    }
-
-    /**
-     * Creates a new {@link Target}.
-     *
-     * @param address the address where the signals will be published
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
-     * @return the created {@link Target}
-     */
-    public static Target newTarget(final String address, final Topic requiredTopic, final Topic... additionalTopics) {
-        return newTarget(address, AuthorizationModelFactory.emptyAuthContext(), requiredTopic, additionalTopics);
+    public static Source sourceFromJson(final JsonObject jsonObject, final int index) {
+        return ImmutableSource.fromJson(jsonObject, index);
     }
 
     /**
@@ -348,7 +307,20 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Target}
      */
     public static Target newTarget(final Target target, final String address) {
-        return newTarget(address, target.getTopics(), target.getAuthorizationContext());
+        return newTarget(address,  target.getAuthorizationContext(), target.getTopics());
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param topics the topics for which this target will receive signals
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
+            final Set<Topic> topics) {
+        return new ImmutableTarget(address, topics, authorizationContext);
     }
 
     /**
@@ -365,5 +337,17 @@ public final class ConnectivityModelFactory {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
         return new ImmutableTarget(address, topics, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@code Target} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Target to be created.
+     * @return a new Source Target is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static Target targetFromJson(final JsonObject jsonObject) {
+        return ImmutableTarget.fromJson(jsonObject);
     }
 }

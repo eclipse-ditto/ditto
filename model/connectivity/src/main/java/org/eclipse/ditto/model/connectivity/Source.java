@@ -101,8 +101,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

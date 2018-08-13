@@ -44,9 +44,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -61,7 +58,6 @@ final class ImmutableConnection implements Connection {
     private final ConnectionStatus connectionStatus;
     private final ConnectionUri uri;
 
-    private final AuthorizationContext authorizationContext;
     private final List<Source> sources;
     private final Set<Target> targets;
     private final int clientCount;
@@ -78,7 +74,6 @@ final class ImmutableConnection implements Connection {
         connectionType = builder.connectionType;
         connectionStatus = builder.connectionStatus;
         uri = ConnectionUri.of(builder.uri);
-        authorizationContext = builder.authorizationContext;
         sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
         targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
         clientCount = builder.clientCount;
@@ -90,16 +85,16 @@ final class ImmutableConnection implements Connection {
         tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
     }
 
-        /**
-         * Returns a new {@code ConnectionBuilder} object.
-         *
-         * @param id the connection ID.
-         * @param connectionType the connection type.
-         * @param connectionStatus the connection status.
-         * @param uri the URI.
-         * @return new instance of {@code ConnectionBuilder}.
-         * @throws NullPointerException if any argument is {@code null}.
-         */
+    /**
+     * Returns a new {@code ConnectionBuilder} object.
+     *
+     * @param id the connection ID.
+     * @param connectionType the connection type.
+     * @param connectionStatus the connection status.
+     * @param uri the URI.
+     * @return new instance of {@code ConnectionBuilder}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
     public static ConnectionBuilder getBuilder(final String id,
             final ConnectionType connectionType,
             final ConnectionStatus connectionStatus,
@@ -125,7 +120,6 @@ final class ImmutableConnection implements Connection {
                 .id(connection.getId())
                 .connectionStatus(connection.getConnectionStatus())
                 .uri(connection.getUri())
-                .authorizationContext(connection.getAuthorizationContext())
                 .failoverEnabled(connection.isFailoverEnabled())
                 .validateCertificate(connection.isValidateCertificates())
                 .processorPoolSize(connection.getProcessorPoolSize())
@@ -151,7 +145,6 @@ final class ImmutableConnection implements Connection {
                 .id(jsonObject.getValueOrThrow(JsonFields.ID))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .authorizationContext(getAuthorizationContext(jsonObject))
                 .sources(getSources(jsonObject))
                 .targets(getTargets(jsonObject))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
@@ -177,32 +170,13 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-        private static ConnectionStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
-            final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
-            return ConnectionStatus.forName(readConnectionStatus)
-                    .orElseThrow(() -> JsonParseException.newBuilder()
-                            .message(MessageFormat.format("Connection status <{0}> is invalid!", readConnectionStatus))
-                            .build());
-        }
-
-        private static AuthorizationContext getAuthorizationContext(final JsonObject jsonObject) {
-            // as a fallback use the already persisted "authorizationSubject" field
-            final JsonArray authSubjectsJsonArray = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
-                    .orElseGet(() -> jsonObject.getValue("authorizationSubject")
-                            .filter(JsonValue::isString)
-                            .map(JsonValue::asString)
-                            .map(str -> JsonArray.newBuilder().add(str).build())
-                            // allow empty auth context for connection, can be defined in sources/targets
-                            .orElseGet(() -> JsonArray.newBuilder().build()));
-
-            final List<AuthorizationSubject> authorizationSubjects = authSubjectsJsonArray.stream()
-                    .filter(JsonValue::isString)
-                    .map(JsonValue::asString)
-                    .map(AuthorizationSubject::newInstance)
-                    .collect(Collectors.toList());
-
-            return AuthorizationModelFactory.newAuthContext(authorizationSubjects);
-        }
+    private static ConnectionStatus getConnectionStatusOrThrow(final JsonObject jsonObject) {
+        final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS);
+        return ConnectionStatus.forName(readConnectionStatus)
+                .orElseThrow(() -> JsonParseException.newBuilder()
+                        .message(MessageFormat.format("Connection status <{0}> is invalid!", readConnectionStatus))
+                        .build());
+    }
 
     private static List<Source> getSources(final JsonObject jsonObject) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
@@ -219,17 +193,17 @@ final class ImmutableConnection implements Connection {
         } else {
             return Collections.emptyList();
         }
-        }
+    }
 
-        private static Set<Target> getTargets(final JsonObject jsonObject) {
-            return jsonObject.getValue(JsonFields.TARGETS)
-                    .map(array -> array.stream()
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(ImmutableTarget::fromJson)
-                            .collect(Collectors.toSet()))
-                    .orElse(Collections.emptySet());
-        }
+    private static Set<Target> getTargets(final JsonObject jsonObject) {
+        return jsonObject.getValue(JsonFields.TARGETS)
+                .map(array -> array.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableTarget::fromJson)
+                        .collect(Collectors.toSet()))
+                .orElse(Collections.emptySet());
+    }
 
     private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
@@ -268,11 +242,6 @@ final class ImmutableConnection implements Connection {
     @Override
     public ConnectionStatus getConnectionStatus() {
         return connectionStatus;
-    }
-
-    @Override
-    public AuthorizationContext getAuthorizationContext() {
-        return authorizationContext;
     }
 
     @Override
@@ -366,10 +335,6 @@ final class ImmutableConnection implements Connection {
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.URI, uri.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
-                .map(AuthorizationSubject::getId)
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray()), predicate);
         jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
                 .sorted(Comparator.comparingInt(Source::getIndex))
                 .map(source -> source.toJson(schemaVersion, thePredicate))
@@ -412,7 +377,6 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(name, that.name) &&
                 Objects.equals(connectionType, that.connectionType) &&
                 Objects.equals(connectionStatus, that.connectionStatus) &&
-                Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(sources, that.sources) &&
                 Objects.equals(targets, that.targets) &&
                 Objects.equals(clientCount, that.clientCount) &&
@@ -426,7 +390,7 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, connectionType, connectionStatus, authorizationContext, sources, targets,
+        return Objects.hash(id, name, connectionType, connectionStatus, sources, targets,
                 clientCount, failOverEnabled, uri, validateCertificate, processorPoolSize, specificConfig,
                 mappingContext, tags);
     }
@@ -438,7 +402,6 @@ final class ImmutableConnection implements Connection {
                 ", name=" + name +
                 ", connectionType=" + connectionType +
                 ", connectionStatus=" + connectionStatus +
-                ", authorizationContext=" + authorizationContext +
                 ", failoverEnabled=" + failOverEnabled +
                 ", uri=" + uri.getUriStringWithMaskedPassword() +
                 ", sources=" + sources +
@@ -466,7 +429,6 @@ final class ImmutableConnection implements Connection {
         private String uri;
 
         // optional:
-        private AuthorizationContext authorizationContext = AuthorizationModelFactory.emptyAuthContext();
         private Set<String> tags = new HashSet<>();
         private boolean failOverEnabled = true;
         private boolean validateCertificate = true;
@@ -491,12 +453,6 @@ final class ImmutableConnection implements Connection {
         @Override
         public ConnectionBuilder name(@Nullable final String name) {
             this.name = name;
-            return this;
-        }
-
-        @Override
-        public ConnectionBuilder authorizationContext(final AuthorizationContext authorizationContext) {
-            this.authorizationContext = checkNotNull(authorizationContext, "AuthorizationContext");
             return this;
         }
 
@@ -592,32 +548,30 @@ final class ImmutableConnection implements Connection {
          * If no context is set on connection level each target and source must have its own context.
          */
         private void checkAuthorizationContextsAreValid() {
-            if (authorizationContext.isEmpty()) {
-                // if the auth context on connection level is empty,
-                // an auth context is required to be set on each source/target
-                final Set<String> sourcesWithoutAuthContext = sources.stream()
-                        .filter(source -> source.getAuthorizationContext().isEmpty())
-                        .flatMap(source -> source.getAddresses().stream())
-                        .collect(Collectors.toSet());
-                final Set<String> targetsWithoutAuthContext = targets.stream()
-                        .filter(target -> target.getAuthorizationContext().isEmpty())
-                        .map(Target::getAddress)
-                        .collect(Collectors.toSet());
+            // if the auth context on connection level is empty,
+            // an auth context is required to be set on each source/target
+            final Set<String> sourcesWithoutAuthContext = sources.stream()
+                    .filter(source -> source.getAuthorizationContext().isEmpty())
+                    .flatMap(source -> source.getAddresses().stream())
+                    .collect(Collectors.toSet());
+            final Set<String> targetsWithoutAuthContext = targets.stream()
+                    .filter(target -> target.getAuthorizationContext().isEmpty())
+                    .map(Target::getAddress)
+                    .collect(Collectors.toSet());
 
-                if (!sourcesWithoutAuthContext.isEmpty() || !targetsWithoutAuthContext.isEmpty()) {
-                    final StringBuilder message = new StringBuilder("The ");
-                    if (!sourcesWithoutAuthContext.isEmpty()) {
-                        message.append("Sources ").append(sourcesWithoutAuthContext);
-                    }
-                    if (!sourcesWithoutAuthContext.isEmpty() && !targetsWithoutAuthContext.isEmpty()) {
-                        message.append(" and ");
-                    }
-                    if (!targetsWithoutAuthContext.isEmpty()) {
-                        message.append("Targets ").append(targetsWithoutAuthContext);
-                    }
-                    message.append(" are missing an authorization context.");
-                    throw ConnectionConfigurationInvalidException.newBuilder(message.toString()).build();
+            if (!sourcesWithoutAuthContext.isEmpty() || !targetsWithoutAuthContext.isEmpty()) {
+                final StringBuilder message = new StringBuilder("The ");
+                if (!sourcesWithoutAuthContext.isEmpty()) {
+                    message.append("Sources ").append(sourcesWithoutAuthContext);
                 }
+                if (!sourcesWithoutAuthContext.isEmpty() && !targetsWithoutAuthContext.isEmpty()) {
+                    message.append(" and ");
+                }
+                if (!targetsWithoutAuthContext.isEmpty()) {
+                    message.append("Targets ").append(targetsWithoutAuthContext);
+                }
+                message.append(" are missing an authorization context.");
+                throw ConnectionConfigurationInvalidException.newBuilder(message.toString()).build();
             }
         }
 
@@ -672,8 +626,8 @@ final class ImmutableConnection implements Connection {
          * @param uriString the string representation of the Connection URI.
          * @return the instance.
          * @throws NullPointerException if {@code uriString} is {@code null}.
-         * @throws org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException if {@code uriString} did not
-         * match {@link org.eclipse.ditto.model.connectivity.Connection.UriRegex#REGEX}.
+         * @throws org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException if {@code uriString} did not match
+         * {@link org.eclipse.ditto.model.connectivity.Connection.UriRegex#REGEX}.
          * @see #toString()
          */
         static ConnectionUri of(final String uriString) {

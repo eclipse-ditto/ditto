@@ -325,7 +325,10 @@ public enum HttpStatusCode {
     /**
      * The server, while acting as a gateway or proxy, received an invalid response from an inbound server it accessed
      * while attempting to fulfill the request.
+     *
+     * @deprecated Do not use in Ditto for exceptions as Ditto reserves 502 as code when gracefully shutting down HTTP
      */
+    @Deprecated
     BAD_GATEWAY(502),
 
     /**

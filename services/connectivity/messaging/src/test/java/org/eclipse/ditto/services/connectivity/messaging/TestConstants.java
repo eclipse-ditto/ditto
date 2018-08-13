@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static java.util.Arrays.asList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
-import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
+import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -93,22 +93,21 @@ public class TestConstants {
 
     public static class Sources {
 
-        public static final List<Source> SOURCES = asList(newSource(2, 0, "amqp/source1"), newSource(2, 1,
-                "amqp/source2"));
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
                 asList(newSource(2, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
-                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"), newSource(1, 1,"source1"));
+                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"),
+                        newSource(1, 1, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"));
     }
 
     public static class Targets {
 
         static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Topic.TWIN_EVENTS);
-        static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Topic.TWIN_EVENTS);
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+        static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
                 newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
-        private static final Target LIVE_TARGET = newTarget("live/key", Topic.LIVE_EVENTS);
+        private static final Target LIVE_TARGET = newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
@@ -126,13 +125,17 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return createConnection(connectionId, actorSystem, Sources.SOURCES);
+        return createConnection(connectionId, actorSystem, Sources.SOURCES_WITH_AUTH_CONTEXT);
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final List<Source> sources) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
-                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+        return createConnection(connectionId, actorSystem, STATUS, sources);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final ConnectionStatus status, final List<Source> sources) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri(actorSystem))
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .build();
@@ -141,8 +144,7 @@ public class TestConstants {
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Target... targets) {
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
-                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
-                .sources(Sources.SOURCES)
+                .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(asSet(targets))
                 .build();
     }
@@ -155,17 +157,17 @@ public class TestConstants {
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
-                mockConnectionActorPropsFactory);
+                mockClientActorPropsFactory);
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ClientActorPropsFactory clientActorPropsFactory) {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, connectionActorPropsFactory, null);
+                conciergeForwarder, clientActorPropsFactory, null);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;

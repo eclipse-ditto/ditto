@@ -11,14 +11,20 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.DIRECTION;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.FEATURE_ID;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.STATUS_CODE;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.SUBJECT;
+import static org.eclipse.ditto.model.messages.MessageHeaderDefinition.THING_ID;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -44,9 +50,8 @@ final class MessageAdaptableHelper {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
-    private static final String TEXT_PLAIN = "text/plain";
+    private static final String TEXT_PREFIX = "text/";
     private static final String APPLICATION_JSON = "application/json";
-    private static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     private MessageAdaptableHelper() {
         throw new AssertionError();
@@ -68,7 +73,8 @@ final class MessageAdaptableHelper {
             final JsonObject messageCommandJson,
             final JsonPointer resourcePath,
             final Message<?> message,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final HeaderTranslator headerTranslator) {
 
         final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(thingId);
 
@@ -82,42 +88,23 @@ final class MessageAdaptableHelper {
         messagesTopicPathBuilder.subject(message.getSubject());
 
         final JsonPointer messagePointer = MessageCommand.JsonFields.JSON_MESSAGE.getPointer();
-        final JsonPointer headersJsonPointer = messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_HEADERS
-                .getPointer());
-        final JsonObject messageCommandHeadersJsonObject = messageCommandJson.getValue(headersJsonPointer)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseGet(JsonFactory::newObject);
-
-        final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(messageCommandHeadersJsonObject);
-        allHeadersBuilder.putHeaders(dittoHeaders);
 
         final PayloadBuilder payloadBuilder = Payload.newBuilder(resourcePath);
 
         messageCommandJson.getValue(messagePointer.append(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()))
-                .map(p -> messageCommandHeadersJsonObject.getValue(DittoHeaderDefinition.CONTENT_TYPE.getKey())
-                        .filter(JsonValue::isString)
-                        .map(JsonValue::asString)
-                        .map(contentType -> {
-                            if (MessageAdaptableHelper.shouldBeInterpretedAsText(contentType) ||
-                                    MessageAdaptableHelper.shouldBeInterpretedAsBinary(contentType)) {
-                                return p;
-                            } else {
-                                return JsonValue.of(
-                                        new String(BASE_64_DECODER.decode(p.asString()),
-                                                MessageAdaptableHelper.determineCharset(contentType)));
-                            }
-                        })
-                        .orElse(p))
                 .ifPresent(payloadBuilder::withValue);
 
         message.getStatusCode().ifPresent(payloadBuilder::withStatus);
 
         messageCommandJson.getValue(CommandResponse.JsonFields.STATUS).ifPresent(payloadBuilder::withStatus);
 
+        final DittoHeadersBuilder allHeadersBuilder = DittoHeaders.newBuilder(message.getHeaders());
+        allHeadersBuilder.putHeaders(dittoHeaders);
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allHeadersBuilder.build());
+
         return Adaptable.newBuilder(messagesTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(allHeadersBuilder.build()).build();
+                .withHeaders(DittoHeaders.of(externalHeaders)).build();
     }
 
     /**
@@ -129,9 +116,9 @@ final class MessageAdaptableHelper {
      * @throws NullPointerException if {@code adaptable} is {@code null}.
      * @throws IllegalArgumentException if {@code adaptable}
      * <ul>
-     *     <li>has no headers,</li>
-     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
-     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * <li>has no headers,</li>
+     * <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
@@ -143,10 +130,10 @@ final class MessageAdaptableHelper {
         final boolean shouldBeInterpretedAsText = shouldBeInterpretedAsText(contentType);
         final Charset charset = shouldBeInterpretedAsText ? determineCharset(contentType) : StandardCharsets.UTF_8;
 
-        final MessageBuilder<T> messageBuilder = MessagesModelFactory.<T>newMessageBuilder(messageHeaders);
+        final MessageBuilder<T> messageBuilder = MessagesModelFactory.newMessageBuilder(messageHeaders);
         final Optional<JsonValue> value = adaptable.getPayload().getValue();
         if (shouldBeInterpretedAsText) {
-            if (isPlainText(contentType) && value.filter(JsonValue::isString).isPresent()) {
+            if (isAnyText(contentType) && value.filter(JsonValue::isString).isPresent()) {
                 messageBuilder.payload((T) value.get().asString());
             } else {
                 value.ifPresent(jsonValue -> messageBuilder.payload((T) jsonValue));
@@ -167,9 +154,9 @@ final class MessageAdaptableHelper {
      * @throws NullPointerException if {@code adaptable} is {@code null}.
      * @throws IllegalArgumentException if {@code adaptable}
      * <ul>
-     *     <li>has no headers,</li>
-     *     <li>contains headers with a value that did not represent its appropriate Java type or</li>
-     *     <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
+     * <li>has no headers,</li>
+     * <li>contains headers with a value that did not represent its appropriate Java type or</li>
+     * <li>if the headers of {@code adaptable} did lack a mandatory header.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.messages.SubjectInvalidException if {@code initialHeaders} contains an invalid
      * value for {@link MessageHeaderDefinition#SUBJECT}.
@@ -179,14 +166,18 @@ final class MessageAdaptableHelper {
                 .map(headers -> {
                     final TopicPath topicPath = adaptable.getTopicPath();
                     final DittoHeadersBuilder dittoHeadersBuilder = headers.toBuilder();
-                    if (!headers.containsKey(MessageHeaderDefinition.THING_ID.getKey())) {
-                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.THING_ID.getKey(),
-                                topicPath.getNamespace() + ":" + topicPath.getId());
-                    }
-                    if (!headers.containsKey(MessageHeaderDefinition.SUBJECT.getKey())) {
-                        dittoHeadersBuilder.putHeader(MessageHeaderDefinition.SUBJECT.getKey(),
-                                topicPath.getSubject().orElse(""));
-                    }
+
+                    // these headers are used to store message attributes of Message that are not fields.
+                    // their content comes from elsewhere; overwrite message headers of the same names.
+                    dittoHeadersBuilder.putHeader(THING_ID.getKey(),
+                            topicPath.getNamespace() + ":" + topicPath.getId());
+                    dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
+                    adaptable.getPayload().getPath().getDirection().ifPresent(direction ->
+                            dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
+                    adaptable.getPayload().getPath().getFeatureId().ifPresent(featureId ->
+                            dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
+                    adaptable.getPayload().getStatus().ifPresent(statusCode ->
+                            dittoHeadersBuilder.putHeader(STATUS_CODE.getKey(), String.valueOf(statusCode.toInt())));
                     return dittoHeadersBuilder.build();
                 })
                 .map(MessagesModelFactory::newHeadersBuilder)
@@ -203,16 +194,12 @@ final class MessageAdaptableHelper {
     }
 
     private static boolean shouldBeInterpretedAsText(final String contentType) {
-        return isPlainText(contentType) || contentType.startsWith(APPLICATION_JSON) ||
+        return isAnyText(contentType) || contentType.toLowerCase().startsWith(APPLICATION_JSON) ||
                 DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE.equalsIgnoreCase(contentType);
     }
 
-    private static boolean shouldBeInterpretedAsBinary(final String contentType) {
-        return contentType.startsWith(APPLICATION_OCTET_STREAM);
-    }
-
-    private static boolean isPlainText(final String contentType) {
-        return contentType.startsWith(TEXT_PLAIN);
+    private static boolean isAnyText(final String contentType) {
+        return contentType.toLowerCase().startsWith(TEXT_PREFIX);
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

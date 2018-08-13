@@ -35,8 +35,6 @@ public class ImmutableTargetTest {
 
     private static final Target
             TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
-    private static final Target
-            TARGET_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, TWIN_EVENTS);
     private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
             .newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
@@ -72,15 +70,4 @@ public class ImmutableTargetTest {
         assertThat(actual).isEqualTo(TARGET_WITH_AUTH_CONTEXT);
     }
 
-    @Test
-    public void toJsonWithEmptyAuthContextReturnsExpected() {
-        final JsonObject actual = TARGET_WITH_EMPTY_AUTH_CONTEXT.toJson();
-        assertThat(actual).isEqualTo(TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT);
-    }
-
-    @Test
-    public void fromJsonWithEmptyAuthContextReturnsExpected() {
-        final Target actual = ImmutableTarget.fromJson(TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT);
-        assertThat(actual).isEqualTo(TARGET_WITH_EMPTY_AUTH_CONTEXT);
-    }
 }

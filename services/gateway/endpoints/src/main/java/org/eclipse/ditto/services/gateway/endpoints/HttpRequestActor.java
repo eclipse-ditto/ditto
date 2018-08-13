@@ -15,7 +15,6 @@ import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndFor
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -29,7 +28,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
@@ -37,11 +35,9 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
-import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendMessageAcceptedResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 
 import com.typesafe.config.Config;
 
@@ -65,9 +61,6 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
-import kamon.Kamon;
-import kamon.trace.TraceContext;
-import scala.Option;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
@@ -83,17 +76,10 @@ public final class HttpRequestActor extends AbstractActor {
      */
     public static final String COMPLETE_MESSAGE = "complete";
 
-    private static final String TRACE_TAG_TYPE = "type";
-    private static final String TRACE_TAG_TYPE_PREFIX = "type-prefix";
-    private static final String TRACE_ROUNDTRIP_HTTP = "roundtrip.http";
     private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
     private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
     private static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = "akka.http.server.request-timeout";
-
-    private static final double NANO_TO_MS_DIVIDER = 1_000_000.0;
-    private static final double HTTP_WARN_TIMEOUT_MS = 1_000.0;
-    private static final double SEARCH_WARN_TIMEOUT_MS = 5_000.0;
 
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
@@ -104,7 +90,6 @@ public final class HttpRequestActor extends AbstractActor {
     private final Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
-    private TraceContext traceContext;
 
     private HttpRequestActor(final ActorRef proxyActor, final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
@@ -122,13 +107,9 @@ public final class HttpRequestActor extends AbstractActor {
         commandResponseAwaiting = ReceiveBuilder.create()
                 .matchEquals(COMPLETE_MESSAGE, s -> logger.debug("Got stream's '{}' message", COMPLETE_MESSAGE))
                 // If an actor downstream replies with an HTTP response, simply forward it.
-                .match(HttpResponse.class, response -> {
-                    completeWithResult(response);
-                    finishTraceAndStop();
-                })
+                .match(HttpResponse.class, this::completeWithResult)
                 .match(SendMessageAcceptedResponse.class, cmd -> {
-                    final HttpResponse httpResponse =
-                            HttpResponse.create().withStatus(HttpStatusCode.ACCEPTED.toInt());
+                    final HttpResponse httpResponse = HttpResponse.create().withStatus(HttpStatusCode.ACCEPTED.toInt());
                     completeWithResult(httpResponse);
                 })
                 .match(MessageCommandResponse.class, cmd -> {
@@ -136,6 +117,7 @@ public final class HttpRequestActor extends AbstractActor {
                     completeWithResult(httpResponse);
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.debug("Got 'CommandResponse' 'WithEntity' message");
                     final WithEntity withEntity = (WithEntity) commandResponse;
 
@@ -148,6 +130,7 @@ public final class HttpRequestActor extends AbstractActor {
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity,
                         commandResponse -> {
+                            LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                             logger.debug("Got 'CommandResponse' 'WithOptionalEntity' message");
                             final WithOptionalEntity withOptionalEntity = (WithOptionalEntity) commandResponse;
 
@@ -156,30 +139,23 @@ public final class HttpRequestActor extends AbstractActor {
                             completeWithResult(response);
                         })
                 .match(ErrorResponse.class, errorResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, errorResponse);
                     logger.info("Got 'ErrorResponse': {}", errorResponse);
                     final DittoRuntimeException cre = errorResponse.getDittoRuntimeException();
                     completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
                             .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
                 })
                 .match(CommandResponse.class, commandResponse -> {
+                    LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.warning("Got 'CommandResponse' message which did not implement the required interfaces "
                             + "'WithEntity' / 'WithOptionalEntity': {}", commandResponse);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
                 })
-                .match(RetrieveStatisticsResponse.class, statisticsResponse -> {
-                    logger.debug("Got 'RetrieveStatisticsResponse' message");
-                    final JsonObject statisticsJson = statisticsResponse.getStatistics();
-                    completeWithResult(
-                            HttpResponse.create()
-                                    .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(statisticsJson.toString()))
-                                    .withStatus(HttpStatusCode.OK.toInt())
-                    );
-                })
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.SERVICE_UNAVAILABLE.toInt())
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
                 })
                 .match(JsonRuntimeException.class, jre -> {
@@ -204,7 +180,7 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.SERVICE_UNAVAILABLE.toInt())
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
                 })
                 .match(Status.Failure.class, failure -> failure.cause() instanceof DittoRuntimeException, failure -> {
@@ -276,34 +252,34 @@ public final class HttpRequestActor extends AbstractActor {
     private static Function<HttpResponse, HttpResponse> createModifiedLocationHeaderAddingResponseMapper(
             final HttpRequest request, final CommandResponse commandResponse) {
         return response -> {
-                if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
-                    Uri newUri = request.getUri();
-                    if (!request.method().isIdempotent()) {
-                        // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
-                        final String uriStr = newUri.toString();
-                        String createdLocation;
-                        final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
+            if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
+                Uri newUri = request.getUri();
+                if (!request.method().isIdempotent()) {
+                    // only for not idempotent requests (e.g.: POST), add the "createdId" to the path:
+                    final String uriStr = newUri.toString();
+                    String createdLocation;
+                    final int uriIdIndex = uriStr.indexOf(commandResponse.getId());
 
-                        // if the uri contains the id, but *not* at the beginning
-                        if (uriIdIndex > 0) {
-                            createdLocation =
-                                    uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
-                                            commandResponse.getResourcePath().toString();
-                        } else {
-                            createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
-                                    .toString();
-                        }
-
-                        if (createdLocation.endsWith("/")) {
-                            createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
-                        }
-                        newUri = Uri.create(createdLocation);
+                    // if the uri contains the id, but *not* at the beginning
+                    if (uriIdIndex > 0) {
+                        createdLocation =
+                                uriStr.substring(0, uriIdIndex) + commandResponse.getId() +
+                                        commandResponse.getResourcePath().toString();
+                    } else {
+                        createdLocation = uriStr + "/" + commandResponse.getId() + commandResponse.getResourcePath()
+                                .toString();
                     }
-                    return response.addHeader(Location.create(newUri));
-                } else {
-                    return response;
+
+                    if (createdLocation.endsWith("/")) {
+                        createdLocation = createdLocation.substring(0, createdLocation.length() - 1);
+                    }
+                    newUri = Uri.create(createdLocation);
                 }
-            };
+                return response.addHeader(Location.create(newUri));
+            } else {
+                return response;
+            }
+        };
     }
 
     private static HttpResponse createHttpResponseWithHeadersAndBody(
@@ -315,6 +291,7 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void logDittoRuntimeException(final DittoRuntimeException cre) {
+        LogUtil.enhanceLogWithCorrelationId(logger, cre);
         logger.info("DittoRuntimeException '{}': {}", cre.getErrorCode(), cre.getMessage());
     }
 
@@ -357,13 +334,7 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.info("Got <MessageCommand> with subject <{}>, telling the targetActor about it",
                             command.getMessage().getSubject());
 
-                    final String messageType = command.getMessageType();
                     final Message<?> message = command.getMessage();
-                    final MessageDirection direction = message.getDirection();
-                    newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "." + messageType + "." + direction);
-                    traceContext.addTag("type", messageType);
-                    traceContext.addTag("direction", direction.name());
-                    traceContext.addTag("subject", message.getSubject());
 
                     // authorized!
                     proxyActor.tell(command, getSelf());
@@ -404,13 +375,10 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Command.class, command -> { // receive Commands
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
-                    newTraceFor(command, TRACE_ROUNDTRIP_HTTP + "_" + command.getType());
-
                     proxyActor.tell(command, getSelf());
 
                     if (!command.getDittoHeaders().isResponseRequired()) {
                         completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
-                        finishTraceAndStop();
                     } else {
                         // after a Command was received, this Actor can only receive the correlating CommandResponse:
                         getContext().become(commandResponseAwaiting);
@@ -432,15 +400,17 @@ public final class HttpRequestActor extends AbstractActor {
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final Optional<HttpStatusCode> responseStatusCode =
                 Optional.of(messageCommandResponse.getStatusCode())
-                        .filter(code -> StatusCodes.lookup(code.toInt()).isPresent());
+                        .filter(code -> StatusCodes.lookup(code.toInt()).isPresent())
         // only allow status code which are known to akka-http
+                        .filter(code -> !HttpStatusCode.BAD_GATEWAY.equals(code));
+        // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
             final Optional<ContentType> optionalContentType = message.getContentType().map(ContentType$.MODULE$::parse)
                     .filter(Either::isRight)
                     .map(Either::right)
-                    .map(right -> (ContentType) right.get());
+                    .map(Either.RightProjection::get);
 
             httpResponse =
                     HttpResponse.create()
@@ -485,50 +455,23 @@ public final class HttpRequestActor extends AbstractActor {
         logger.warning("No response within server request timeout ({}), shutting actor down.",
                 serverRequestTimeout);
         // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
-        finishTraceAndStop();
+        stop();
     }
 
     private void completeWithResult(final HttpResponse response) {
         httpResponseFuture.complete(response);
-        logger.debug("Responding with HttpResponse code '{}'", response.status().intValue());
+        final int statusCode = response.status().intValue();
+        logger.debug("Responding with HttpResponse code '{}'", statusCode);
         if (logger.isDebugEnabled()) {
             logger.debug("Responding with Entity: {}", response.entity());
         }
-        finishTraceAndStop();
+        stop();
     }
 
-    private void finishTraceAndStop() {
-        if (traceContext != null) {
-            traceContext.finish();
-            final double durationMs = (System.nanoTime() - traceContext.startTimestamp()) / NANO_TO_MS_DIVIDER;
-            final Option<String> typePrefixOption = traceContext.tags().get(TRACE_TAG_TYPE_PREFIX);
-
-            if (typePrefixOption.contains(ThingSearchCommand.TYPE_PREFIX)) {
-                if (durationMs > SEARCH_WARN_TIMEOUT_MS) {
-                    logger.warning("Encountered slow search which took over {}ms: {}ms",
-                            (int) SEARCH_WARN_TIMEOUT_MS,
-                            (int) durationMs);
-                }
-            } else if (durationMs > HTTP_WARN_TIMEOUT_MS) {
-                logger.warning("Encountered slow HTTP request which took over {}ms: {}ms",
-                        (int) HTTP_WARN_TIMEOUT_MS,
-                        (int) durationMs);
-            }
-        }
+    private void stop() {
         logger.clearMDC();
         // destroy ourself:
         getContext().stop(getSelf());
-    }
-
-    private void newTraceFor(final Command command, final String name) {
-        final Optional<String> tokenOptional = command.getDittoHeaders().getCorrelationId();
-        final Option<String> tokenScalaOption = tokenOptional
-                .map(Option::<String>apply)
-                .orElse(Option.apply(UUID.randomUUID().toString()));
-        LogUtil.enhanceLogWithCorrelationId(logger, tokenOptional);
-        traceContext = Kamon.tracer().newContext(name, tokenScalaOption);
-        traceContext.addTag(TRACE_TAG_TYPE, command.getType());
-        traceContext.addTag(TRACE_TAG_TYPE_PREFIX, command.getTypePrefix());
     }
 
     private static final class ServerRequestTimeoutMessage {

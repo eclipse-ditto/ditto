@@ -45,7 +45,7 @@
     "authorizationContext": {
       "$id": "/properties/authorizationContext",
       "type": "array",
-      "title": "The authorisation context",
+      "title": "The authorization context",
       "description": "The authorization context defines all authorization subjects associated with this connection",
       "uniqueItems": true,
       "items": {

@@ -16,11 +16,6 @@ package org.eclipse.ditto.services.gateway.starter.service.util;
  */
 public final class ConfigKeys {
 
-    /**
-     * Key of the uri for mongodb.
-     */
-    public static final String MONGO_URI = "akka.contrib.persistence.mongodb.mongo.mongouri";
-
     private static final String DITTO_PREFIX = "ditto.";
     private static final String GATEWAY_PREFIX = DITTO_PREFIX + "gateway.";
     /**
@@ -43,8 +38,10 @@ public final class ConfigKeys {
             GATEWAY_PREFIX + "redirect-to-https-blacklist-pattern";
 
     private static final String ENABLED_SUFFIX = "enabled";
+    private static final String HTTP_MIDSECTION = "http.";
 
-    private static final String HTTP_PREFIX = GATEWAY_PREFIX + "http.";
+
+    private static final String HTTP_PREFIX = GATEWAY_PREFIX + HTTP_MIDSECTION;
 
     /**
      * The supported SchemaVersions the API Gateway should support (Array of Integers).
@@ -73,12 +70,6 @@ public final class ConfigKeys {
      */
     public static final String MESSAGE_MAX_TIMEOUT = MESSAGE_PREFIX + "max-timeout";
 
-    /**
-     * The blacklist of which HTTP headers NOT to forward when forwarding a HTTP message to websockets.
-     * This is an array of Strings.
-     */
-    public static final String MESSAGE_HEADER_BLACKLIST = MESSAGE_PREFIX + "http-header-blacklist";
-
     private static final String CLAIMMESSAGE_PREFIX = GATEWAY_PREFIX + "claim-message.";
     /**
      * The default timeout of claim messages initiated via /claim resource.
@@ -97,7 +88,7 @@ public final class ConfigKeys {
      * <p><strong>Note: </strong>Don't use in production!</p>
      */
     public static final String AUTHENTICATION_DUMMY_ENABLED = AUTHENTICATION_DUMMY_PREFIX + ENABLED_SUFFIX;
-    private static final String AUTHENTICATION_HTTP_PREFIX = AUTHENTICATION_PREFIX + "http.";
+    private static final String AUTHENTICATION_HTTP_PREFIX = AUTHENTICATION_PREFIX + HTTP_MIDSECTION;
     private static final String AUTHENTICATION_HTTP_PROXY_PREFIX = AUTHENTICATION_HTTP_PREFIX + "proxy.";
     /**
      * Key of the Authentication "HTTP proxy enabled" config entry.
@@ -147,10 +138,6 @@ public final class ConfigKeys {
 
 
     private static final String PUBLIC_HEALTH_PREFIX = GATEWAY_PREFIX + "public-health.";
-    /**
-     * Whether public health resource /health should be secured with BasicAuth or not.
-     */
-    public static final String PUBLIC_HEALTH_SECURE = PUBLIC_HEALTH_PREFIX + "secure";
 
     /**
      * The timeout for the cache of the external health check information.
@@ -170,42 +157,19 @@ public final class ConfigKeys {
      */
     public static final String CACHE_PUBLIC_KEYS_EXPIRY = CACHE_PREFIX + "publickeys.expiry";
 
-    private static final String THINGS_AGGREGATOR_PREFIX = GATEWAY_PREFIX + "things-aggregator.";
-
-    /**
-     * The timeout for the ThingsAggregratorActor for retrieving a single Thing.
-     */
-    public static final String THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT = THINGS_AGGREGATOR_PREFIX + "single-retrieve-thing-timeout";
-
-
-    private static final String ENFORCER_PREFIX = GATEWAY_PREFIX + "enforcer.";
-    /**
-     * Key of the PolicyEnforcer cache interval.
-     */
-    public static final String ENFORCER_CACHE_INTERVAL = ENFORCER_PREFIX + "cache.interval";
-
-    /**
-     * Key of the PolicyEnforcer internal ask timeout.
-     */
-    public static final String ENFORCER_INTERNAL_ASK_TIMEOUT = ENFORCER_PREFIX + "internal.ask.timeout";
-
-
     private static final String SECRETS_PREFIX = "secrets.";
     /**
      * Key of the gateway devops password.
      */
     public static final String SECRETS_DEVOPS_PASSWORD = SECRETS_PREFIX + "devops_password";
-    /**
-     * Key of the public health password.
-     */
-    public static final String SECRETS_PUBLIC_HEALTH_PASSWORD = SECRETS_PREFIX + "public_health_password";
 
     private static final String AKKA_PREFIX = "akka.";
-    private static final String AKKA_HTTP_PREFIX = AKKA_PREFIX + "http.";
+    private static final String AKKA_HTTP_PREFIX = AKKA_PREFIX + HTTP_MIDSECTION;
     /**
      * Key for the Akka HTTP Server's request timeout.
      */
     public static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = AKKA_HTTP_PREFIX + "server.request-timeout";
+
     /*
      * This class is not designed for instantiation.
      */

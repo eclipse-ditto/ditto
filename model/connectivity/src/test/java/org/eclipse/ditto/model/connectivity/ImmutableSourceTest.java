@@ -32,7 +32,6 @@ public class ImmutableSourceTest {
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
     private static final Source SOURCE_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
-    private static final Source SOURCE_WITH_EMPTY_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, AMQP_SOURCE1);
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
@@ -70,15 +69,4 @@ public class ImmutableSourceTest {
         assertThat(actual).isEqualTo(SOURCE_WITH_AUTH_CONTEXT);
     }
 
-    @Test
-    public void toJsonWithEmptyAuthContextReturnsExpected() {
-        final JsonObject actual = SOURCE_WITH_EMPTY_AUTH_CONTEXT.toJson();
-        assertThat(actual).isEqualTo(SOURCE_JSON);
-    }
-
-    @Test
-    public void fromJsonWithEmptyAuthContextReturnsExpected() {
-        final Source actual = ImmutableSource.fromJson(SOURCE_JSON, 0);
-        assertThat(actual).isEqualTo(SOURCE_WITH_EMPTY_AUTH_CONTEXT);
-    }
 }

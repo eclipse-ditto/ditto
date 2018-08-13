@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -43,7 +44,6 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -157,17 +157,9 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         return registry.exceptionFrom(policyCommand);
     }
 
-    /**
-     * Authorize a policy command. Either the command is forwarded to policies-shard-region for execution or
-     * the sender is told of an error.
-     *
-     * @param signal the command to authorize.
-     * @param sender sender of the command.
-     * @param log the logger to use for logging.
-     */
     @Override
-    public void enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
-        enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
+    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
+        return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
             } else {

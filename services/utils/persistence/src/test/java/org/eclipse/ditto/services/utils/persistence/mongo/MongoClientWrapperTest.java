@@ -48,8 +48,7 @@ public class MongoClientWrapperTest {
     private static String createUri(final boolean sslEnabled) {
         final ConnectionString connectionString = new ConnectionString(
                 "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
-                        "?ssl="
-                        + sslEnabled);
+                        "?ssl=" + sslEnabled);
         return connectionString.getConnectionString();
     }
 
@@ -70,7 +69,7 @@ public class MongoClientWrapperTest {
         assertWithExpected(wrapper, false, true);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test (expected = UnsupportedOperationException.class)
     public void createByUriWithSslEnabled() {
         // prepare
         final String uriWithSslEnabled = createUri(true);
@@ -81,7 +80,7 @@ public class MongoClientWrapperTest {
         final MongoClientWrapper wrapper = MongoClientWrapper.newInstance(config);
 
         // verify
-        assertWithExpected(wrapper, false, true);
+        assertWithExpected(wrapper, true, true);
     }
 
     /** */

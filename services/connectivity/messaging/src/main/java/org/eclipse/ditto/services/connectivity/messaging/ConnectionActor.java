@@ -14,12 +14,15 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -41,12 +44,14 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityErrorResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -80,6 +85,7 @@ import com.typesafe.config.Config;
 import akka.ConfigurationException;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
@@ -98,6 +104,7 @@ import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
 import scala.concurrent.duration.Duration;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -110,6 +117,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
+    /**
+     * Default timeout for flushing pending responses.
+     *
+     * @see ConfigKeys.Connection#FLUSH_PENDING_RESPONSES_TIMEOUT
+     */
+    private static final java.time.Duration DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT = java.time.Duration.ofSeconds(5L);
+
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
@@ -121,11 +135,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ActorRef conciergeForwarder;
     private final long snapshotThreshold;
     private final SnapshotAdapter<Connection> snapshotAdapter;
-    private final ConnectionActorPropsFactory propsFactory;
+    private final ClientActorPropsFactory propsFactory;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
 
-    @Nullable private ActorRef clientActor;
+    @Nullable private ActorRef clientActorRouter;
     @Nullable private Connection connection;
 
     private long lastSnapshotSequenceNr = -1L;
@@ -134,9 +148,16 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
-    private ConnectionActor(final String connectionId, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory,
+    private final FiniteDuration flushPendingResponsesTimeout;
+    private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
+    @Nullable private Cancellable flushPendingResponsesTrigger;
+
+    private ConnectionActor(final String connectionId,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> customCommandValidator) {
+
         this.connectionId = connectionId;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
@@ -158,16 +179,29 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
+
+        final java.time.Duration javaFlushTimeout =
+                config.hasPath(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
+                        ? config.getDuration(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
+                        : DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT;
+        flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param connectionId the connection ID.
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param conciergeForwarder proxy of concierge service.
+     * @param propsFactory factory of props of client actors for various protocols.
      * @return the Akka configuration Props object
      */
-    public static Props props(final String connectionId, final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder, final ConnectionActorPropsFactory propsFactory,
+    public static Props props(final String connectionId,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final Consumer<ConnectivityCommand<?>> commandValidator) {
+
         return Props.create(ConnectionActor.class, new Creator<ConnectionActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -196,8 +230,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     @Override
     public void postStop() {
-        super.postStop();
         log.info("stopped connection <{}>", connectionId);
+        flushPendingResponses();
+        super.postStop();
     }
 
     @Override
@@ -212,24 +247,18 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
-                .match(ConnectionCreated.class, event -> {
-                    connection = event.getConnection();
-                })
-                .match(ConnectionModified.class, event -> {
-                    connection = event.getConnection();
-                })
+                .match(ConnectionCreated.class, event -> connection = event.getConnection())
+                .match(ConnectionModified.class, event -> connection = event.getConnection())
                 .match(ConnectionOpened.class, event -> connection = connection != null ? connection.toBuilder()
                         .connectionStatus(ConnectionStatus.OPEN).build() : null)
                 .match(ConnectionClosed.class, event -> connection = connection != null ? connection.toBuilder()
                         .connectionStatus(ConnectionStatus.CLOSED).build() : null)
-                .match(ConnectionDeleted.class, event -> {
-                    connection = null;
-                })
+                .match(ConnectionDeleted.class, event -> connection = null)
                 .match(RecoveryCompleted.class, rc -> {
-                    log.info("Connection '{}' was recovered: {}", connectionId, connection);
+                    log.info("Connection <{}> was recovered: {}", connectionId, connection);
                     if (connection != null) {
                         if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
-                            log.debug("Opening connection {} after recovery.", connectionId);
+                            log.debug("Opening connection <{}> after recovery.", connectionId);
 
                             final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
 
@@ -256,9 +285,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(CreateConnection.class,
                         createConnection -> validateAndForward(createConnection, this::createConnection))
                 .match(ConnectivityCommand.class, this::handleCommandDuringInitialization)
-                .match(Shutdown.class, shutdown -> stopSelf())
                 .match(Status.Failure.class, f -> log.warning("Got failure in initial behaviour with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(PerformTask.class, this::performTask)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -268,13 +297,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private Receive createConnectionCreatedBehaviour() {
         return ReceiveBuilder.create()
                 .match(TestConnection.class, testConnection ->
-                        getSender().tell(
-                                TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
-                                        testConnection.getDittoHeaders()),
-                                getSelf()))
+                        getSender().tell(TestConnectionResponse.alreadyCreated(testConnection.getConnectionId(),
+                                testConnection.getDittoHeaders()), getSelf()))
                 .match(CreateConnection.class, createConnection -> {
                     enhanceLogUtil(createConnection);
-                    log.info("Connection <{}> already exists, responding with conflict", createConnection.getId());
+                    log.info("Connection <{}> already exists! Responding with conflict.", createConnection.getId());
                     final ConnectionConflictException conflictException =
                             ConnectionConflictException.newBuilder(createConnection.getId())
                                     .dittoHeaders(createConnection.getDittoHeaders())
@@ -293,9 +320,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::handleSubscribeAck)
                 .match(DistributedPubSubMediator.UnsubscribeAck.class, this::handleUnsubscribeAck)
                 .match(SaveSnapshotSuccess.class, this::handleSnapshotSuccess)
-                .match(Shutdown.class, shutdown -> log.debug("Dropping Shutdown in created behaviour state."))
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(PerformTask.class, this::performTask)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -307,9 +334,18 @@ public final class ConnectionActor extends AbstractPersistentActor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
     }
 
+    private void performTask(final PerformTask performTask) {
+        log.info("Running <{}>", performTask);
+        performTask.run(this);
+    }
+
     private void handleSignal(final Signal<?> signal) {
+        // since a signal arrives, event subscription works in the absence of outdated events.
+        // flush pending responses regardless whether the signal is forwarded or not.
+        flushPendingResponses();
+
         enhanceLogUtil(signal);
-        if (clientActor == null) {
+        if (clientActorRouter == null) {
             log.debug("Signal dropped: Client actor not ready.");
             return;
         }
@@ -342,24 +378,25 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
         final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
-        clientActor.tell(outbound, getSelf());
+        clientActorRouter.tell(outbound, getSelf());
     }
 
     private void testConnection(final TestConnection command) {
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
         connection = command.getConnection();
 
+        final PerformTask stopSelfTask = new PerformTask("stop self after test", ConnectionActor::stopSelf);
+
         askClientActor(command, response -> {
-            origin.tell(
-                    TestConnectionResponse.success(command.getConnectionId(), response.toString(),
-                            command.getDittoHeaders()),
-                    getSelf());
+            origin.tell(TestConnectionResponse.success(command.getConnectionId(), response.toString(),
+                    command.getDittoHeaders()), self);
             // terminate this actor's supervisor after a connection test again:
-            stopSelf();
+            self.tell(stopSelfTask, ActorRef.noSender());
         }, error -> {
             handleException("test", origin, error);
             // terminate this actor's supervisor after a connection test again:
-            stopSelf();
+            self.tell(stopSelfTask, ActorRef.noSender());
         });
     }
 
@@ -376,122 +413,187 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void createConnection(final CreateConnection command) {
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
+        final ActorRef parent = getContext().getParent();
 
-        final ConnectionCreated connectionCreated =
-                ConnectionCreated.of(command.getConnection(), command.getDittoHeaders());
-
-        persistEvent(connectionCreated, persistedEvent -> {
+        persistEvent(ConnectionCreated.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
             connection = persistedEvent.getConnection();
             getContext().become(connectionCreatedBehaviour);
 
             if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
-                log.debug("Connection <{}> has status <{}> and will therefore be opened.", connection.getId(),
+                log.debug("Connection <{}> has status <{}> and will therefore be opened.",
+                        connection.getId(),
                         connection.getConnectionStatus().getName());
-                askClientActor(command, response -> {
-                            subscribeForEvents();
-                        }, error -> {
+                final OpenConnection openConnection = OpenConnection.of(connectionId, command.getDittoHeaders());
+                askClientActor(openConnection,
+                        response -> {
+                            final ConnectivityCommandResponse commandResponse =
+                                    CreateConnectionResponse.of(connection, command.getDittoHeaders());
+                            final PerformTask performTask =
+                                    new PerformTask("subscribe for events and schedule CreateConnectionResponse",
+                                            subscribeForEventsAndScheduleResponse(commandResponse, origin));
+                            parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
+                            self.tell(performTask, ActorRef.noSender());
+                        },
+                        error -> {
+                            // log error but send response anyway
                             handleException("connect", origin, error, false);
-                        }, unused -> {
-                            this.respondWithCreateConnectionResponse(connection, command, origin);
+                            respondWithCreateConnectionResponse(connection, command, origin);
                         }
                 );
             } else {
-                log.debug("Connection <{}> has status <{}> and will therefore stay closed.", connection.getId(),
+                log.debug("Connection <{}> has status <{}> and will therefore stay closed.",
+                        connection.getId(),
                         connection.getConnectionStatus().getName());
-                this.respondWithCreateConnectionResponse(connection, command, origin);
+                respondWithCreateConnectionResponse(connection, command, origin);
             }
         });
     }
 
-    private void respondWithCreateConnectionResponse(final Connection connection, final CreateConnection command,
+    private void respondWithCreateConnectionResponse(final Connection connection,
+            final CreateConnection command,
             final ActorRef origin) {
+
         origin.tell(CreateConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
         getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-
     }
 
     private void modifyConnection(final ModifyConnection command) {
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
 
-        if (connection != null && !connection.getConnectionType().equals(command.getConnection().getConnectionType())) {
+        if (connection != null &&
+                !connection.getConnectionType().equals(command.getConnection().getConnectionType())) {
             handleException("modify", origin, ConnectionConfigurationInvalidException
-                    .newBuilder("ConnectionType '" + connection.getConnectionType().getName() +
-                            "' of existing connection '" + connectionId + "' cannot be changed.")
+                    .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +
+                            "> of existing connection <" + connectionId + "> cannot be changed!")
                     .dittoHeaders(command.getDittoHeaders())
                     .build()
             );
             return;
         }
 
-        final ConnectionModified connectionModified =
-                ConnectionModified.of(command.getConnection(), command.getDittoHeaders());
+        persistEvent(ConnectionModified.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
+            connection = persistedEvent.getConnection();
+            getContext().become(connectionCreatedBehaviour);
 
-        persistEvent(connectionModified, persistedEvent -> {
-            if (persistedEvent.getConnection().getClientCount() != connection.getClientCount()) {
-                log.info("Client count changed: old client count: <{}>, new client count: <{}>. " +
-                                "Stopping client actor to apply new config.",
-                        connection.getClientCount(), persistedEvent.getConnection().getClientCount());
-                // send an artificial CloseConnection command to gracefully disconnect and stop the child actors
-                askClientActor(CloseConnection.of(connectionId, DittoHeaders.empty()),
-                        onSuccess -> {
-                            log.info("Connection closed, now stopping client actor.");
-                            stopClientActor();
-                            handleModifyConnection(command, persistedEvent, origin);
-                        },
-                        error -> handleException("connect-after-modify", origin, error));
-            } else {
-                handleModifyConnection(command, persistedEvent, origin);
-            }
+            // if client actor is started: send an artificial CloseConnection command to gracefully disconnect and stop the child actors
+            askClientActorIfStarted(CloseConnection.of(connectionId, DittoHeaders.empty()),
+                    onSuccess -> {
+                        final PerformTask modifyTask = createModifyConnectionTask(true, command, origin);
+                        self.tell(modifyTask, ActorRef.noSender());
+                    },
+                    error -> handleException("connect-after-modify", origin, error),
+                    () -> {
+                        final PerformTask modifyTask = createModifyConnectionTask(false, command, origin);
+                        self.tell(modifyTask, ActorRef.noSender());
+                    });
         });
     }
 
-    private void handleModifyConnection(final ModifyConnection command, final ConnectionModified persistedEvent,
+    private PerformTask createModifyConnectionTask(final boolean stopClientActor, final ModifyConnection command,
             final ActorRef origin) {
-        connection = persistedEvent.getConnection();
-        askClientActor(command, response -> {
-                    getContext().become(connectionCreatedBehaviour);
-                    subscribeForEvents();
-                    origin.tell(
-                            ModifyConnectionResponse.modified(connectionId, command.getDittoHeaders()),
-                            getSelf());
-                    getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
-                }, error -> handleException("connect-after-modify", origin, error)
-        );
+        final String description = (stopClientActor ? "stop client actor and " : "") + "handle modify connection";
+        return new PerformTask(description,
+                connectionActor -> {
+                    if (stopClientActor) {
+                        log.debug("Connection {} was modified, stopping client actor.", connectionId);
+                        connectionActor.stopClientActor();
+                    }
+                    connectionActor.handleModifyConnection(command, origin);
+                });
+    }
+
+    /*
+     * NOT thread-safe.
+     */
+    private void handleModifyConnection(final ModifyConnection command, final ActorRef origin) {
+        checkNotNull(connection, "Connection");
+        final ActorRef self = getSelf();
+        final ActorRef parent = getContext().getParent();
+
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final ConnectivityCommandResponse commandResponse =
+                ModifyConnectionResponse.modified(connectionId, dittoHeaders);
+
+        if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+            final OpenConnection openConnectionAfterModification = OpenConnection.of(connectionId, dittoHeaders);
+            log.debug("Desired connection state is {}, forwarding {} to client actor.",
+                    connection.getConnectionStatus(), openConnectionAfterModification);
+            askClientActor(openConnectionAfterModification,
+                    response -> {
+                        final PerformTask performTask =
+                                new PerformTask("subscribe for events and schedule ModifyConnectionResponse",
+                                        subscribeForEventsAndScheduleResponse(commandResponse, origin));
+                        parent.tell(ConnectionSupervisorActor.ManualReset.getInstance(), self);
+                        self.tell(performTask, ActorRef.noSender());
+                    },
+                    error -> handleException("connect-after-modify", origin, error)
+            );
+        } else {
+            log.debug("Desired connection state is {}, do not open connection.", connection.getConnectionStatus());
+            // TODO respond here or schedule?
+            origin.tell(commandResponse, getSelf());
+        }
     }
 
     private void openConnection(final OpenConnection command) {
-        checkNotNull(connection, "Connection");
+        checkConnectionNotNull();
 
         final ConnectionOpened connectionOpened =
                 ConnectionOpened.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
 
         persistEvent(connectionOpened, persistedEvent -> {
-            connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build();
+            connection = connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build();
             askClientActor(command, response -> {
-                        subscribeForEvents();
-                        origin.tell(OpenConnectionResponse.of(connectionId, command.getDittoHeaders()), getSelf());
-                    }, error -> handleException("open-connection", origin, error)
+                        final ConnectivityCommandResponse commandResponse =
+                                OpenConnectionResponse.of(connectionId, command.getDittoHeaders());
+                        final PerformTask performTask = new PerformTask("open connection",
+                                subscribeForEventsAndScheduleResponse(commandResponse, origin));
+                        self.tell(performTask, ActorRef.noSender());
+                    },
+                    error -> handleException("open-connection", origin, error)
             );
         });
     }
 
+    private void checkConnectionNotNull() {
+        checkNotNull(connection, "Connection");
+    }
+
     private void closeConnection(final CloseConnection command) {
+        checkConnectionNotNull();
 
         final ConnectionClosed connectionClosed =
                 ConnectionClosed.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
 
         persistEvent(connectionClosed, persistedEvent -> {
             if (connection != null) {
                 connection = connection.toBuilder().connectionStatus(ConnectionStatus.CLOSED).build();
             }
-            askClientActor(command, response -> {
-                        origin.tell(CloseConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                                getSelf());
-                        unsubscribeFromEvents();
-                    }, error ->
-                            handleException("disconnect", origin, error)
+            final CloseConnectionResponse closeConnectionResponse =
+                    CloseConnectionResponse.of(connectionId, command.getDittoHeaders());
+            askClientActorIfStarted(command,
+                    response -> {
+                        final PerformTask performTask =
+                                new PerformTask(
+                                        "unsubscribe from events on connection closed, stop client actor and schdeule response",
+                                        connectionActor -> {
+                                            connectionActor.unsubscribeFromEvents();
+                                            connectionActor.stopClientActor();
+                                            schedulePendingResponse(closeConnectionResponse, origin);
+                                        });
+                        self.tell(performTask, ActorRef.noSender());
+                    },
+                    error -> handleException("disconnect", origin, error),
+                    () -> {
+                        log.debug("Client actor was not started, responding directly.");
+                        origin.tell(closeConnectionResponse, getSelf());
+                    }
             );
         });
     }
@@ -501,45 +603,44 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ConnectionDeleted connectionDeleted =
                 ConnectionDeleted.of(command.getConnectionId(), command.getDittoHeaders());
         final ActorRef origin = getSender();
+        final ActorRef self = getSelf();
+
+        final PerformTask deleteSucceededTask = new PerformTask("connection deleted", connectionActor -> {
+            connectionActor.stopClientActor();
+            origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()), self);
+            connectionActor.stopSelf();
+            // All subscriptions stop automatically once this actor stops.
+            // connectionActor.unsubscribeFromEvents();
+        });
+
 
         persistEvent(connectionDeleted, persistedEvent ->
-                askClientActor(command, response -> {
-                            unsubscribeFromEvents();
-                            stopClientActor();
-                            origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                                    getSelf());
-                            stopSelf();
-                        }, error -> {
-                            // we can safely ignore this error and do the same as in the "success" case:
-                            unsubscribeFromEvents();
-                            stopClientActor();
-                            origin.tell(DeleteConnectionResponse.of(connectionId, command.getDittoHeaders()),
-                                    getSelf());
-                            stopSelf();
-                        }
+                askClientActor(command,
+                        response -> self.tell(deleteSucceededTask, ActorRef.noSender()),
+                        // we can safely ignore this error and do the same as in the "success" case
+                        error -> self.tell(deleteSucceededTask, ActorRef.noSender())
                 )
         );
     }
 
+    /*
+     * NOT thread-safe.
+     */
     private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
             final Consumer<Throwable> onError) {
-        askClientActor(cmd, onSuccess, onError, unused -> {});
-    }
-
-    private void askClientActor(final Command<?> cmd, final Consumer<Object> onSuccess,
-            final Consumer<Throwable> onError, final Consumer<Void> onFinally) {
 
         startClientActorIfRequired();
         final long timeout = Optional.ofNullable(cmd.getDittoHeaders().get("timeout"))
                 .map(Long::parseLong)
                 .orElse(DEFAULT_TIMEOUT_MS);
         // wrap in Broadcast message because these management messages must be delivered to each client actor
-        if (clientActor != null && connection != null) {
+        if (clientActorRouter != null && connection != null) {
             final ActorRef aggregationActor = getContext().actorOf(
-                    AggregateActor.props(connectionId, clientActor, connection.getClientCount(), timeout));
+                    AggregateActor.props(connectionId, clientActorRouter, connection.getClientCount(), timeout));
             PatternsCS.ask(aggregationActor, cmd, timeout)
                     .whenComplete((response, exception) -> {
-                        log.debug("Got response to {}: {}", cmd.getType(), exception == null ? response : exception);
+                        log.debug("Got response to {}: {}", cmd.getType(),
+                                exception == null ? response : exception);
                         if (exception != null) {
                             onError.accept(exception);
                         } else if (response instanceof Status.Failure) {
@@ -550,19 +651,42 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         } else {
                             onSuccess.accept(response);
                         }
-                        onFinally.accept(null);
                     });
         } else {
-            onFinally.accept(null);
+            final String message =
+                    MessageFormat.format(
+                            "NOT asking client actor <{0}> for connection <{1}> because one of them is null.",
+                            clientActorRouter, connection);
+            final NullPointerException nullPointerException = new NullPointerException(message);
+            log.error(message);
+            onError.accept(nullPointerException);
         }
     }
 
-    private void handleException(final String action, final ActorRef origin, final Throwable exception) {
-        this.handleException(action, origin, exception, true);
+    /*
+     * NOT thread-safe.
+     */
+    private void askClientActorIfStarted(final Command<?> cmd, final Consumer<Object> onSuccess,
+            final Consumer<Throwable> onError, final Runnable onClientActorNotStarted) {
+        if (clientActorRouter != null && connection != null) {
+            askClientActor(cmd, onSuccess, onError);
+        } else {
+            onClientActorNotStarted.run();
+        }
     }
 
-    private void handleException(final String action, final ActorRef origin, final Throwable exception,
+    /*
+     * Thread-safe because Actor.getSelf() is thread-safe.
+     */
+    private void handleException(final String action, final ActorRef origin, final Throwable exception) {
+        handleException(action, origin, exception, true);
+    }
+
+    private void handleException(final String action,
+            final ActorRef origin,
+            final Throwable exception,
             final boolean sendExceptionResponse) {
+
         final DittoRuntimeException dre;
         if (exception instanceof DittoRuntimeException) {
             dre = (DittoRuntimeException) exception;
@@ -581,18 +705,18 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void retrieveConnection(final RetrieveConnection command) {
-        checkNotNull(connection, "Connection");
+        checkConnectionNotNull();
         getSender().tell(RetrieveConnectionResponse.of(connection, command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
-        checkNotNull(connection, "Connection");
+        checkConnectionNotNull();
         getSender().tell(RetrieveConnectionStatusResponse.of(connectionId, connection.getConnectionStatus(),
                 command.getDittoHeaders()), getSelf());
     }
 
     private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
-        checkNotNull(connection, "Connection");
+        checkConnectionNotNull();
 
         final ActorRef origin = getSender();
         askClientActor(command,
@@ -601,7 +725,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void subscribeForEvents() {
-        checkNotNull(connection, "Connection");
+        checkConnectionNotNull();
+
+        // unsubscribe to previously subscribed topics
+        unsubscribeFromEvents();
+
         uniqueTopicPaths = connection.getTargets().stream()
                 .flatMap(target -> target.getTopics().stream())
                 .collect(Collectors.toSet());
@@ -610,14 +738,14 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final DistributedPubSubMediator.Subscribe subscribe =
                     new DistributedPubSubMediator.Subscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
                             getSelf());
-            log.debug("Subscribing to pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
+            log.debug("Subscribing to pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             pubSubMediator.tell(subscribe, getSelf());
         });
     }
 
     private void unsubscribeFromEvents() {
         forEachPubSubTopicDo(pubSubTopic -> {
-            log.debug("Unsubscribing from pubsub topic '{}' for connection '{}'.", pubSubTopic, connectionId);
+            log.debug("Unsubscribing from pub-sub topic <{}> for connection <{}>.", pubSubTopic, connectionId);
             final DistributedPubSubMediator.Unsubscribe unsubscribe =
                     new DistributedPubSubMediator.Unsubscribe(pubSubTopic, PUB_SUB_GROUP_PREFIX + connectionId,
                             getSelf());
@@ -633,7 +761,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void handleCommandDuringInitialization(final ConnectivityCommand command) {
         log.debug("Unexpected command during initialization of actor received: {} - "
-                        + "Terminating this actor and sending 'ConnectionNotAccessibleException' to requester..",
+                        + "Terminating this actor and sending 'ConnectionNotAccessibleException' to requester ...",
                 command.getType());
         getSender().tell(ConnectionNotAccessibleException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
@@ -642,7 +770,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private <E extends Event> void persistEvent(final E event, final Consumer<E> consumer) {
         persist(event, persistedEvent -> {
-            log.debug("Successfully persisted Event '{}'", persistedEvent.getType());
+            log.debug("Successfully persisted Event <{}>.", persistedEvent.getType());
             consumer.accept(persistedEvent);
             pubSubMediator.tell(new DistributedPubSubMediator.Publish(event.getType(), event, true), getSelf());
 
@@ -658,7 +786,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Already requested taking a Snapshot - not doing it again");
         } else if (connection != null) {
             snapshotInProgress = true;
-            log.info("Attempting to save Snapshot for Connection: <{}> ..", connection);
+            log.info("Attempting to save Snapshot for Connection: <{}> ...", connection);
             // save a snapshot
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connection);
             saveSnapshot(snapshotToStore);
@@ -669,8 +797,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void startClientActorIfRequired() {
         checkNotNull(connectionId, "connectionId");
-        checkNotNull(connection, "connection");
-        if (clientActor == null) {
+        checkConnectionNotNull();
+        if (clientActorRouter == null) {
             final int clientCount = connection.getClientCount();
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", connectionId, clientCount);
             final Props props = propsFactory.getActorPropsForType(connection, conciergeForwarder);
@@ -680,33 +808,24 @@ public final class ConnectionActor extends AbstractPersistentActor {
             final RoundRobinPool roundRobinPool = new RoundRobinPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(roundRobinPool, clusterRouterPoolSettings).props(props);
-            clientActor = getContext().actorOf(clusterRouterPoolProps, "client-router");
+
+            // start client actor without name so it does not conflict with its previous incarnation
+            clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
         } else {
             log.debug("ClientActor already started.");
         }
     }
 
     private void stopClientActor() {
-        if (clientActor != null) {
+        if (clientActorRouter != null) {
             log.debug("Stopping the client actor.");
-            final String name = clientActor.path().name();
-            stopChildActor(clientActor);
-            clientActor = null;
-            // block until client actor is stopped
-            int counter = 20;
-            while (getContext().findChild(name).isPresent() && --counter >= 0) {
-                log.debug("Client actor '{}' still running.", name);
-                try {
-                    Thread.sleep(50);
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
+            stopChildActor(clientActorRouter);
+            clientActorRouter = null;
         }
     }
 
     private void stopChildActor(final ActorRef actor) {
-        log.debug("Stopping child actor '{}'", actor.path());
+        log.debug("Stopping child actor <{}>.", actor.path());
         getContext().stop(actor);
     }
 
@@ -717,11 +836,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
-        log.debug("Successfully subscribed to distributed pub/sub on topic '{}'", subscribeAck.subscribe().topic());
+        log.debug("Successfully subscribed to distributed pub/sub on topic <{}>.",
+                subscribeAck.subscribe().topic());
     }
 
     private void handleUnsubscribeAck(final DistributedPubSubMediator.UnsubscribeAck unsubscribeAck) {
-        log.debug("Successfully unsubscribed from distributed pub/sub on topic '{}'",
+        log.debug("Successfully unsubscribed from distributed pub/sub on topic <{}>.",
                 unsubscribeAck.unsubscribe().topic());
     }
 
@@ -729,23 +849,78 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Snapshot was saved successfully: {}", sss);
     }
 
-    private static class Shutdown {
+    private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {
+        // flush previous responses before scheduling the next flush
+        flushPendingResponses();
+        pendingResponses.add(WithSender.of(response, sender));
+        final PerformTask flushPendingResponses =
+                new PerformTask("flush pending responses", ConnectionActor::flushPendingResponses);
+        flushPendingResponsesTrigger = getContext().system().scheduler()
+                .scheduleOnce(flushPendingResponsesTimeout,
+                        getSelf(),
+                        flushPendingResponses,
+                        getContext().dispatcher(),
+                        ActorRef.noSender());
+    }
 
-        private Shutdown() {
-            // no-op
+    private static Consumer<ConnectionActor> subscribeForEventsAndScheduleResponse(
+            final ConnectivityCommandResponse response,
+            final ActorRef sender) {
+
+        return connectionActor -> {
+            connectionActor.subscribeForEvents();
+            connectionActor.schedulePendingResponse(response, sender);
+        };
+    }
+
+    /**
+     * Send all pending responses to their senders and cancel response flushing trigger.
+     */
+    private void flushPendingResponses() {
+        cancelFlushPendingResponsesTrigger();
+        while (!pendingResponses.isEmpty()) {
+            final WithSender<ConnectivityCommandResponse> withSender = pendingResponses.remove();
+            withSender.getSender().tell(withSender.getMessage(), getSelf());
+        }
+    }
+
+    private void cancelFlushPendingResponsesTrigger() {
+        if (flushPendingResponsesTrigger != null) {
+            flushPendingResponsesTrigger.cancel();
+            flushPendingResponsesTrigger = null;
+        }
+    }
+
+    /**
+     * Self-message for future tasks to run synchronously in actor's thread.
+     * Minimal wrapping of thread-unsafe operations so that they do not corrupt actor state.
+     * The results of such operations are not guaranteed to make sense.
+     */
+    private static final class PerformTask {
+
+        final String description;
+        final Consumer<ConnectionActor> task;
+
+        private PerformTask(final String description, final Consumer<ConnectionActor> task) {
+            this.description = description;
+            this.task = task;
         }
 
-        private static Shutdown getInstance() {
-            return new Shutdown();
+        private void run(final ConnectionActor thisActor) {
+            task.accept(thisActor);
         }
 
+        @Override
+        public final String toString() {
+            return String.format("PerformTask(%s)", description);
+        }
     }
 
     /**
      * Local helper-actor which is started for aggregating several CommandResponses sent back by potentially several
      * {@code clientActors} (behind a cluster Router running on different cluster nodes).
      */
-    private static class AggregateActor extends AbstractActor {
+    private static final class AggregateActor extends AbstractActor {
 
         private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -766,13 +941,19 @@ public final class ConnectionActor extends AbstractPersistentActor {
          *
          * @return the Akka configuration Props object
          */
-        static Props props(final String connectionId, final ActorRef clientActor, final int expectedResponses,
+        static Props props(final String connectionId,
+                final ActorRef clientActor,
+                final int expectedResponses,
                 final long timeout) {
+
             return Props.create(AggregateActor.class, connectionId, clientActor, expectedResponses, timeout);
         }
 
-        private AggregateActor(final String connectionId, final ActorRef clientActor, final int expectedResponses,
+        private AggregateActor(final String connectionId,
+                final ActorRef clientActor,
+                final int expectedResponses,
                 final long timeout) {
+
             this.connectionId = connectionId;
             this.clientActor = clientActor;
             this.expectedResponses = expectedResponses;
@@ -788,7 +969,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         clientActor.tell(new Broadcast(command), getSelf());
                         originHeaders = command.getDittoHeaders();
                         origin = getSender();
-                        getContext().setReceiveTimeout(Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
+                        getContext().setReceiveTimeout(
+                                Duration.create(timeout / 2.0, TimeUnit.MILLISECONDS));
                     })
                     .match(ReceiveTimeout.class, timeout -> {
                         // send back (partially) gathered responses
@@ -798,9 +980,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         if (any instanceof CommandResponse) {
                             aggregatedResults.add((CommandResponse<?>) any);
                         } else if (any instanceof Status.Status) {
-                            aggregatedStatus.put(getSender().path().address().hostPort(), (Status.Status) any);
+                            aggregatedStatus.put(getSender().path().address().hostPort(),
+                                    (Status.Status) any);
                         } else if (any instanceof DittoRuntimeException) {
-                            aggregatedResults.add(ConnectivityErrorResponse.of((DittoRuntimeException) any));
+                            aggregatedResults.add(
+                                    ConnectivityErrorResponse.of((DittoRuntimeException) any));
                         } else {
                             log.error("Could not handle non-Jsonifiable non-Status response: {}", any);
                         }
@@ -817,20 +1001,21 @@ public final class ConnectionActor extends AbstractPersistentActor {
             if (origin != null && originHeaders != null && !aggregatedResults.isEmpty()) {
                 final String responseType = aggregatedResults.get(0).getType();
                 final AggregatedConnectivityCommandResponse response =
-                        AggregatedConnectivityCommandResponse.of(connectionId, aggregatedResults, responseType,
+                        AggregatedConnectivityCommandResponse.of(connectionId, aggregatedResults,
+                                responseType,
                                 HttpStatusCode.OK, originHeaders);
                 log.debug("Aggregated response: {}", response);
                 origin.tell(response, getSelf());
             } else if (origin != null && originHeaders != null && !aggregatedStatus.isEmpty()) {
-                log.debug("Aggregated stati: {}", this.aggregatedStatus);
-                final Optional<Status.Status> failure = this.aggregatedStatus.entrySet().stream()
+                log.debug("Aggregated statuses: {}", aggregatedStatus);
+                final Optional<Status.Status> failure = aggregatedStatus.entrySet().stream()
                         .filter(s -> s.getValue() instanceof Status.Failure)
                         .map(Map.Entry::getValue)
                         .findFirst();
                 if (failure.isPresent()) {
                     origin.tell(failure.get(), getSelf());
                 } else {
-                    final String aggregatedStatusStr = this.aggregatedStatus.entrySet().stream()
+                    final String aggregatedStatusStr = aggregatedStatus.entrySet().stream()
                             .map(Object::toString)
                             .collect(Collectors.joining(","));
                     origin.tell(new Status.Success(aggregatedStatusStr), getSelf());

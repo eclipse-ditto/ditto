@@ -30,9 +30,10 @@ public interface ExternalMessage {
     String CONTENT_TYPE_HEADER = DittoHeaderDefinition.CONTENT_TYPE.getKey();
 
     /**
-     * Message header for the reply to address.
+     * Message header for the reply to address. MUST be lower-case.
+     * "reply-to" is a standard internet message header (RFC-5322).
      */
-    String REPLY_TO_HEADER = "replyTo";
+    String REPLY_TO_HEADER = "reply-to";
 
     /**
      * @return the headers of the ExternalMessage

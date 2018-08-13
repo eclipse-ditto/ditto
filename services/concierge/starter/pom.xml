@@ -119,34 +119,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-core_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-akka-2.5_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.kamon</groupId>
-                    <artifactId>sigar-loader</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-statsd_${scala.version}</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.jjagged</groupId>
-            <artifactId>metrics-statsd</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
@@ -266,6 +238,14 @@
                             </build>
                         </image>
                     </images>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
                 </configuration>
             </plugin>
         </plugins>

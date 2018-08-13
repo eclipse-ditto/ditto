@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import org.bson.Document;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.IsInternalViewVisitor;
-
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;

@@ -77,25 +77,6 @@ public class JmsConnectionHandlingActorTest {
     }
 
     @Test
-    public void handleReconnect() {
-        new TestKit(actorSystem) {{
-
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
-            final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
-
-            final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsReconnect(origin.ref(), mockConnection), getRef());
-
-            final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
-            assertThat(disconnected.getOrigin()).isEmpty();
-
-            final ClientConnected connected = expectMsgClass(ClientConnected.class);
-            assertThat(connected.getOrigin()).contains(origin.ref());
-        }};
-    }
-
-    @Test
     public void handleFailureOnJmsConnect() throws JMSException {
         new TestKit(actorSystem) {{
 

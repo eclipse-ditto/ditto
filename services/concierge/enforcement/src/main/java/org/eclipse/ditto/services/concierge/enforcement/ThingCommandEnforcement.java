@@ -28,9 +28,11 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonFieldSelectorBuilder;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -43,6 +45,7 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyException;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -136,17 +139,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
     }
 
-    /**
-     * Authorize a thing command. Either the command is forwarded to things-shard-region for execution or
-     * the sender is told of an error.
-     *
-     * @param signal the command to authorize.
-     * @param sender of the command.
-     * @param log the logger to use for logging.
-     */
     @Override
-    public void enforce(final ThingCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
-        thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
+    public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+        return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
             } else if (isAclEnforcer(enforcerKeyEntry)) {
@@ -552,7 +548,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     }
 
     /**
-     * Report timeout of {@code ThingQueryComand}.
+     * Report timeout of {@code ThingQueryCommand}.
      *
      * @param command the original command.
      * @param sender sender of the command.
@@ -699,10 +695,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final String policyId) {
 
         final String message = String.format(
-                "The Thing with ID ''%s'' could not be accessed as its Policy with ID ''%s'' is not or no longer existing.",
+                "The Thing with ID '%s' could not be accessed as its Policy with ID '%s' is not or no longer existing.",
                 thingId, policyId);
         final String description = String.format(
-                "Recreate/create the Policy with ID ''%s'' in order to get access to the Thing again.",
+                "Recreate/create the Policy with ID '%s' in order to get access to the Thing again.",
                 policyId);
 
         if (thingCommand instanceof ThingModifyCommand) {
@@ -801,19 +797,46 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private Optional<CreateThingWithEnforcer> enforceCreateThingByOwnInlinedPolicy(final CreateThing createThing,
             final JsonObject inlinedPolicy, final ActorRef sender) {
-        final Policy initialPolicy = PoliciesModelFactory.newPolicy(inlinedPolicy);
-        if (PoliciesValidator.newInstance(initialPolicy).isValid()) {
-            final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
-            return attachEnforcerOrReplyWithError(createThing, initialEnforcer,
-                    ThingCommandEnforcement::authorizeByPolicy, sender);
-        } else {
-            final DittoRuntimeException error =
-                    PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getThingId())
-                            .dittoHeaders(createThing.getDittoHeaders())
-                            .build();
+
+        return checkInitialPolicy(createThing, inlinedPolicy, sender).flatMap(initialPolicy -> {
+
+            if (PoliciesValidator.newInstance(initialPolicy).isValid()) {
+                final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
+                return attachEnforcerOrReplyWithError(createThing, initialEnforcer,
+                        ThingCommandEnforcement::authorizeByPolicy, sender);
+            } else {
+                final DittoRuntimeException error =
+                        PolicyInvalidException.newBuilder(MIN_REQUIRED_POLICY_PERMISSIONS, createThing.getThingId())
+                                .dittoHeaders(createThing.getDittoHeaders())
+                                .build();
+                replyToSender(error, sender);
+                return Optional.empty();
+            }
+        });
+    }
+
+    private Optional<Policy> checkInitialPolicy(final CreateThing createThing, final JsonObject inlinedPolicy,
+            final ActorRef sender) {
+
+        try {
+            // Java doesn't permit conversion of this early return into assignment to final variable.
+            return Optional.of(PoliciesModelFactory.newPolicy(inlinedPolicy));
+        } catch (final JsonRuntimeException | DittoJsonException e) {
+            final String thingId = createThing.getThingId();
+            final DittoRuntimeException error = PolicyInvalidException.newBuilderForCause(e, thingId)
+                    .dittoHeaders(createThing.getDittoHeaders())
+                    .build();
             replyToSender(error, sender);
-            return Optional.empty();
+        } catch (final DittoRuntimeException e) {
+            final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+            if (e instanceof PolicyException) {
+                // user error; no need to log stack trace.
+                replyToSender(e.setDittoHeaders(dittoHeaders), sender);
+            } else {
+                reportError("Error during creation of inline policy from JSON", sender, e, dittoHeaders);
+            }
         }
+        return Optional.empty();
     }
 
     private Optional<CreateThingWithEnforcer> enforceCreateThingByOwnAcl(final CreateThing createThing,
@@ -1004,7 +1027,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             } else {
                 // cannot create policy.
                 final String thingId = createThing.getThingId();
-                final String message = String.format("The Thing with ID ''%s'' could not be created with implicit " +
+                final String message = String.format("The Thing with ID '%s' could not be created with implicit " +
                         "Policy because no authorization subject is present.", thingId);
                 final ThingNotCreatableException error =
                         ThingNotCreatableException.newBuilderForPolicyMissing(thingId, thingId)
@@ -1056,7 +1079,6 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private static Optional<DittoRuntimeException> checkPolicyIdValidityForCreateThing(final CreateThing createThing) {
         final Thing thing = createThing.getThing();
-        final Optional<String> thingIdOpt = thing.getId();
         final Optional<String> policyIdOpt = thing.getPolicyId();
         final Optional<String> policyIdInPolicyOpt = createThing.getInitialPolicy()
                 .flatMap(jsonObject -> jsonObject.getValue(Thing.JsonFields.POLICY_ID));
@@ -1065,7 +1087,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (policyIdOpt.isPresent()) {
             isValid = !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(policyIdOpt);
         } else {
-            isValid = !policyIdInPolicyOpt.isPresent() || policyIdInPolicyOpt.equals(thingIdOpt);
+            isValid = true;
         }
 
         if (!isValid) {

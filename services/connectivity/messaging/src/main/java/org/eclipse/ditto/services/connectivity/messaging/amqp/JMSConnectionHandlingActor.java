@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,10 +39,11 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFail
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.dispatch.MessageDispatcher;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * This actor executes operations (connect/disconnect) on JMS Connection/Session. It is separated into an actor
@@ -106,33 +106,26 @@ public class JMSConnectionHandlingActor extends AbstractActor {
                 .withDispatcher(DISPATCHER_NAME);
     }
 
+    /**
+     * Get dispatcher of this actor, which should be good for blocking operations.
+     *
+     * @param actorSystem actor system where this actor is configured.
+     * @return the dispatcher.
+     */
+    static MessageDispatcher getOwnDispatcher(final ActorSystem actorSystem) {
+        return actorSystem.dispatchers().lookup(DISPATCHER_NAME);
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .match(AmqpClientActor.JmsConnect.class, this::handleConnect)
-                .match(AmqpClientActor.JmsReconnect.class, this::handleReconnect)
                 .match(AmqpClientActor.JmsDisconnect.class, this::handleDisconnect)
                 .build();
     }
 
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
         maybeConnectAndTell(getSender(), connect.getOrigin().orElse(null));
-    }
-
-    private void handleReconnect(final AmqpClientActor.JmsReconnect reconnect) {
-        final javax.jms.Connection connection = reconnect.getConnection();
-        final ActorRef origin = reconnect.getOrigin().orElse(null);
-        final ActorRef sender = getSender();
-        log.info("Reconnecting");
-        disconnectAndTell(connection, null); // do not pass origin as only the disconnect would be acked
-
-        // wait a little until connecting again:
-        getContext().getSystem()
-                .scheduler()
-                .scheduleOnce(FiniteDuration.apply(500, TimeUnit.MILLISECONDS),
-                        // this should be thread-safe
-                        () -> maybeConnectAndTell(sender, origin),
-                        getContext().getSystem().dispatcher());
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {

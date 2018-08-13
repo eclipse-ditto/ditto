@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -116,7 +117,10 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
         final CompletionStage<Optional<Instant>> done = source.runWith(Sink.head(), mat);
         try {
             return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (final ExecutionException | TimeoutException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -174,7 +178,10 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
             final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
             done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
             LOGGER.debug("Successfully created collection: <{}>.", collectionName);
-        } catch (final InterruptedException | TimeoutException e) {
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        } catch (final TimeoutException e) {
             throw new IllegalStateException(e);
         } catch (final ExecutionException e) {
             if (isCollectionAlreadyExistsError(e.getCause())) {

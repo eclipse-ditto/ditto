@@ -13,6 +13,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,22 +34,25 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 @Immutable
 final class ImmutablePayload implements Payload {
 
-    private final JsonPointer path;
+    private final MessagePath path;
     @Nullable private final JsonValue value;
     @Nullable private final HttpStatusCode status;
     @Nullable private final Long revision;
+    @Nullable private final Instant timestamp;
     @Nullable private final JsonFieldSelector fields;
 
-    private ImmutablePayload(final JsonPointer path,
+    private ImmutablePayload(final MessagePath path,
             @Nullable final JsonValue value,
             @Nullable final HttpStatusCode status,
             @Nullable final Long revision,
+            @Nullable final Instant timestamp,
             @Nullable final JsonFieldSelector fields) {
 
         this.path = checkNotNull(path, "path");
         this.value = value;
         this.status = status;
         this.revision = revision;
+        this.timestamp = timestamp;
         this.fields = fields;
     }
 
@@ -69,8 +73,29 @@ final class ImmutablePayload implements Payload {
             @Nullable final HttpStatusCode status,
             @Nullable final Long revision,
             @Nullable final JsonFieldSelector fields) {
+        return of(ImmutableMessagePath.of(path), value, status, revision, null, fields);
+    }
 
-        return new ImmutablePayload(path, value, status, revision, fields);
+    /**
+     * Returns a new ImmutablePayload for the specified {@code path}, {@code value}, {@code status}, {@code revision},
+     * {@code timestamp} and {@code fields}.
+     *
+     * @param path the path.
+     * @param value the optional value.
+     * @param status the optional status.
+     * @param revision the optional revision.
+     * @param timestamp the optional timestamp.
+     * @param fields the optional fields.
+     * @return the payload.
+     * @throws NullPointerException if {@code path} is {@code null}.
+     */
+    public static ImmutablePayload of(final JsonPointer path,
+            @Nullable final JsonValue value,
+            @Nullable final HttpStatusCode status,
+            @Nullable final Long revision,
+            @Nullable final Instant timestamp,
+            @Nullable final JsonFieldSelector fields) {
+        return new ImmutablePayload(ImmutableMessagePath.of(path), value, status, revision, timestamp, fields);
     }
 
     /**
@@ -91,16 +116,17 @@ final class ImmutablePayload implements Payload {
                 .orElse(null);
 
         final Long revision = jsonObject.getValue(JsonFields.REVISION).orElse(null);
+        final Instant timestamp = jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null);
 
         final JsonFieldSelector fields = jsonObject.getValue(JsonFields.FIELDS)
                 .map(JsonFieldSelector::newInstance)
                 .orElse(null);
 
-        return of(path, value, status, revision, fields);
+        return of(path, value, status, revision, timestamp, fields);
     }
 
     @Override
-    public JsonPointer getPath() {
+    public MessagePath getPath() {
         return path;
     }
 
@@ -117,6 +143,11 @@ final class ImmutablePayload implements Payload {
     @Override
     public Optional<Long> getRevision() {
         return Optional.ofNullable(revision);
+    }
+
+    @Override
+    public Optional<Instant> getTimestamp() {
+        return Optional.ofNullable(timestamp);
     }
 
     @Override
@@ -141,6 +172,10 @@ final class ImmutablePayload implements Payload {
             jsonObjectBuilder.set(JsonFields.REVISION, revision);
         }
 
+        if (null != timestamp) {
+            jsonObjectBuilder.set(JsonFields.TIMESTAMP, timestamp.toString());
+        }
+
         if (null != fields) {
             jsonObjectBuilder.set(JsonFields.FIELDS, fields.toString());
         }
@@ -148,6 +183,7 @@ final class ImmutablePayload implements Payload {
         return jsonObjectBuilder.build();
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -158,18 +194,19 @@ final class ImmutablePayload implements Payload {
         }
         final ImmutablePayload that = (ImmutablePayload) o;
         return Objects.equals(path, that.path) && Objects.equals(value, that.value) && status == that.status
-                && Objects.equals(revision, that.revision) && Objects.equals(fields, that.fields);
+                && Objects.equals(revision, that.revision) && Objects.equals(timestamp, that.timestamp)
+                && Objects.equals(fields, that.fields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(path, value, status, revision, fields);
+        return Objects.hash(path, value, status, revision, timestamp, fields);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + "path=" + path + ", value=" + value + ", status=" + status
-                + ", revision=" + revision + ", fields=" + fields + ']';
+                + ", revision=" + revision + ", timestamp=" + timestamp + ", fields=" + fields + ']';
     }
 
 }

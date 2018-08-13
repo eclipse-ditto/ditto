@@ -71,7 +71,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             final double randomFactor,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory propsFactory,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
         try {
             this.connectionId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -100,7 +100,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
      * for accessing the connection cache in cluster.
      * @param pubSubMediator the PubSub mediator actor.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param propsFactory the {@link ConnectionActorPropsFactory}
+     * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands
      * @return the {@link Props} to create this actor.
      */
@@ -109,7 +109,7 @@ public final class ConnectionSupervisorActor extends AbstractActor {
             final double randomFactor,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory propsFactory,
+            final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         return Props.create(ConnectionSupervisorActor.class, new Creator<ConnectionSupervisorActor>() {

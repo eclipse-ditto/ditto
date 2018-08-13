@@ -11,25 +11,16 @@
  */
 package org.eclipse.ditto.services.models.policies;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
-import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AccessControlListBuilder;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Utilities for migrating Policies and ACLs between {@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#V_1} to

@@ -26,7 +26,7 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.SecurityDirectives;
 
 /**
- * Custom Akka Http directive performing basic auth for 2 realms, {@value #REALM_DEVOPS} and {@value #REALM_HEALTH}.
+ * Custom Akka Http directive performing basic auth for {@value #REALM_DEVOPS} realm.
  */
 public class DevopsBasicAuthenticationDirective {
 
@@ -37,13 +37,7 @@ public class DevopsBasicAuthenticationDirective {
      */
     public static final String REALM_DEVOPS = "DITTO-DEVOPS";
 
-    /**
-     * The Http basic auth realm for the "health-user" user used for /health resource.
-     */
-    public static final String REALM_HEALTH = "HEALTH-USER";
-
     private static final String USER_DEVOPS = "devops";
-    private static final String USER_HEALTH = "health-user";
 
     private DevopsBasicAuthenticationDirective() {
         // no op
@@ -59,30 +53,19 @@ public class DevopsBasicAuthenticationDirective {
     public static Route authenticateDevopsBasic(final String realm, final Route inner) {
         return Directives.extractActorSystem(actorSystem -> {
             final Config config = actorSystem.settings().config();
-            switch (realm) {
-                case REALM_DEVOPS:
-                    final boolean devopsSecureStatus = config.getBoolean(ConfigKeys.DEVOPS_SECURE_STATUS);
-                    if (!devopsSecureStatus) {
-                        LOGGER.warn("DevOps resource is not secured by BasicAuth");
-                        return inner;
-                    }
-                    final String devOpsPassword = config.getString(ConfigKeys.SECRETS_DEVOPS_PASSWORD);
-                    LOGGER.debug("Devops authentication is enabled.");
-                    return Directives.authenticateBasic(REALM_DEVOPS, new Authenticator(USER_DEVOPS, devOpsPassword),
-                            (userName) -> inner);
-                case REALM_HEALTH:
-                    final boolean healthSecure = config.getBoolean(ConfigKeys.PUBLIC_HEALTH_SECURE);
-                    if (!healthSecure) {
-                        LOGGER.warn("/health resource is not secured by BasicAuth");
-                        return inner;
-                    }
-                    final String healthPassword = config.getString(ConfigKeys.SECRETS_PUBLIC_HEALTH_PASSWORD);
-                    LOGGER.debug("Devops authentication is enabled.");
-                    return Directives.authenticateBasic(REALM_HEALTH, new Authenticator(USER_HEALTH, healthPassword),
-                            (userName) -> inner);
-                default:
-                    LOGGER.warn("Did not know realm '{}'. NOT letting the inner Route pass ..", realm);
-                    return Directives.complete(StatusCodes.UNAUTHORIZED);
+            if (REALM_DEVOPS.equals(realm)) {
+                final boolean devopsSecureStatus = config.getBoolean(ConfigKeys.DEVOPS_SECURE_STATUS);
+                if (!devopsSecureStatus) {
+                    LOGGER.warn("DevOps resource is not secured by BasicAuth");
+                    return inner;
+                }
+                final String devOpsPassword = config.getString(ConfigKeys.SECRETS_DEVOPS_PASSWORD);
+                LOGGER.debug("Devops authentication is enabled.");
+                return Directives.authenticateBasic(REALM_DEVOPS, new Authenticator(USER_DEVOPS, devOpsPassword),
+                        userName -> inner);
+            } else {
+                LOGGER.warn("Did not know realm '{}'. NOT letting the inner Route pass ..", realm);
+                return Directives.complete(StatusCodes.UNAUTHORIZED);
             }
         });
     }

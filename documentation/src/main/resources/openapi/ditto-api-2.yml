@@ -63,8 +63,7 @@ paths:
         - name: ids
           in: query
           description: >-
-            Contains a comma separated list of `thingId`s to retrieve in one
-            single request.
+            Contains a comma separated list of `thingId`s to retrieve in one single request.
           required: true
           type: string
         - $ref: '#/parameters/thingFieldsQueryParam'
@@ -79,8 +78,7 @@ paths:
               $ref: '#/definitions/Thing'
         '400':
           description: >-
-            The request could not be completed. At least one of the defined
-            query parameters was invalid.
+            The request could not be completed. At least one of the defined query parameters was invalid.
           schema:
             $ref: '#/definitions/AdvancedError'
         '401':
@@ -89,8 +87,7 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '414':
           description: >-
-            The request could not be completed due to an URI length exceeding 8k
-            characters.
+            The request could not be completed due to an URI length exceeding 8k characters.
     post:
       summary: Create a new Thing
       description: >-
@@ -123,8 +120,7 @@ paths:
         '400':
           description: >-
             The request could not be completed. The JSON of the Thing to be
-            created was invalid or the `thingId` was wrongly set in the request
-            body.
+            created was invalid or the `thingId` was wrongly set in the request body.
           schema:
             $ref: '#/definitions/AdvancedError'
         '401':
@@ -200,10 +196,62 @@ paths:
         be created which grants all permissions to the authorized subject on the
         root thing and policy resource.
 
-        ### Update of an existing Thing
+        ### Permissions for updating an existing Thing
 
         For updating an existing Thing the authorized subject has to have an
         unrestricted `WRITE` permission on the Thing's root resource.
+
+        ### Partially updating an existing Thing
+
+        When updating an existing Thing already containing `attributes`, `policyId` or `features` the already existing fields
+        must not explicitly be provided again. For this "PUT Thing" request (and only for this top-level update on the
+        Thing) the top-level field to update is merged with the existing top-level fields of the Thing.
+
+
+        For example: A Thing already exists with this content:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "policyId": "namespace:policy-name",
+          "attributes": {
+            "foo": 1
+          },
+          "features": {...}
+        }
+
+        ```
+
+        The Thing's `attributes` may be modified without having to pass the `policyId` or the `features` in again. The content
+        of the request's body would be sufficient for updating the `attributes`:
+
+        ```
+
+        {
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+        }
+
+        ```
+
+        The `policyId` and `features` of the Thing will not be overwritten, the Thing will be merged as one would expect it:
+
+        ```
+
+        {
+          "thingId": "namespace:thing-name",
+          "policyId": "namespace:policy-name",
+          "attributes": {
+            "foo": 2
+            "bar": false
+          }
+          "features": {...}
+        }
+
+        ```
       tags:
         - Things
       parameters:
@@ -250,9 +298,8 @@ paths:
     delete:
       summary: Delete a specific Thing
       description: >-
-        Deletes the Thing identified by the `thingId` path parameter. This will
-        not delete the Policy used for controlling access to this Thing managed
-        by resource `/policies/{policyId}`.
+        Deletes the Thing identified by the `thingId` path parameter. This will not delete the Policy used for
+        controlling access to this Thing managed by resource `/policies/{policyId}`.
       tags:
         - Things
       parameters:
@@ -318,10 +365,9 @@ paths:
     put:
       summary: Create or update the Policy ID of a Thing
       description: >-
-        Create or update the Policy ID of the Thing identified by the `thingId`
-        path parameter. If the Thing had not yet a `policyId` set it was
-        considered to be in API version 1, access controlled by the `acl`
-        mechanism. In that case PUTing a `policyId` will create the Policy ID.
+        Create or update the Policy ID of the Thing identified by the `thingId` path parameter. If the Thing had not
+        yet a `policyId` set it was considered to be in API version 1, access controlled by the `acl` mechanism.
+        In that case PUTing a `policyId` will create the Policy ID.
       tags:
         - Things
       parameters:
@@ -329,8 +375,8 @@ paths:
         - name: policyId
           in: body
           description: >-
-            The Policy ID (as JSON String) used for controlling access to this Thing. Managed by
-            resource `/policies/{policyId}`.
+            The Policy ID (as JSON String) used for controlling access to this Thing. Managed by resource
+            `/policies/{policyId}`.
 
               * contain the mandatory namespace prefix (java package notation + `:` colon) - periods (`.`) may be used in namespace but not as first or last character
               * conform to RFC-2396 (URI)
@@ -341,8 +387,7 @@ paths:
       responses:
         '201':
           description: >-
-            The Policy ID was successfully created - the Thing was migrated to
-            API version 2.
+            The Policy ID was successfully created - the Thing was migrated to API version 2.
           schema:
             type: string
         '204':
@@ -361,16 +406,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Thing with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/attributes':
     get:
       summary: List all Attributes of a specific Thing
       description: >-
-        Returns all Attributes of the Thing identified by the `thingId` path
-        parameter.
+        Returns all Attributes of the Thing identified by the `thingId` path parameter.
       tags:
         - Things
       parameters:
@@ -395,16 +439,14 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found.
+            The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or update all Attributes of a specific Thing at once
       description: >-
-        Create or update the Attributes of a Thing identified by the `thingId`
-        path parameter at once. The Attributes will be replaced by the request
-        body's JSON.
+        Create or update the Attributes of a Thing identified by the `thingId`  path parameter at once.
+        The Attributes will be replaced by the request body's JSON.
       tags:
         - Things
       parameters:
@@ -454,15 +496,13 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found.
+            The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete all Attributes of a specific Thing at once
       description: >-
-        Deletes all Attributes of the Thing identified by the `thingId` path
-        parameter at once.
+        Deletes all Attributes of the Thing identified by the `thingId` path parameter at once.
       tags:
         - Things
       parameters:
@@ -491,19 +531,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID or
-            its Attributes were not found.
+            The request could not be completed. The Thing with the given ID or its Attributes were not found.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific Attribute of a specific Thing
       description: >-
-        Returns a specific Attribute of the Thing identified by the `thingId`
-        path parameter. The Attribute (JSON) can be referenced hierarchically by
-        applying JSON Pointer notation (RFC-6901), e.g.:
-        `/things/{thingId}/attributes/address/city` in order to retrieve the
-        `city` field of an `address` object.
+        Returns a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON)
+        can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
+        `/things/{thingId}/attributes/address/city` in order to retrieve the `city` field of an `address` object.
       tags:
         - Things
       parameters:
@@ -526,19 +563,17 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID or
-            the Attribute at the specified path was not found.
+            The request could not be completed. The Thing with the given ID or the Attribute at the specified path
+            was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or update a specific Attribute of a specific Thing
       description: >-
-        Create or update a specific Attribute of the Thing identified by the
-        `thingId` path parameter. The Attribute will be created if it doesn't
-        exist or else updated. The Attribute (JSON) can be referenced
-        hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
-        `/things/{thingId}/attributes/address/city` in order to create/update
-        the `city` field of an `address` object.
+        Create or update a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute
+        will be created if it doesn't exist or else updated. The Attribute (JSON) can be referenced hierarchically by
+        applying JSON Pointer notation (RFC-6901), e.g.: `/things/{thingId}/attributes/address/city` in order to
+        create/update the `city` field of an `address` object.
       tags:
         - Things
       parameters:
@@ -575,18 +610,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found.
+            The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete a specific Attribute of a specific Thing
       description: >-
-        Deletes a specific Attribute of the Thing identified by the `thingId`
-        path parameter. The Attribute (JSON) can be referenced hierarchically by
-        applying JSON Pointer notation (RFC-6901), e.g.:
-        `/things/{thingId}/attributes/address/city` in order to delete the
-        `city` field of an `address` object.
+        Deletes a specific Attribute of the Thing identified by the `thingId` path parameter. The Attribute (JSON)
+        can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
+        `/things/{thingId}/attributes/address/city` in order to delete the `city` field of an `address` object.
       tags:
         - Things
       parameters:
@@ -616,8 +648,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID or
-            the Attribute at the specified path was not found.
+            The request could not be completed. The Thing with the given ID or the Attribute at the specified path
+            was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
 ###
@@ -627,8 +659,7 @@ paths:
     get:
       summary: List all Features of a specific Thing
       description: >-
-        Returns all Features of the Thing identified by the `thingId` path
-        parameter.
+        Returns all Features of the Thing identified by the `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -637,8 +668,7 @@ paths:
       responses:
         '200':
           description: >-
-            The list of Features of the specific Thing were successfully
-            retrieved.
+            The list of Features of the specific Thing were successfully retrieved.
           schema:
             $ref: '#/definitions/Features'
         '400':
@@ -657,16 +687,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found or the Features have not been defined.
+            The request could not be completed. The Thing with the given ID was not found or the Features have not
+            been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify all Features of a specific Thing at once
       description: >-
-        Create or modify the Features of a Thing identified by the `thingId`
-        path parameter at once. The list of Features will be replaced by the
-        request body's JSON.
+        Create or modify the Features of a Thing identified by the `thingId` path parameter at once. The list of
+        Features will be replaced by the request body's JSON.
       tags:
         - Features
       parameters:
@@ -674,8 +703,8 @@ paths:
         - name: features
           in: body
           description: >-
-            JSON object of the Features to be modified at once. It can be also
-            `null` or an empty object `{}` (all features cleared).
+            JSON object of the Features to be modified at once. It can be also `null` or an empty object `{}`
+            (all features cleared).
           required: true
           schema:
             $ref: '#/definitions/Features'
@@ -713,15 +742,13 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found.
+            The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete all Features of a specific Thing
       description: >-
-        Deletes all features of the Thing identified by the `thingId` path
-        parameter.
+        Deletes all features of the Thing identified by the `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -750,16 +777,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found or the Features have not been defined.
+            The request could not be completed. The Thing with the given ID was not found or the Features have not
+            been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific Feature of a specific Thing
       description: >-
-        Returns a specific Feature identified by the `featureId` path parameter
-        of the Thing identified by the `thingId` path parameter.
+        Returns a specific Feature identified by the `featureId` path parameter of the Thing identified by the
+        `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -787,15 +814,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID or
-            the Feature with the specified `featureId` was not found.
+            The request could not be completed. The Thing with the given ID or the Feature with the specified
+            `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify a specific Feature of a specific Thing
       description: >-
-        Create or modify a specific Feature identified by the `featureId` path
-        parameter of the Thing identified by the `thingId` path parameter.
+        Create or modify a specific Feature identified by the `featureId` path parameter of the Thing identified by
+        the `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -804,8 +831,7 @@ paths:
         - name: feature
           in: body
           description: >-
-            JSON representation of the Feature to be created/modified. It can
-            also be `null` or an empty object `{}`.
+            JSON representation of the Feature to be created/modified. It can also be `null` or an empty object `{}`.
           required: true
           schema:
             $ref: '#/definitions/Feature'
@@ -843,15 +869,14 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID was
-            not found.
+            The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete a specific Feature of a specific Thing
       description: >-
-        Deletes a specific Feature identified by the `featureId` path parameter
-        of the Thing identified by the `thingId` path parameter.
+        Deletes a specific Feature identified by the `featureId` path parameter of the Thing identified by the
+        `thingId` path parameter.
       tags:
         - Features
       parameters:
@@ -881,16 +906,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing with the given ID or
-            the Feature at the specified path was not found.
+            The request could not be completed. The Thing with the given ID or the Feature at the specified path was
+            not found.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the Definition of a Feature
       description: >-
-        Returns the complete Definition of the Feature identified by the `thingId` and
-        `featureId` path parameter.
+        Returns the complete Definition of the Feature identified by the `thingId` and `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -917,17 +941,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
-            with `featureId` was not found.
+            The request could not be completed. The specified Feature has no Definition or the Thing with the
+            specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or update the Definition of a Feature
       description: >-
-        Create or update the complete Definition of a Feature identified by the `thingId`
-        and `featureId` path parameter at once. The Definition will be replaced
-        by the request body's JSON array.
+        Create or update the complete Definition of a Feature identified by the `thingId` and `featureId` path
+        parameter at once. The Definition will be replaced by the request body's JSON array.
       tags:
         - Features
       parameters:
@@ -936,9 +958,9 @@ paths:
         - name: definition
           in: body
           description: >-
-            JSON array of the complete Definition to be updated. Consider that
-            the value has to be a JSON array or `null`. The content of the JSON array
-            are strings in the format `"namespace:name:version"` which is enforced.
+            JSON array of the complete Definition to be updated. Consider that the value has to be a JSON array or
+            `null`. The content of the JSON array are strings in the format `"namespace:name:version"` which is
+            enforced.
           required: true
           schema:
             $ref: '#/definitions/FeatureDefinition'
@@ -975,15 +997,13 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing or the Feature with
-            the given ID was not found.
+            The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete the Definition of a Feature
       description: >-
-        Deletes the complete Definition of the Feature identified by the `thingId` and
-        `featureId` path parameter.
+        Deletes the complete Definition of the Feature identified by the `thingId` and `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -1012,17 +1032,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Feature has no
-            Definition or the Thing with the specified `thingId` or the Feature
-            with `featureId` was not found.
+            The request could not be completed. The specified Feature has no Definition or the Thing with the
+            specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all Properties of a Feature
       description: >-
-        Returns all Properties of the Feature identified by the `thingId` and
-        `featureId` path parameter.
+        Returns all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -1048,17 +1066,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Feature has no
-            Properties or the Thing with the specified `thingId` or the Feature
-            with `featureId` was not found.
+            The request could not be completed. The specified Feature has no Properties or the Thing with the
+            specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or update all Properties of a Feature at once
       description: >-
-        Create or update the Properties of a Feature identified by the `thingId`
-        and `featureId` path parameter at once. The Properties will be replaced
-        by the request body's JSON.
+        Create or update the Properties of a Feature identified by the `thingId` and `featureId` path parameter at
+        once. The Properties will be replaced by the request body's JSON.
       tags:
         - Features
       parameters:
@@ -1067,11 +1083,9 @@ paths:
         - name: properties
           in: body
           description: >-
-            JSON object of all Properties to be updated at once. Consider that
-            the value has to be a JSON object or `null`. We strongly recommend
-            to use a restricted set of characters for the key (identifier).
-            Currently these identifiers should follow the pattern:
-            [_a-zA-Z][_a-zA-Z0-9\-]*
+            JSON object of all Properties to be updated at once. Consider that the value has to be a JSON object or
+            `null`. We strongly recommend to use a restricted set of characters for the key (identifier).
+            Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
           required: true
           schema:
             $ref: '#/definitions/FeatureProperties'
@@ -1103,15 +1117,13 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing or the Feature with
-            the given ID was not found.
+            The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete all Properties of a Feature
       description: >-
-        Deletes all Properties of the Feature identified by the `thingId` and
-        `featureId` path parameter.
+        Deletes all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
       tags:
         - Features
       parameters:
@@ -1141,20 +1153,18 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Feature has no
-            Properties or the Thing with the specified `thingId` or the Feature
-            with `featureId` was not found.
+            The request could not be completed. The specified Feature has no Properties or the Thing with the
+            specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific Property of a Feature
       description: >-
-        Returns the Property of the Feature identified by the `thingId` and
-        `featureId` path parameter. The Property (JSON) can be referenced
-        hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
-        `/things/{thingId}/features/{featureId}/properties/location/latitude` in
-        order to retrieve the `latitude` field of an `location` Property.
+        Returns the Property of the Feature identified by the `thingId` and `featureId` path parameter. The Property
+        (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
+        `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to retrieve the `latitude`
+        field of an `location` Property.
       tags:
         - Features
       parameters:
@@ -1178,21 +1188,18 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Property or the
-            Thing with the specified `thingId` or the Feature with `featureId`
-            was not found.
+            The request could not be completed. The specified Property or the Thing with the specified `thingId` or
+            the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or update a specific Property of a Feature
       description: >-
-        Create or update a specific Property of a Feature identified by the
-        `thingId` and `featureId` path parameter. The Property will be created
-        if it doesn't exist or else updated. The Property (JSON) can be
-        referenced hierarchically by applying JSON Pointer notation (RFC-6901),
-        e.g.:
-        `/things/{thingId}/features/{featureId}/properties/location/latitude` in
-        order to create/update the `latitude` field of an `location` object.
+        Create or update a specific Property of a Feature identified by the `thingId` and `featureId` path parameter.
+        The Property will be created if it doesn't exist or else updated. The Property (JSON) can be referenced
+        hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
+        `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to create/update the
+        `latitude` field of an `location` object.
       tags:
         - Features
       parameters:
@@ -1228,18 +1235,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Thing or the Feature with
-            the given ID was not found.
+            The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete a specific Property of a Feature
       description: >-
-        Deletes a specific Property of the Feature identified by the `thingId`
-        and `featureId` path parameter.  The Property (JSON) can be referenced
-        hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
-        `/things/{thingId}/features/{featureId}/properties/location/latitude` in
-        order to delete the `latitude` field of an `location` Property.
+        Deletes a specific Property of the Feature identified by the `thingId` and `featureId` path parameter.  The
+        Property (JSON) can be referenced hierarchically by applying JSON Pointer notation (RFC-6901), e.g.:
+        `/things/{thingId}/features/{featureId}/properties/location/latitude` in order to delete the `latitude` field
+         of an `location` Property.
       tags:
         - Features
       parameters:
@@ -1263,9 +1268,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The specified Property or the
-            Thing with the specified `thingId` or the Feature with `featureId`
-            was not found.
+            The request could not be completed. The specified Property or the Thing with the specified `thingId` or
+            the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
 ###
@@ -1275,19 +1279,17 @@ paths:
     post:
       summary: Initiates claiming a specific Thing in order to gain access
       description: >-
-        Send a Claim message to the Thing identified by the `thingId` path
-        parameter in order to gain access to it. The Claim message is forwarded
-        together with the request body and `Content-Type` header to client(s)
-        which registered for Claim messages of the specific Thing.
+        Send a Claim message to the Thing identified by the `thingId` path parameter in order to gain access to it.
+        The Claim message is forwarded together with the request body and `Content-Type` header to client(s) which
+        registered for Claim messages of the specific Thing.
 
 
-        The decision whether to grant access (by setting permissions) is
-        completely up to the client(s) which handle the Claim message.
+        The decision whether to grant access (by setting permissions) is completely up to the client(s) which handle
+        the Claim message.
 
 
-        The HTTP request blocks until a response to the issued Claim message is
-        available or until the `timeout` is expired. If many clients respond to
-        the issued message, the first response will complete the HTTP request.
+        The HTTP request blocks until a response to the issued Claim message is available or until the `timeout` is
+        expired. If many clients respond to the issued message, the first response will complete the HTTP request.
         No special permissions are required to issue a Claim message.
       tags:
         - Messages
@@ -1297,34 +1299,18 @@ paths:
         - text/plain
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
-        - name: timeout
-          in: query
-          description: >-
-            Contains an optional timeout (in seconds) of how long to wait for
-            the Claim response and therefore block the HTTP request. Default
-            value (if omitted): 60 seconds. Maximum value: 600 seconds.
-          required: false
-          type: integer
-        - name: payload
-          in: body
-          description: >-
-            Payload of the Claim message with max size of 10MB. It can be any
-            HTTP supported content, including binary content.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/parameters/messageClaimTimeoutParam'
+        - $ref: '#/parameters/messagePayloadParam'
       responses:
         '200':
           description: >-
-            The Claim message was processed successfully and the response body
-            contains the custom response. The response body may contain
-            arbitrary data chosen by the recepient. The response code defaults
-            to `200` but may be chosen by the recepient too.
+            The Claim message was processed successfully and the response body contains the custom response. The
+            response body may contain arbitrary data chosen by the recipient. The response code defaults to `200` but
+             may be chosen by the recipient too.
         '204':
           description: >-
-            The Claim message was processed successfully and no custom response
-            body was set. The response code defaults to `204` but may be chosen
-            by the recepient.
+            The Claim message was processed successfully and no custom response body was set. The response code
+            defaults to `204` but may be chosen by the recipient.
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1341,27 +1327,22 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '429':
           description: >-
-            The user has sent too many requests in a given amount of time ("rate
-            limiting").
+            The user has sent too many requests in a given amount of time ("rate limiting").
           schema:
             $ref: '#/definitions/AdvancedError'
   '/things/{thingId}/inbox/messages/{messageSubject}':
     post:
       summary: Send a message TO a specific Thing
       description: >-
-        Send a message with the subject `messageSubject` `TO` the Thing
-        identified by the `thingId` path parameter. The request body contains
-        the message payload and the `Content-Type` header defines its type. The
-        API does not provide any kind of acknowledgement that the message was
-        received by the Thing. In order to send a message, the user needs `WRITE`
-        permission at the Thing level.
+        Send a message with the subject `messageSubject` `TO` the Thing identified by the `thingId` path parameter.
+        The request body contains the message payload and the `Content-Type` header defines its type. The API does
+        not provide any kind of acknowledgement that the message was received by the Thing. In order to send a
+        message, the user needs `WRITE` permission at the Thing level.
 
-        The HTTP request blocks until a response to the message is available
-        or until the `timeout` is expired. If many clients respond to
-        the issued message, the first response will complete the HTTP request.
+        The HTTP request blocks until a response to the message is available or until the `timeout` is expired. If
+        many clients respond to the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add
-        a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1371,19 +1352,12 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/messageSubjectPathParam'
-        - name: payload
-          in: body
-          description: >-
-            Payload of the message with max size of 10MB. It can be any HTTP
-            supported content, including binary content.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/parameters/messageTimeoutParam'
+        - $ref: '#/parameters/messagePayloadParam'
       responses:
         '202':
           description: >-
-            The message was sent but not necessarly received by the Thing (fire
-            and forget).
+            The message was sent but not necessarily received by the Thing (fire and forget).
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1408,18 +1382,14 @@ paths:
     post:
       summary: Send a message FROM a specific Thing
       description: >-
-        Send a message with the subject `messageSubject` `FROM` the Thing
-        identified by the `thingId` path parameter. The request body contains
-        the message payload and the `Content-Type` header defines its type.
-        In order to send a message, the user needs `WRITE` permission at the
-        Thing level.
+        Send a message with the subject `messageSubject` `FROM` the Thing identified by the `thingId` path parameter.
+        The request body contains the message payload and the `Content-Type` header defines its type. In order to
+        send a message, the user needs `WRITE` permission at the Thing level.
 
-        The HTTP request blocks until a response to the message is available
-        or until the `timeout` is expired. If many clients respond to
-        the issued message, the first response will complete the HTTP request.
+        The HTTP request blocks until a response to the message is available or until the `timeout` is expired. If
+        many clients respond to the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add
-        a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1429,14 +1399,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/messageSubjectPathParam'
-        - name: payload
-          in: body
-          description: >-
-            Payload of the message with max size of 10MB. It can be any HTTP
-            supported content, including binary content.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/parameters/messageTimeoutParam'
+        - $ref: '#/parameters/messagePayloadParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -1464,19 +1428,15 @@ paths:
     post:
       summary: Send a message TO a specific Feature of a specific Thing
       description: >-
-        Send a message with the subject `messageSubject` `TO` the Feature
-        specified by the `featureId` and `thingId` path parameter. The request
-        body contains the message payload and the `Content-Type` header defines
-        its type. The API does not provide any kind of acknowledgement that the
-        message was received by the Feature. In order to send a message, the user
-        needs `WRITE` permission at the Thing level.
+        Send a message with the subject `messageSubject` `TO` the Feature specified by the `featureId` and `thingId`
+        path parameter. The request body contains the message payload and the `Content-Type` header defines its type.
+         The API does not provide any kind of acknowledgement that the message was received by the Feature. In order
+         to send a message, the user needs `WRITE` permission at the Thing level.
 
-        The HTTP request blocks until a response to the message is available
-        or until the `timeout` is expired. If many clients respond to
-        the issued message, the first response will complete the HTTP request.
+        The HTTP request blocks until a response to the message is available or until the `timeout` is expired. If
+        many clients respond to the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add
-        a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1487,19 +1447,12 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/messageSubjectPathParam'
-        - name: payload
-          in: body
-          description: >-
-            Payload of the message with max size of 10MB. It can be any HTTP
-            supported content, including binary content.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/parameters/messageTimeoutParam'
+        - $ref: '#/parameters/messagePayloadParam'
       responses:
         '202':
           description: >-
-            The message was sent but not necessarly received by the Feature
-            (fire and forget).
+            The message was sent but not necessarily received by the Feature (fire and forget).
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1524,18 +1477,14 @@ paths:
     post:
       summary: Send a message FROM a specific Feature of a specific Thing
       description: >-
-        Send a message with the subject `messageSubject` `FROM` the Feature
-        specified by the `featureId` and `thingId` path parameter. The request
-        body contains the message payload and the `Content-Type` header defines
-        its type. In order to send a message, the user needs `WRITE` permission
-        at the Thing level.
+        Send a message with the subject `messageSubject` `FROM` the Feature specified by the `featureId` and
+        `thingId` path parameter. The request body contains the message payload and the `Content-Type` header defines
+         its type. In order to send a message, the user needs `WRITE` permission at the Thing level.
 
-        The HTTP request blocks until a response to the message is available
-        or until the `timeout` is expired. If many clients respond to
-        the issued message, the first response will complete the HTTP request.
+        The HTTP request blocks until a response to the message is available or until the `timeout` is expired. If
+        many clients respond to the issued message, the first response will complete the HTTP request.
 
-        In order to handle the message in a fire and forget manner, add
-        a query-parameter `timeout=0` to the request.
+        In order to handle the message in a fire and forget manner, add a query-parameter `timeout=0` to the request.
       tags:
         - Messages
       consumes:
@@ -1546,14 +1495,8 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/messageSubjectPathParam'
-        - name: payload
-          in: body
-          description: >-
-            Payload of the message with max size of 10MB. It can be any HTTP
-            supported content, including binary content.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/parameters/messageTimeoutParam'
+        - $ref: '#/parameters/messagePayloadParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -1584,8 +1527,8 @@ paths:
     get:
       summary: Retrieve a specific Policy
       description: >-
-        Returns the Policy identified by the `policyId` path parameter. The
-        response contains the Policy as JSON object consisting of Policy
+        Returns the Policy identified by the `policyId` path parameter. The response contains the Policy as JSON
+        object consisting of Policy
         Entries.
       tags:
         - Policies
@@ -1594,8 +1537,7 @@ paths:
       responses:
         '200':
           description: >-
-            The request successfully returned completed and returned is the
-            Policy.
+            The request successfully returned completed and returned is the Policy.
           schema:
             $ref: '#/definitions/Policy'
         '400':
@@ -1612,8 +1554,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
@@ -1667,17 +1609,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete a specific Policy
       description: >-
-        Deletes the Policy identified by the `policyId` path parameter. Deleting
-        a Policy does not implicitly delete other entities (e.g. Things) which
-        use this Policy. Those have to be deleted in advance of deleting the
-        Policy.
+        Deletes the Policy identified by the `policyId` path parameter. Deleting a Policy does not implicitly delete
+        other entities (e.g. Things) which use this Policy. Those have to be deleted in advance of deleting the Policy.
       tags:
         - Policies
       parameters:
@@ -1708,16 +1648,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries':
     get:
       summary: Retrieve the entries of a specific Policy
       description: >-
-        Returns the Policy entries of the Policy identified by the `policyId`
-        path parameter.
+        Returns the Policy entries of the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -1725,8 +1664,7 @@ paths:
       responses:
         '200':
           description: >-
-            The request successfully returned completed and returned are the
-            Policy entries.
+            The request successfully returned completed and returned are the Policy entries.
           schema:
             $ref: '#/definitions/PolicyEntries'
         '400':
@@ -1743,15 +1681,14 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Modify the entries of a specific Policy
       description: >-
-        Modify the Policy entries of the Policy identified by the `policyId`
-        path parameter.
+        Modify the Policy entries of the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -1792,16 +1729,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries/{label}':
     get:
       summary: Retrieve one Policy entry of a Policy for a specific label
       description: >-
-        Returns one Policy entry of the Policy identified by the `policyId` path
-        parameter and for the label identified by the `label` path parameter.
+        Returns one Policy entry of the Policy identified by the `policyId` path parameter and for the label
+        identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -1810,8 +1746,7 @@ paths:
       responses:
         '200':
           description: >-
-            The request successfully returned completed and returned is the
-            Policy entry.
+            The request successfully returned completed and returned is the Policy entry.
           schema:
             $ref: '#/definitions/PolicyEntry'
         '400':
@@ -1828,17 +1763,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated
             user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify one Policy entry of a Policy for a specific label
       description: >-
-        Create or modify the Policy entry of the Policy identified by the
-        `policyId` path parameter and with the label identified by the `label`
-        path parameter.
+        Create or modify the Policy entry of the Policy identified by the `policyId` path parameter and with the
+        label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -1888,15 +1822,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete one Policy entry of a Policy for a specific label
       description: >-
-        Deletes the Policy entry of the Policy identified by the `policyId` path
-        parameter and with the label identified by the `label` path parameter.
+        Deletes the Policy entry of the Policy identified by the `policyId` path parameter and with the label
+        identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -1926,17 +1860,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries/{label}/subjects':
     get:
       summary: Retrieve all Subjects of a Policy entry
       description: >-
-        Returns all Subjects of the Policy entry of the Policy identified by the
-        `policyId` path parameter and for the label identified by the `label`
-        path parameter.
+        Returns all Subjects of the Policy entry of the Policy identified by the `policyId` path parameter and for
+        the label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -1961,17 +1894,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
-            user.
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify all Subjects of a Policy Entry
       description: >-
-        Create or modify all Subjects of the Policy entry of the Policy
-        identified by the `policyId` path parameter and with the label
-        identified by the `label` path parameter.
+        Create or modify all Subjects of the Policy entry of the Policy identified by the `policyId` path parameter
+        and with the label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -2013,17 +1944,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID was
-            not found in the context of the authenticated user.
+            The request could not be completed. The Policy with the given ID was not found in the context of the
+            authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     get:
       summary: Retrieve one specific Subject of a Policy entry
       description: >-
-        Returns the Subject with ID `subjectId` of the Policy entry identified
-        by the `label` path parameter belonging to the Policy identified by the
-        `policyId` path parameter.
+        Returns the Subject with ID `subjectId` of the Policy entry identified by the `label` path parameter
+        belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2033,8 +1963,7 @@ paths:
       responses:
         '200':
           description: >-
-            The request successfully returned completed and returned is the
-            Subject.
+            The request successfully returned completed and returned is the Subject.
           schema:
             $ref: '#/definitions/SubjectEntry'
         '400':
@@ -2051,17 +1980,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Subject was not found in the context of the
-            authenticated user.
+            The request could not be completed. The Policy with the given ID, the Policy entry or the Subject was not
+             found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify one specific Subject of a Policy entry
       description: >-
-        Create or modify the Subject with ID `subjectId` of the Policy entry
-        identified by the `label` path parameter belonging to the Policy
-        identified by the `policyId` path parameter.
+        Create or modify the Subject with ID `subjectId` of the Policy entry identified by the `label` path parameter
+         belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2108,17 +2035,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
-            user.
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete one specific Subject of a Policy entry
       description: >-
-        Deletes the Subject with ID `subjectId` of the Policy entry identified
-        by the `label` path parameter belonging to the Policy identified by the
-        `policyId` path parameter.
+        Deletes the Subject with ID `subjectId` of the Policy entry identified by the `label` path parameter
+        belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2149,18 +2074,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Subject was not found in the context of the
-            authenticated user.
+            The request could not be completed. The Policy with the given ID, the Policy entry or the Subject was not
+             found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries/{label}/resources':
     get:
       summary: Retrieve all Resources of a Policy entry
       description: >-
-        Returns all Resources of the Policy entry of the Policy identified by
-        the `policyId` path parameter and for the label identified by the
-        `label` path parameter.
+        Returns all Resources of the Policy entry of the Policy identified by the `policyId` path parameter and for
+        the label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -2185,17 +2108,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
-            user.
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify all Resources of a Policy Entry
       description: >-
-        Create or modify all Resources of the Policy entry of the Policy
-        identified by the `policyId` path parameter and with the label
-        identified by the `label` path parameter.
+        Create or modify all Resources of the Policy entry of the Policy identified by the `policyId` path parameter
+        and with the label identified by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -2233,18 +2154,16 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
-            user.
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     get:
       summary: Retrieve one specific Resource of a Policy entry
       description: >-
-        Returns the Resource with path `resourcePath` of the Policy entry
-        identified by the `label` path parameter belonging to the Policy
-        identified by the `policyId` path parameter.
+        Returns the Resource with path `resourcePath` of the Policy entry identified by the `label` path parameter
+        belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2254,8 +2173,7 @@ paths:
       responses:
         '200':
           description: >-
-            The request successfully returned completed and returned is the
-            Resource.
+            The request successfully returned completed and returned is the Resource.
           schema:
             $ref: '#/definitions/ResourceEntry'
         '400':
@@ -2272,17 +2190,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Resource was not found in the context of the
-            authenticated user.
+            The request could not be completed. The Policy with the given ID, the Policy entry or the Resource was
+            not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     put:
       summary: Create or modify one specific Resource of a Policy entry
       description: >-
-        Create or modify the Resource with path `resourcePath` of the Policy
-        entry identified by the `label` path parameter belonging to the Policy
-        identified by the `policyId` path parameter.
+        Create or modify the Resource with path `resourcePath` of the Policy entry identified by the `label` path
+        parameter belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2329,17 +2245,15 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID or
-            the Policy entry was not found in the context of the authenticated
-            user.
+            The request could not be completed. The Policy with the given ID or the Policy entry was not found in the
+             context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
     delete:
       summary: Delete one Resource of a Policy entry
       description: >-
-        Deletes the Resource with path `resourcePath` of the Policy entry
-        identified by the `label` path parameter belonging to the Policy
-        identified by the `policyId` path parameter.
+        Deletes the Resource with path `resourcePath` of the Policy entry identified by the `label` path parameter
+        belonging to the Policy identified by the `policyId` path parameter.
       tags:
         - Policies
       parameters:
@@ -2370,9 +2284,8 @@ paths:
             $ref: '#/definitions/AdvancedError'
         '404':
           description: >-
-            The request could not be completed. The Policy with the given ID,
-            the Policy entry or the Resource was not found in the context of the
-            authenticated user.
+            The request could not be completed. The Policy with the given ID, the Policy entry or the Resource was
+            not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
 ###
@@ -2384,16 +2297,12 @@ paths:
       description: >-
         This resource can be used to search for things.
 
-        The query parameter `filter` is not mandatory. If it is not set there
-        are returned all things which the logged in user is allowed to read. The
-        resource supports sorting and paging. If paging is not explicitly
-        specified by means of the `limit` option, a default count of `25`
-        documents is returned.
+        The query parameter `filter` is not mandatory. If it is not set there are returned all things which the
+        logged in user is allowed to read. The resource supports sorting and paging. If paging is not explicitly
+        specified by means of the `limit` option, a default count of `25` documents is returned.
 
-        To search for nested properties, we use JSON Pointer notation
-        (RFC-6901). See the following example how to search for the sub property
-        `location` of the parent property `attributes` with a forward slash as
-        separator:
+        To search for nested properties, we use JSON Pointer notation (RFC-6901). See the following example how to
+        search for the sub property `location` of the parent property `attributes` with a forward slash as separator:
 
 
 
@@ -2401,24 +2310,22 @@ paths:
 
 
 
-        There can also be searched for feature properties using the following
-        syntax:
+        There can also be searched for feature properties using the following syntax:
 
 
 
         ``eq(features/*/properties/temperature,38)``
 
 
-        The '*' indicates that there is searched on all available features for a
-        property named 'temperature'.
+        The '*' indicates that there is searched on all available features for a property named 'temperature'.
 
 
 
         Attention, at the moment we do not support search on array fields.
 
 
-        The search result can be limited to the Things within a namespace (or namespaces)
-        given in the `namespaces` parameter.
+        The search result can be limited to the Things within a namespace (or namespaces) given in the `namespaces`
+        parameter.
 
       parameters:
         - $ref: '#/parameters/searchFilter'
@@ -2501,18 +2408,15 @@ paths:
       description: >-
         This resource can be used to count things.
 
-        The query parameter `filter` is not mandatory. If it is not set there is
-        returned the total amount of things which the logged in user is allowed
-        to read.
+        The query parameter `filter` is not mandatory. If it is not set there is returned the total amount of things
+        which the logged in user is allowed to read.
 
 
 
 
 
-        To search for nested properties, we use JSON Pointer notation
-        (RFC-6901). See the following example how to search for the sub property
-        `location` of the parent property `attributes` with a forward slash as
-        separator:
+        To search for nested properties, we use JSON Pointer notation (RFC-6901). See the following example how to
+        search for the sub property `location` of the parent property `attributes` with a forward slash as separator:
 
 
 
@@ -2520,24 +2424,22 @@ paths:
 
 
 
-        There can also be searched for feature properties using the following
-        syntax:
+        There can also be searched for feature properties using the following syntax:
 
 
 
         ``eq(features/*/properties/temperature,38)``
 
 
-        The '*' indicates that there is searched on all available features for a
-        property named 'temperature'.
+        The '*' indicates that there is searched on all available features for a property named 'temperature'.
 
 
 
         Attention, at the moment we do not support search on array fields.
 
 
-        The search result can be limited to the Things within a namespace (or namespaces)
-        given in the `namespaces` parameter.
+        The search result can be limited to the Things within a namespace (or namespaces) given in the `namespaces`
+        parameter.
 
       parameters:
         - $ref: '#/parameters/searchFilter'
@@ -2551,8 +2453,7 @@ paths:
             $ref: '#/definitions/SearchResultThingsCount'
         '400':
           description: >-
-            The request could not be completed. A provided parameter was in a
-            wrong format.
+            The request could not be completed. A provided parameter was in a wrong format.
           schema:
             $ref: '#/definitions/AdvancedError'
         '401':
@@ -2648,8 +2549,7 @@ definitions:
       policyId:
         type: string
         description: >-
-          The Policy ID used for controlling access to this Thing. Managed by
-          resource `/policies/{policyId}`.
+          The Policy ID used for controlling access to this Thing. Managed by resource `/policies/{policyId}`.
       attributes:
         $ref: '#/definitions/Attributes'
         description: The attributes of this Thing
@@ -2704,9 +2604,8 @@ definitions:
   Subjects:
     type: object
     description: >-
-      (Authorization) Subjects containing one SubjectEntry for each arbitrary
-      `issuer:subjectId` key. `issuer` being one of the following
-      `https://accounts.google.com`
+      (Authorization) Subjects containing one SubjectEntry for each arbitrary `issuer:subjectId` key. `issuer` being
+      one of the following `https://accounts.google.com`
     properties:
       'https://accounts.google.com:subjectId1':
         $ref: '#/definitions/SubjectEntry'
@@ -2724,9 +2623,8 @@ definitions:
   Resources:
     type: object
     description: >-
-      (Authorization) Resources containing one ResourceEntry for each
-      `type:path` key, `type` being one of the following `thing`, `policy`,
-      `message`
+      (Authorization) Resources containing one ResourceEntry for each `type:path` key, `type` being one of the
+      following `thing`, `policy`, `message`
     properties:
       'thing:/':
         $ref: '#/definitions/ResourceEntry'
@@ -2739,8 +2637,7 @@ definitions:
   ResourceEntry:
     type: object
     description: >-
-      Single (Authorization) Resource entry defining permissions per effect.
-      Allowed effects are `grant` and `revoke`.
+      Single (Authorization) Resource entry defining permissions per effect. Allowed effects are `grant` and `revoke`.
     properties:
       grant:
         type: array
@@ -2753,8 +2650,7 @@ definitions:
   ResourceEntryRestricted:
     type: object
     description: >-
-      Single (Authorization) Resource entry defining permissions per effect.
-      Allowed effects are `grant` and `revoke`.
+      Single (Authorization) Resource entry defining permissions per effect. Allowed effects are `grant` and `revoke`.
     properties:
       grant:
         type: array
@@ -2773,8 +2669,8 @@ definitions:
   Features:
     type: object
     description: >-
-      List of Features where the key represents the `featureId` of each Feature.
-      The `featureId` key must be unique in the list.
+      List of Features where the key represents the `featureId` of each Feature. The `featureId` key must be unique
+      in the list.
     properties:
       featureId1:
         $ref: '#/definitions/Feature'
@@ -2819,6 +2715,32 @@ parameters:
     description: The subject of the Message - has to conform to RFC-2396 (URI)
     type: string
     required: true
+  messageClaimTimeoutParam:
+    name: timeout
+    in: query
+    description: >-
+      Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
+      HTTP request. Default value (if omitted): 60 seconds. Maximum value: 600 seconds.
+      A value of 0 seconds applies fire and forget semantics for the message.
+    required: false
+    type: integer
+  messageTimeoutParam:
+    name: timeout
+    in: query
+    description: >-
+      Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
+      HTTP request. Default value (if omitted): 10 seconds. Maximum value: 60 seconds.
+      A value of 0 seconds applies fire and forget semantics for the message.
+    required: false
+    type: integer
+  messagePayloadParam:
+    name: payload
+    in: body
+    description: >-
+      Payload of the message with max size of 10MB. It can be any HTTP supported content, including binary content.
+    required: false
+    schema:
+      type: string
   labelPathParam:
     name: label
     in: path
@@ -2847,8 +2769,7 @@ parameters:
     name: value
     in: body
     description: >-
-      JSON representation of the value to be created/updated. This may be as
-      well `null` or an empty object.
+      JSON representation of the value to be created/updated. This may be as well `null` or an empty object.
 
       Consider that the value has to be a JSON value, examples:
 
@@ -2868,8 +2789,8 @@ parameters:
     name: fields
     in: query
     description: >-
-      Contains a comma separated list of fields to be included in the returned
-      JSON. Attributes can be selected in the same manner.
+      Contains a comma separated list of fields to be included in the returned JSON. Attributes can be selected in
+      the same manner.
 
       #### Selectable fields
 
@@ -2930,21 +2851,18 @@ parameters:
     name: fields
     in: query
     description: >-
-      Contains a comma separated list of fields from the attributes to be
-      included in the returned JSON.
+      Contains a comma separated list of fields from the attributes to be included in the returned JSON.
 
       #### Selectable fields
 
-      Supports selecting arbitrary sub-fields as defined in the attributes by
-      using a comma separated list:
+      Supports selecting arbitrary sub-fields as defined in the attributes by using a comma separated list:
         * several properties paths can be passed as a comma separated list of JSON pointers (RFC-6901)
 
           For example:
             * `?fields=model` would select only `model` attribute value (if present)
             * `?fields=model,make` would select only `model` and `make` attribute values (if present)
 
-      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-      inside parentheses `( )`:
+      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
         * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
         * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
 
@@ -2962,21 +2880,18 @@ parameters:
     name: fields
     in: query
     description: >-
-      Contains a comma separated list of fields from the properties to be
-      included in the returned JSON.
+      Contains a comma separated list of fields from the properties to be included in the returned JSON.
 
       #### Selectable fields
 
-      Supports selecting arbitrary sub-fields as defined in the properties by
-      using a comma separated list:
+      Supports selecting arbitrary sub-fields as defined in the properties by using a comma separated list:
         * several properties paths can be passed as a comma separated list of JSON pointers (RFC-6901)
 
           For example:
             * `?fields=temperature` would select only `temperature` property value (if present)
             * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values (if present)
 
-      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-      inside parentheses `( )`:
+      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
         * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
         * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
 
@@ -2994,8 +2909,7 @@ parameters:
     name: fields
     in: query
     description: >-
-      Contains a comma separated list of fields from one or more Features to be
-      included in the returned JSON.
+      Contains a comma separated list of fields from one or more Features to be included in the returned JSON.
 
       #### Selectable fields
 
@@ -3030,8 +2944,7 @@ parameters:
     name: fields
     in: query
     description: >-
-      Contains a comma separated list of fields from the selected Feature to be
-      included in the returned JSON.
+      Contains a comma separated list of fields from the selected Feature to be included in the returned JSON.
 
       #### Selectable fields
 

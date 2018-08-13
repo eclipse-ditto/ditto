@@ -56,7 +56,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     private final List<LoggerConfig> loggerConfigs;
 
-    private RetrieveLoggerConfigResponse(@Nullable final String serviceName, @Nullable final Integer instance,
+    private RetrieveLoggerConfigResponse(@Nullable final String serviceName, @Nullable final String instance,
             final List<LoggerConfig> loggerConfigs, final DittoHeaders dittoHeaders) {
         super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
         this.loggerConfigs = Collections.unmodifiableList(new ArrayList<>(loggerConfigs));
@@ -66,12 +66,12 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * Returns a new instance of {@code RetrieveLoggerConfigResponse}.
      *
      * @param serviceName the service name from which the DevOpsCommandResponse originated.
-     * @param instance the instance index of the serviceName from which the DevOpsCommandResponse originated.
+     * @param instance the instance identifier of the serviceName from which the DevOpsCommandResponse originated.
      * @param loggerConfigs the retrieved LoggerConfigs.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      */
-    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName, @Nullable final Integer instance,
+    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName, @Nullable final String instance,
             final List<LoggerConfig> loggerConfigs,
             final DittoHeaders dittoHeaders) {
         return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, dittoHeaders);
@@ -108,7 +108,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
                 .deserialize((statusCode) -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
-                    final Integer instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
+                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
                             .orElse(null);
                     final JsonArray loggerConfigsJsonArray = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIGS);
                     final List<LoggerConfig> loggerConfigs = loggerConfigsJsonArray.stream()
