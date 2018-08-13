@@ -169,8 +169,8 @@ public class MqttClientActor extends BaseClientActor {
         publisherKillSwitch = outbound.first().second();
         outbound.second().thenAccept(d -> log.info("Publisher ready..."));
         final ActorRef mqttPublisherSource = outbound.first().first();
-        mqttPublisherActor =
-                startChildActor(MqttPublisherActor.ACTOR_NAME, MqttPublisherActor.props(mqttPublisherSource));
+        mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
+                MqttPublisherActor.props(mqttPublisherSource));
     }
 
     private void startMqttConsumers(final MqttConnectionSettings connectionSettings,
@@ -193,9 +193,9 @@ public class MqttClientActor extends BaseClientActor {
                     MqttSourceSettings.create(connectionSettings.withClientId(clientId))
                             .withSubscriptions(JavaConverters.asScalaBuffer(subscriptions).toSeq());
 
-            final ActorRef mqttConsumerActor =
-                    startChildActor(actorName,
-                            MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext()));
+            final Props mqttConsumerActorProps =
+                    MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext());
+            final ActorRef mqttConsumerActor = startChildActorConflictFree(actorName, mqttConsumerActorProps);
 
             consumerByActorNameWithIndex.put(actorName, mqttConsumerActor);
 
