@@ -109,13 +109,9 @@ public class MqttClientActor extends BaseClientActor {
 
     @Override
     protected void allocateResourcesOnConnection(final ClientConnected clientConnected) {
-        final String uri = connection().getUri();
-        final MqttConnectionSettings connectionSettings =
-                MqttConnectionSettings
-                        .create(uri, connection().getId(), new MemoryPersistence())
-                        .withAutomaticReconnect(connection().isFailoverEnabled());
 
-        // TODO withAuth
+        final MqttConnectionSettings connectionSettings = createMqttConnectionSettings();
+        
         // TODO validateCertificates
 
         final Optional<ActorRef> mappingActorOptional = getMessageMappingProcessorActor();
@@ -132,6 +128,22 @@ public class MqttClientActor extends BaseClientActor {
         }
 
         startMqttPublisher(connectionSettings);
+    }
+
+    private MqttConnectionSettings createMqttConnectionSettings() {
+        final String uri = connection().getUri();
+        MqttConnectionSettings connectionSettings = MqttConnectionSettings
+                .create(uri, connection().getId(), new MemoryPersistence());
+
+        connectionSettings = connectionSettings.withAutomaticReconnect(connection().isFailoverEnabled());
+
+        if (connection().getUsername().isPresent() && connection().getPassword().isPresent()) {
+            final String username = connection().getUsername().get();
+            final String password = connection().getPassword().get();
+            connectionSettings = connectionSettings.withAuth(username, password);
+        }
+
+        return connectionSettings;
     }
 
     private void startMqttPublisher(final MqttConnectionSettings connectionSettings) {
