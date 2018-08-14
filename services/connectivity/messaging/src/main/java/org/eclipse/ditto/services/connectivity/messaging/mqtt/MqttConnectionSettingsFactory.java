@@ -31,6 +31,7 @@ class MqttConnectionSettingsFactory {
 
     private static final MqttConnectionSettingsFactory INSTANCE = new MqttConnectionSettingsFactory();
     private static final AcceptAnyTrustManager ACCEPT_ANY_TRUST_MANAGER = new AcceptAnyTrustManager();
+    private static final String TLS12 = "TLSv1.2";
 
     static MqttConnectionSettingsFactory getInstance() {
         return INSTANCE;
@@ -63,7 +64,7 @@ class MqttConnectionSettingsFactory {
                 return SocketFactoryExtension.withSocketFactory(connectionSettings,
                         SSLContext.getDefault().getSocketFactory());
             } else {
-                final SSLContext sslContext = SSLContext.getDefault();
+                final SSLContext sslContext = SSLContext.getInstance(TLS12);
                 sslContext.init(null, new TrustManager[]{ACCEPT_ANY_TRUST_MANAGER}, null);
                 return SocketFactoryExtension.withSocketFactory(connectionSettings, sslContext.getSocketFactory());
             }
