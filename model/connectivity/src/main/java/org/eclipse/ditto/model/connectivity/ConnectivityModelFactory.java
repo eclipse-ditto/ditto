@@ -26,7 +26,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 
 /**
  * Factory to create new {@link Connection} instances.
@@ -231,18 +230,6 @@ public final class ConnectivityModelFactory {
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
         return new MutableExternalMessageBuilder(externalMessage);
-    }
-
-    /**
-     * Creates a new {@link Source}.
-     *
-     * @param addresses the source addresses where messages are consumed from
-     * @param consumerCount how many consumer will consume of the new {@link Source}
-     * @return the created {@link Source}
-     */
-    public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0,
-                Collections.emptyMap());
     }
 
     /**

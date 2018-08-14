@@ -46,8 +46,7 @@ public abstract class AbstractProtocolValidator {
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @throws DittoRuntimeException if the connection has errors.
      */
-    public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders)
-    ;
+    public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders);
 
     /**
      * Check whether the URI scheme of the connection belongs to an accepted scheme.

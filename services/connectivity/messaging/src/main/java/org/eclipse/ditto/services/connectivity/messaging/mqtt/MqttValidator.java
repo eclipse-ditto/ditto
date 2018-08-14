@@ -24,8 +24,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.SpecificConfigValidator;
+import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 /**
  * Connection specification for Mqtt protocol.
@@ -33,6 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.SpecificConf
 @Immutable
 public final class MqttValidator extends AbstractProtocolValidator {
 
+    private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
     private static final String QOS = "qos";
 
     private static final Collection<String> ACCEPTED_SCHEMES =
@@ -58,6 +61,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "MQTT 3.1.1");
+        validateAddresses(connection, dittoHeaders);
         validateSourceAndTargetConfigs(connection, dittoHeaders, SPECIFIC_CONFIG_VALIDATORS);
     }
 
@@ -77,6 +81,30 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{{1}}'' in {{2}}",
                     qosString, QOS, errorSiteDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
+        connection.getSources()
+                .stream()
+                .flatMap(source -> source.getAddresses().stream())
+                .forEach(a -> validateAddress(a, true, dittoHeaders));
+        // no wildcards allowed for publish targets
+        connection.getTargets()
+                .stream()
+                .map(Target::getAddress)
+                .forEach(a -> validateAddress(a, false, dittoHeaders));
+    }
+
+    private static void validateAddress(final String address, final boolean wildcardAllowed,
+            final DittoHeaders dittoHeaders) {
+        try {
+            MqttTopic.validate(address, wildcardAllowed);
+        } catch (final IllegalArgumentException e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                    MessageFormat.format(INVALID_TOPIC_FORMAT, address, e.getMessage()))
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
