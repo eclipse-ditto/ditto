@@ -175,7 +175,7 @@
     </modules>
 
     <properties>
-        <revision>0.1.0-SNAPSHOT</revision>
+        <revision>0-SNAPSHOT</revision>
 
         <javac.source>1.8</javac.source>
         <javac.target>1.8</javac.target>

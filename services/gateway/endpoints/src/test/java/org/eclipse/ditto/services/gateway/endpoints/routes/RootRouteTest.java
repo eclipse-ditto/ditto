@@ -39,7 +39,6 @@ import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.ActorMaterializer;
 
 /**
  * Tests {@link RootRoute}.
@@ -77,7 +76,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
         final HttpClientFacade httpClient = mock(HttpClientFacade.class);
         final RootRoute rootRoute =
-                new RootRoute(system(), getConfig(), ActorMaterializer.create(system()), proxyActor, streamingActor,
+                new RootRoute(system(), getConfig(), proxyActor, streamingActor,
                         healthCheckingActor, clusterStateSupplier, httpClient);
         rootTestRoute = testRoute(rootRoute.buildRoute());
     }

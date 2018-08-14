@@ -19,8 +19,8 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 ## Getting started
 
 In order to start up Ditto, you'll need
-* a running Docker daemon (at least version 17.06 CE)
-* Docker Compose installed (at least version 1.14)
+* a running Docker daemon (at least version 18.06 CE)
+* Docker Compose installed (at least version 1.22)
 
 ### Start Ditto
 
