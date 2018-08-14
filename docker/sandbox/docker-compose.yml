@@ -1,4 +1,4 @@
-version: '3.2'
+version: '3.7'
 
 services:
   mongodb:
@@ -14,6 +14,7 @@ services:
        TZ: Europe/Berlin
 
   policies:
+    init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -23,9 +24,10 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Dditto.cluster.become-leader=true
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   things:
+    init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -37,9 +39,10 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   things-search:
+    init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -51,9 +54,10 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   concierge:
+    init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -65,9 +69,10 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   connectivity:
+    init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -80,9 +85,10 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-Xms256m -Xmx256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   gateway:
+    init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
     networks:
       default:
@@ -97,7 +103,7 @@ services:
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
       - DEVOPS_SECURE_STATUS=false
-      - IBM_JAVA_OPTIONS=-Xms256m -Xms256m -Xss512k -XX:MaxMetaspaceSize=128m -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
