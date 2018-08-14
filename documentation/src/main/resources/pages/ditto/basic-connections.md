@@ -65,10 +65,10 @@ message to provide necessary information about the original issuer of the messag
     include important.html content="Only use this kind of placeholder if you trust the source of the message. The value from the header is used as the **authorized subject**."
   %}
                                                                            
-You can access any header value of the incoming message by using a placeholder like `{% raw %}{{ header.name }}{% endraw %}`.
+You can access any header value of the incoming message by using a placeholder like `{% raw %}{{ header:name }}{% endraw %}`.
 
 Example:
-Assuming the messages received from the source _telemetry_ contain a `device-id` header (e.g. _sensor-123_), 
+Assuming the messages received from the source _telemetry_ contain a `device_id` header (e.g. _sensor-123_), 
 you may configure your source's authorization subject as follows:
 ```json
    {
@@ -76,7 +76,7 @@ you may configure your source's authorization subject as follows:
       "sources": [
         {
           "addresses": [ "telemetry" ],
-          "authorizationContext": ["device:{% raw %}{{ header:device-id }}{% endraw %}"]
+          "authorizationContext": ["device:{% raw %}{{ header:device_id }}{% endraw %}"]
         }
       ]
   }
@@ -92,11 +92,11 @@ containing Thing-specific information e.g. you can distribute Things from differ
 You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
 For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders are resolved as follows:
 
-| Placeholder | Resolved value |
-|--------|------------|
-| thing:id  | org.eclipse.ditto:device-123 |
-| thing:namespace  | org.eclipse.ditto |
-| thing:name | device-123 |
+| Placeholder | Description | Resolved value |
+|--------|------------|------------|
+| `thing:id`  | Full ID composed of _namespace_ + _:_ as a separator + _name_ | org.eclipse.ditto:device-123 |
+| `thing:namespace`  | Namespace (i.e. first part of an ID)  | org.eclipse.ditto |
+| `thing:name` | Name (i.e. second part of an ID ) | device-123 |
 
 
 Example:

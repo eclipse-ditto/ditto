@@ -42,22 +42,6 @@
         "amqps://user:password@localhost:5671"
       ]
     },
-    "authorizationContext": {
-      "$id": "/properties/authorizationContext",
-      "type": "array",
-      "title": "The authorization context",
-      "description": "The authorization context defines all authorization subjects associated with this connection",
-      "uniqueItems": true,
-      "items": {
-        "$id": "/properties/authorizationContext/items",
-        "type": "string",
-        "title": "Authorization Subject",
-        "description": "An authorization subject associated with this connection",
-        "examples": [
-          "myAuthorizationSubject"
-        ]
-      }
-    },
     "sources": {
       "$id": "/properties/sources",
       "type": "array",
@@ -100,7 +84,7 @@
               "$id": "/properties/authorizationContext/items",
               "type": "string",
               "title": "Authorization Subject",
-              "description": "An authorization subject associated with this source. You can either use a fixed subject or use a placeholder that resolves header values from incoming messages. For example to use the `device-id` header in the subject, you can specify the placeholder `{{ header.device-id }}` which is then replaced by Ditto when a message from this source is processed. By using a placeholder you can access any header value: `{{ header.<any-header-name> }}`.",
+              "description": "An authorization subject associated with this source. You can either use a fixed subject or use a placeholder that resolves header values from incoming messages. For example to use the `device_id` header in the subject, you can specify the placeholder `{{ header:device_id }}` which is then replaced by Ditto when a message from this source is processed. By using a placeholder you can access any header value: `{{ header:<any-header-name> }}`.",
               "examples": [
                 "ditto:myAuthorizationSubject",
                 "device:{{ header:device-id }}"

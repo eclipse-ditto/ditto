@@ -37,7 +37,7 @@ public final class SearchService extends AbstractSearchService {
      */
     public static void main(final String[] args) {
         final SearchService searchService = new SearchService();
-        searchService.start();
+        searchService.start().getWhenTerminated().toCompletableFuture().join();
     }
 
 }

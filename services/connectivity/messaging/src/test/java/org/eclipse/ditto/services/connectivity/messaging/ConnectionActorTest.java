@@ -14,20 +14,24 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -40,6 +44,8 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
@@ -149,22 +155,26 @@ public final class ConnectionActorTest {
     @Test
     public void manageConnection() {
         new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
+            probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
             // close connection
             underTest.tell(closeConnection, getRef());
+            probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
             expectMsg(deleteConnectionResponse);
+            probe.expectNoMessage();
             expectTerminated(underTest);
         }};
     }
@@ -211,6 +221,38 @@ public final class ConnectionActorTest {
             // client actor is not informed about modification as it is not started
             probe.expectNoMessage();
             expectMsg(modifyConnectionResponse);
+        }};
+    }
+
+    @Test
+    public void retrieveMetricsInClosedStateDoesNotStartClientActor() {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = TestProbe.apply(actorSystem);
+            final ActorRef underTest =
+                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
+                            conciergeForwarder, (connection, concierge) -> MockClientActor.props(probe.ref()));
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createClosedConnection, getRef());
+            expectMsg(createClosedConnectionResponse);
+            probe.expectNoMessage();
+
+            // create connection
+            underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+            probe.expectNoMessage();
+
+            final ConnectionMetrics metrics =
+                    ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.CLOSED, "connection is closed",
+                            Instant.EPOCH, BaseClientState.DISCONNECTED.name(), Collections.emptyList(),
+                            Collections.emptyList());
+            final RetrieveConnectionMetricsResponse metricsResponse =
+                    RetrieveConnectionMetricsResponse.of(connectionId, metrics, DittoHeaders.empty());
+            final AggregatedConnectivityCommandResponse aggregatedConnectivityCommandResponse =
+                    AggregatedConnectivityCommandResponse.of(connectionId,
+                            Collections.singletonList(metricsResponse), metricsResponse.getType(), HttpStatusCode.OK,
+                            DittoHeaders.empty());
+            expectMsg(aggregatedConnectivityCommandResponse);
         }};
     }
 

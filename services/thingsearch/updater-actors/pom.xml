@@ -105,14 +105,6 @@
             <artifactId>akka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-policies</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

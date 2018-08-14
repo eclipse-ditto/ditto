@@ -39,7 +39,7 @@ public final class ConciergeService extends AbstractConciergeService<ConciergeCo
      */
     public static void main(final String[] args) {
         final ConciergeService service = new ConciergeService();
-        service.start();
+        service.start().getWhenTerminated().toCompletableFuture().join();
     }
 
     @Override

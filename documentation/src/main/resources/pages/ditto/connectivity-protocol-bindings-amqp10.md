@@ -27,23 +27,30 @@ Supported AMQP 1.0 properties which are interpreted in a specific way are:
 ### Source format
 
 Any `source` item defines an `addresses` array of source identifiers (e.g. Eclipse Hono's 
-[Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from.
+[Telemetry API](https://www.eclipse.org/hono/api/telemetry-api)) to consume messages from
+and `authorizationContext` array that contains the authorization subjects in whose context
+inbound messages are processed. These subjects may contain placeholders, see 
+[placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
 
 ```json
 {
   "addresses": [
     "<source>",
     "..."
-  ]
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
 }
 ```
 
 ### Target format
 
 An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source
-identifier. It is continued with a list of topic strings, each representing a subscription of a Ditto
-[protocol topic](protocol-specification-topic.html).
-
+identifier. The target address may contain placeholders, see 
+[placeholders](basic-connections.html#placeholder-for-target-addresses) section for more 
+information. It is continued with a list of topic strings, each representing a subscription of a Ditto
+[protocol topic](protocol-specification-topic.html) and an array of authorization subjects. Outbound messages 
+are published to the configured target address if one of these subjects have READ permission on the Thing that is 
+associated with a message. 
 
 ```json
 {
@@ -51,14 +58,15 @@ identifier. It is continued with a list of topic strings, each representing a su
   "topics": [
     "_/_/things/twin/events",
     "_/_/things/live/messages"
-  ]
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
 
 ### Specific configuration properties
 
 The specific configuration properties are interpreted as 
-[JMS Configuration options](https://qpid.apache.org/releases/qpid-jms-0.30.0/docs/index.html#jms-configuration-options). 
+[JMS Configuration options](https://qpid.apache.org/releases/qpid-jms-0.34.0/docs/index.html#jms-configuration-options). 
 Use these to customize and tweak your connection as needed.
 
 
@@ -78,14 +86,14 @@ Example connection configuration to create a new AMQP 1.0 connection:
   "id": "hono-example-connection-123",
   "connectionType": "amqp-10",
   "connectionStatus": "open",
-  "authorizationSubject": "<<<my-subject-id-included-in-policy-or-acl>>>",
   "failoverEnabled": true,
   "uri": "amqps://user:password@hono.eclipse.org:5671",
   "sources": [
     {
       "addresses": [
         "telemetry/FOO"
-      ]
+      ],
+      "authorizationContext": ["ditto:inbound-auth-subject"]
     }
   ],
   "targets": [
@@ -93,7 +101,8 @@ Example connection configuration to create a new AMQP 1.0 connection:
       "address": "events/twin",
       "topics": [
         "_/_/things/twin/events"
-      ]
+      ],
+      "authorizationContext": ["ditto:outbound-auth-subject"]
     }
   ]
 }
