@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -39,6 +40,19 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return number of consumers (connections) that will be opened to the remote server, default is {@code 1}
      */
     int getConsumerCount();
+
+    /**
+     * Returns the Authorization Context of this {@code Source}. If an authorization context is set on a {@link Source}
+     * it overrides the authorization context set on the enclosing {@link Connection}.
+     *
+     * @return the Authorization Context of this {@link Source}.
+     */
+    AuthorizationContext getAuthorizationContext();
+
+    /**
+     * @return an index to distinguish between sources that would otherwise be different
+     */
+    int getIndex();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -69,19 +83,25 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} addresses.
+         * JSON field containing the {@code Source} addresses.
          */
         public static final JsonFieldDefinition<JsonArray> ADDRESSES =
                 JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Connection} consumer count.
+         * JSON field containing the {@code Source} consumer count.
          */
         public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
                 JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
+        /**
+         * JSON field containing the {@code Source} authorization context (list of authorization subjects).
+         */
+        public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

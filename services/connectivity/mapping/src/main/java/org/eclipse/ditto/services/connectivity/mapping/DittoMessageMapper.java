@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 
 import com.typesafe.config.Config;
 
@@ -77,10 +78,13 @@ public final class DittoMessageMapper implements MessageMapper {
 
         final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
 
+        final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
+        final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
         return Optional.of(
-                ConnectivityModelFactory.newExternalMessageBuilder(headers, adaptable.getTopicPath().getPath())
-                .withText(jsonString)
-                        .asResponse(adaptable.getPayload().getStatus().isPresent())
+                ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                        .withText(jsonString)
+                        .asResponse(isResponse)
+                        .asError(isError)
                 .build());
     }
 

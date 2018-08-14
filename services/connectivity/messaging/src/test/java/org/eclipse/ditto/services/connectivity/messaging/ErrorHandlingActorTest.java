@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.FaultyConnectionActor.faultyConnectionActorPropsFactory;
+import static org.eclipse.ditto.services.connectivity.messaging.FaultyClientActor.faultyClientActorPropsFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +65,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, conciergeForwarder,
-                    (connection1, conciergeForwarder) -> FaultyConnectionActor.props(false));
+                    (connection1, conciergeForwarder) -> FaultyClientActor.props(false));
             watch(underTest);
 
             // create connection
@@ -92,7 +92,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, faultyConnectionActorPropsFactory);
+                            conciergeForwarder, faultyClientActorPropsFactory);
             watch(underTest);
 
             // create connection
@@ -115,7 +115,7 @@ public class ErrorHandlingActorTest {
             final Connection connection = TestConstants.createConnection(connectionId, actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder, faultyConnectionActorPropsFactory);
+                            conciergeForwarder, faultyClientActorPropsFactory);
             watch(underTest);
 
             // create connection

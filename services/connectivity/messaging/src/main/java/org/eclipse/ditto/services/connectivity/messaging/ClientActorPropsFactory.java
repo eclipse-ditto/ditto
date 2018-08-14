@@ -19,7 +19,7 @@ import akka.actor.Props;
 /**
  * Creates actor {@link Props} based on the given {@link Connection}.
  */
-public interface ConnectionActorPropsFactory {
+public interface ClientActorPropsFactory {
 
     /**
      * Create actor {@link Props} for a connection.

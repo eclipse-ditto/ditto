@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.junit.Test;
 
 /**
@@ -25,7 +26,7 @@ public final class HeaderTranslatorTest {
 
     @Test
     public void testCaseInsensitivity() {
-        final HeaderTranslator underTest = HeaderTranslator.of();
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
 
         final Map<String, String> externalHeaders = new HashMap<>();
         externalHeaders.put("lower-case%header", "hello%world");

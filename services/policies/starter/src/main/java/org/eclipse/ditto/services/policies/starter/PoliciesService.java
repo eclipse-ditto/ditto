@@ -38,7 +38,7 @@ public final class PoliciesService extends AbstractPoliciesService {
      */
     public static void main(final String[] args) {
         final PoliciesService policiesService = new PoliciesService();
-        policiesService.start();
+        policiesService.start().getWhenTerminated().toCompletableFuture().join();
     }
 
     @Override

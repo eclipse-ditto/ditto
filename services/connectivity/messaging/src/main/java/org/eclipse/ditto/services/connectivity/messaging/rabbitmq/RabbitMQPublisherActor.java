@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.OutboundSignal;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -64,6 +65,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static final String DEFAULT_EXCHANGE = "";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final Set<Target> targets;
 
     @Nullable private ActorRef channelActor;
 
@@ -72,7 +74,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Nullable private AddressMetric addressMetric;
 
     private RabbitMQPublisherActor(final Set<Target> targets) {
-        super(targets);
+        this.targets = targets;
     }
 
     /**
@@ -97,12 +99,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         return ReceiveBuilder.create()
                 .match(ChannelCreated.class, channelCreated -> {
                     this.channelActor = channelCreated.channel();
-                    addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
-                            0, null);
+                    addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
+                            "Started at " + Instant.now(), 0, null);
 
-                    final Set<String> exchanges = getDestinations().values()
-                            .stream()
-                            .flatMap(Set::stream)
+                    final Set<String> exchanges = targets.stream()
+                            .map(t -> toPublishTarget(t.getAddress()))
                             .map(RabbitMQTarget::getExchange)
                             .collect(Collectors.toSet());
                     final ChannelMessage channelMessage = ChannelMessage.apply(channel -> {
@@ -120,7 +121,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     }, false);
                     channelCreated.channel().tell(channelMessage, getSelf());
                 })
-                .match(ExternalMessage.class, this::isResponseOrError, response -> {
+                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
+                    final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId =
                             response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
@@ -134,15 +136,17 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                         log.info("Response dropped, missing replyTo address: {}", response);
                     }
                 })
-                .match(ExternalMessage.class, message -> {
+                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
+                    final ExternalMessage message = outbound.getExternalMessage();
                     final String correlationId =
                             message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received mapped message {} ", message);
 
-                    final Set<RabbitMQTarget> destinationForMessage = getDestinationForMessage(message);
-                    log.debug("Publishing message to targets <{}>: {} ", destinationForMessage, message);
-                    destinationForMessage.forEach(destination -> publishMessage(destination, message));
+                    log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
+                    outbound.getTargets().stream()
+                            .map(t -> toPublishTarget(t.getAddress()))
+                            .forEach(destination -> publishMessage(destination, message));
                 })
                 .match(AddressMetric.class, this::handleAddressMetric)
                 .match(RetrieveAddressMetric.class, ram -> {

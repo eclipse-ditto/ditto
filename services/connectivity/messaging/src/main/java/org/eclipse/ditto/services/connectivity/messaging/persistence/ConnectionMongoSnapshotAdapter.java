@@ -15,7 +15,6 @@ import javax.annotation.Nonnull;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.slf4j.LoggerFactory;
 
@@ -24,13 +23,15 @@ import org.slf4j.LoggerFactory;
  */
 public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotAdapter<Connection> {
 
+
     public ConnectionMongoSnapshotAdapter() {
         super(LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class));
     }
 
     @Override
     protected Connection createJsonifiableFrom(@Nonnull final JsonObject jsonObject) {
-        return ConnectivityModelFactory.connectionFromJson(jsonObject);
+
+        return ConnectionMigrationUtil.connectionFromJsonWithMigration(jsonObject);
     }
 
 }

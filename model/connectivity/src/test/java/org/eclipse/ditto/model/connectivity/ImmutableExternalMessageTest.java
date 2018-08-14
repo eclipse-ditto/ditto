@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.nio.ByteBuffer;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,7 +32,7 @@ public final class ImmutableExternalMessageTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableExternalMessage.class, areImmutable(),
                 assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                provided(ByteBuffer.class).areAlsoImmutable());
+                provided(ByteBuffer.class, AuthorizationContext.class).areAlsoImmutable());
     }
 
     @Test

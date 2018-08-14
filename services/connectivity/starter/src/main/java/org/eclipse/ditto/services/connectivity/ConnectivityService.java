@@ -53,7 +53,7 @@ public final class ConnectivityService extends DittoService<ServiceConfigReader>
      */
     public static void main(final String[] args) {
         final ConnectivityService connectivityService = new ConnectivityService();
-        connectivityService.start();
+        connectivityService.start().getWhenTerminated().toCompletableFuture().join();
     }
 
     @Override
