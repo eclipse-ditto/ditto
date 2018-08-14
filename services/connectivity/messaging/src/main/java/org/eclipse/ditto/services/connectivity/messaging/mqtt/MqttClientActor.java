@@ -31,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -48,6 +50,7 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.Pair;
+import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitches;
 import akka.stream.OverflowStrategy;
@@ -90,6 +93,19 @@ public class MqttClientActor extends BaseClientActor {
     private static Connection validateConnection(final Connection connection) {
         // nothing to do so far
         return connection;
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
+        return super.inAnyState()
+                .event(CountPublishedMqttMessage.class, (message, data) -> {
+                    incrementPublishedMessageCounter();
+                    return stay();
+                })
+                .event(CountConsumedMqttMessage.class, (message, data) -> {
+                    incrementConsumedMessageCounter();
+                    return stay();
+                });
     }
 
     @Override
@@ -210,12 +226,12 @@ public class MqttClientActor extends BaseClientActor {
     }
 
     private MqttMessage countConsumedMqttMessage(final MqttMessage mqttMessage) {
-        incrementConsumedMessageCounter();
+        getSelf().tell(new CountConsumedMqttMessage(), ActorRef.noSender());
         return mqttMessage;
     }
 
     private MqttMessage countPublishedMqttMessage(final MqttMessage mqttMessage) {
-        incrementPublishedMessageCounter();
+        getSelf().tell(new CountPublishedMqttMessage(), ActorRef.noSender());
         return mqttMessage;
     }
 
@@ -270,14 +286,12 @@ public class MqttClientActor extends BaseClientActor {
 
     private void stopCommandProducers() {
         stopChildActor(mqttPublisherActor);
+        mqttPublisherActor = null;
     }
 
     private void stopCommandConsumers() {
-        getContext().getChildren().forEach(child -> {
-            if (child.path().name().startsWith(MqttConsumerActor.ACTOR_NAME_PREFIX)) {
-                stopChildActor(child);
-            }
-        });
+        consumerByActorNameWithIndex.forEach((actorNamePrefix, child) -> stopChildActor(child));
+        consumerByActorNameWithIndex.clear();
     }
 
     @Override
@@ -331,6 +345,16 @@ public class MqttClientActor extends BaseClientActor {
             log.error(closingException, "MQTT test client failed to close!");
         }
     }
+
+    /**
+     * Self message to increment published message counter.
+     */
+    private static final class CountPublishedMqttMessage {}
+
+    /**
+     * Self message to increment consumed message counter.
+     */
+    private static final class CountConsumedMqttMessage {}
 
     /**
      * Callback for connection tests.
