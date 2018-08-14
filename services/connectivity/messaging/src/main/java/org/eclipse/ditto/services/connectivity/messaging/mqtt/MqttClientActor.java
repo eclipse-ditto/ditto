@@ -154,8 +154,8 @@ public class MqttClientActor extends BaseClientActor {
         }
 
         try {
-            connectionSettings = SocketFactoryExtension.SocketFactoryExt(connectionSettings)
-                    .withSocketFactory(SSLContext.getDefault().getSocketFactory());
+            connectionSettings = SocketFactoryExtension.withSocketFactory(connectionSettings,
+                    SSLContext.getDefault().getSocketFactory());
         } catch (final NoSuchAlgorithmException e) {
             log.warning("Failed to create SSL context: {}", e.getMessage());
             throw ConnectionFailedException.newBuilder(connectionId())
