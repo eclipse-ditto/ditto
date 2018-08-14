@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -69,14 +71,10 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
 import org.junit.runner.RunWith;
-import org.junit.runners.model.Statement;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
@@ -111,9 +109,9 @@ public class MqttClientActorTest {
     private static Connection connection;
     private String serverHost;
 
-    @ClassRule public static FreePortRule freePort = new FreePortRule();
+    private final FreePort freePort = new FreePort();
     @Rule public final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
-    @Rule public final MqttClientRule mqttClient = new MqttClientRule(freePort.getPort(), "test-client");
+    @Rule public final MqttClientRule mqttClient = new MqttClientRule(freePort.getPort());
 
     @BeforeClass
     public static void setUp() {
@@ -128,7 +126,6 @@ public class MqttClientActorTest {
 
     @Before
     public void startServer() {
-
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection =
@@ -317,18 +314,37 @@ public class MqttClientActorTest {
     }
 
     @Test
-    public void testTestConnectionFails() {
+    public void testTestConnectionFails() throws Exception {
         new TestKit(actorSystem) {{
 
-            mqttServer.stop();
+            final int newPort = new FreePort().getPort();
+            final Connection newConnection = connection.toBuilder()
+                    .uri("tcp://localhost:" + newPort)
+                    .build();
 
-            final Props props = MqttClientActor.props(connection, getRef());
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
+            try (final ServerSocket serverSocket = new ServerSocket(newPort)) {
+                // start server that closes accepted socket immediately
+                // so that failure is not triggered by connection failure shortcut
+                CompletableFuture.runAsync(() -> {
+                    while (true) {
+                        try (final Socket socket = serverSocket.accept()) {
+                            LOGGER.info("Incoming connection to port {} accepted at port {} ",
+                                    serverSocket.getLocalPort(),
+                                    socket.getPort());
+                        } catch (final IOException e) {
+                            // server socket closed, quitting.
+                            break;
+                        }
+                    }
+                });
 
-            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            final Status.Failure failure = expectMsgClass(Status.Failure.class);
-            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+                final Props props = MqttClientActor.props(newConnection, getRef());
+                final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
+                mqttClientActor.tell(TestConnection.of(newConnection, DittoHeaders.empty()), getRef());
+                final Status.Failure failure = expectMsgClass(Status.Failure.class);
+                assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+            }
         }};
     }
 
@@ -396,19 +412,17 @@ public class MqttClientActorTest {
         };
     }
 
-    private static class FreePortRule implements TestRule {
+    private static class FreePort {
 
-        private int port = 0;
+        private final int port;
 
-        @Override
-        public Statement apply(final Statement base, final Description description) {
+        private FreePort() {
             try (final ServerSocket socket = new ServerSocket(0)) {
                 port = socket.getLocalPort();
             } catch (final IOException e) {
                 LOGGER.info("Failed to find local port: " + e.getMessage());
                 throw new IllegalStateException(e);
             }
-            return base;
         }
 
         private int getPort() {
@@ -421,6 +435,10 @@ public class MqttClientActorTest {
         private final int port;
         private final String clientId;
         private final MqttClient mqttClient;
+
+        private MqttClientRule(final int port) {
+            this(port, "test-client");
+        }
 
         private MqttClientRule(final int port, final String clientId) {
             this.port = port;
@@ -452,7 +470,9 @@ public class MqttClientActorTest {
         @Override
         protected void after() {
             try {
-                mqttClient.disconnect();
+                if (mqttClient.isConnected()) {
+                    mqttClient.disconnect();
+                }
                 mqttClient.close(true);
             } catch (final MqttException e) {
                 LOGGER.error("Failed to disconnect: {}", e.getMessage(), e);
@@ -468,6 +488,7 @@ public class MqttClientActorTest {
         private final AtomicLong connectionCount = new AtomicLong(0);
 
         private MqttServerRule(final int port) {
+            LOGGER.info("Starting server at port {}", port);
             this.port = port;
         }
 
@@ -486,7 +507,7 @@ public class MqttClientActorTest {
         @Override
         protected void before() throws Throwable {
             final MemoryConfig memoryConfig = new MemoryConfig(new Properties());
-            memoryConfig.setProperty("port", Integer.toString(freePort.getPort()));
+            memoryConfig.setProperty("port", Integer.toString(port));
             server = new Server();
             server.startServer(memoryConfig);
             server.addInterceptHandler(new AbstractInterceptHandler() {
@@ -509,7 +530,7 @@ public class MqttClientActorTest {
 
         @Override
         protected void after() {
-            server.stopServer();
+            stop();
         }
     }
 }

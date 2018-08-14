@@ -33,15 +33,19 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
-import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.IMqttActionListener;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
@@ -91,24 +95,18 @@ public class MqttClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
-        MqttClient mqttClient = null;
+
+        // cannot create test client in try-with-resources because it should run asynchronously not to block the actor
+        MqttAsyncClient testClient = null;
         try {
-            mqttClient = new MqttClient(connection().getUri(), connectionId());
+            testClient = new MqttAsyncClient(connection.getUri(), connection.getId(), new MemoryPersistence());
             final MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
             mqttConnectOptions.setConnectionTimeout(0);
-            mqttClient.connect(mqttConnectOptions);
-            future.complete(
-                    new Status.Success("mqtt connection to " + connection().getUri() + " established successfully"));
+            testClient.connect(mqttConnectOptions, new TestActionListener(testClient, connection, log, future));
         } catch (final MqttException e) {
+            log.info("MQTT test client failed due to {}: {}", e.getClass().getCanonicalName(), e.getMessage());
             future.complete(new Status.Failure(e));
-        } finally {
-            if (mqttClient != null) {
-                try {
-                    mqttClient.close(true);
-                } catch (final MqttException e) {
-                    log.debug("Closing MQTT client failed: {}", e.getMessage());
-                }
-            }
+            forceCloseTestClient(testClient, log);
         }
         return future;
     }
@@ -318,5 +316,55 @@ public class MqttClientActor extends BaseClientActor {
 
         return targetEntryFuture.thenApply(targetEntry ->
                 Collections.singletonMap(targetEntry.first(), targetEntry.second()));
+    }
+
+    private static void forceCloseTestClient(@Nullable final MqttAsyncClient testClient,
+            final DiagnosticLoggingAdapter log) {
+        try {
+            if (testClient != null) {
+                if (testClient.isConnected()) {
+                    testClient.disconnectForcibly();
+                }
+                testClient.close(true);
+            }
+        } catch (final MqttException closingException) {
+            log.error(closingException, "MQTT test client failed to close!");
+        }
+    }
+
+    /**
+     * Callback for connection tests.
+     */
+    private static final class TestActionListener implements IMqttActionListener {
+
+        private final MqttAsyncClient client;
+        private final Connection connection;
+        private final DiagnosticLoggingAdapter log;
+        private final CompletableFuture<Status.Status> future;
+
+        private TestActionListener(final MqttAsyncClient client,
+                final Connection connection,
+                final DiagnosticLoggingAdapter log,
+                final CompletableFuture<Status.Status> future) {
+
+            this.client = client;
+            this.connection = connection;
+            this.log = log;
+            this.future = future;
+        }
+
+        @Override
+        public void onSuccess(final IMqttToken asyncActionToken) {
+            forceCloseTestClient(client, log);
+            final String message = "mqtt connection to " + connection.getUri() + " established successfully";
+            future.complete(new Status.Success(message));
+        }
+
+        @Override
+        public void onFailure(final IMqttToken asyncActionToken, final Throwable e) {
+            forceCloseTestClient(client, log);
+            log.info("MQTT test client failed due to {}: {}", e.getClass().getCanonicalName(), e.getMessage());
+            future.complete(new Status.Failure(e));
+        }
     }
 }
