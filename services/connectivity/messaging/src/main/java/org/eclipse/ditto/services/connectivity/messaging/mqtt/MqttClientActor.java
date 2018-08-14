@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -33,6 +35,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -150,8 +153,20 @@ public class MqttClientActor extends BaseClientActor {
             connectionSettings = connectionSettings.withAuth(username, password);
         }
 
+        try {
+            connectionSettings = SocketFactoryExtension.SocketFactoryExt(connectionSettings)
+                    .withSocketFactory(SSLContext.getDefault().getSocketFactory());
+        } catch (final NoSuchAlgorithmException e) {
+            log.warning("Failed to create SSL context: {}", e.getMessage());
+            throw ConnectionFailedException.newBuilder(connectionId())
+                    .description("Failed to create SSL context: " + e.getMessage())
+                    .cause(e)
+                    .build();
+        }
+
         return connectionSettings;
     }
+
 
     private void startMqttPublisher(final MqttConnectionSettings connectionSettings) {
 
