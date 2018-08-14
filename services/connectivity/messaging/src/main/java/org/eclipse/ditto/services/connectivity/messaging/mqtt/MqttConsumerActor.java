@@ -64,25 +64,26 @@ public class MqttConsumerActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return receiveBuilder().match(MqttMessage.class, message -> {
+        return receiveBuilder()
+                .match(MqttMessage.class, message -> {
 
-            log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
+                    log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
 
-            final HashMap<String, String> headers = new HashMap<>();
+                    final HashMap<String, String> headers = new HashMap<>();
 
-            headers.put("mqtt.topic", message.topic());
+                    headers.put("mqtt.topic", message.topic());
 
-            final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
-                    .withBytes(message.payload().toByteBuffer())
-                    .withAuthorizationContext(sourceAuthorizationContext)
-                    .build();
+                    final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                            .withBytes(message.payload().toByteBuffer())
+                            .withAuthorizationContext(sourceAuthorizationContext)
+                            .build();
 
-            lastMessageConsumedAt = Instant.now();
-            consumedMessages++;
+                    lastMessageConsumedAt = Instant.now();
+                    consumedMessages++;
 
-            messageMappingProcessor.tell(externalMessage, getSelf());
+                    messageMappingProcessor.tell(externalMessage, getSelf());
 
-        })
+                })
                 .match(RetrieveAddressMetric.class, ram -> {
                     final AddressMetric addressMetric = ConnectivityModelFactory.newAddressMetric(
                             this.addressMetric != null ? this.addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
@@ -91,11 +92,11 @@ public class MqttConsumerActor extends AbstractActor {
                     log.debug("addressMetric: {}", addressMetric);
                     getSender().tell(addressMetric, getSelf());
                 }).matchEquals(MqttClientActor.COMPLETE_MESSAGE, cmplt -> {
-            log.debug("Underlying stream completed, shutdown consumer actor.");
-            getSelf().tell(PoisonPill.getInstance(), getSelf());
-        }).matchAny(unhandled -> {
-            log.info("Unhandled message: {}", unhandled);
-            unhandled(unhandled);
-        }).build();
+                    log.debug("Underlying stream completed, shutdown consumer actor.");
+                    getSelf().tell(PoisonPill.getInstance(), getSelf());
+                }).matchAny(unhandled -> {
+                    log.info("Unhandled message: {}", unhandled);
+                    unhandled(unhandled);
+                }).build();
     }
 }
