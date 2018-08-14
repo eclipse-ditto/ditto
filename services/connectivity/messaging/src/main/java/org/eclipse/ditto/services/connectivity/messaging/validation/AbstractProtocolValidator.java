@@ -47,7 +47,7 @@ public abstract class AbstractProtocolValidator {
      * @throws DittoRuntimeException if the connection has errors.
      */
     public abstract void validate(final Connection connection, final DittoHeaders dittoHeaders)
-            throws DittoRuntimeException;
+    ;
 
     /**
      * Check whether the URI scheme of the connection belongs to an accepted scheme.
@@ -61,15 +61,14 @@ public abstract class AbstractProtocolValidator {
     protected static void validateUriScheme(final Connection connection,
             final DittoHeaders dittoHeaders,
             final Collection<String> acceptedSchemes,
-            final String protocolName) throws DittoRuntimeException {
+            final String protocolName) {
 
         if (!acceptedSchemes.contains(connection.getProtocol())) {
             final String message =
                     MessageFormat.format("The URI scheme ''{0}'' is not valid for {1}.", connection.getProtocol(),
                             protocolName);
             final String description =
-                    MessageFormat.format("Accepted URI schemes are: {0}",
-                            acceptedSchemes.stream().collect(Collectors.joining(", ")));
+                    MessageFormat.format("Accepted URI schemes are: {0}", String.join(", ", acceptedSchemes));
             throw ConnectionUriInvalidException.newBuilder(connection.getUri())
                     .message(message)
                     .description(description)
@@ -80,7 +79,7 @@ public abstract class AbstractProtocolValidator {
 
     protected static void validateSourceAndTargetConfigs(final Connection connection,
             final DittoHeaders dittoHeaders,
-            final Map<String, SpecificConfigValidator> validators) throws DittoRuntimeException {
+            final Map<String, SpecificConfigValidator> validators) {
 
         connection.getSources().forEach(source ->
                 verifySpecificConfig(source.getSpecificConfig(), validators, dittoHeaders,
@@ -94,7 +93,7 @@ public abstract class AbstractProtocolValidator {
     private static void verifySpecificConfig(final Map<String, String> specificConfig,
             final Map<String, SpecificConfigValidator> validators,
             final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription) throws DittoRuntimeException {
+            final Supplier<String> errorSiteDescription) {
 
         verifyNoExtraSpecificConfig(specificConfig, validators.keySet(), dittoHeaders, errorSiteDescription);
         specificConfig.forEach((key, value) -> {
@@ -108,7 +107,7 @@ public abstract class AbstractProtocolValidator {
     private static void verifyNoExtraSpecificConfig(final Map<String, String> specificConfig,
             final Collection<String> allowedSpecificConfigParams,
             final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription) throws DittoRuntimeException {
+            final Supplier<String> errorSiteDescription) {
 
         final List<String> undefinedConfigs = specificConfig.keySet()
                 .stream()
@@ -117,10 +116,9 @@ public abstract class AbstractProtocolValidator {
 
         if (!undefinedConfigs.isEmpty()) {
             final String message = MessageFormat.format("Undefined configurations {0} in {1}",
-                    undefinedConfigs.stream().collect(Collectors.joining(", ")),
-                    errorSiteDescription.get());
+                    String.join(", ", undefinedConfigs), errorSiteDescription.get());
             final String description = MessageFormat.format("Allowed configurations: {0}",
-                    allowedSpecificConfigParams.stream().collect(Collectors.joining(", ")));
+                    String.join(", ", allowedSpecificConfigParams));
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .description(description)
                     .dittoHeaders(dittoHeaders)

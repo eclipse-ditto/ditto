@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -57,19 +56,19 @@ public final class MqttValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders) throws DittoRuntimeException {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "MQTT 3.1.1");
         validateSourceAndTargetConfigs(connection, dittoHeaders, SPECIFIC_CONFIG_VALIDATORS);
     }
 
     private static void validateQoS(final String qosString,
             final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription) throws DittoRuntimeException {
+            final Supplier<String> errorSiteDescription) {
 
         boolean isError;
         try {
             // MQTT 3.1.1 quality of service can be 0, 1 or 2.
-            final int qos = Integer.valueOf(qosString);
+            final int qos = Integer.parseInt(qosString);
             isError = qos < 0 || qos > 2;
         } catch (final NumberFormatException e) {
             isError = true;

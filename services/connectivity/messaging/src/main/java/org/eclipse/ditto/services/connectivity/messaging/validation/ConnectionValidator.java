@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -56,8 +55,7 @@ public final class ConnectionValidator {
      * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the connection has errors.
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders)
-            throws DittoRuntimeException, IllegalStateException {
+    void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
