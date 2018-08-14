@@ -136,7 +136,6 @@ public class MqttClientActorTest {
                         .build();
     }
 
-
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{

@@ -66,6 +66,9 @@ import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import scala.collection.JavaConverters;
 
+/**
+ * TODO: javadoc
+ */
 public class MqttClientActor extends BaseClientActor {
 
     static final Object COMPLETE_MESSAGE = new Object();
@@ -80,7 +83,7 @@ public class MqttClientActor extends BaseClientActor {
             final ConnectionStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
-        materializer = ActorMaterializer.create(getContext().getSystem());
+        materializer = ActorMaterializer.create(getContext());
         consumerByActorNameWithIndex = new HashMap<>();
     }
 

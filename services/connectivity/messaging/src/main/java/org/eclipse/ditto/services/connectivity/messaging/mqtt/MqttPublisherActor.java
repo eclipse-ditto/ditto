@@ -75,7 +75,8 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
                     final String replyTo = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyTo != null) {
                         final MqttTarget replyTarget = toPublishTarget(replyTo);
-                        publishMessage(replyTarget, response);
+                        final MqttQoS defaultQoS = MqttQoS.atMostOnce();
+                        publishMessage(replyTarget, defaultQoS, response);
                     } else {
                         log.info("Response dropped, missing replyTo address: {}", response);
                     }
@@ -88,9 +89,11 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
                     log.debug("Received mapped message {} ", message);
 
                     log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
-                    outbound.getTargets().stream()
-                            .map(t -> toPublishTarget(t.getAddress()))
-                            .forEach(destination -> publishMessage(destination, message));
+                    outbound.getTargets().forEach(target -> {
+                        final MqttTarget mqttTarget = toPublishTarget(target.getAddress());
+                        final MqttQoS targetQoS = MqttValidator.getQoSFromValidConfig(target.getSpecificConfig());
+                        publishMessage(mqttTarget, targetQoS, message);
+                    });
                 })
                 .match(RetrieveAddressMetric.class, ram -> {
                     getSender().tell(ConnectivityModelFactory.newAddressMetric(
@@ -106,8 +109,10 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
     }
 
     private void publishMessage(final MqttTarget replyTarget,
+            final MqttQoS qos,
             final ExternalMessage externalMessage) {
-        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, externalMessage);
+
+        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, externalMessage);
         mqttPublisher.tell(mqttMessage, getSelf());
 
         publishedMessages++;
@@ -115,7 +120,8 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
     }
 
     private MqttMessage mapExternalMessageToMqttMessage(
-            final MqttTarget replyTarget,
+            final MqttTarget mqttTarget,
+            final MqttQoS qos,
             final ExternalMessage externalMessage) {
         final ByteString payload;
         if (externalMessage.isTextMessage()) {
@@ -133,7 +139,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
         } else {
             payload = ByteString.empty();
         }
-        return MqttMessage.create(replyTarget.getTopic(), payload, MqttQoS.atMostOnce());
+        return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
     }
 
     @Override
