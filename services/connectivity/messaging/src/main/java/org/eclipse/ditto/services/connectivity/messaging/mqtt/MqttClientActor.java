@@ -43,7 +43,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.Done;
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -195,8 +194,8 @@ public class MqttClientActor extends BaseClientActor {
 
             // TODO make configurable
             final Integer bufferSize = 8;
-            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttSource =
-                    MqttSource.atMostOnce(settings, bufferSize);
+            final akka.stream.javadsl.Source<?, CompletionStage<Done>> mqttSource =
+                    createMqttSource(settings, bufferSize, source);
 
             // TODO use RestartSource
 //            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> restartingSource =
@@ -207,30 +206,30 @@ public class MqttClientActor extends BaseClientActor {
             // TODO use Sink.actorRefWithAck?
             //.runWith(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), materializer);
 
-            final Pair<Pair<CompletionStage<Done>, SharedKillSwitch>, NotUsed> completions = mqttSource
+            final Pair<CompletionStage<Done>, SharedKillSwitch> completions = mqttSource
                     .viaMat(consumerKillSwitch.flow(), Keep.both())
                     .map(this::countConsumedMqttMessage)
-                    .toMat(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), Keep.both())
+                    .toMat(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), Keep.left())
                     .run(materializer);
 
-            final CompletionStage<Done> subscriptionInitialized = completions.first().first();
+            final CompletionStage<Done> subscriptionInitialized = completions.first();
             subscriptionInitialized.thenAccept(d -> log.info("Subscriptions {} initialized", subscriptions));
 
             log.info("Waiting for subscriptions....");
             subscriptionInitialized.toCompletableFuture().join();
 
-            final SharedKillSwitch ks = completions.first().second();
+            final SharedKillSwitch ks = completions.second();
             log.info("kill switch: {}", consumerKillSwitch);
             log.info("kill switch: {}", ks);
         }
     }
 
-    private MqttMessage countConsumedMqttMessage(final MqttMessage mqttMessage) {
+    private <T> T countConsumedMqttMessage(final T mqttMessage) {
         getSelf().tell(new CountConsumedMqttMessage(), ActorRef.noSender());
         return mqttMessage;
     }
 
-    private MqttMessage countPublishedMqttMessage(final MqttMessage mqttMessage) {
+    private <T> T countPublishedMqttMessage(final T mqttMessage) {
         getSelf().tell(new CountPublishedMqttMessage(), ActorRef.noSender());
         return mqttMessage;
     }
@@ -239,6 +238,7 @@ public class MqttClientActor extends BaseClientActor {
         return sourceIndex + "-" + consumerIndex;
     }
 
+    // TODO: keep RestartSource or not?
     private <M> akka.stream.javadsl.Source<M, CompletionStage<Done>> wrapWithAsRestartSource(
             final Creator<akka.stream.javadsl.Source<M, CompletionStage<Done>>> source) {
         // makes use of the fact that these sources materialize a CompletionStage<Done>
@@ -330,6 +330,19 @@ public class MqttClientActor extends BaseClientActor {
 
         return targetEntryFuture.thenApply(targetEntry ->
                 Collections.singletonMap(targetEntry.first(), targetEntry.second()));
+    }
+
+    private static akka.stream.javadsl.Source<?, CompletionStage<Done>> createMqttSource(
+            final MqttSourceSettings settings,
+            final int bufferSize,
+            final Source source) {
+
+        final MqttQoS qos = MqttValidator.getQoSFromValidConfig(source.getSpecificConfig());
+        if (qos == MqttQoS.atLeastOnce()) {
+            return MqttSource.atLeastOnce(settings, bufferSize);
+        } else {
+            return MqttSource.atMostOnce(settings, bufferSize);
+        }
     }
 
     private static void forceCloseTestClient(@Nullable final MqttAsyncClient testClient,

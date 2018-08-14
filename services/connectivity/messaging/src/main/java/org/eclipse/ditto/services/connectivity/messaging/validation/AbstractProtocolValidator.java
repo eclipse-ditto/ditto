@@ -76,13 +76,33 @@ public abstract class AbstractProtocolValidator {
         }
     }
 
-    protected static void validateSourceAndTargetConfigs(final Connection connection,
+    /**
+     * Validate protocol-specific configurations of sources.
+     *
+     * @param connection the connection to check.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @param validators map from config keys to config value validators.
+     */
+    protected static void validateSourceConfigs(final Connection connection,
             final DittoHeaders dittoHeaders,
             final Map<String, SpecificConfigValidator> validators) {
 
         connection.getSources().forEach(source ->
                 verifySpecificConfig(source.getSpecificConfig(), validators, dittoHeaders,
                         sourceDescription(source, connection)));
+    }
+
+
+    /**
+     * Validate protocol-specific configurations of targets.
+     *
+     * @param connection the connection to check.
+     * @param dittoHeaders headers of the command that triggered the connection validation.
+     * @param validators map from config keys to config value validators.
+     */
+    protected static void validateTargetConfigs(final Connection connection,
+            final DittoHeaders dittoHeaders,
+            final Map<String, SpecificConfigValidator> validators) {
 
         connection.getTargets().forEach(target ->
                 verifySpecificConfig(target.getSpecificConfig(), validators, dittoHeaders,

@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
@@ -29,6 +30,8 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProt
 import org.eclipse.ditto.services.connectivity.messaging.validation.SpecificConfigValidator;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
+import akka.stream.alpakka.mqtt.MqttQoS;
+
 /**
  * Connection specification for Mqtt protocol.
  */
@@ -41,8 +44,11 @@ public final class MqttValidator extends AbstractProtocolValidator {
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
 
-    private static final Map<String, SpecificConfigValidator> SPECIFIC_CONFIG_VALIDATORS =
-            Collections.singletonMap("qos", MqttValidator::validateQoS);
+    private static final Map<String, SpecificConfigValidator> SOURCE_CONFIG_VALIDATORS =
+            Collections.singletonMap(QOS, MqttValidator::validateSourceQoS);
+
+    private static final Map<String, SpecificConfigValidator> TARGET_CONFIG_VALIDATORS =
+            Collections.singletonMap(QOS, MqttValidator::validateTargetQoS);
 
     /**
      * Create a new {@code MqttConnectionSpec}.
@@ -62,22 +68,59 @@ public final class MqttValidator extends AbstractProtocolValidator {
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "MQTT 3.1.1");
         validateAddresses(connection, dittoHeaders);
-        validateSourceAndTargetConfigs(connection, dittoHeaders, SPECIFIC_CONFIG_VALIDATORS);
+        validateSourceConfigs(connection, dittoHeaders, SOURCE_CONFIG_VALIDATORS);
+        validateTargetConfigs(connection, dittoHeaders, TARGET_CONFIG_VALIDATORS);
     }
 
-    private static void validateQoS(final String qosString,
+    /**
+     * Retrieve quality of service from a validated specific config with "at-most-once" as default.
+     *
+     * @param specificConfig valid MQTT-specific config.
+     * @return quality of service.
+     */
+    public static MqttQoS getQoSFromValidConfig(final Map<String, String> specificConfig) {
+        final int qos = Integer.parseInt(specificConfig.getOrDefault(QOS, "0"));
+        switch (qos) {
+            case 1:
+                return MqttQoS.atLeastOnce();
+            case 2:
+                return MqttQoS.exactlyOnce();
+            default:
+                return MqttQoS.atMostOnce();
+        }
+    }
+
+    /*
+     * MQTT Source does not support exactly-once delivery.
+     */
+    private static void validateSourceQoS(final String qosString,
             final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription) {
 
-        boolean isError;
+        validateQoS(qosString, dittoHeaders, errorSiteDescription, i -> 0 <= i & i <= 1);
+    }
+
+    /*
+     * MQTT Sink supports quality-of-service 0, 1, 2.
+     */
+    private static void validateTargetQoS(final String qosString,
+            final DittoHeaders dittoHeaders,
+            final Supplier<String> errorSiteDescription) {
+
+        validateQoS(qosString, dittoHeaders, errorSiteDescription, i -> 0 <= i & i <= 2);
+    }
+
+    private static void validateQoS(final String qosString, final DittoHeaders dittoHeaders,
+            final Supplier<String> errorSiteDescription, final Predicate<Integer> predicate) {
+
+        boolean isValid;
         try {
-            // MQTT 3.1.1 quality of service can be 0, 1 or 2.
             final int qos = Integer.parseInt(qosString);
-            isError = qos < 0 || qos > 2;
+            isValid = predicate.test(qos);
         } catch (final NumberFormatException e) {
-            isError = true;
+            isValid = false;
         }
-        if (isError) {
+        if (!isValid) {
             final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{{1}}'' in {{2}}",
                     qosString, QOS, errorSiteDescription.get());
             throw ConnectionConfigurationInvalidException.newBuilder(message)
