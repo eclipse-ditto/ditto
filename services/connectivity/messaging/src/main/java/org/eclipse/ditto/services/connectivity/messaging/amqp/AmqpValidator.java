@@ -21,13 +21,13 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ProtocolValidator;
+import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 /**
  * Connection specification for Amqp protocol.
  */
 @Immutable
-public final class AmqpValidator implements ProtocolValidator {
+public final class AmqpValidator extends AbstractProtocolValidator {
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("amqp", "amqps"));
@@ -48,6 +48,6 @@ public final class AmqpValidator implements ProtocolValidator {
 
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) throws DittoRuntimeException {
-        ProtocolValidator.validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 1.0");
+        validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "AMQP 1.0");
     }
 }

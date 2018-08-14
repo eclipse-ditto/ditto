@@ -30,11 +30,11 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 @Immutable
 public final class ConnectionValidator {
 
-    private final Map<ConnectionType, ProtocolValidator> specMap;
+    private final Map<ConnectionType, AbstractProtocolValidator> specMap;
 
-    private ConnectionValidator(final ProtocolValidator... connectionSpecs) {
-        final Map<ConnectionType, ProtocolValidator> specMap = Arrays.stream(connectionSpecs)
-                .collect(Collectors.toMap(ProtocolValidator::type, Function.identity()));
+    private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
+        final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
+                .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
     }
 
@@ -44,7 +44,7 @@ public final class ConnectionValidator {
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(final ProtocolValidator... connectionSpecs) {
+    public static ConnectionValidator of(final AbstractProtocolValidator... connectionSpecs) {
         return new ConnectionValidator(connectionSpecs);
     }
 
@@ -58,7 +58,7 @@ public final class ConnectionValidator {
      */
     public void validate(final Connection connection, final DittoHeaders dittoHeaders)
             throws DittoRuntimeException, IllegalStateException {
-        final ProtocolValidator spec = specMap.get(connection.getConnectionType());
+        final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
             spec.validate(connection, dittoHeaders);

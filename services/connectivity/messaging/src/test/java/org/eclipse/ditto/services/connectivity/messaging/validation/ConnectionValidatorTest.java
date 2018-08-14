@@ -26,7 +26,7 @@ public class ConnectionValidatorTest {
     public void testImmutability() {
         assertInstancesOf(ConnectionValidator.class,
                 areImmutable(),
-                // mutability-detector cannot detect that maps built from stream connectors are safely copied.
+                // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 }
