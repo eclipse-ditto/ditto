@@ -153,20 +153,25 @@ public class MqttClientActor extends BaseClientActor {
             connectionSettings = connectionSettings.withAuth(username, password);
         }
 
-        try {
-            connectionSettings = SocketFactoryExtension.withSocketFactory(connectionSettings,
-                    SSLContext.getDefault().getSocketFactory());
-        } catch (final NoSuchAlgorithmException e) {
-            log.warning("Failed to create SSL context: {}", e.getMessage());
-            throw ConnectionFailedException.newBuilder(connectionId())
-                    .description("Failed to create SSL context: " + e.getMessage())
-                    .cause(e)
-                    .build();
+        if (isSecureConnection()) {
+            try {
+                connectionSettings = SocketFactoryExtension.withSocketFactory(connectionSettings,
+                        SSLContext.getDefault().getSocketFactory());
+            } catch (final NoSuchAlgorithmException e) {
+                log.warning("Failed to create SSL context: {}", e.getMessage());
+                throw ConnectionFailedException.newBuilder(connectionId())
+                        .description("Failed to create SSL context: " + e.getMessage())
+                        .cause(e)
+                        .build();
+            }
         }
 
         return connectionSettings;
     }
 
+    private boolean isSecureConnection() {
+        return "ssl".equals(connection().getProtocol()) || "wss".equals(connection().getProtocol());
+    }
 
     private void startMqttPublisher(final MqttConnectionSettings connectionSettings) {
 
