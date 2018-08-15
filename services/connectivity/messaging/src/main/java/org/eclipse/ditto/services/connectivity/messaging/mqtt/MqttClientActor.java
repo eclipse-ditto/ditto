@@ -174,8 +174,9 @@ public class MqttClientActor extends BaseClientActor {
         consumerKillSwitch = KillSwitches.shared("consumerKillSwitch");
 
         final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
+        final MqttQoS qos = MqttValidator.getQoSFromValidConfig(source.getSpecificConfig());
         source.getAddresses()
-                .forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, MqttQoS.atMostOnce())));
+                .forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, qos)));
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
