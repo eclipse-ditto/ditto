@@ -15,9 +15,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -35,6 +37,8 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
@@ -44,6 +48,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.Done;
 import akka.actor.ActorRef;
+import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
@@ -52,14 +57,10 @@ import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitches;
-import akka.stream.OverflowStrategy;
 import akka.stream.SharedKillSwitch;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
-import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
 import akka.stream.alpakka.mqtt.MqttSourceSettings;
-import akka.stream.alpakka.mqtt.javadsl.MqttSink;
 import akka.stream.alpakka.mqtt.javadsl.MqttSource;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSource;
@@ -74,10 +75,10 @@ public class MqttClientActor extends BaseClientActor {
     static final Object COMPLETE_MESSAGE = new Object();
     private final ActorMaterializer materializer;
     private SharedKillSwitch consumerKillSwitch;
-    private UniqueKillSwitch publisherKillSwitch;
     private ActorRef mqttPublisherActor;
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
+    private final Set<ActorRef> pendingStatusReportsFromChildren;
 
     private MqttClientActor(final Connection connection,
             final ConnectionStatus desiredConnectionStatus,
@@ -85,6 +86,7 @@ public class MqttClientActor extends BaseClientActor {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         materializer = ActorMaterializer.create(getContext());
         consumerByActorNameWithIndex = new HashMap<>();
+        pendingStatusReportsFromChildren = new HashSet<>();
     }
 
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
@@ -98,8 +100,14 @@ public class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
-        return super.inAnyState()
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+        return super.inConnectingState()
+                .event(Status.Status.class, this::handleStatusReportFromChildren);
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+        return super.inConnectedState()
                 .event(CountPublishedMqttMessage.class, (message, data) -> {
                     incrementPublishedMessageCounter();
                     return stay();
@@ -146,27 +154,58 @@ public class MqttClientActor extends BaseClientActor {
         } else {
             log.debug("This connection is not consuming, not starting any consumer.");
         }
+    }
 
+    @Override
+    protected Optional<ActorRef> getPublisherActor() {
+        return Optional.ofNullable(mqttPublisherActor);
+    }
+
+    @Override
+    protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
+        final MqttConnectionSettings connectionSettings =
+                MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection());
+        // TODO: start consumer actors here.
+        // self().tell((ClientConnected) () -> null, origin);
         startMqttPublisher(connectionSettings);
+    }
+
+    @Override
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+        self().tell((ClientDisconnected) () -> null, origin);
+    }
+
+    @Override
+    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
+        return collectAsList(IntStream.range(0, source.getConsumerCount())
+                .mapToObj(idx -> {
+                    final String topics = String.join(",", source.getAddresses());
+                    final String actorLabel =
+                            MqttConsumerActor.ACTOR_NAME_PREFIX + getUniqueSourceSuffix(source.getIndex(), idx);
+                    final ActorRef consumer = consumerByActorNameWithIndex.get(actorLabel);
+                    return retrieveAddressMetric(topics, actorLabel, consumer);
+                }))
+                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)));
+    }
+
+    @Override
+    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
+        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
+                retrieveAddressMetric(target.getAddress(), MqttPublisherActor.ACTOR_NAME,
+                        getPublisherActor().orElse(null));
+
+        return targetEntryFuture.thenApply(targetEntry ->
+                Collections.singletonMap(targetEntry.first(), targetEntry.second()));
     }
 
     private void startMqttPublisher(final MqttConnectionSettings connectionSettings) {
         log.info("Starting MQTT publisher actor.");
-        final Sink<MqttMessage, CompletionStage<Done>> mqttSink =
-                MqttSink.create(connectionSettings.withClientId(connectionId() + "-publisher"), MqttQoS.atMostOnce());
-
-        final Pair<Pair<ActorRef, UniqueKillSwitch>, CompletionStage<Done>> outbound =
-                akka.stream.javadsl.Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
-                        .map(this::countPublishedMqttMessage)
-                        .viaMat(KillSwitches.single(), Keep.both())
-                        .toMat(mqttSink, Keep.both())
-                        .run(materializer);
-
-        publisherKillSwitch = outbound.first().second();
-        outbound.second().thenAccept(d -> log.info("Publisher ready..."));
-        final ActorRef mqttPublisherSource = outbound.first().first();
+        // ensure no previous publisher stays in memory
+        stopMqttPublisher();
+        final MqttConnectionSettings publisherSettings = connectionSettings.withClientId(connectionId() + "-publisher");
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(mqttPublisherSource));
+                MqttPublisherActor.props(publisherSettings, getSelf()));
+        pendingStatusReportsFromChildren.add(mqttPublisherActor);
     }
 
     private void startMqttConsumers(final MqttConnectionSettings connectionSettings,
@@ -233,11 +272,6 @@ public class MqttClientActor extends BaseClientActor {
         return mqttMessage;
     }
 
-    private <T> T countPublishedMqttMessage(final T mqttMessage) {
-        getSelf().tell(new CountPublishedMqttMessage(), ActorRef.noSender());
-        return mqttMessage;
-    }
-
     private String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
         return sourceIndex + "-" + consumerIndex;
     }
@@ -272,25 +306,23 @@ public class MqttClientActor extends BaseClientActor {
     @Override
     protected void cleanupResourcesForConnection() {
 
+        pendingStatusReportsFromChildren.clear();
+
         if (consumerKillSwitch != null) {
             log.info("Closing consumers.");
             consumerKillSwitch.shutdown();
             consumerKillSwitch = null;
         }
 
-        if (publisherKillSwitch != null) {
-            log.info("Closing publishers.");
-            publisherKillSwitch.shutdown();
-            publisherKillSwitch = null;
-        }
-
         stopCommandConsumers();
-        stopCommandProducers();
+        stopMqttPublisher();
     }
 
-    private void stopCommandProducers() {
-        stopChildActor(mqttPublisherActor);
-        mqttPublisherActor = null;
+    private void stopMqttPublisher() {
+        if (mqttPublisherActor != null) {
+            stopChildActor(mqttPublisherActor);
+            mqttPublisherActor = null;
+        }
     }
 
     private void stopCommandConsumers() {
@@ -298,42 +330,21 @@ public class MqttClientActor extends BaseClientActor {
         consumerByActorNameWithIndex.clear();
     }
 
-    @Override
-    protected Optional<ActorRef> getPublisherActor() {
-        return Optional.ofNullable(mqttPublisherActor);
-    }
-
-    @Override
-    protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        self().tell((ClientConnected) () -> null, origin);
-    }
-
-    @Override
-    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        self().tell((ClientDisconnected) () -> null, origin);
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source) {
-        return collectAsList(IntStream.range(0, source.getConsumerCount())
-                .mapToObj(idx -> {
-                    final String topics = String.join(",", source.getAddresses());
-                    final String actorLabel =
-                            MqttConsumerActor.ACTOR_NAME_PREFIX + getUniqueSourceSuffix(source.getIndex(), idx);
-                    final ActorRef consumer = consumerByActorNameWithIndex.get(actorLabel);
-                    return retrieveAddressMetric(topics, actorLabel, consumer);
-                }))
-                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)));
-    }
-
-    @Override
-    protected CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target) {
-        final CompletionStage<Pair<String, AddressMetric>> targetEntryFuture =
-                retrieveAddressMetric(target.getAddress(), MqttPublisherActor.ACTOR_NAME,
-                        getPublisherActor().orElse(null));
-
-        return targetEntryFuture.thenApply(targetEntry ->
-                Collections.singletonMap(targetEntry.first(), targetEntry.second()));
+    private FSM.State<BaseClientState, BaseClientData> handleStatusReportFromChildren(final Status.Status status,
+            final BaseClientData data) {
+        if (pendingStatusReportsFromChildren.contains(getSender())) {
+            pendingStatusReportsFromChildren.remove(getSender());
+            if (status instanceof Status.Failure) {
+                final Status.Failure failure = (Status.Failure) status;
+                final ConnectionFailure connectionFailure =
+                        new ImmutableConnectionFailure(null, failure.cause(), "child failed");
+                getSelf().tell(connectionFailure, ActorRef.noSender());
+            } else if (pendingStatusReportsFromChildren.isEmpty()) {
+                // all children are ready; this client actor is connected.
+                getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
+            }
+        }
+        return stay();
     }
 
     private static akka.stream.javadsl.Source<?, CompletionStage<Done>> createMqttSource(
@@ -366,7 +377,7 @@ public class MqttClientActor extends BaseClientActor {
     /**
      * Self message to increment published message counter.
      */
-    private static final class CountPublishedMqttMessage {}
+    static final class CountPublishedMqttMessage {}
 
     /**
      * Self message to increment consumed message counter.

@@ -14,6 +14,9 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.concurrent.CompletionStage;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -26,38 +29,61 @@ import org.eclipse.ditto.services.connectivity.messaging.OutboundSignal;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import akka.japi.Pair;
+import akka.stream.ActorMaterializer;
+import akka.stream.OverflowStrategy;
+import akka.stream.alpakka.mqtt.MqttConnectionSettings;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
+import akka.stream.alpakka.mqtt.javadsl.MqttSink;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
 public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
 
     static final String ACTOR_NAME = "mqttPublisher";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final ActorRef mqttPublisher;
+    private final ActorRef sourceActor;
+    private final ActorRef mqttClientActor;
 
     private long publishedMessages = 0L;
     private Instant lastMessagePublishedAt;
     private AddressMetric addressMetric;
 
-    private MqttPublisherActor(final ActorRef mqttPublisher) {
-        this.mqttPublisher = mqttPublisher;
+    private MqttPublisherActor(final MqttConnectionSettings settings, final ActorRef mqttClientActor) {
+        this.mqttClientActor = mqttClientActor;
+
+        final Sink<MqttMessage, CompletionStage<Done>> mqttSink = MqttSink.create(settings, MqttQoS.atMostOnce());
+
+        final Pair<ActorRef, CompletionStage<Done>> materializedValues =
+                akka.stream.javadsl.Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
+                        .map(this::countPublishedMqttMessage)
+                        .toMat(mqttSink, Keep.both())
+                        .run(ActorMaterializer.create(getContext()));
+
+        materializedValues.second().handle(this::reportReadiness);
+
+        sourceActor = materializedValues.first();
+
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
     }
 
-    static Props props(final ActorRef mqttPublisher) {
+    static Props props(final MqttConnectionSettings settings, final ActorRef mqttClientActor) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttPublisherActor create() {
-                return new MqttPublisherActor(mqttPublisher);
+                return new MqttPublisherActor(settings, mqttClientActor);
             }
         });
     }
@@ -108,12 +134,17 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
                 .build();
     }
 
+    @Override
+    protected MqttTarget toPublishTarget(final String address) {
+        return MqttTarget.of(address);
+    }
+
     private void publishMessage(final MqttTarget replyTarget,
             final MqttQoS qos,
             final ExternalMessage externalMessage) {
 
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, externalMessage);
-        mqttPublisher.tell(mqttMessage, getSelf());
+        sourceActor.tell(mqttMessage, getSelf());
 
         publishedMessages++;
         lastMessagePublishedAt = Instant.now();
@@ -142,8 +173,26 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
         return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
     }
 
-    @Override
-    protected MqttTarget toPublishTarget(final String address) {
-        return MqttTarget.of(address);
+    /*
+     * Called inside stream - must be thread-safe.
+     */
+    private <T> T countPublishedMqttMessage(final T message) {
+        mqttClientActor.tell(new MqttClientActor.CountPublishedMqttMessage(), getSelf());
+        return message;
+    }
+
+    /*
+     * Called inside future - must be thread-safe.
+     */
+    @Nullable
+    private Done reportReadiness(@Nullable final Done done, @Nullable final Throwable exception) {
+        if (exception == null) {
+            log.info("Publisher ready");
+            mqttClientActor.tell(new Status.Success(done), getSelf());
+        } else {
+            log.info("Publisher failed");
+            mqttClientActor.tell(new Status.Failure(exception), getSelf());
+        }
+        return done;
     }
 }

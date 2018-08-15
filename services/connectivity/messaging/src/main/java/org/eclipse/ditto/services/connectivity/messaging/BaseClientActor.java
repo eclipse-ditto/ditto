@@ -480,22 +480,46 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 });
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
+    /**
+     * Creates the handler for messages in disconnected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
                 .event(TestConnection.class, BaseClientData.class, this::testConnection);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+    /**
+     * Creates the handler for messages in connecting state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+    /**
+     * Creates the handler for messages in connected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
+    /**
+     * Creates the handler for messages in disconnected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
