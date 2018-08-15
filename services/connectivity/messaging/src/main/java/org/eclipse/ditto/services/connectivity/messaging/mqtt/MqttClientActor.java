@@ -232,6 +232,11 @@ public class MqttClientActor extends BaseClientActor {
             final ActorRef messageMappingProcessorActor,
             final Source source) {
 
+        if (source.getConsumerCount() <= 0) {
+            log.info("source #{} has {} consumer - not starting stream", source.getIndex(), source.getConsumerCount());
+            return;
+        }
+
         final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
         final MqttQoS qos = MqttValidator.getQoSFromValidConfig(source.getSpecificConfig());
         source.getAddresses()
@@ -278,7 +283,7 @@ public class MqttClientActor extends BaseClientActor {
                 .toMat(consumerLoadBalancer, Keep.left())
                 .run(ActorMaterializer.create(getContext()));
 
-        // let's hope consumerCount > 0
+        // consumerCount > 0 because the early return did not trigger
         final ActorRef firstConsumer = consumerByActorNameWithIndex.values().iterator().next();
         final ActorRef self = getSelf();
         pendingStatusReportsFromStreams.add(firstConsumer);
