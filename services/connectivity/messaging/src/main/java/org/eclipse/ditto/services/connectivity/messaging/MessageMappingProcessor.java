@@ -86,7 +86,7 @@ public final class MessageMappingProcessor {
         final ProtocolConfigReader protocolConfigReader =
                 ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
         final ProtocolAdapter protocolAdapter =
-                protocolConfigReader.loadProtocolAdapterProvider(actorSystem).createProtocolAdapter();
+                protocolConfigReader.loadProtocolAdapterProvider(actorSystem).getProtocolAdapter(null);
         return new MessageMappingProcessor(connectionId, registry, log, protocolAdapter);
     }
 

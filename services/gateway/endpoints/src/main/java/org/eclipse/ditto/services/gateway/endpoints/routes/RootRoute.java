@@ -365,7 +365,7 @@ public final class RootRoute {
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
                 sseThingsRoute.buildThingsSseRoute(ctx, () ->
-                        overwriteDittoHeaders(dittoHeaders, ctx, CustomHeadersHandler.RequestType.SSE)),
+                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -418,7 +418,7 @@ public final class RootRoute {
         return inner.apply(dittoHeaders);
     }
 
-    private DittoHeaders overwriteDittoHeaders(final DittoHeaders dittoHeaders, final RequestContext ctx,
+    private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final CustomHeadersHandler.RequestType requestType) {
         final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
 
