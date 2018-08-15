@@ -57,6 +57,7 @@ public final class MqttValidatorTest {
     public void testValidTargetAddress() {
         MqttValidator.newInstance().validate(createConnectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty());
         MqttValidator.newInstance().validate(createConnectionWithTarget("ditto"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(createConnectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
     }
 
     @Test
