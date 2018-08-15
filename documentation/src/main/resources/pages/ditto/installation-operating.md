@@ -26,21 +26,6 @@ Additionally to the obligatory logging monitoring is included in the Ditto image
 automatically gathered and published on a HTTP port where it can be scraped from a [Prometheus](https://prometheus.io) 
 backend from where the metrics can be accessed to display in dashboards (e.g. with [Grafana](https://grafana.com)).
 
-### Gathered metrics
-
-// TODO TJ adjust keys
-* JVM metrics: `stats.timers.$Application.$Host.system-metric.*`
-    * amount of garbage collections + GC times
-    * memory consumption (heap + non-heap)
-    * amount of threads + loaded classes
-* HTTP metrics: `stats.timers.Gateway.$Host.trace.roundtrip_http_*.elapsed-time.mean`
-    * roundtrip times from request to response
-    * amount of HTTP calls
-    * status code of HTTP responses
-* MongoDB metrics: `stats.gauges.$Application.$Host.akka-persistence-mongo.journal.casbah.*`
-    * inserts, updates, reads per second
-    * roundtrip times
-
 ### Configuring
 
 In the default configuration each Ditto service opens a HTTP endpoint where it provides the Prometheus metrics on port
@@ -52,6 +37,55 @@ Prometheus can then be configured to poll on all Ditto service endpoints in orde
 Grafana can add a Prometheus server as its data source and can display 
 the metrics based on the keys mentioned in section ["Gathered metrics"](#gathered-metrics).
 
+### Gathered metrics
+
+In order to inspect which metrics are exported to Prometheus, just visit the Prometheus HTTP endpoint of a Ditto service:
+`http://<container-host-or-ip>:9095/`, e.g. for the [gateway-service](architecture-services-gateway.html) an excerpt:
+
+```
+#Kamon Metrics
+# TYPE jvm_threads gauge
+jvm_threads{component="system-metrics",measure="total"} 72.0
+# TYPE jvm_memory_buffer_pool_count gauge
+jvm_memory_buffer_pool_count{component="system-metrics",pool="direct"} 14.0
+# TYPE jvm_class_loading gauge
+jvm_class_loading{component="system-metrics",mode="loaded"} 10491.0
+# TYPE jvm_memory_buffer_pool_usage gauge
+jvm_memory_buffer_pool_usage{component="system-metrics",pool="direct",measure="used"} 396336.0
+# TYPE roundtrip_http_seconds histogram
+roundtrip_http_seconds_bucket{le="0.05",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="201",segment="overall"} 1.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/1/things/x",ditto_statusCode="201",ditto_request_method="PUT",segment="overall"} 0.038273024
+roundtrip_http_seconds_bucket{le="0.001",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 0.0
+roundtrip_http_seconds_bucket{le="0.1",ditto_request_path="/api/1/things/x",ditto_request_method="PUT",ditto_statusCode="204",segment="overall"} 7.0
+roundtrip_http_seconds_sum{ditto_request_path="/api/1/things/x",ditto_statusCode="204",ditto_request_method="PUT",segment="overall"} 0.828899328
+# TYPE jvm_gc_promotion histogram
+jvm_gc_promotion_sum{space="old"} 7315456.0
+# TYPE jvm_gc_seconds histogram
+jvm_gc_seconds_count{component="system-metrics",collector="scavenge"} 9.0
+jvm_gc_seconds_sum{component="system-metrics",collector="scavenge"} 0.063
+# TYPE jvm_memory_bytes histogram
+jvm_memory_bytes_count{component="system-metrics",measure="used",segment="miscellaneous-non-heap-storage"} 54.0
+jvm_memory_bytes_sum{component="system-metrics",measure="used",segment="miscellaneous-non-heap-storage"} 786350080.0
+```
+
+So what Ditto reports in a nutshell:
+
+* JVM metrics for all services
+    * amount of garbage collections + GC times
+    * memory consumption (heap + non-heap)
+    * amount of threads + loaded classes
+* HTTP metrics for [gateway-service](architecture-services-gateway.html)
+    * roundtrip times from request to response
+    * amount of HTTP calls
+    * status code of HTTP responses
+* MongoDB metrics for [things-service](architecture-services-things.html), 
+[policies-service](architecture-services-policies.html), [things-search-service](architecture-services-things-search.html)
+    * inserts, updates, reads per second
+    * roundtrip times
+* cache metrics for [concierge-service](architecture-services-concierge.html)
+* connection metrics for [connectivity-service](architecture-services-connectivity.html)
+    * processed messages
+    * mapping times
 
 ## DevOps commands
 
