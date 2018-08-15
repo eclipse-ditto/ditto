@@ -17,6 +17,12 @@ import akka.http.javadsl.server.RequestContext;
 
 public interface CustomHeadersHandler {
 
-    DittoHeaders handleCustomHeaders(String correlationId, RequestContext requestContext,
+    enum RequestType {
+        API,
+        WS,
+        SSE
+    }
+    
+    DittoHeaders handleCustomHeaders(String correlationId, RequestContext requestContext, RequestType requestType,
             DittoHeaders dittoDefaultHeaders);
 }

@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.json.JsonField;
@@ -122,23 +122,20 @@ public class SseThingsRoute extends AbstractRoute {
      * @return {@code /things} SSE route.
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
-    public Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final Function<Route, Route> inner) {
+    public Route buildThingsSseRoute(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        inner.apply(parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 parameterOptional(ThingsParameter.IDS.toString(),
                                                         idsString -> // "ids" is optional for SSE
-                                                                createSseRoute(dittoHeaders,
+                                                                createSseRoute(dittoHeadersSupplier.get(),
                                                                         calculateSelectedFields(fieldsString).orElse(
                                                                                 null),
-                                                                        idsString.map(ids -> ids.split(","))
-                                                                )
-                                                ))
+                                                                        idsString.map(ids -> ids.split(",")))
+                                                )
                                         )
-
                                 )
                         )
                 )
@@ -153,7 +150,8 @@ public class SseThingsRoute extends AbstractRoute {
              console.log(e.data);
          }, false);
        */
-    private Route createSseRoute(final DittoHeaders dittoHeaders, final JsonFieldSelector fieldSelector,
+    private Route createSseRoute(final DittoHeaders dittoHeaders,
+            final JsonFieldSelector fieldSelector,
             final Optional<String[]> thingIds) {
         final Optional<List<String>> targetThingIds = thingIds.map(Arrays::asList);
 

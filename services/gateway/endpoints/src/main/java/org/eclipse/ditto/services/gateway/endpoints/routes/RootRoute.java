@@ -15,6 +15,7 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
+import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.pathPrefix;
 import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
@@ -31,12 +32,15 @@ import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggi
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -48,6 +52,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -130,8 +135,7 @@ public final class RootRoute {
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
-    private final ProtocolAdapter protocolAdapter;
-    private final ProtocolAdapter protocolAdapterForCompatibilityMode;
+    private final ProtocolAdapterProvider protocolAdapterProvider;
     private final HeaderTranslator headerTranslator;
     private final CustomHeadersHandler customHeadersHandler;
 
@@ -211,13 +215,9 @@ public final class RootRoute {
         exceptionHandler = createExceptionHandler();
 
         final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
-        final ProtocolAdapterProvider protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
-        protocolAdapterForCompatibilityMode = protocolAdapterProvider.createProtocolAdapterForCompatibilityMode();
-        protocolAdapter = protocolAdapterProvider.createProtocolAdapter();
+        protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
 
-        headerTranslator = ProtocolConfigReader.fromRawConfig(actorSystem.settings().config())
-                .loadProtocolAdapterProvider(actorSystem)
-                .createHttpHeaderTranslator();
+        headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         this.customApiRoutesProvider = customApiRoutesProvider;
         this.customHeadersHandler = customHeadersHandler;
@@ -317,13 +317,17 @@ public final class RootRoute {
                                                 apiVersion,
                                                 authContextWithPrefixedSubjects,
                                                 authContext ->
-                                                        buildDittoHeaders(
-                                                                authContext,
-                                                                apiVersion,
-                                                                correlationId,
-                                                                ctx,
-                                                                dittoHeaders ->
-                                                                        buildApiSubRoutes(ctx, dittoHeaders)
+                                                        parameterOptional(TopicPath.Channel.LIVE.getName(), liveParam ->
+                                                            withDittoHeaders(
+                                                                    authContext,
+                                                                    apiVersion,
+                                                                    correlationId,
+                                                                    ctx,
+                                                                    liveParam.orElse(null),
+                                                                    CustomHeadersHandler.RequestType.API,
+                                                                    dittoHeaders ->
+                                                                            buildApiSubRoutes(ctx, dittoHeaders)
+                                                            )
                                                         )
                                         )
                         ))
@@ -360,7 +364,8 @@ public final class RootRoute {
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
-                sseThingsRoute.buildThingsSseRoute(ctx, dittoHeaders),
+                sseThingsRoute.buildThingsSseRoute(ctx, () ->
+                        overwriteDittoHeaders(dittoHeaders, ctx, CustomHeadersHandler.RequestType.SSE)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -379,12 +384,12 @@ public final class RootRoute {
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
                             mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
                                 authContext ->
-                                    buildDittoHeaders(authContext, wsVersion, correlationId, ctx,
-                                        dittoHeaders -> {
+                                    withDittoHeaders(authContext, wsVersion, correlationId, ctx, null,
+                                            CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
+
+                                            final String userAgent = extractUserAgent(ctx).orElse(null);
                                             final ProtocolAdapter chosenProtocolAdapter =
-                                                    useCompatibilityMode(ctx) ?
-                                                            protocolAdapterForCompatibilityMode :
-                                                            protocolAdapter;
+                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
                                             return websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
                                                     authContext, chosenProtocolAdapter);
                                         }
@@ -395,36 +400,35 @@ public final class RootRoute {
         );
     }
 
-    /**
-     * Test if a WS request should be handled in compatibility mode according to user-agent.
-     * Compatibility mode is toggled on if user-agent matches "ThingsClient/3.0.x".
-     *
-     * @param requestContext Akka HTTP request context.
-     * @return whether compatibility mode should be used.
-     */
-    private static boolean useCompatibilityMode(final RequestContext requestContext) {
+    private static Optional<String> extractUserAgent(final RequestContext requestContext) {
         final Stream<HttpHeader> headerStream =
                 StreamSupport.stream(requestContext.getRequest().getHeaders().spliterator(), false);
         // find user-agent: HTTP header names are case-insensitive
-        final Optional<String> userAgent = headerStream.filter(header -> "user-agent".equalsIgnoreCase(header.name()))
+        return headerStream.filter(header -> "user-agent".equalsIgnoreCase(header.name()))
                 .map(HttpHeader::value)
                 .findAny();
-        // header values may be case-sensitive
-        return userAgent.filter(agent -> agent.contains("ThingsClient/3.0."))
-                .isPresent();
     }
 
-    private Route buildDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version, final String correlationId, final RequestContext ctx,
-            final Function<DittoHeaders, Route> inner) {
+    private Route withDittoHeaders(final AuthorizationContext authorizationContext, final Integer version,
+            final String correlationId, final RequestContext ctx, @Nullable final String liveParam,
+            final CustomHeadersHandler.RequestType requestType, final Function<DittoHeaders, Route> inner) {
 
         final DittoHeaders dittoHeaders =
-                buildDittoHeaders(authorizationContext, version, correlationId, ctx);
+                buildDittoHeaders(authorizationContext, version, correlationId, ctx, liveParam, requestType);
         return inner.apply(dittoHeaders);
     }
 
-    private DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version, final String correlationId, final RequestContext ctx) {
+    private DittoHeaders overwriteDittoHeaders(final DittoHeaders dittoHeaders, final RequestContext ctx,
+            final CustomHeadersHandler.RequestType requestType) {
+        final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
+
+        return handleCustomHeaders(correlationId, ctx, requestType, dittoHeaders);
+    }
+
+    private DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext, final Integer version,
+            final String correlationId, final RequestContext ctx, @Nullable final String liveParam,
+            final CustomHeadersHandler.RequestType requestType) {
+
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder();
 
         final Map<String, String> externalHeadersMap = getFilteredExternalHeaders(ctx.getRequest());
@@ -439,14 +443,19 @@ public final class RootRoute {
 
         authorizationContext.getFirstAuthorizationSubject().map(AuthorizationSubject::getId).ifPresent(builder::source);
 
+        if (liveParam != null) { // once the "live" query param was set - no matter what the value was - use live
+            // channel
+            builder.channel(TopicPath.Channel.LIVE.getName());
+        }
+
         final DittoHeaders dittoDefaultHeaders = builder.build();
-        return handleCustomHeaders(correlationId, ctx, dittoDefaultHeaders);
+        return handleCustomHeaders(correlationId, ctx, requestType, dittoDefaultHeaders);
     }
 
     private DittoHeaders handleCustomHeaders(final String correlationId, final RequestContext ctx,
-            final DittoHeaders dittoDefaultHeaders) {
+            final CustomHeadersHandler.RequestType requestType, final DittoHeaders dittoDefaultHeaders) {
 
-        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, dittoDefaultHeaders);
+        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, requestType, dittoDefaultHeaders);
     }
 
 

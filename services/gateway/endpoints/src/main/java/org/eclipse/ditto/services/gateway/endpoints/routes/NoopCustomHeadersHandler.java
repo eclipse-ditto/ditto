@@ -26,8 +26,8 @@ public final class NoopCustomHeadersHandler implements CustomHeadersHandler {
     }
 
     @Override
-    public DittoHeaders handleCustomHeaders(final String correlationId, final RequestContext requestContext,
-            final DittoHeaders dittoDefaultHeaders) {
+    public DittoHeaders handleCustomHeaders(final String correlationId, RequestContext requestContext,
+            final RequestType requestType, final DittoHeaders dittoDefaultHeaders) {
         return dittoDefaultHeaders;
     }
 }
