@@ -129,7 +129,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
+    private static void validateAddresses(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getSources()
                 .stream()
                 .flatMap(source -> source.getAddresses().stream())

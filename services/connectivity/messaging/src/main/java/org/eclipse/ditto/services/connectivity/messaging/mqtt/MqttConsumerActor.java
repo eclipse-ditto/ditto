@@ -11,8 +11,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
+import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor.ConsumerStreamMessage.STREAM_ACK;
+
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Objects;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -40,6 +43,7 @@ public class MqttConsumerActor extends AbstractActor {
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     private final AddressMetric addressMetric;
+    private final ActorRef deadLetters;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext) {
@@ -48,6 +52,7 @@ public class MqttConsumerActor extends AbstractActor {
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
+        deadLetters = getContext().system().deadLetters();
     }
 
     static Props props(final ActorRef messageMappingProcessor,
@@ -82,7 +87,7 @@ public class MqttConsumerActor extends AbstractActor {
                     consumedMessages++;
 
                     messageMappingProcessor.tell(externalMessage, getSelf());
-
+                    replyStreamAck();
                 })
                 .match(RetrieveAddressMetric.class, ram -> {
                     final AddressMetric addressMetric = ConnectivityModelFactory.newAddressMetric(
@@ -91,12 +96,35 @@ public class MqttConsumerActor extends AbstractActor {
                             consumedMessages, lastMessageConsumedAt);
                     log.debug("addressMetric: {}", addressMetric);
                     getSender().tell(addressMetric, getSelf());
-                }).matchEquals(MqttClientActor.COMPLETE_MESSAGE, cmplt -> {
-                    log.debug("Underlying stream completed, shutdown consumer actor.");
-                    getSelf().tell(PoisonPill.getInstance(), getSelf());
-                }).matchAny(unhandled -> {
+                })
+                .match(MqttClientActor.ConsumerStreamMessage.class, this::handleConsumerStreamMessage)
+                .matchAny(unhandled -> {
                     log.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
-                }).build();
+                })
+                .build();
+    }
+
+    private void handleConsumerStreamMessage(final MqttClientActor.ConsumerStreamMessage message) {
+        switch (message) {
+            case STREAM_STARTED:
+                replyStreamAck();
+                break;
+            case STREAM_ENDED:
+                log.debug("Underlying stream completed, shutdown consumer actor.");
+                getSelf().tell(PoisonPill.getInstance(), getSelf());
+                break;
+            case STREAM_ACK:
+                log.error("Protocol violation: STREAM_ACK");
+                break;
+        }
+    }
+
+    private void replyStreamAck() {
+        final ActorRef sender = getSender();
+        // check sender against deadLetters because stream actor terminates itself before waiting for the final ACK
+        if (!Objects.equals(sender, deadLetters)) {
+            sender.tell(STREAM_ACK, getSelf());
+        }
     }
 }

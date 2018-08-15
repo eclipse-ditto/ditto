@@ -66,11 +66,11 @@ import akka.stream.SharedKillSwitch;
 import akka.stream.SinkShape;
 import akka.stream.UniformFanOutShape;
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
+import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
 import akka.stream.alpakka.mqtt.MqttSourceSettings;
 import akka.stream.alpakka.mqtt.javadsl.MqttSource;
 import akka.stream.javadsl.Balance;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSource;
@@ -83,7 +83,6 @@ import scala.util.Either;
  */
 public class MqttClientActor extends BaseClientActor {
 
-    static final Object COMPLETE_MESSAGE = new Object();
     private SharedKillSwitch consumerKillSwitch;
     private ActorRef mqttPublisherActor;
 
@@ -263,8 +262,8 @@ public class MqttClientActor extends BaseClientActor {
                         .withSubscriptions(JavaConverters.asScalaBuffer(subscriptions).toSeq());
         // TODO make configurable
         final Integer bufferSize = 8;
-        final akka.stream.javadsl.Source<Object, CompletionStage<Done>> mqttSource =
-                createMqttSource(settings, bufferSize, source);
+        final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttSource =
+                createMqttSource(settings, bufferSize);
 
         // TODO use RestartSource
 //            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> restartingSource =
@@ -272,10 +271,7 @@ public class MqttClientActor extends BaseClientActor {
 //                        .mapAsync(1, cm -> cm.messageArrivedComplete().thenApply(unused2 -> cm.message()))
 //                        .take(input.size())
 
-        // TODO use Sink.actorRefWithAck?
-        //.runWith(Sink.actorRef(mqttConsumerActor, COMPLETE_MESSAGE), materializer);
-
-        final Graph<SinkShape<Object>, NotUsed> consumerLoadBalancer =
+        final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
 
         final CompletionStage<Done> subscriptionInitialized = mqttSource.viaMat(consumerKillSwitch.flow(), Keep.left())
@@ -386,17 +382,11 @@ public class MqttClientActor extends BaseClientActor {
         return stay();
     }
 
-    private static akka.stream.javadsl.Source<Object, CompletionStage<Done>> createMqttSource(
+    private static akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> createMqttSource(
             final MqttSourceSettings settings,
-            final int bufferSize,
-            final Source source) {
+            final int bufferSize) {
 
-        final MqttQoS qos = MqttValidator.getQoSFromValidConfig(source.getSpecificConfig());
-        if (qos == MqttQoS.atLeastOnce()) {
-            return MqttSource.atLeastOnce(settings, bufferSize).via(Flow.fromFunction(x -> x));
-        } else {
-            return MqttSource.atMostOnce(settings, bufferSize).via(Flow.fromFunction(x -> x));
-        }
+        return MqttSource.atMostOnce(settings, bufferSize);
     }
 
     private static <T> Graph<SinkShape<T>, NotUsed> createConsumerLoadBalancer(final Collection<ActorRef> routees) {
@@ -404,9 +394,14 @@ public class MqttClientActor extends BaseClientActor {
             final UniformFanOutShape<T, T> loadBalancer = builder.add(Balance.create(routees.size()));
             int i = 0;
             for (final ActorRef routee : routees) {
-                final SinkShape<Object> sink = builder.add(Sink.actorRef(routee, COMPLETE_MESSAGE));
+                final Sink<Object, NotUsed> sink = Sink.actorRefWithAck(routee,
+                        ConsumerStreamMessage.STREAM_STARTED,
+                        ConsumerStreamMessage.STREAM_ACK,
+                        ConsumerStreamMessage.STREAM_ENDED,
+                        error -> ConsumerStreamMessage.STREAM_ENDED);
+                final SinkShape<Object> sinkShape = builder.add(sink);
                 final Outlet<T> outlet = loadBalancer.out(i++);
-                builder.from(outlet).to(sink); // TODO: check whether this generates "unchecked" warning on Sonatype.
+                builder.from(outlet).to(sinkShape); // TODO: check if this generates "unchecked" warning on Sonatype
             }
             return SinkShape.of(loadBalancer.in());
         });
@@ -470,5 +465,17 @@ public class MqttClientActor extends BaseClientActor {
             log.info("MQTT test client failed due to {}: {}", e.getClass().getCanonicalName(), e.getMessage());
             future.complete(new Status.Failure(e));
         }
+    }
+
+    enum ConsumerStreamMessage {
+
+        STREAM_STARTED,
+
+        STREAM_ACK,
+
+        /**
+         * Message for stream completion and stream failure.
+         */
+        STREAM_ENDED
     }
 }
