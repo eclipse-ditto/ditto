@@ -265,11 +265,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
                             log.debug("Opening connection <{}> after recovery.", connectionId);
 
-                            final CreateConnection connect = CreateConnection.of(connection, DittoHeaders.empty());
+                            final OpenConnection connect = OpenConnection.of(connectionId, DittoHeaders.empty());
 
                             final ActorRef origin = getSender();
                             askClientActor(connect,
-                                    response -> log.info("CreateConnection result: {}", response),
+                                    response -> log.info("OpenConnection result: {}", response),
                                     error -> handleException("recovery-connect", origin, error)
                             );
                             subscribeForEvents();
