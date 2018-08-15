@@ -298,9 +298,12 @@ public final class ConnectionActorTest {
     @Test
     public void recoverOpenConnection() {
         new TestKit(actorSystem) {{
+
+            final TestProbe mockClientProbe = TestProbe.apply(actorSystem);
             ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            conciergeForwarder);
+                            conciergeForwarder,
+                            (connection, concierge) -> MockClientActor.props(mockClientProbe.ref()));
             watch(underTest);
 
             // create connection
@@ -315,6 +318,9 @@ public final class ConnectionActorTest {
             underTest = Retry.untilSuccess(() ->
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             conciergeForwarder));
+
+            // connection is opened after recovery -> client actor receives OpenConnection command
+            mockClientProbe.expectMsg(OpenConnection.of(connectionId, DittoHeaders.empty()));
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());

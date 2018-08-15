@@ -396,8 +396,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param actor the ActorRef
      */
     protected final void stopChildActor(final ActorRef actor) {
-        log.debug("Stopping child actor <{}>.", actor.path());
-        getContext().stop(actor);
+        if (actor != null) {
+            log.debug("Stopping child actor <{}>.", actor.path());
+            getContext().stop(actor);
+        }
     }
 
     /**

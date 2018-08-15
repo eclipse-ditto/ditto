@@ -274,7 +274,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
                     } else {
-                        rmqPublisherActor.tell(reply, rmqConnectionActor);
+                        if (rmqPublisherActor != null) {
+                            rmqPublisherActor.tell(reply, rmqConnectionActor);
+                        }
                         future.complete(new Status.Success("channel created"));
                     }
                     return null;
