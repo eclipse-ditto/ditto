@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -34,6 +33,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -214,7 +214,7 @@ public class MqttClientActorTest {
 
             final List<String> subscriptions =
                     Arrays.asList("A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3");
-            final Collection<String> expectedSubscriptions = new ArrayList<>(subscriptions);
+            final Collection<String> expectedSubscriptions = new ConcurrentSkipListSet<>(subscriptions);
             final AtomicLong connected = new AtomicLong(0);
 
             mqttServer.addInterceptHandler(new AbstractInterceptHandler() {

@@ -89,6 +89,9 @@ import akka.routing.RoundRobinPool;
 import akka.util.Timeout;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -563,10 +566,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> onUnknownEvent(final Object event,
             final BaseClientData state) {
 
-        log.warning("received unknown/unsupported message {} in state {} - status: {}",
-                event, stateName(),
-                state.getConnectionStatus() + ": " +
-                        state.getConnectionStatusDetails().orElse(""));
+        log.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
+                event,
+                stateName(),
+                state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
+                getSender());
 
         final ActorRef sender = getSender();
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
@@ -867,11 +871,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
+     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     */
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor() {
+        final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
+        return startMessageMappingProcessor(mappingContext);
+    }
+
+    /**
+     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
      *
      * @param mappingContext the MappingContext containing information about how to map external messages
      */
-    private void startMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+    private Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
+            @Nullable final MappingContext mappingContext) {
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 
@@ -883,8 +897,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                         dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-                getSender().tell(dre, getSelf());
-                return;
+                return Left.apply(dre);
             }
 
             log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
@@ -903,6 +916,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
+        return Right.apply(messageMappingProcessorActor);
     }
 
     private String nextChildActorName(final String prefix) {
