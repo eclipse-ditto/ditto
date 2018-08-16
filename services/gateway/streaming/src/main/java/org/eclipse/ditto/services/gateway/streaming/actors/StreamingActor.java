@@ -106,9 +106,12 @@ public final class StreamingActor extends AbstractActor {
                 .match(Signal.class, signal -> {
                     final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
                     if (originOpt.isPresent()) {
-                        final ActorRef sessionActor = getContext().getChild(originOpt.get());
+                        final String origin = originOpt.get();
+                        final ActorRef sessionActor = getContext().getChild(origin);
                         if (sessionActor != null) {
                             commandRouter.tell(signal, sessionActor);
+                        } else {
+                            logger.debug("No session actor found for origin: {}", origin);
                         }
                     } else {
                         logger.warning("Signal is missing the required origin header: {}",
