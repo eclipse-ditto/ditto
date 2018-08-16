@@ -218,6 +218,7 @@ public final class RootRoute {
         protocolAdapterProvider = protocolConfig.loadProtocolAdapterProvider(actorSystem);
 
         headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+        LOGGER.info("Using headerTranslator <{}>.", headerTranslator);
 
         this.customApiRoutesProvider = customApiRoutesProvider;
         this.customHeadersHandler = customHeadersHandler;
