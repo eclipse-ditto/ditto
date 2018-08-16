@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveThingResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -28,7 +29,6 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -86,11 +86,11 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         final RetrieveThing command = RetrieveThing.of(context.getThingId(), DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
+                retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -104,11 +104,11 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .build();
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
+                retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -124,12 +124,12 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
-                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
+                retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -147,13 +147,13 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(THING_V2)));
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector);
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
         assertThat(result.getException()).isEmpty();
         assertThat(result.getFutureResponse().get().toCompletableFuture()).isCompletedWithValue(
-                RetrieveThingResponse.of(THING_ID, expectedThingJson, DittoHeaders.empty()));
+                retrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.isBecomeDeleted()).isFalse();
     }
 
@@ -169,7 +169,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -192,7 +192,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
         Mockito.when(thingSnapshotter.loadSnapshot(snapshotRevision)).thenReturn(completableFuture);
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

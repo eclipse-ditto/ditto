@@ -11,12 +11,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 
@@ -24,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition
  * This strategy handles the {@link RetrieveFeatureDefinition} command.
  */
 @Immutable
-public final class RetrieveFeatureDefinitionStrategy extends AbstractCommandStrategy<RetrieveFeatureDefinition> {
+public final class RetrieveFeatureDefinitionStrategy extends
+        AbstractETagAppendingCommandStrategy<RetrieveFeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
@@ -60,4 +64,12 @@ public final class RetrieveFeatureDefinitionStrategy extends AbstractCommandStra
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing,
+            final long nextRevision, final RetrieveFeatureDefinition command) {
+        return getThingOrThrow(thing).getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .flatMap(Feature::getDefinition)
+                .flatMap(ETagValueGenerator::generate);
+    }
 }

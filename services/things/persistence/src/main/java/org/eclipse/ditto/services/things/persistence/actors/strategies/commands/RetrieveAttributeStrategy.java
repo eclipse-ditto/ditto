@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -18,6 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 
@@ -25,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute} command.
  */
 @Immutable
-final class RetrieveAttributeStrategy extends AbstractCommandStrategy<RetrieveAttribute> {
+final class RetrieveAttributeStrategy extends AbstractETagAppendingCommandStrategy<RetrieveAttribute> {
 
     /**
      * Constructs a new {@code RetrieveAttributeStrategy} object.
@@ -57,4 +60,12 @@ final class RetrieveAttributeStrategy extends AbstractCommandStrategy<RetrieveAt
                         ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders)));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final RetrieveAttribute command) {
+        final JsonPointer attributePointer = command.getAttributePointer();
+        return getThingOrThrow(thing).getAttributes()
+                .map(attributes -> attributes.getValue(attributePointer))
+                .flatMap(ETagValueGenerator::generate);
+    }
 }

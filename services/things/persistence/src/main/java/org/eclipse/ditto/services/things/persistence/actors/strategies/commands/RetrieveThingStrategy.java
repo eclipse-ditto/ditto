@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -37,7 +38,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
+final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<RetrieveThing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -135,4 +136,9 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final RetrieveThing command) {
+        return ETagValueGenerator.generate(thing);
+    }
 }

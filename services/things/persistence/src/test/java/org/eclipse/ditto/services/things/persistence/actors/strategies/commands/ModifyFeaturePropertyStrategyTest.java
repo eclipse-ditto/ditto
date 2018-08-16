@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyFeaturePropertyResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -22,7 +23,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.junit.Before;
@@ -64,7 +64,8 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
                 ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -81,7 +82,8 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
                 ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeature(featureId), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -98,12 +100,13 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
                 ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatureProperties(featureId), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatureProperties(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertyCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeaturePropertyResponse.created(context.getThingId(), command.getFeatureId(),
-                        command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders()));
+                modifyFeaturePropertyResponse(context.getThingId(), command.getFeatureId(),
+                        command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -115,12 +118,12 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
                 ModifyFeatureProperty.of(context.getThingId(), featureId, propertyPointer, newPropertyValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertyModified.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeaturePropertyResponse.modified(context.getThingId(), command.getFeatureId(),
-                        command.getPropertyPointer(), command.getDittoHeaders()));
+                modifyFeaturePropertyResponse(context.getThingId(), command.getFeatureId(),
+                        command.getPropertyPointer(), command.getPropertyValue(), command.getDittoHeaders(), false));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }

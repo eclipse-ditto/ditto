@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,7 +22,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,11 +47,11 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveFeaturesResponse.of(command.getThingId(),
+                retrieveFeaturesResponse(command.getThingId(), FEATURES,
                         FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
@@ -64,10 +64,10 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final RetrieveFeatures command =
                 RetrieveFeatures.of(context.getThingId(), selectedFields, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(RetrieveFeaturesResponse.of(command.getThingId(),
+        assertThat(result.getCommandResponse()).contains(retrieveFeaturesResponse(command.getThingId(), FEATURES,
                 FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
@@ -78,7 +78,8 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

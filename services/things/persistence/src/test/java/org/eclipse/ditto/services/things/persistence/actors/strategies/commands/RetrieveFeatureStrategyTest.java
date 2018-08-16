@@ -15,12 +15,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeatureResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,11 +47,11 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveFeatureResponse.of(command.getThingId(), command.getFeatureId(), FLUX_CAPACITOR.toJson(),
+                retrieveFeatureResponse(command.getThingId(), FLUX_CAPACITOR, FLUX_CAPACITOR.toJson(),
                         command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
@@ -63,7 +63,8 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -79,7 +80,8 @@ public final class RetrieveFeatureStrategyTest extends AbstractCommandStrategyTe
         final RetrieveFeature command =
                 RetrieveFeature.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeature(FLUX_CAPACITOR_ID), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeature(FLUX_CAPACITOR_ID), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

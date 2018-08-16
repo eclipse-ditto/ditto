@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,7 +22,6 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
 import org.junit.Before;
@@ -61,11 +61,12 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeaturesResponse.created(context.getThingId(), command.getFeatures(), command.getDittoHeaders()));
+                modifyFeaturesResponse(context.getThingId(), command.getFeatures(), command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -75,11 +76,11 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesModified.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeaturesResponse.modified(context.getThingId(), command.getDittoHeaders()));
+                modifyFeaturesResponse(context.getThingId(), modifiedFeatures, command.getDittoHeaders(), false));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }

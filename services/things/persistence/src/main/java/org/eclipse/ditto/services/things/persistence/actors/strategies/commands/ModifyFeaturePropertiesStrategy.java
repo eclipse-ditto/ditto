@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -18,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -27,7 +30,7 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties} command.
  */
 @Immutable
-final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<ModifyFeatureProperties> {
+final class ModifyFeaturePropertiesStrategy extends AbstractETagAppendingCommandStrategy<ModifyFeatureProperties> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
@@ -80,4 +83,9 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
                 ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties, dittoHeaders));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing,
+            final long nextRevision, final ModifyFeatureProperties command) {
+        return ETagValueGenerator.generate(command.getProperties());
+    }
 }

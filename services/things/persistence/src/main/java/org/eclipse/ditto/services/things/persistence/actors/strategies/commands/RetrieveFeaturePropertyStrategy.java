@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -19,6 +21,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 
@@ -26,7 +29,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyRe
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty} command.
  */
 @Immutable
-final class RetrieveFeaturePropertyStrategy extends AbstractCommandStrategy<RetrieveFeatureProperty> {
+final class RetrieveFeaturePropertyStrategy extends AbstractETagAppendingCommandStrategy<RetrieveFeatureProperty> {
 
     /**
      * Constructs a new {@code RetrieveFeaturePropertyStrategy} object.
@@ -73,4 +76,14 @@ final class RetrieveFeaturePropertyStrategy extends AbstractCommandStrategy<Retr
                                 dittoHeaders)));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing,
+            final long nextRevision, final RetrieveFeatureProperty command) {
+        final JsonPointer propertyPointer = command.getPropertyPointer();
+        return getThingOrThrow(thing).getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()))
+                .flatMap(Feature::getProperties)
+                .map(featureProperties -> featureProperties.getValue(propertyPointer))
+                .flatMap(ETagValueGenerator::generate);
+    }
 }

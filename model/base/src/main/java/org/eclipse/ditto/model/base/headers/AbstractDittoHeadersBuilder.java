@@ -224,6 +224,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S eTag(final CharSequence eTag) {
+        putCharSequence(DittoHeaderDefinition.ETAG, eTag);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

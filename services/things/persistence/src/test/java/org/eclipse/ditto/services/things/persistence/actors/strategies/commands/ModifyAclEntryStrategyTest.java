@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAclEntryResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -64,11 +65,11 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), aclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyAclEntryResponse.created(context.getThingId(), aclEntry, command.getDittoHeaders()));
+                modifyAclEntryResponse(context.getThingId(), aclEntry, command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -85,7 +86,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         modifiedAclEntry.getAuthorizationSubject(), Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -101,11 +102,11 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), modifiedAclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryModified.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyAclEntryResponse.modified(context.getThingId(), modifiedAclEntry, command.getDittoHeaders()));
+                modifyAclEntryResponse(context.getThingId(), modifiedAclEntry, command.getDittoHeaders(), false));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -123,7 +124,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();

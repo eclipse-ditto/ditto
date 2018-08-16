@@ -11,10 +11,13 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
@@ -23,7 +26,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrievePolicyIdResponse;
  * This strategy handles the {@link RetrievePolicyId} command.
  */
 @Immutable
-final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePolicyId> {
+final class RetrievePolicyIdStrategy extends AbstractETagAppendingCommandStrategy<RetrievePolicyId> {
 
     /**
      * Constructs a new {@code RetrievePolicyIdStrategy} object.
@@ -44,4 +47,9 @@ final class RetrievePolicyIdStrategy extends AbstractCommandStrategy<RetrievePol
                         .build()));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final RetrievePolicyId command) {
+        return getThingOrThrow(thing).getPolicyId().flatMap(ETagValueGenerator::generate);
+    }
 }

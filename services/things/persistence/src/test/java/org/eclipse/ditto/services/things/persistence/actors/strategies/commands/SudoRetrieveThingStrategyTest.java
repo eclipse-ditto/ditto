@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.sudoRetrieveThingResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -24,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,10 +86,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(SudoRetrieveThingResponse.of(expectedThingJson, dittoHeaders));
+        assertThat(result.getCommandResponse()).contains(
+                sudoRetrieveThingResponse(THING_V2, expectedThingJson, dittoHeaders));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -102,11 +103,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(),
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                SudoRetrieveThingResponse.of(expectedThingJson, DittoHeaders.empty()));
+                sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -123,10 +124,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(command.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(SudoRetrieveThingResponse.of(expectedThingJson, dittoHeaders));
+        assertThat(result.getCommandResponse()).contains(
+                sudoRetrieveThingResponse(THING_V2, expectedThingJson, dittoHeaders));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -140,11 +142,11 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,
                 FieldType.regularOrSpecial());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                SudoRetrieveThingResponse.of(expectedThingJson, DittoHeaders.empty()));
+                sudoRetrieveThingResponse(THING_V2, expectedThingJson, DittoHeaders.empty()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }

@@ -11,11 +11,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
@@ -25,7 +28,7 @@ import org.eclipse.ditto.signals.events.things.PolicyIdModified;
  * This strategy handles the {@link ModifyPolicyId} command.
  */
 @Immutable
-final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyId> {
+final class ModifyPolicyIdStrategy extends AbstractETagAppendingCommandStrategy<ModifyPolicyId> {
 
     /**
      * Constructs a new {@code ModifyPolicyIdStrategy} object.
@@ -43,7 +46,8 @@ final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyI
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyPolicyId command) {
+    private static Result getModifyResult(final Context context, final long nextRevision,
+            final ModifyPolicyId command) {
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -53,7 +57,8 @@ final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyI
                 ModifyPolicyIdResponse.modified(thingId, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyPolicyId command) {
+    private static Result getCreateResult(final Context context, final long nextRevision,
+            final ModifyPolicyId command) {
         final String thingId = context.getThingId();
         final String policyId = command.getPolicyId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -63,4 +68,9 @@ final class ModifyPolicyIdStrategy extends AbstractCommandStrategy<ModifyPolicyI
                 ModifyPolicyIdResponse.created(thingId, policyId, dittoHeaders));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final ModifyPolicyId command) {
+        return ETagValueGenerator.generate(command.getPolicyId());
+    }
 }

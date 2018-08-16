@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAttributeResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -60,7 +61,8 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -76,12 +78,12 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyAttributeResponse.created(context.getThingId(), attributePointer, attributeValue,
-                        command.getDittoHeaders()));
+                modifyAttributeResponse(context.getThingId(), attributePointer, attributeValue,
+                        command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -96,12 +98,12 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
                 ModifyAttribute.of(context.getThingId(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(AttributeModified.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyAttributeResponse.modified(context.getThingId(), existingAttributePointer,
-                        command.getDittoHeaders()));
+                modifyAttributeResponse(context.getThingId(), existingAttributePointer, newAttributeValue,
+                        command.getDittoHeaders(), false));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }

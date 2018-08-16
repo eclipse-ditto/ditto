@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -25,7 +24,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
@@ -35,7 +34,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
+final class ModifyThingStrategy extends AbstractETagAppendingCommandStrategy<ModifyThing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
@@ -215,4 +214,10 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final ModifyThing command) {
+        final Thing thingModification = command.getThing().toBuilder().setRevision(nextRevision).build();
+        return ETagValueGenerator.generate(thingModification);
+    }
 }

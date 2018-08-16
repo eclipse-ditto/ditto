@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyFeatureResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -20,7 +21,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.junit.Before;
@@ -56,11 +56,12 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeatureResponse.created(context.getThingId(), command.getFeature(), command.getDittoHeaders()));
+                modifyFeatureResponse(context.getThingId(), command.getFeature(), command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -70,11 +71,12 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeature(modifiedFeature.getId()), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.apply(context, THING_V2.removeFeature(modifiedFeature.getId()), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureCreated.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeatureResponse.created(context.getThingId(), command.getFeature(), command.getDittoHeaders()));
+                modifyFeatureResponse(context.getThingId(), command.getFeature(), command.getDittoHeaders(), true));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -84,12 +86,11 @@ public final class ModifyFeatureStrategyTest extends AbstractCommandStrategyTest
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeature command = ModifyFeature.of(context.getThingId(), modifiedFeature, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeatureModified.class);
         assertThat(result.getCommandResponse()).contains(
-                ModifyFeatureResponse.modified(context.getThingId(), modifiedFeature.getId(),
-                        command.getDittoHeaders()));
+                modifyFeatureResponse(context.getThingId(), modifiedFeature, command.getDittoHeaders(), false));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }

@@ -23,13 +23,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 
 /**
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @Immutable
-final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrieveThing> {
+final class SudoRetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -75,4 +76,9 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final SudoRetrieveThing command) {
+        return ETagValueGenerator.generate(thing);
+    }
 }

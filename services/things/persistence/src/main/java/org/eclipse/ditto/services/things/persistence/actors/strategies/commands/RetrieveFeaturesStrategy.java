@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -18,6 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 
@@ -25,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures} command.
  */
 @Immutable
-final class RetrieveFeaturesStrategy extends AbstractCommandStrategy<RetrieveFeatures> {
+final class RetrieveFeaturesStrategy extends AbstractETagAppendingCommandStrategy<RetrieveFeatures> {
 
     /**
      * Constructs a new {@code RetrieveFeaturesStrategy} object.
@@ -53,4 +56,9 @@ final class RetrieveFeaturesStrategy extends AbstractCommandStrategy<RetrieveFea
                 .orElseGet(() -> features.toJson(command.getImplementedSchemaVersion()));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final RetrieveFeatures command) {
+        return getThingOrThrow(thing).getFeatures().flatMap(ETagValueGenerator::generate);
+    }
 }

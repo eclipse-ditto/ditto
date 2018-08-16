@@ -11,12 +11,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
@@ -26,7 +29,7 @@ import org.eclipse.ditto.signals.events.things.AttributesModified;
  * This strategy handles the {@link ModifyAttributes} command.
  */
 @Immutable
-public final class ModifyAttributesStrategy extends AbstractCommandStrategy<ModifyAttributes> {
+public final class ModifyAttributesStrategy extends AbstractETagAppendingCommandStrategy<ModifyAttributes> {
 
     /**
      * Constructs a new {@code ModifyAttributesStrategy} object.
@@ -65,4 +68,9 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
                 ModifyAttributesResponse.created(thingId, attributes, dittoHeaders));
     }
 
+    @Override
+    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
+            final ModifyAttributes command) {
+        return ETagValueGenerator.generate(command.getAttributes());
+    }
 }

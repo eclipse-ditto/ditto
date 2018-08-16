@@ -135,6 +135,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B contentType(CharSequence contentType);
 
     /**
+     * Sets the ETag value.
+     *
+     * @param eTag The ETag value to be set.
+     * @return this builder for Method Chaining
+     */
+    B eTag(CharSequence eTag);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveAclResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,6 +22,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Context;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy.Result;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
@@ -50,15 +52,14 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
         final Context context = getDefaultContext();
         final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
-        final JsonObject expectedAclJson = THING_V1.getAccessControlList()
-                .map(acl -> acl.toJson(JsonSchemaVersion.V_1))
-                .orElse(JsonFactory.newObject());
+        final AccessControlList expectedAcl = THING_V1.getAccessControlList().get();
+        final JsonObject expectedAclJson = expectedAcl.toJson(JsonSchemaVersion.V_1);
 
-        final Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
+        final Result result = underTest.apply(context, THING_V1, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
-                RetrieveAclResponse.of(command.getThingId(), expectedAclJson, command.getDittoHeaders()));
+                retrieveAclResponse(command.getThingId(), expectedAcl, expectedAclJson, command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
     }
@@ -68,7 +69,7 @@ public final class RetrieveAclStrategyTest extends AbstractCommandStrategyTest {
         final Context context = getDefaultContext();
         final RetrieveAcl command = RetrieveAcl.of(context.getThingId(), DittoHeaders.empty());
 
-        final Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
+        final Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).contains(
