@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.utils.protocol;
 
+import static java.util.Objects.requireNonNull;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
@@ -31,7 +33,7 @@ public abstract class ProtocolAdapterProvider {
      * @param protocolConfigReader the argument.
      */
     public ProtocolAdapterProvider(final ProtocolConfigReader protocolConfigReader) {
-        this.protocolConfigReader = protocolConfigReader;
+        this.protocolConfigReader = requireNonNull(protocolConfigReader);
     }
 
     /**

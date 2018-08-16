@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,7 +77,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator);
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), requireNonNull(headerTranslator));
     }
 
     /**
