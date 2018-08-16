@@ -1,4 +1,4 @@
-version: '3.7'
+version: '2.4'
 
 services:
   mongodb:
@@ -16,6 +16,7 @@ services:
   policies:
     init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -25,10 +26,12 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things:
     init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -40,10 +43,12 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError -Xtune:virtualized
+      - MONGO_COLLECTION_NAME_SUFFIX_CLASS=
 
   things-search:
     init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -59,6 +64,7 @@ services:
   concierge:
     init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -74,6 +80,7 @@ services:
   connectivity:
     init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -90,6 +97,7 @@ services:
   gateway:
     init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
