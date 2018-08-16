@@ -104,9 +104,9 @@ public final class StreamingActor extends AbstractActor {
                                 stopStreaming)
                 )
                 .match(Signal.class, signal -> {
-                    final Optional<String> origin = signal.getDittoHeaders().getOrigin();
-                    if (origin.isPresent()) {
-                        final ActorRef sessionActor = getContext().getChild(origin.get());
+                    final Optional<String> originOpt = signal.getDittoHeaders().getOrigin();
+                    if (originOpt.isPresent()) {
+                        final ActorRef sessionActor = getContext().getChild(originOpt.get());
                         if (sessionActor != null) {
                             commandRouter.tell(signal, sessionActor);
                         }
@@ -116,9 +116,9 @@ public final class StreamingActor extends AbstractActor {
                     }
                 })
                 .match(DittoRuntimeException.class, cre -> {
-                    final Optional<String> correlationIdOpt = cre.getDittoHeaders().getOrigin();
-                    if (correlationIdOpt.isPresent()) {
-                        forwardToSessionActor(correlationIdOpt.get(), cre);
+                    final Optional<String> originOpt = cre.getDittoHeaders().getOrigin();
+                    if (originOpt.isPresent()) {
+                        forwardToSessionActor(originOpt.get(), cre);
                     } else {
                         logger.warning("Unhandled DittoRuntimeException: <{}: {}>", cre.getClass().getSimpleName(),
                                 cre.getMessage());
