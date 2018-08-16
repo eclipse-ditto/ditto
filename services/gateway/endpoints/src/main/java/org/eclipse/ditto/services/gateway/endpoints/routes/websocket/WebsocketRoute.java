@@ -120,17 +120,6 @@ public final class WebsocketRoute {
      * @return the {@code /ws} route.
      */
     public Route buildWebsocketRoute(final Integer version, final String correlationId,
-            final AuthorizationContext connectionAuthContext, final ProtocolAdapter chosenProtocolAdapter) {
-        return buildWebsocketRoute(version, correlationId, connectionAuthContext, DittoHeaders.empty(),
-                chosenProtocolAdapter);
-    }
-
-    /**
-     * Builds the {@code /ws} route.
-     *
-     * @return the {@code /ws} route.
-     */
-    public Route buildWebsocketRoute(final Integer version, final String correlationId,
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 

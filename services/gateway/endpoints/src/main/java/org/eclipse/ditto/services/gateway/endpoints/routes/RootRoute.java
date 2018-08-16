@@ -392,7 +392,7 @@ public final class RootRoute {
                                             final ProtocolAdapter chosenProtocolAdapter =
                                                     protocolAdapterProvider.getProtocolAdapter(userAgent);
                                             return websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                    authContext, chosenProtocolAdapter);
+                                                    authContext, dittoHeaders, chosenProtocolAdapter);
                                         }
                                     )
                             )
