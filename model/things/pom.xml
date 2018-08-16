@@ -95,6 +95,20 @@
                         </file>
                     </newVersion>
                     <parameter>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getId()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getModified()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getRevision()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#toInlinedJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#toJson()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#toJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
+
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isGreaterThan(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isGreaterThanOrEqualTo(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isLowerThan(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isLowerThanOrEqualTo(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#toLong()</exclude>
+                        </excludes>
                         <onlyModified>true</onlyModified>
                         <accessModifier>public</accessModifier>
                         <breakBuildOnModifications>false</breakBuildOnModifications>
