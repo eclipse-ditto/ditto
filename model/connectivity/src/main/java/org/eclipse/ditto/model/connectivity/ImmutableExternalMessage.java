@@ -150,7 +150,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
+                thingIdEnforcement);
     }
 
     @Override

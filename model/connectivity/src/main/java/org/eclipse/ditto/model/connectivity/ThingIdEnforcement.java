@@ -12,21 +12,26 @@
 
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Holds the required data to apply enforcement of Thing IDs. The target can be an arbitrary String containing the ID,
  * which must match against the passed filters (which may contain placeholders like {@code {{ thing:id }}} etc.
  */
-public class ThingIdEnforcement {
+@Immutable
+public final class ThingIdEnforcement {
 
     private final String target;
     private final Set<String> filters;
 
     private ThingIdEnforcement(final String target, final Set<String> filters) {
         this.target = target;
-        this.filters = filters;
+        this.filters = Collections.unmodifiableSet(new HashSet<>(filters));
     }
 
     public static ThingIdEnforcement of(final String target, final Set<String> filters) {
