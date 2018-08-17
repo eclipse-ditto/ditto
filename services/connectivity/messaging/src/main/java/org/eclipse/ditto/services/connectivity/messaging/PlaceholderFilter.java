@@ -19,9 +19,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -63,7 +66,8 @@ final class PlaceholderFilter {
         return AuthorizationModelFactory.newAuthContext(subjects);
     }
 
-    Set<Target> filterTargets(final Set<Target> targets, final String thingId) {
+    Set<Target> filterTargets(final Set<Target> targets, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
         if (targets.stream().map(Target::getAddress).noneMatch(PlaceholderFilter::containsPlaceholder)) {
             return targets;
@@ -72,19 +76,16 @@ final class PlaceholderFilter {
         final ThingPlaceholder thingPlaceholder = new ThingPlaceholder(thingId);
         return targets.stream()
                 .map(target -> {
-                    try {
-                        final String address = apply(target.getAddress(), thingPlaceholder);
-                        return ConnectivityModelFactory.newTarget(target, address);
-                    } catch (UnresolvedPlaceholderException e) {
-                        // TODO log the dropping of addresses with unresolved placeholders
-                        return null;
-                    }
+                    final String filtered =
+                            applyThingPlaceholder(target.getAddress(), thingPlaceholder, unresolvedPlaceholderListener);
+                    return filtered != null ? ConnectivityModelFactory.newTarget(target, filtered) : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 
-    Set<String> filterAddresses(final Set<String> addresses, final String thingId) {
+    Set<String> filterAddresses(final Set<String> addresses, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
         if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
             return addresses;
@@ -92,16 +93,20 @@ final class PlaceholderFilter {
 
         final ThingPlaceholder thingPlaceholder = new ThingPlaceholder(thingId);
         return addresses.stream()
-                .map(address -> {
-                    try {
-                        return apply(address, thingPlaceholder);
-                    } catch (UnresolvedPlaceholderException e) {
-                        // TODO log the dropping of addresses with unresolved placeholders
-                        return null;
-                    }
-                })
+                .map(address -> applyThingPlaceholder(address, thingPlaceholder, unresolvedPlaceholderListener))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+    }
+
+    @Nullable
+    private String applyThingPlaceholder(final String address, final ThingPlaceholder thingPlaceholder,
+            final Consumer<String> unresolvedPlaceholderListener) {
+        try {
+            return apply(address, thingPlaceholder);
+        } catch (final UnresolvedPlaceholderException e) {
+            unresolvedPlaceholderListener.accept(address);
+            return null;
+        }
     }
 
     String apply(final String source, final Placeholder requiredPlaceHolder,
@@ -203,7 +208,6 @@ final class PlaceholderFilter {
         public boolean supports(final String name) {
             return SUPPORTED.contains(name);
         }
-
 
         public Optional<String> apply(final String placeholder) {
             ConditionChecker.argumentNotEmpty(placeholder, "placeholder");

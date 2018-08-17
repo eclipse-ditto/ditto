@@ -342,6 +342,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
 
+        private static final String UNRESOLVED_PLACEHOLDER_MESSAGE =
+                "The placeholder '{}' was not resolved, messages may be dropped.";
         private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
         private final DiagnosticLoggingAdapter log;
 
@@ -355,16 +357,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final ThingIdEnforcement thingIdEnforcement = externalMessage.getThingIdEnforcement().get();
                 log.debug("Thing ID Enforcement enabled: {}", thingIdEnforcement);
                 final Set<String> filtered =
-                        placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId());
+                        placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId(),
+                                this::logUnresolvedPlaceholder);
                 final String enforcementTarget = thingIdEnforcement.getTarget();
                 log.debug("Target '{}' must match one of {}", enforcementTarget, filtered);
-                // TODO match one or all filters??
                 if (!filtered.contains(enforcementTarget)) {
                     throw IdEnforcementFailedException.newBuilder(enforcementTarget, filtered)
                             .dittoHeaders(signal.getDittoHeaders())
                             .build();
                 }
             }
+        }
+
+        private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {
+            log.info(UNRESOLVED_PLACEHOLDER_MESSAGE, unresolvedPlaceholder);
         }
     }
 }

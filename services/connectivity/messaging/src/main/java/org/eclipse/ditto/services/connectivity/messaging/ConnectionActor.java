@@ -125,6 +125,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
+    private static final String UNRESOLVER_PLACEHOLDERS_MESSAGE =
+            "Failed to substitute all placeholders in '{}', target is dropped.";
+
     /**
      * Default timeout for flushing pending responses.
      *
@@ -387,10 +390,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
-                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
-        if (subscribedAndAuthorizedTargets.size() != filteredTargets.size()) {
-            log.warning("Failed to substitute placeholders in all targets, some targets were dropped.");
-        }
+                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
+                        unresolvedPlaceholder -> log.info(UNRESOLVER_PLACEHOLDERS_MESSAGE, unresolvedPlaceholder));
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
