@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -142,6 +143,25 @@ public class RabbitMQClientActorTest {
             expectMsg(CONNECTED_SUCCESS);
 
             rabbitClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
+        }};
+    }
+
+    @Test
+    public void testConnectionWithoutPublisherHandling() {
+        new TestKit(actorSystem) {{
+            final String randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connectionWithoutTargets =
+                    TestConstants.createConnection(randomConnectionId, actorSystem, new Target[0]);
+            final Props props = RabbitMQClientActor.propsForTests(connectionWithoutTargets, connectionStatus, getRef(),
+                    (con, exHandler) -> mockConnectionFactory).withDispatcher(CallingThreadDispatcher.Id());
+            final ActorRef rabbitClientActor = actorSystem.actorOf(props);
+            watch(rabbitClientActor);
+
+            rabbitClientActor.tell(OpenConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
+
+            rabbitClientActor.tell(CloseConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
         }};
     }

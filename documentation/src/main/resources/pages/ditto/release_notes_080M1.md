@@ -54,7 +54,7 @@ message's headers. This feature allows Ditto connections to access header fields
 `authorizationContext`.
 
 For connecting to a [Eclipse Hono](connectivity-protocol-bindings-amqp10.html) instance, it is e.g. possible to access the
-from Hono authenticated `device-id` via the placeholder `{{ header:device-id }}`.
+from Hono authenticated `device-id` via the placeholder `header:device-id`.
 
 
 ## Bugfixes

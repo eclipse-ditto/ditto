@@ -1,4 +1,4 @@
-version: '3.7'
+version: '2.4'
 
 services:
   mongodb:
@@ -15,6 +15,7 @@ services:
   policies:
     init: true
     image: docker.io/eclipse/ditto-policies:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -23,11 +24,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   things:
     init: true
     image: docker.io/eclipse/ditto-things:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -38,11 +40,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   things-search:
     init: true
     image: docker.io/eclipse/ditto-things-search:${DITTO_VERSION:-latest}
+    mem_limit: 384m
     networks:
       default:
         aliases:
@@ -53,11 +56,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   concierge:
     init: true
     image: docker.io/eclipse/ditto-concierge:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -68,11 +72,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   connectivity:
     init: true
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -84,11 +89,12 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   gateway:
     init: true
     image: docker.io/eclipse/ditto-gateway:${DITTO_VERSION:-latest}
+    mem_limit: 256m
     networks:
       default:
         aliases:
@@ -103,7 +109,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - ENABLE_DUMMY_AUTH=true
-      - IBM_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError
+      - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
