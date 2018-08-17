@@ -187,7 +187,7 @@ final class ImmutableConnection implements Connection {
                     .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(valueAsObject -> readSourceFromJson(valueAsObject, index, type)))
+                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index, type)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
@@ -196,43 +196,16 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Source readSourceFromJson(final JsonObject jsonObject, final int index, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableSource.fromJson(jsonObject, index);
-            case MQTT:
-                return ImmutableMqttSource.fromJson(jsonObject, index);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
-    }
-
     private static Set<Target> getTargets(final JsonObject jsonObject, final ConnectionType type) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .map(valueAsObject -> readTargetFromJson(valueAsObject, type))
+                        .map(valueAsObject -> ConnectivityModelFactory.targetFromJson(valueAsObject, type))
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
     }
 
-    private static Target readTargetFromJson(final JsonObject jsonObject, final ConnectionType type) {
-        switch (type) {
-            case AMQP_091:
-            case AMQP_10:
-                return ImmutableTarget.fromJson(jsonObject);
-            case MQTT:
-                return ImmutableMqttTarget.fromJson(jsonObject);
-            default:
-                throw ConnectionConfigurationInvalidException
-                        .newBuilder("Unexpected connection type <" + type + ">")
-                        .build();
-        }
-    }
     private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
                 .filter(JsonValue::isObject)
