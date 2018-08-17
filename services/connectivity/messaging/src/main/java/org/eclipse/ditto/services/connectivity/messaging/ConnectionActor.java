@@ -345,9 +345,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void handleSignal(final Signal<?> signal) {
-        // since a signal arrives, event subscription works in the absence of outdated events.
-        // flush pending responses regardless whether the signal is forwarded or not.
-        flushPendingResponses();
+        // Do not flush pending responses - pub/sub may not be ready on all nodes
 
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
