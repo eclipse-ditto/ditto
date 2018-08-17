@@ -126,7 +126,9 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription) {
 
-        validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 1);
+        // TODO: test with qos=2
+        // validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 1);
+        validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 2);
     }
 
     /*
