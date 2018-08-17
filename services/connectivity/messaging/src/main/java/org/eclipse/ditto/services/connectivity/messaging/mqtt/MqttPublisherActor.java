@@ -117,7 +117,8 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
                     log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
                     outbound.getTargets().forEach(target -> {
                         final MqttTarget mqttTarget = toPublishTarget(target.getAddress());
-                        final MqttQoS targetQoS = MqttValidator.getQoSFromValidConfig(target.getSpecificConfig());
+                        final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
+                        final MqttQoS targetQoS = MqttValidator.getQoS(qos);
                         publishMessage(mqttTarget, targetQoS, message);
                     });
                 })

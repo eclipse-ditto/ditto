@@ -141,12 +141,13 @@ final class ImmutableConnection implements Connection {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Connection fromJson(final JsonObject jsonObject) {
-        final ConnectionBuilder builder = new Builder(getConnectionTypeOrThrow(jsonObject))
+        final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
+        final ConnectionBuilder builder = new Builder(type)
                 .id(jsonObject.getValueOrThrow(JsonFields.ID))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .sources(getSources(jsonObject))
-                .targets(getTargets(jsonObject))
+                .sources(getSources(jsonObject, type))
+                .targets(getTargets(jsonObject, type))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
                 .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                         .map(ConnectivityModelFactory::mappingContextFromJson)
@@ -178,7 +179,7 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static List<Source> getSources(final JsonObject jsonObject) {
+    private static List<Source> getSources(final JsonObject jsonObject, final ConnectionType type) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
         if (sourcesArray.isPresent()) {
             final JsonArray values = sourcesArray.get();
@@ -186,7 +187,7 @@ final class ImmutableConnection implements Connection {
                     .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(valueAsObject -> ImmutableSource.fromJson(valueAsObject, index)))
+                            .map(valueAsObject -> readSourceFromJson(valueAsObject, index, type)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
@@ -195,16 +196,43 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Set<Target> getTargets(final JsonObject jsonObject) {
+    private static Source readSourceFromJson(final JsonObject jsonObject, final int index, final ConnectionType type) {
+        switch (type) {
+            case AMQP_091:
+            case AMQP_10:
+                return ImmutableSource.fromJson(jsonObject, index);
+            case MQTT:
+                return ImmutableMqttSource.fromJson(jsonObject, index);
+            default:
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Unexpected connection type <" + type + ">")
+                        .build();
+        }
+    }
+
+    private static Set<Target> getTargets(final JsonObject jsonObject, final ConnectionType type) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .map(ImmutableTarget::fromJson)
+                        .map(valueAsObject -> readTargetFromJson(valueAsObject, type))
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
     }
 
+    private static Target readTargetFromJson(final JsonObject jsonObject, final ConnectionType type) {
+        switch (type) {
+            case AMQP_091:
+            case AMQP_10:
+                return ImmutableTarget.fromJson(jsonObject);
+            case MQTT:
+                return ImmutableMqttTarget.fromJson(jsonObject);
+            default:
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Unexpected connection type <" + type + ">")
+                        .build();
+        }
+    }
     private static Map<String, String> getSpecificConfiguration(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
                 .filter(JsonValue::isObject)

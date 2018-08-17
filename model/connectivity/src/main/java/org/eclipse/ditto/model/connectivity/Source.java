@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -54,13 +53,6 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return an index to distinguish between sources that would otherwise be different
      */
     int getIndex();
-
-    /**
-     * Returns configuration which is only applicable for a specific {@link ConnectionType}.
-     *
-     * @return an arbitrary map of config keys to config values
-     */
-    Map<String, String> getSpecificConfig();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -110,13 +102,6 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the {@link ConnectionType}-specific config.
-         */
-        public static final JsonFieldDefinition<JsonObject> SPECIFIC_CONFIG =
-                JsonFactory.newJsonObjectFieldDefinition("specificConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

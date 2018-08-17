@@ -16,8 +16,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttSource;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.Mockito.when;
 
@@ -101,7 +101,8 @@ public class MqttClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final Target TARGET = newTarget("target", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+    private static final Target TARGET =
+            newMqttTarget("target", Authorization.AUTHORIZATION_CONTEXT, 1, Topic.TWIN_EVENTS);
     private static final String SOURCE_ADDRESS = "source";
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
@@ -131,7 +132,9 @@ public class MqttClientActorTest {
         connection =
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectionStatus.OPEN,
                         serverHost)
-                        .sources(singletonList(newSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, SOURCE_ADDRESS)))
+                        .sources(singletonList(
+                                newMqttSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, 1, "things/{{ thing.id }}",
+                                        SOURCE_ADDRESS)))
                         .targets(singleton(TARGET))
                         .build();
     }
@@ -233,9 +236,10 @@ public class MqttClientActorTest {
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
                             ConnectionStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
-                                    newSource(3, 1, Authorization.AUTHORIZATION_CONTEXT, "A1"),
-                                    newSource(2, 2, Authorization.AUTHORIZATION_CONTEXT, "B1", "B2"),
-                                    newSource(1, 3, Authorization.AUTHORIZATION_CONTEXT, "C1", "C2", "C3"))
+                                    newMqttSource(3, 1, Authorization.AUTHORIZATION_CONTEXT, 1, "filter", "A1"),
+                                    newMqttSource(2, 2, Authorization.AUTHORIZATION_CONTEXT, 1, "filter", "B1", "B2"),
+                                    newMqttSource(1, 3, Authorization.AUTHORIZATION_CONTEXT, 1, "filter", "C1", "C2",
+                                            "C3"))
                             )
                             .build();
 
@@ -351,11 +355,10 @@ public class MqttClientActorTest {
     public void testRetrieveConnectionMetrics() throws MqttException {
         new TestKit(actorSystem) {
             {
-
                 final Connection connectionWithAdditionalSources = connection.toBuilder()
                         .sources(singletonList(
-                                ConnectivityModelFactory.newSource(1, 2, Authorization.AUTHORIZATION_CONTEXT, "topic1",
-                                        "topic2"))).build();
+                                ConnectivityModelFactory.newMqttSource(1, 2, Authorization.AUTHORIZATION_CONTEXT, 1,
+                                        "filter/{thing.id}}", "topic1", "topic2"))).build();
 
                 final Props props = MqttClientActor.props(connectionWithAdditionalSources, getRef());
                 final ActorRef mqttClientActor = actorSystem.actorOf(props);
@@ -386,6 +389,8 @@ public class MqttClientActorTest {
 
             private Optional<AddressMetric> findSourceAddressMetricForTopic(final ConnectionMetrics connectionMetrics,
                     final String address) {
+
+                System.out.println(connectionMetrics.toJsonString());
 
                 return connectionMetrics.getSourcesMetrics().stream()
                         .flatMap(metric -> metric.getAddressMetrics()

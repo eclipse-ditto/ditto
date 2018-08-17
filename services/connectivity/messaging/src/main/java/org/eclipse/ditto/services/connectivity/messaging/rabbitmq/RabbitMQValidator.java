@@ -14,12 +14,15 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 /**
@@ -38,6 +41,18 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
      */
     public static RabbitMQValidator newInstance() {
         return new RabbitMQValidator();
+    }
+
+    @Override
+    protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
+            final Supplier<String> sourceDescription) {
+        // noop
+    }
+
+    @Override
+    protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
+            final Supplier<String> sourceDescription) {
+        // noop
     }
 
     @Override

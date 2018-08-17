@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -23,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
@@ -39,48 +41,58 @@ public final class MqttValidatorTest {
 
     @Test
     public void testValidSourceAddress() {
-        MqttValidator.newInstance().validate(createConnectionWithSource("ditto/topic/+/123"), DittoHeaders.empty());
-        MqttValidator.newInstance().validate(createConnectionWithSource("ditto/#"), DittoHeaders.empty());
-        MqttValidator.newInstance().validate(createConnectionWithSource("#"), DittoHeaders.empty());
-        MqttValidator.newInstance().validate(createConnectionWithSource("+"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithSource("ditto/topic/+/123"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithSource("ditto/#"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithSource("#"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithSource("+"), DittoHeaders.empty());
     }
 
     @Test
     public void testInvalidSourceAddress() {
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithSource("ditto/topic/+123"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithSource("ditto/#/123"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithSource("##"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithSource(""));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("ditto/topic/+123"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("ditto/#/123"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource("##"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithSource(""));
     }
 
     @Test
     public void testValidTargetAddress() {
-        MqttValidator.newInstance().validate(createConnectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty());
-        MqttValidator.newInstance().validate(createConnectionWithTarget("ditto"), DittoHeaders.empty());
-        MqttValidator.newInstance().validate(createConnectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithTarget("ditto/mqtt/topic"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithTarget("ditto"), DittoHeaders.empty());
+        MqttValidator.newInstance().validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty());
     }
 
     @Test
     public void testInvalidTargetAddress() {
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithTarget(""));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithTarget("ditto/+/mqtt"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(createConnectionWithTarget("ditto/#"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget(""));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto/+/mqtt"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connectionWithTarget("ditto/#"));
     }
 
-    private Connection createConnectionWithSource(final String source) {
+    @Test
+    public void testWithDefaultSource() {
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+                ConnectionStatus.OPEN, "tcp://localhost:1883")
+                .sources(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT)
+                .build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
+    }
+
+    private Connection connectionWithSource(final String source) {
+        final MqttSource mqttSource =
+                ConnectivityModelFactory.newMqttSource(1, 0, AUTHORIZATION_CONTEXT, 1,
+                        "things/{{ thing.id }}", source);
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
-                .sources(singletonList(ConnectivityModelFactory.newSource(singleton(source), 2,
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT)))
+                .sources(singletonList(mqttSource))
                 .build();
     }
 
-    private Connection createConnectionWithTarget(final String target) {
+    private Connection connectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
                 .targets(singleton(
-                        ConnectivityModelFactory.newTarget(target, TestConstants.Authorization.AUTHORIZATION_CONTEXT,
-                                Topic.LIVE_EVENTS)))
+                        ConnectivityModelFactory.newMqttTarget(target, AUTHORIZATION_CONTEXT, 1, Topic.LIVE_EVENTS)))
                 .build();
     }
 

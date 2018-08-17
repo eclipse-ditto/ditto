@@ -237,9 +237,10 @@ public class MqttClientActor extends BaseClientActor {
         }
 
         final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
-        final MqttQoS qos = MqttValidator.getQoSFromValidConfig(source.getSpecificConfig());
+        final int qos = ((org.eclipse.ditto.model.connectivity.MqttSource) source).getQos();
+        final MqttQoS mqttQos = MqttValidator.getQoS(qos);
         source.getAddresses()
-                .forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, qos)));
+                .forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, mqttQos)));
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 

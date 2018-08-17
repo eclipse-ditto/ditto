@@ -13,15 +13,11 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import java.text.MessageFormat;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -81,69 +77,29 @@ public abstract class AbstractProtocolValidator {
      *
      * @param connection the connection to check.
      * @param dittoHeaders headers of the command that triggered the connection validation.
-     * @param validators map from config keys to config value validators.
      */
-    protected static void validateSourceConfigs(final Connection connection,
-            final DittoHeaders dittoHeaders,
-            final Map<String, SpecificConfigValidator> validators) {
-
+    protected void validateSourceConfigs(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getSources().forEach(source ->
-                verifySpecificConfig(source.getSpecificConfig(), validators, dittoHeaders,
-                        sourceDescription(source, connection)));
+                validateSource(source, dittoHeaders, sourceDescription(source, connection)));
     }
 
+    protected abstract void validateSource(final Source source, final DittoHeaders dittoHeaders,
+            final Supplier<String> sourceDescription);
 
     /**
      * Validate protocol-specific configurations of targets.
      *
      * @param connection the connection to check.
      * @param dittoHeaders headers of the command that triggered the connection validation.
-     * @param validators map from config keys to config value validators.
      */
-    protected static void validateTargetConfigs(final Connection connection,
-            final DittoHeaders dittoHeaders,
-            final Map<String, SpecificConfigValidator> validators) {
-
+    protected void validateTargetConfigs(final Connection connection,
+            final DittoHeaders dittoHeaders) {
         connection.getTargets().forEach(target ->
-                verifySpecificConfig(target.getSpecificConfig(), validators, dittoHeaders,
-                        targetDescription(target, connection)));
+                validateTarget(target, dittoHeaders, targetDescription(target, connection)));
     }
 
-    private static void verifySpecificConfig(final Map<String, String> specificConfig,
-            final Map<String, SpecificConfigValidator> validators,
-            final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription) {
-
-        verifyNoExtraSpecificConfig(specificConfig, validators.keySet(), dittoHeaders, errorSiteDescription);
-        specificConfig.forEach((key, value) -> {
-            final SpecificConfigValidator validator = validators.get(key);
-            if (validator != null) {
-                validator.validate(value, dittoHeaders, errorSiteDescription);
-            }
-        });
-    }
-
-    private static void verifyNoExtraSpecificConfig(final Map<String, String> specificConfig,
-            final Collection<String> allowedSpecificConfigParams,
-            final DittoHeaders dittoHeaders,
-            final Supplier<String> errorSiteDescription) {
-
-        final List<String> undefinedConfigs = specificConfig.keySet()
-                .stream()
-                .filter(key -> !allowedSpecificConfigParams.contains(key))
-                .collect(Collectors.toList());
-
-        if (!undefinedConfigs.isEmpty()) {
-            final String message = MessageFormat.format("Undefined configurations {0} in {1}",
-                    String.join(", ", undefinedConfigs), errorSiteDescription.get());
-            final String description = MessageFormat.format("Allowed configurations: {0}",
-                    String.join(", ", allowedSpecificConfigParams));
-            throw ConnectionConfigurationInvalidException.newBuilder(message)
-                    .description(description)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-    }
+    protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
+            final Supplier<String> sourceDescription);
 
     /**
      * Obtain a supplier of a description of a source of a connection.

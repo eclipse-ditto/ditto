@@ -12,10 +12,8 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -27,7 +25,6 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -49,16 +46,13 @@ final class ImmutableSource implements Source {
     private final int consumerCount;
     private final int index;
     private final AuthorizationContext authorizationContext;
-    private final Map<String, String> specificConfig;
 
     ImmutableSource(final Set<String> addresses, final int consumerCount,
-            final AuthorizationContext authorizationContext, final int index,
-            final Map<String, String> specificConfig) {
+            final AuthorizationContext authorizationContext, final int index) {
         this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
         this.consumerCount = consumerCount;
         this.index = index;
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
-        this.specificConfig = Collections.unmodifiableMap(new HashMap<>(specificConfig));
     }
 
     @Override
@@ -82,11 +76,6 @@ final class ImmutableSource implements Source {
     }
 
     @Override
-    public Map<String, String> getSpecificConfig() {
-        return specificConfig;
-    }
-
-    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -104,13 +93,6 @@ final class ImmutableSource implements Source {
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
-        if (!specificConfig.isEmpty()) {
-            jsonObjectBuilder.set(JsonFields.SPECIFIC_CONFIG, specificConfig.entrySet()
-                    .stream()
-                    .map(e -> JsonFactory.newField(JsonKey.of(e.getKey()), JsonFactory.newValue(e.getValue())))
-                    .collect(JsonCollectors.fieldsToObject()));
-        }
-
         return jsonObjectBuilder.build();
     }
 
@@ -123,7 +105,7 @@ final class ImmutableSource implements Source {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source fromJson(final JsonObject jsonObject, int index) {
+    public static Source fromJson(final JsonObject jsonObject, final int index) {
         final Set<String> readSources = jsonObject.getValue(JsonFields.ADDRESSES)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
@@ -140,12 +122,7 @@ final class ImmutableSource implements Source {
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
-        final Map<String, String> specificConfig = jsonObject.getValue(JsonFields.SPECIFIC_CONFIG)
-                .map(specificConfigJsonObject -> specificConfigJsonObject.stream()
-                        .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().asString())))
-                .orElse(Collections.emptyMap());
-
-        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index, specificConfig);
+        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index);
     }
 
     @Override
@@ -156,13 +133,12 @@ final class ImmutableSource implements Source {
         return consumerCount == that.consumerCount &&
                 Objects.equals(addresses, that.addresses) &&
                 Objects.equals(index, that.index) &&
-                Objects.equals(authorizationContext, that.authorizationContext) &&
-                Objects.equals(specificConfig, that.specificConfig);
+                Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, consumerCount, authorizationContext, specificConfig);
+        return Objects.hash(index, addresses, consumerCount, authorizationContext);
     }
 
     @Override
@@ -172,7 +148,6 @@ final class ImmutableSource implements Source {
                 ", addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
                 ", authorizationContext=" + authorizationContext +
-                ", specificConfig=" + specificConfig +
                 "]";
     }
 }

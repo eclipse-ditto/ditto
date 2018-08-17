@@ -13,7 +13,6 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -26,47 +25,48 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class ImmutableTargetTest {
+public final class ImmutableMqttSourceTest {
 
-    private static final String ADDRESS = "amqp/target1";
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
-    private static final Target TARGET_WITH_AUTH_CONTEXT =
-            ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
-    private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
-            .newBuilder()
-            .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
-            .set(Target.JsonFields.ADDRESS, ADDRESS)
-            .build();
+    private static final String AMQP_SOURCE1 = "amqp/source1";
+    private static final String FILTER = "topic/{{ thing.id }}";
+    private static final Source SOURCE =
+            ConnectivityModelFactory.newMqttSource(2, 0, ctx, 1, FILTER, AMQP_SOURCE1);
 
-    private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
+    private static final JsonObject SOURCE_JSON = JsonObject
+            .newBuilder()
+            .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
+            .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(MqttSource.JsonFields.QOS, 1)
+            .set(MqttSource.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(FILTER).build())
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .build();
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableTarget.class)
+        EqualsVerifier.forClass(ImmutableMqttSource.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableTarget.class, areImmutable(),
+        assertInstancesOf(ImmutableMqttSource.class, areImmutable(),
                 provided(AuthorizationContext.class).isAlsoImmutable());
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = TARGET_WITH_AUTH_CONTEXT.toJson();
-        assertThat(actual).isEqualTo(TARGET_JSON_WITH_AUTH_CONTEXT);
+        final JsonObject actual = SOURCE.toJson();
+        assertThat(actual).isEqualTo(SOURCE_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Target actual = ImmutableTarget.fromJson(TARGET_JSON_WITH_AUTH_CONTEXT);
-        assertThat(actual).isEqualTo(TARGET_WITH_AUTH_CONTEXT);
+        final Source actual = ImmutableMqttSource.fromJson(SOURCE_JSON, 0);
+        assertThat(actual).isEqualTo(SOURCE);
     }
 
 }
