@@ -33,6 +33,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     @Nullable private String textPayload;
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
+    @Nullable private ThingIdEnforcement thingIdEnforcement;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -47,6 +48,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.response = message.isResponse();
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
+        this.thingIdEnforcement = message.getThingIdEnforcement().orElse(null);
     }
 
     /**
@@ -109,6 +111,12 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder withThingIdEnforcement(final ThingIdEnforcement thingIdEnforcement) {
+        this.thingIdEnforcement = thingIdEnforcement;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -123,7 +131,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     @Override
     public ExternalMessage build() {
         return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext);
+                authorizationContext, thingIdEnforcement);
     }
 
 }

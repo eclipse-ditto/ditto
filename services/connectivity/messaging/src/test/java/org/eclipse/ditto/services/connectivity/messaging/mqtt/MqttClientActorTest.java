@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -47,6 +48,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
@@ -133,8 +136,7 @@ public class MqttClientActorTest {
                 ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT, ConnectionStatus.OPEN,
                         serverHost)
                         .sources(singletonList(
-                                newMqttSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, 1, "things/{{ thing.id }}",
-                                        SOURCE_ADDRESS)))
+                                newMqttSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, 1, SOURCE_ADDRESS)))
                         .targets(singleton(TARGET))
                         .build();
     }
@@ -159,9 +161,56 @@ public class MqttClientActorTest {
 
     @Test
     public void testConsumeFromTopic() throws MqttException {
+        testConsumeFromTopic(connection, SOURCE_ADDRESS, true);
+    }
+
+    @Test
+    public void testConsumeFromTopicWithIdEnforcement() throws MqttException {
+        final MqttSource mqttSource = newMqttSource(1, 1, Authorization.AUTHORIZATION_CONTEXT, 1,
+                "eclipse/{{ thing:namespace }}/{{ thing:name }}",
+                "eclipse/+/+");
+        final Connection connectionWithEnforcement =
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                        ConnectionStatus.OPEN,
+                        serverHost)
+                        .sources(singletonList(mqttSource))
+                        .build();
+        testConsumeFromTopic(connectionWithEnforcement, "eclipse/ditto/thing", true);
+    }
+
+    @Test
+    public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() throws MqttException {
+        final MqttSource mqttSource = newMqttSource(1, 1, Authorization.AUTHORIZATION_CONTEXT,
+                "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
+                1, // qos
+                "eclipse/+/+" // subscribed topic
+        );
+
+        final Connection connectionWithEnforcement =
+                ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
+                        ConnectionStatus.OPEN,
+                        serverHost)
+                        .sources(singletonList(mqttSource))
+                        .build();
+
+        final AtomicBoolean receivedErrorResponse = new AtomicBoolean(false);
+        mqttClient.subscribeWithResponse("replies", 1, (topic, message) -> {
+            assertThat(new String(message.getPayload())).contains(IdEnforcementFailedException.ERROR_CODE);
+            receivedErrorResponse.set(true);
+        }).waitForCompletion();
+
+        testConsumeFromTopic(connectionWithEnforcement, "eclipse/invalid/address", false);
+
+        Awaitility.await().untilTrue(receivedErrorResponse);
+    }
+
+    private void testConsumeFromTopic(final Connection connection, final String publishTopic,
+            final boolean expectSuccess) throws MqttException {
         new TestKit(actorSystem) {{
+
             final Props props = MqttClientActor.props(connection, getRef());
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
+
             watch(mqttClientActor);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -170,11 +219,11 @@ public class MqttClientActorTest {
             // wait for consumer + publisher + test client
             Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(3L));
 
-            final String modifyThing = TestConstants.modifyThing();
+            mqttClient.publish(publishTopic, TestConstants.modifyThing().getBytes(UTF_8), 0, false);
 
-            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
-
-            expectMsgClass(ModifyThing.class);
+            if (expectSuccess) {
+                expectMsgClass(ModifyThing.class);
+            }
         }};
     }
 
@@ -358,7 +407,7 @@ public class MqttClientActorTest {
                 final Connection connectionWithAdditionalSources = connection.toBuilder()
                         .sources(singletonList(
                                 ConnectivityModelFactory.newMqttSource(1, 2, Authorization.AUTHORIZATION_CONTEXT, 1,
-                                        "filter/{thing.id}}", "topic1", "topic2"))).build();
+                                        "topic1", "topic2"))).build();
 
                 final Props props = MqttClientActor.props(connectionWithAdditionalSources, getRef());
                 final ActorRef mqttClientActor = actorSystem.actorOf(props);

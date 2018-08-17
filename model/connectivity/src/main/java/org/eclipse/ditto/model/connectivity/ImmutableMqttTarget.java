@@ -24,7 +24,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 public final class ImmutableMqttTarget extends DelegateTarget implements MqttTarget {
 
-    private static final Integer DEFAULT_QOS = 1;
+    // for target the default is qos=1 because we have qos=1 all over the akka cluster
+    private static final Integer DEFAULT_QOS = 0;
     private final int qos;
 
     ImmutableMqttTarget(final Target target, final int qos) {

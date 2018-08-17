@@ -19,20 +19,20 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 /**
  * An MQTT target.
  */
-class MqttTarget implements PublishTarget {
+class MqttPublishTarget implements PublishTarget {
 
     private final String topic;
 
-    static MqttTarget of(final String topic) {
-        return new MqttTarget(topic);
+    static MqttPublishTarget of(final String topic) {
+        return new MqttPublishTarget(topic);
     }
 
-    private MqttTarget(final String topic) {
+    private MqttPublishTarget(final String topic) {
         this.topic = ConditionChecker.argumentNotEmpty(topic, "topic");
     }
 
-    static MqttTarget fromTargetAddress(final String targetAddress) {
-        return new MqttTarget(targetAddress);
+    static MqttPublishTarget fromTargetAddress(final String targetAddress) {
+        return new MqttPublishTarget(targetAddress);
     }
 
     String getTopic() {
@@ -43,7 +43,7 @@ class MqttTarget implements PublishTarget {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final MqttTarget that = (MqttTarget) o;
+        final MqttPublishTarget that = (MqttPublishTarget) o;
         return Objects.equals(topic, that.topic);
     }
 

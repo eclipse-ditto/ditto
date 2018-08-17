@@ -16,12 +16,16 @@ import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientA
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -39,6 +43,7 @@ public class MqttConsumerActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext sourceAuthorizationContext;
+    private final Set<String> enforcementFilters;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
@@ -46,9 +51,10 @@ public class MqttConsumerActor extends AbstractActor {
     private final ActorRef deadLetters;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext) {
+            final AuthorizationContext sourceAuthorizationContext, final Set<String> enforcementFilters) {
         this.messageMappingProcessor = messageMappingProcessor;
         this.sourceAuthorizationContext = sourceAuthorizationContext;
+        this.enforcementFilters = enforcementFilters;
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
@@ -56,13 +62,13 @@ public class MqttConsumerActor extends AbstractActor {
     }
 
     static Props props(final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext) {
+            final AuthorizationContext sourceAuthorizationContext, final Set<String> enforcementFilters) {
         return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttConsumerActor create() {
-                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext);
+                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcementFilters);
             }
         });
     }
@@ -81,6 +87,7 @@ public class MqttConsumerActor extends AbstractActor {
                     final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
                             .withBytes(message.payload().toByteBuffer())
                             .withAuthorizationContext(sourceAuthorizationContext)
+                            .withThingIdEnforcement(getThingIdEnforcement(message))
                             .build();
 
                     lastMessageConsumedAt = Instant.now();
@@ -103,6 +110,15 @@ public class MqttConsumerActor extends AbstractActor {
                     unhandled(unhandled);
                 })
                 .build();
+    }
+
+    @Nullable
+    private ThingIdEnforcement getThingIdEnforcement(final MqttMessage message) {
+        if (enforcementFilters != null && !enforcementFilters.isEmpty()) {
+            return ThingIdEnforcement.of(message.topic(), enforcementFilters);
+        } else {
+            return null;
+        }
     }
 
     private void handleConsumerStreamMessage(final MqttClientActor.ConsumerStreamMessage message) {

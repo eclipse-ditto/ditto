@@ -37,6 +37,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
+    @Nullable private final ThingIdEnforcement thingIdEnforcement;
 
     ImmutableExternalMessage(final Map<String, String> headers,
             final boolean response,
@@ -44,7 +45,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload,
-            @Nullable final AuthorizationContext authorizationContext) {
+            @Nullable final AuthorizationContext authorizationContext,
+            @Nullable final ThingIdEnforcement thingIdEnforcement) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -53,6 +55,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
         this.authorizationContext = authorizationContext;
+        this.thingIdEnforcement = thingIdEnforcement;
     }
 
     @Override
@@ -122,6 +125,11 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public Optional<ThingIdEnforcement> getThingIdEnforcement() {
+        return Optional.ofNullable(thingIdEnforcement);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -134,6 +142,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(thingIdEnforcement, that.thingIdEnforcement) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType;
@@ -151,6 +160,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 ", response=" + response +
                 ", error=" + error +
                 ", authorizationContext=" + authorizationContext +
+                ", thingIdEnforcement=" + thingIdEnforcement +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

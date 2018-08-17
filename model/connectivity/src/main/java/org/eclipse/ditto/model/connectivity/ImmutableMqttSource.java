@@ -11,10 +11,10 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -31,14 +31,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 public final class ImmutableMqttSource extends DelegateSource implements MqttSource {
 
-    private static final Integer DEFAULT_QOS = 1;
     private final int qos;
-    private final List<String> filters;
+    private final Set<String> filters;
 
-    ImmutableMqttSource(final Source source, final int qos, final List<String> filters) {
+    ImmutableMqttSource(final Source source, final int qos, final Set<String> filters) {
         super(source);
         this.qos = qos;
-        this.filters = Collections.unmodifiableList(new ArrayList<>(filters));
+        this.filters = Collections.unmodifiableSet(new HashSet<>(filters));
     }
 
     @Override
@@ -62,11 +61,11 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
      */
     public static Source fromJson(final JsonObject jsonObject, final int index) {
         final Source source = ImmutableSource.fromJson(jsonObject, index);
-        final int readQos = jsonObject.getValue(MqttSource.JsonFields.QOS).orElse(DEFAULT_QOS);
-        final List<String> readFilters = jsonObject.getValue(MqttSource.JsonFields.FILTERS)
+        final int readQos = jsonObject.getValueOrThrow(MqttSource.JsonFields.QOS);
+        final Set<String> readFilters = jsonObject.getValue(MqttSource.JsonFields.FILTERS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
-                        .collect(Collectors.toList())).orElse(Collections.emptyList());
+                        .collect(Collectors.toSet())).orElse(Collections.emptySet());
         return new ImmutableMqttSource(source, readQos, readFilters);
     }
 
@@ -76,7 +75,7 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
     }
 
     @Override
-    public List<String> getFilters() {
+    public Set<String> getFilters() {
         return filters;
     }
 

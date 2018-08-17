@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.util.List;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -31,7 +31,7 @@ public interface MqttSource extends Source {
     /**
      * @return the filters that are applied after mapping
      */
-    List<String> getFilters();
+    Set<String> getFilters();
 
     /**
      * An enumeration of the known {@code JsonField}s of a {@code Source} configuration.

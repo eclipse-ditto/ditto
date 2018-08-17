@@ -46,7 +46,7 @@ import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
-public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
+public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
     static final String ACTOR_NAME = "mqttPublisher";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
@@ -55,7 +55,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
 
     private long publishedMessages = 0L;
     private Instant lastMessagePublishedAt;
-    private AddressMetric addressMetric;
+    private final AddressMetric addressMetric;
 
     private MqttPublisherActor(final MqttConnectionSettings settings, final ActorRef mqttClientActor) {
         this.mqttClientActor = mqttClientActor;
@@ -100,7 +100,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
 
                     final String replyTo = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
                     if (replyTo != null) {
-                        final MqttTarget replyTarget = toPublishTarget(replyTo);
+                        final MqttPublishTarget replyTarget = toPublishTarget(replyTo);
                         final MqttQoS defaultQoS = MqttQoS.atMostOnce();
                         publishMessage(replyTarget, defaultQoS, response);
                     } else {
@@ -116,7 +116,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
 
                     log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
                     outbound.getTargets().forEach(target -> {
-                        final MqttTarget mqttTarget = toPublishTarget(target.getAddress());
+                        final MqttPublishTarget mqttTarget = toPublishTarget(target.getAddress());
                         final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
                         final MqttQoS targetQoS = MqttValidator.getQoS(qos);
                         publishMessage(mqttTarget, targetQoS, message);
@@ -136,11 +136,11 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
     }
 
     @Override
-    protected MqttTarget toPublishTarget(final String address) {
-        return MqttTarget.of(address);
+    protected MqttPublishTarget toPublishTarget(final String address) {
+        return MqttPublishTarget.of(address);
     }
 
-    private void publishMessage(final MqttTarget replyTarget,
+    private void publishMessage(final MqttPublishTarget replyTarget,
             final MqttQoS qos,
             final ExternalMessage externalMessage) {
 
@@ -152,7 +152,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttTarget> {
     }
 
     private MqttMessage mapExternalMessageToMqttMessage(
-            final MqttTarget mqttTarget,
+            final MqttPublishTarget mqttTarget,
             final MqttQoS qos,
             final ExternalMessage externalMessage) {
         final ByteString payload;

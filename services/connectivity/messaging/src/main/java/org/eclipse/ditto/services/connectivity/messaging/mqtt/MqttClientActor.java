@@ -236,11 +236,17 @@ public class MqttClientActor extends BaseClientActor {
             return;
         }
 
+        if (!(source instanceof org.eclipse.ditto.model.connectivity.MqttSource)) {
+            log.warning("Source is not an MqttSource: {}", source);
+            return;
+        }
+
         final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
-        final int qos = ((org.eclipse.ditto.model.connectivity.MqttSource) source).getQos();
+        final org.eclipse.ditto.model.connectivity.MqttSource mqttSource =
+                (org.eclipse.ditto.model.connectivity.MqttSource) source;
+        final int qos = mqttSource.getQos();
         final MqttQoS mqttQos = MqttValidator.getQoS(qos);
-        source.getAddresses()
-                .forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, mqttQos)));
+        source.getAddresses().forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, mqttQos)));
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
@@ -251,7 +257,8 @@ public class MqttClientActor extends BaseClientActor {
             final String actorNamePrefix = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;
 
             final Props mqttConsumerActorProps =
-                    MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext());
+                    MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext(),
+                            mqttSource.getFilters());
             final ActorRef mqttConsumerActor = startChildActorConflictFree(actorNamePrefix, mqttConsumerActorProps);
 
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);
@@ -263,19 +270,20 @@ public class MqttClientActor extends BaseClientActor {
                         .withSubscriptions(JavaConverters.asScalaBuffer(subscriptions).toSeq());
         // TODO make configurable
         final Integer bufferSize = 8;
-        final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttSource =
+        final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
                 createMqttSource(settings, bufferSize);
 
         // TODO use RestartSource
 //            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> restartingSource =
-//                    wrapWithAsRestartSource(() -> mqttSource);
+//                    wrapWithAsRestartSource(() -> mqttStreamSource);
 //                        .mapAsync(1, cm -> cm.messageArrivedComplete().thenApply(unused2 -> cm.message()))
 //                        .take(input.size())
 
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
 
-        final CompletionStage<Done> subscriptionInitialized = mqttSource.viaMat(consumerKillSwitch.flow(), Keep.left())
+        final CompletionStage<Done> subscriptionInitialized =
+                mqttStreamSource.viaMat(consumerKillSwitch.flow(), Keep.left())
                 .map(this::countConsumedMqttMessage)
                 .toMat(consumerLoadBalancer, Keep.left())
                 .run(ActorMaterializer.create(getContext()));

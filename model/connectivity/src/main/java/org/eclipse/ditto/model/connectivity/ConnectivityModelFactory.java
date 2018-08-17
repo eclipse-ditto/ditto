@@ -281,15 +281,33 @@ public final class ConnectivityModelFactory {
      * @param consumerCount how many consumer will consume from this source
      * @param index the index to distinguish between sources that would otherwise be different
      * @param authorizationContext the authorization context of the new {@link Source}
+     * @param filter the enforcement filter that should be applied
+     * @param qos the qos value for this source
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
     public static MqttSource newMqttSource(final int consumerCount, final int index,
-            final AuthorizationContext authorizationContext, final int qos, final String filter,
+            final AuthorizationContext authorizationContext, final String filter, final int qos,
             final String... sources) {
         final ImmutableSource immutableSource =
                 new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
-        return new ImmutableMqttSource(immutableSource, qos, Collections.singletonList(filter));
+        return new ImmutableMqttSource(immutableSource, qos, Collections.singleton(filter));
+    }
+
+    /**
+     * Creates a new {@link MqttSource} without an enforcement filter.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static MqttSource newMqttSource(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext, final int qos, final String... sources) {
+        final ImmutableSource immutableSource =
+                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+        return new ImmutableMqttSource(immutableSource, qos, Collections.emptySet());
     }
 
     /**

@@ -76,7 +76,27 @@ final class PlaceholderFilter {
                         final String address = apply(target.getAddress(), thingPlaceholder);
                         return ConnectivityModelFactory.newTarget(target, address);
                     } catch (UnresolvedPlaceholderException e) {
-                        // TODO log the dropping of adresses with unresolved placeholders
+                        // TODO log the dropping of addresses with unresolved placeholders
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+    Set<String> filterAddresses(final Set<String> addresses, final String thingId) {
+        // check if we have to replace anything at all
+        if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
+            return addresses;
+        }
+
+        final ThingPlaceholder thingPlaceholder = new ThingPlaceholder(thingId);
+        return addresses.stream()
+                .map(address -> {
+                    try {
+                        return apply(address, thingPlaceholder);
+                    } catch (UnresolvedPlaceholderException e) {
+                        // TODO log the dropping of addresses with unresolved placeholders
                         return null;
                     }
                 })
