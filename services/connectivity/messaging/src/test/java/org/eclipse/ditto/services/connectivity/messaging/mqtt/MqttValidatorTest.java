@@ -80,8 +80,8 @@ public final class MqttValidatorTest {
 
     private Connection connectionWithSource(final String source) {
         final MqttSource mqttSource =
-                ConnectivityModelFactory.newMqttSource(1, 0, AUTHORIZATION_CONTEXT, 1,
-                        "things/{{ thing.id }}", source);
+                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
+                        "things/{{ thing.id }}", 1, source);
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(mqttSource))

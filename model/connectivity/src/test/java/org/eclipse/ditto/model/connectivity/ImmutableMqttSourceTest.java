@@ -33,7 +33,7 @@ public final class ImmutableMqttSourceTest {
     private static final String AMQP_SOURCE1 = "amqp/source1";
     private static final String FILTER = "topic/{{ thing.id }}";
     private static final Source SOURCE =
-            ConnectivityModelFactory.newMqttSource(2, 0, ctx, 1, FILTER, AMQP_SOURCE1);
+            ConnectivityModelFactory.newFilteredMqttSource(2, 0, ctx, FILTER, 1, AMQP_SOURCE1);
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()

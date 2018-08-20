@@ -286,7 +286,7 @@ public final class ConnectivityModelFactory {
      * @param sources the sources where messages are consumed from
      * @return the created {@link Source}
      */
-    public static MqttSource newMqttSource(final int consumerCount, final int index,
+    public static MqttSource newFilteredMqttSource(final int consumerCount, final int index,
             final AuthorizationContext authorizationContext, final String filter, final int qos,
             final String... sources) {
         final ImmutableSource immutableSource =
