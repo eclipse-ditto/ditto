@@ -47,7 +47,7 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
         logger = requireNonNull(theLogger, "The logger must not be null!");
     }
 
-    private void preApply(final T message) {
+    protected void preApply(final T message) {
         if (message instanceof Command) {
             final Command command = (Command) message;
             LogUtil.enhanceLogWithCorrelationId(logger, command.getDittoHeaders().getCorrelationId());

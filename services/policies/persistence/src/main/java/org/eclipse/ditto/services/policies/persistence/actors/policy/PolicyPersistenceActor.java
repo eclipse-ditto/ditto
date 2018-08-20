@@ -39,13 +39,15 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.policies.persistence.actors.AbstractETagAppendingReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
@@ -761,7 +763,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles the {@link RetrievePolicy} command.
      */
     @NotThreadSafe
-    private abstract class WithIdReceiveStrategy<T extends WithId> extends AbstractReceiveStrategy<T> {
+    private abstract class WithIdReceiveStrategy<T extends Command<T>>
+            extends AbstractETagAppendingReceiveStrategy<T> {
 
         /**
          * Constructs a new {@code WithIdReceiveStrategy} object.
@@ -830,6 +833,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             };
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final CreatePolicy command) {
+            return ETagValueGenerator.generate(command.getPolicy());
+        }
     }
 
     /**
@@ -902,6 +909,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifyPolicy command) {
+            final Policy policyModification = command.getPolicy().toBuilder().setRevision(getNextRevision()).build();
+            return ETagValueGenerator.generate(policyModification);
+        }
     }
 
     /**
@@ -927,6 +939,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrievePolicy command) {
+            return ETagValueGenerator.generate(policy);
+        }
     }
 
     /**
@@ -960,6 +976,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final DeletePolicy command) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -992,6 +1012,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifyPolicyEntries command) {
+            return ETagValueGenerator.generate(command.getPolicyEntries());
+        }
     }
 
     /**
@@ -1041,6 +1065,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifyPolicyEntry command) {
+            return ETagValueGenerator.generate(command.getPolicyEntry());
+        }
     }
 
     /**
@@ -1087,6 +1115,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final DeletePolicyEntry command) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -1112,6 +1144,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrievePolicyEntries command) {
+            return ETagValueGenerator.generate(policy.getEntriesSet());
+        }
     }
 
     /**
@@ -1142,6 +1178,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrievePolicyEntry command) {
+            return policy.getEntryFor(command.getLabel()).flatMap(ETagValueGenerator::generate);
+        }
     }
 
     /**
@@ -1186,6 +1226,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifySubjects command) {
+            return ETagValueGenerator.generate(command.getSubjects());
+        }
     }
 
     /**
@@ -1218,6 +1262,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrieveSubjects command) {
+            return policy.getEntryFor(command.getLabel())
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(ETagValueGenerator::generate);
+        }
     }
 
     /**
@@ -1274,6 +1324,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifySubject command) {
+            return ETagValueGenerator.generate(command.getSubject());
+        }
     }
 
     /**
@@ -1326,6 +1380,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final DeleteSubject command) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -1363,6 +1421,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrieveSubject command) {
+            return policy.getEntryFor(command.getLabel())
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(subjects -> subjects.getSubject(command.getSubjectId()))
+                    .flatMap(ETagValueGenerator::generate);
+        }
     }
 
     /**
@@ -1408,6 +1473,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifyResources command) {
+            return ETagValueGenerator.generate(command.getResources());
+        }
     }
 
     /**
@@ -1439,6 +1508,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrieveResources command) {
+            return policy.getEntryFor(command.getLabel())
+                    .map(PolicyEntry::getResources).flatMap(
+                            ETagValueGenerator::generate);
+        }
     }
 
     /**
@@ -1496,6 +1571,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final ModifyResource command) {
+            return ETagValueGenerator.generate(command.getResource());
+        }
     }
 
     /**
@@ -1549,6 +1628,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final DeleteResource command) {
+            return Optional.empty();
+        }
     }
 
     /**
@@ -1588,6 +1671,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final RetrieveResource command) {
+            return policy.getEntryFor(command.getLabel())
+                    .map(PolicyEntry::getResources)
+                    .map(resources -> resources.getResource(command.getResourceKey()))
+                    .flatMap(ETagValueGenerator::generate);
+        }
     }
 
     /**
@@ -1613,6 +1703,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<CharSequence> determineETagValue(final SudoRetrievePolicy command) {
+            return ETagValueGenerator.generate(policy);
+        }
     }
 
     /**
