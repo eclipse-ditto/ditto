@@ -230,6 +230,18 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S ifMatch(final CharSequence ifMatch) {
+        putCharSequence(DittoHeaderDefinition.IF_MATCH, ifMatch);
+        return myself;
+    }
+
+    @Override
+    public S ifNoneMatch(final CharSequence ifMatch) {
+        putCharSequence(DittoHeaderDefinition.IF_NONE_MATCH, ifMatch);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
@@ -271,5 +283,4 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected abstract R doBuild(DittoHeaders dittoHeaders);
-
 }

@@ -143,6 +143,22 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B eTag(CharSequence eTag);
 
     /**
+     * Sets the If-Match value.
+     *
+     * @param ifMatch The If-Match value to be set.
+     * @return this builder for Method Chaining
+     */
+    B ifMatch(CharSequence ifMatch);
+
+    /**
+     * Sets the If-None-Match value.
+     *
+     * @param ifNoneMatch The If-None-Match value to be set.
+     * @return this builder for Method Chaining
+     */
+    B ifNoneMatch(CharSequence ifNoneMatch);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

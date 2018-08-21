@@ -52,7 +52,12 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_SOURCE = "knownSource";
     private static final String KNOWN_CHANNEL = "live";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
+    private static final String KNOWN_IF_MATCH = "\"oneValue\",\"anotherValue\"";
+    private static final String KNOWN_IF_NONE_MATCH = "\"notOneValue\",\"notAnotherValue\"";
+    private static final String KNOWN_ETAG = "-12124212";
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singleton(KNOWN_READ_SUBJECT);
+    private static final String KNOWN_CONTENT_TYPE = "application/json";
+    private static final String KNOWN_ORIGIN = "knownOrigin";
 
     @Test
     public void assertImmutability() {
@@ -79,6 +84,11 @@ public final class ImmutableDittoHeadersTest {
                 .dryRun(false)
                 .schemaVersion(KNOWN_SCHEMA_VERSION)
                 .source(KNOWN_SOURCE)
+                .eTag(KNOWN_ETAG)
+                .ifMatch(KNOWN_IF_MATCH)
+                .ifNoneMatch(KNOWN_IF_NONE_MATCH)
+                .origin(KNOWN_ORIGIN)
+                .contentType(KNOWN_CONTENT_TYPE)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -199,6 +209,11 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), KNOWN_RESPONSE_REQUIRED)
                 .set(DittoHeaderDefinition.DRY_RUN.getKey(), false)
                 .set(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS))
+                .set(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH)
+                .set(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH)
+                .set(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG)
+                .set(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN)
+                .set(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -260,6 +275,22 @@ public final class ImmutableDittoHeadersTest {
                 .withNoCause();
     }
 
+    /**
+     * Verifies that really all known headers are in the map created by {@link #createMapContainingAllKnownHeaders()}
+     */
+    @Test
+    public void allKnownHeadersAreTested() {
+
+        final Set<String> testedHeaderNames = createMapContainingAllKnownHeaders().keySet();
+
+        final String[] knownHeaderNames = Arrays.stream(DittoHeaderDefinition.values())
+                .map(DittoHeaderDefinition::getKey)
+                .distinct()
+                .toArray(String[]::new);
+
+        assertThat(testedHeaderNames).containsExactlyInAnyOrder(knownHeaderNames);
+    }
+
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
         result.put(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), toJsonArray(AUTH_SUBJECTS).toString());
@@ -270,6 +301,11 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), String.valueOf(KNOWN_RESPONSE_REQUIRED));
         result.put(DittoHeaderDefinition.DRY_RUN.getKey(), String.valueOf(false));
         result.put(DittoHeaderDefinition.READ_SUBJECTS.getKey(), toJsonArray(KNOWN_READ_SUBJECTS).toString());
+        result.put(DittoHeaderDefinition.IF_MATCH.getKey(), KNOWN_IF_MATCH);
+        result.put(DittoHeaderDefinition.IF_NONE_MATCH.getKey(), KNOWN_IF_NONE_MATCH);
+        result.put(DittoHeaderDefinition.ETAG.getKey(), KNOWN_ETAG);
+        result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), KNOWN_CONTENT_TYPE);
+        result.put(DittoHeaderDefinition.ORIGIN.getKey(), KNOWN_ORIGIN);
 
         return result;
     }
