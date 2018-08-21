@@ -11,10 +11,21 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -27,6 +38,8 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorRef devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
+    private final ActorRef aggregatorProxy;
+    private final Map<String, QueryThingsHolder> queryThingsRequests;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -35,6 +48,10 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.conciergeForwarder = conciergeForwarder;
+
+        aggregatorProxy = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
+                ThingsAggregatorProxyActor.ACTOR_NAME);
+        queryThingsRequests = new HashMap<>();
     }
 
     @Override
@@ -46,6 +63,29 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                     getLogger().debug("Got 'DevOpsCommand' message <{}>, forwarding to local devOpsCommandsActor",
                             command.getType());
                     devOpsCommandsActor.forward(command, getContext());
+                })
+
+                /* handle RetrieveThings in a special way */
+                .match(RetrieveThings.class, rt -> aggregatorProxy.forward(rt, getContext()))
+                .match(SudoRetrieveThings.class, srt -> aggregatorProxy.forward(srt, getContext()))
+
+                .match(QueryThings.class, qt -> {
+                    final String cId = qt.getDittoHeaders().getCorrelationId().orElse("");
+                    queryThingsRequests.put(cId, new QueryThingsHolder(qt, getSender()));
+                    conciergeForwarder.tell(qt, getSelf());
+                })
+                .match(QueryThingsResponse.class, qtr -> {
+                    final QueryThingsHolder queryThingsHolder =
+                            queryThingsRequests.remove(qtr.getDittoHeaders().getCorrelationId().orElse(""));
+
+                    final List<String> thingIds = qtr.getSearchResult().stream()
+                            .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
+                            .collect(Collectors.toList());
+                    final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
+                            .dittoHeaders(qtr.getDittoHeaders())
+                            .selectedFields(queryThingsHolder.queryThings.getFields())
+                            .build();
+                    aggregatorProxy.tell(retrieveThings, queryThingsHolder.originatingSender);
                 })
 
                 /* send all other Commands to Concierge Service */
@@ -67,6 +107,16 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private void forwardToConciergeService(final Signal<?> signal) {
         conciergeForwarder.forward(signal, getContext());
+    }
+
+    private static final class QueryThingsHolder {
+        private final QueryThings queryThings;
+        private final ActorRef originatingSender;
+
+        private QueryThingsHolder(final QueryThings queryThings, final ActorRef originatingSender) {
+            this.queryThings = queryThings;
+            this.originatingSender = originatingSender;
+        }
     }
 
 }

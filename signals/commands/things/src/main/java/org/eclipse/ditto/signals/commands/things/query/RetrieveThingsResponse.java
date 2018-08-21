@@ -119,13 +119,25 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingsResponse of(final List<Thing> things, final JsonFieldSelector fieldSelector,
-            final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    public static RetrieveThingsResponse of(final List<Thing> things, @Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, PROPERTY_NAME_THINGS).stream()
-                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
-                        fieldSelector,
-                        predicate))
+                .map(thing -> getJsonFields(fieldSelector, predicate, dittoHeaders, thing))
                 .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
+    }
+
+    private static JsonObject getJsonFields(@Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders,
+            final Thing thing) {
+        if (fieldSelector != null) {
+            return predicate != null ?
+                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector, predicate) :
+                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector);
+        } else {
+            return predicate != null ?
+                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), predicate) :
+                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST));
+        }
     }
 
     /**
