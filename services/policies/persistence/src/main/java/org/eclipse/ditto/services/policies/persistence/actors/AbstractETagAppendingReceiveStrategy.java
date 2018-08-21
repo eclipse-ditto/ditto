@@ -1,4 +1,4 @@
-package org.eclipse.ditto.services.policies.persistence.actors;/*
+/*
  * Copyright (c) 2017 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
@@ -9,6 +9,7 @@ package org.eclipse.ditto.services.policies.persistence.actors;/*
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
+package org.eclipse.ditto.services.policies.persistence.actors;
 
 import java.util.Optional;
 

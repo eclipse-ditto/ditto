@@ -1,4 +1,4 @@
-package org.eclipse.ditto.services.policies.persistence.testhelper;/*
+/*
  * Copyright (c) 2017 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
@@ -9,6 +9,7 @@ package org.eclipse.ditto.services.policies.persistence.testhelper;/*
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
+package org.eclipse.ditto.services.policies.persistence.testhelper;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
