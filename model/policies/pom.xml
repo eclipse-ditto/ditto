@@ -85,7 +85,6 @@
                             <exclude>org.eclipse.ditto.model.policies.Policy#getId()</exclude>
                             <exclude>org.eclipse.ditto.model.policies.Policy#getModified()</exclude>
                             <exclude>org.eclipse.ditto.model.policies.Policy#getRevision()</exclude>
-                            <exclude>org.eclipse.ditto.model.policies.Policy#toInlinedJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
                             <exclude>org.eclipse.ditto.model.policies.Policy#toJson()</exclude>
                             <exclude>org.eclipse.ditto.model.policies.Policy#toJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
 

@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -381,6 +382,20 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     default JsonObject toInlinedJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
         return JsonFactory.newObjectBuilder()
                 .set(INLINED_FIELD_NAME, toJson(schemaVersion, predicate))
+                .build();
+    }
+
+    /**
+     * Returns a JSON object representation of this policy to embed in another JSON object.
+     *
+     * @param schemaVersion the JsonSchemaVersion in which to return the JSON.
+     * @param fieldSelector determines the content of the result.
+     * @return a JSON object representation of this policy to embed in another JSON object.
+     * @throws NullPointerException if {@code predicate} is {@code null}.
+     */
+    default JsonObject toInlinedJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
+        return JsonFactory.newObjectBuilder()
+                .set(INLINED_FIELD_NAME, toJson(schemaVersion, fieldSelector))
                 .build();
     }
 

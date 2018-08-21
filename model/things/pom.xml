@@ -86,7 +86,6 @@
                             <exclude>org.eclipse.ditto.model.things.Thing#getId()</exclude>
                             <exclude>org.eclipse.ditto.model.things.Thing#getModified()</exclude>
                             <exclude>org.eclipse.ditto.model.things.Thing#getRevision()</exclude>
-                            <exclude>org.eclipse.ditto.model.things.Thing#toInlinedJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
                             <exclude>org.eclipse.ditto.model.things.Thing#toJson()</exclude>
                             <exclude>org.eclipse.ditto.model.things.Thing#toJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
 
