@@ -15,6 +15,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
 
+/**
+ * Responsible for adding custom headers.
+ */
 public interface CustomHeadersHandler {
 
     enum RequestType {
@@ -22,7 +25,17 @@ public interface CustomHeadersHandler {
         WS,
         SSE
     }
-    
+
+    /**
+     * Appends custom headers to the given dittoDefaultHeaders and returns a new instance of DittoHeaders that
+     * contains both of them.
+     *
+     * @param correlationId The correlation id.
+     * @param requestContext The request context.
+     * @param requestType The request type.
+     * @param dittoDefaultHeaders The headers ditto created by default.
+     * @return A new instance of {@link DittoHeaders} containing both, new custom headers and ditto default headers.
+     */
     DittoHeaders handleCustomHeaders(String correlationId, RequestContext requestContext, RequestType requestType,
             DittoHeaders dittoDefaultHeaders);
 }

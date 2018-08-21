@@ -27,7 +27,7 @@ public final class NoopCustomApiRoutesProvider implements CustomApiRoutesProvide
     }
 
     @Override
-    public Route unauthorized(final Integer version, final String correlationId) {
+    public Route unauthorized(final Integer apiVersion, final String correlationId) {
         return EMPTY_ROUTE;
     }
 

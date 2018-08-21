@@ -33,17 +33,17 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
-public class DittoGatewayAuthenticationDirectiveBuilder implements GatewayAuthenticationDirectiveBuilder {
+public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
 
     private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
     private static final String JWT_ISSUER_GOOGLE_URL = "https://accounts.google.com";
     private static final String JWK_RESOURCE_GOOGLE = "https://www.googleapis.com/oauth2/v2/certs";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveBuilder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DittoGatewayAuthenticationDirectiveFactory.class);
 
     private final GatewayAuthenticationDirective gatewayAuthenticationDirective;
 
-    public DittoGatewayAuthenticationDirectiveBuilder(final Config config,
+    public DittoGatewayAuthenticationDirectiveFactory(final Config config,
             final HttpClientFacade httpClient) {
         requireNonNull(config);
         requireNonNull(httpClient);

@@ -16,12 +16,25 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import akka.http.javadsl.server.Route;
 
 /**
- * TODO: doc.
+ * Provider for custom routes. You can distinguish between routes for unauthorized access and authorized access.
  */
 public interface CustomApiRoutesProvider {
 
-    Route unauthorized(Integer version, String correlationId);
+    /**
+     * Provides a custom route for unauthorized access.
+     *
+     * @param apiVersion The api version.
+     * @param correlationId The correlation id.
+     * @return Custom route for unauthorized access.
+     */
+    Route unauthorized(Integer apiVersion, String correlationId);
 
+    /**
+     * Provides a custom route for authorized access.
+     *
+     * @param headers headers of the request.
+     * @return Custom route for authorized access.
+     */
     Route authorized(DittoHeaders headers);
 
 }

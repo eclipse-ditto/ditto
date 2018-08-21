@@ -11,9 +11,23 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
-public interface GatewayAuthenticationDirectiveBuilder {
+/**
+ * Builder for authentication directives.
+ */
+public interface GatewayAuthenticationDirectiveFactory {
 
+    /**
+     * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for the REST api.
+     *
+     * @return The built {@link GatewayAuthenticationDirective authentication directive}.
+     */
     GatewayAuthenticationDirective buildRestApiAuthentication();
 
+    /**
+     * Builds the {@link GatewayAuthenticationDirective authentication directive} that should be used for web socket
+     * connections.
+     *
+     * @return The built {@link GatewayAuthenticationDirective authentication directive}.
+     */
     GatewayAuthenticationDirective buildWsAuthentication();
 }

@@ -58,9 +58,9 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringD
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.SecurityResponseHeadersDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveBuilder;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -157,7 +157,7 @@ public final class RootRoute {
             final Supplier<ClusterStatus> clusterStateSupplier,
             final HttpClientFacade httpClient) {
         this(actorSystem, config, proxyActor, streamingActor, healthCheckingActor, clusterStateSupplier,
-                new DittoGatewayAuthenticationDirectiveBuilder(config, httpClient),
+                new DittoGatewayAuthenticationDirectiveFactory(config, httpClient),
                 NoopCustomApiRoutesProvider.getInstance(),NoopCustomHeadersHandler.getInstance());
     }
 
@@ -176,7 +176,7 @@ public final class RootRoute {
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
             final Supplier<ClusterStatus> clusterStateSupplier,
-            final GatewayAuthenticationDirectiveBuilder gatewayAuthenticationDirectiveBuilder,
+            final GatewayAuthenticationDirectiveFactory gatewayAuthenticationDirectiveBuilder,
             final CustomApiRoutesProvider customApiRoutesProvider,
             final CustomHeadersHandler customHeadersHandler) {
         checkNotNull(actorSystem, "Actor System");
