@@ -13,48 +13,55 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.things.Thing;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.entity.Entity;
+import org.eclipse.ditto.model.base.entity.Revision;
 import org.junit.Test;
 
 public class ETagValueGeneratorTest {
 
     @Test
-    public void generateForPolicy() {
-        Policy policy = Policy.newBuilder("Test:Test").setRevision(4711).build();
+    public void generateForEntity() {
+        final String expectedETagValue = "4711";
+        final Revision mockRevision = mock(Revision.class);
+        when(mockRevision.toString()).thenReturn(expectedETagValue);
+        final Entity mockEntity = mock(Entity.class);
+        when(mockEntity.getRevision()).thenReturn(Optional.of(mockRevision));
 
-        final CharSequence generatedETagValue = ETagValueGenerator.generate(policy).get();
-
-        assertThat(generatedETagValue).isEqualTo("4711");
+        assertETagGeneration(mockEntity, expectedETagValue);
     }
 
     @Test
-    public void generateForThing() {
-        Thing thing = Thing.newBuilder().setId("Test:Test").setRevision(1337).build();
+    public void generateForNonEntityObject() {
+        final  String arbitraryObject = "1234";
+        final String expectedETagValue = String.valueOf(arbitraryObject.hashCode());
 
-        final CharSequence generatedETagValue = ETagValueGenerator.generate(thing).get();
-
-        assertThat(generatedETagValue).isEqualTo("1337");
-    }
-
-    @Test
-    public void generateForObject() {
-        String someObject = "1234";
-
-        final CharSequence generatedETagValue = ETagValueGenerator.generate(someObject).get();
-
-        String expectedETagValue = String.valueOf("1234".hashCode());
-        assertThat(generatedETagValue).isEqualTo(expectedETagValue);
+        assertETagGeneration(arbitraryObject, expectedETagValue);
     }
 
     @Test
     public void generateForNull() {
-
         final Optional<CharSequence> generatedETagValue = ETagValueGenerator.generate(null);
 
         assertThat(generatedETagValue).isNotPresent();
+    }
+
+    private void assertETagGeneration(final Object obj, @Nullable final String expectedETagValue) {
+        final Optional<CharSequence> generatedETagValueOpt = ETagValueGenerator.generate(obj);
+        if (expectedETagValue == null) {
+            assertThat(generatedETagValueOpt).isNotPresent();
+            return;
+        }
+
+        final CharSequence generatedETagValue = generatedETagValueOpt.orElseThrow(() -> new
+                AssertionError("Expected ETag, but is empty."));
+
+        assertThat(generatedETagValue).isEqualTo(expectedETagValue);
     }
 }
