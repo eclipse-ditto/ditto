@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -22,6 +23,7 @@ import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -56,6 +58,8 @@ public final class ReconnectActor extends AbstractPersistentActor {
      * The name of this Actor.
      */
     public static final String ACTOR_NAME = "reconnect";
+
+    private static final String CORRELATION_ID_PREFIX = "reconnect-actor-triggered:";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -150,6 +154,16 @@ public final class ReconnectActor extends AbstractPersistentActor {
                         connectionIds.remove(command.getConnectionId());
                     }
                 })
+                .match(ConnectionNotAccessibleException.class, exception -> exception.getDittoHeaders()
+                        .getCorrelationId()
+                        .flatMap(ReconnectActor::toConnectionId)
+                        .filter(connectionIds::contains)
+                        .ifPresent(connectionId -> {
+                            // connection nonexistent, treat it as deleted
+                            final ConnectionDeleted connectionDeleted =
+                                    ConnectionDeleted.of(connectionId, exception.getDittoHeaders());
+                            persistEvent(connectionDeleted, e -> connectionIds.remove(connectionId));
+                        }))
                 .match(ConnectionCreated.class,
                         event -> persistEvent(event, e -> connectionIds.add(e.getConnectionId())))
                 .match(ConnectionModified.class, this::handleConnectionModified)
@@ -197,10 +211,15 @@ public final class ReconnectActor extends AbstractPersistentActor {
     }
 
     private void reconnect(final String connectionId) {
-        // yes, this is intentionally a RetrieveConnectionStatus instead of OpenConnection
-        // the response is expected in this actor
-        connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.newBuilder()
-                .correlationId("reconnect-actor-triggered").build()), getSelf());
+        // yes, this is intentionally a RetrieveConnectionStatus instead of OpenConnection.
+        // ConnectionActor manages its own reconnection on recovery.
+        // OpenConnection would set desired state to OPEN even for deleted connections.
+        //
+        // Save connection ID as correlation ID so that nonexistent connections are removed from the store.
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(toCorrelationId(connectionId))
+                .build();
+        connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, dittoHeaders), getSelf());
     }
 
     private void doSaveSnapshot() {
@@ -213,6 +232,16 @@ public final class ReconnectActor extends AbstractPersistentActor {
             final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connectionIds);
             saveSnapshot(snapshotToStore);
         }
+    }
+
+    static String toCorrelationId(final String connectionId) {
+        return CORRELATION_ID_PREFIX + connectionId;
+    }
+
+    static Optional<String> toConnectionId(final String correlationId) {
+        return correlationId.startsWith(CORRELATION_ID_PREFIX)
+                ? Optional.of(correlationId.replace(CORRELATION_ID_PREFIX, ""))
+                : Optional.empty();
     }
 
 }

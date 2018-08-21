@@ -120,6 +120,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActor {
 
+    private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
 
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
@@ -290,11 +291,21 @@ public final class ConnectionActor extends AbstractPersistentActor {
                             subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
+                    } else {
+                        stopSelfAfterDelay();
                     }
 
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
                 })
-                .matchAny(m -> log.warning("Unknown recover message: {}", m))
+                .matchAny(m -> {
+                    if (m == null) {
+                        // connection persistence is corrupted.
+                        connection = null;
+                        log.warning("Invalid persistence of Connection <{}>", connectionId);
+                    } else {
+                        log.warning("Unknown recover message: {}", m);
+                    }
+                })
                 .build();
     }
 
@@ -860,6 +871,15 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Shutting down");
         // stop the supervisor (otherwise it'd restart this actor) which causes this actor to stop, too.
         getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
+    }
+
+    private void stopSelfAfterDelay() {
+        final FiniteDuration delay = DELETED_ACTOR_LIFETIME;
+        final String message = MessageFormat.format("stop self after <{0}>", delay);
+        final PerformTask stopSelfTask = new PerformTask(message, ConnectionActor::stopSelf);
+        getContext().system()
+                .scheduler()
+                .scheduleOnce(delay, getSelf(), stopSelfTask, getContext().dispatcher(), ActorRef.noSender());
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
