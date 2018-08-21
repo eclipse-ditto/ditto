@@ -13,8 +13,11 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.event.DiagnosticLoggingAdapter;
@@ -52,6 +55,10 @@ public abstract class AbstractETagAppendingReceiveStrategy<T extends Command<T>>
         }
 
         return message;
+    }
+
+    protected final Optional<CharSequence> generateETagValue(@Nullable final Object object) {
+        return ETagValueGenerator.generate(object);
     }
 
     /**

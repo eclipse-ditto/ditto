@@ -45,7 +45,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
@@ -835,7 +834,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final CreatePolicy command) {
-            return ETagValueGenerator.generate(command.getPolicy());
+            return generateETagValue(command.getPolicy());
         }
     }
 
@@ -912,7 +911,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifyPolicy command) {
             final Policy policyModification = command.getPolicy().toBuilder().setRevision(getNextRevision()).build();
-            return ETagValueGenerator.generate(policyModification);
+            return generateETagValue(policyModification);
         }
     }
 
@@ -941,7 +940,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final RetrievePolicy command) {
-            return ETagValueGenerator.generate(policy);
+            return generateETagValue(policy);
         }
     }
 
@@ -1014,7 +1013,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifyPolicyEntries command) {
-            return ETagValueGenerator.generate(command.getPolicyEntries());
+            return generateETagValue(command.getPolicyEntries());
         }
     }
 
@@ -1067,7 +1066,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifyPolicyEntry command) {
-            return ETagValueGenerator.generate(command.getPolicyEntry());
+            return generateETagValue(command.getPolicyEntry());
         }
     }
 
@@ -1146,7 +1145,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final RetrievePolicyEntries command) {
-            return ETagValueGenerator.generate(policy.getEntriesSet());
+            return generateETagValue(policy.getEntriesSet());
         }
     }
 
@@ -1180,7 +1179,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final RetrievePolicyEntry command) {
-            return policy.getEntryFor(command.getLabel()).flatMap(ETagValueGenerator::generate);
+            return policy.getEntryFor(command.getLabel()).flatMap(this::generateETagValue);
         }
     }
 
@@ -1228,7 +1227,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifySubjects command) {
-            return ETagValueGenerator.generate(command.getSubjects());
+            return generateETagValue(command.getSubjects());
         }
     }
 
@@ -1266,7 +1265,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         protected Optional<CharSequence> determineETagValue(final RetrieveSubjects command) {
             return policy.getEntryFor(command.getLabel())
                     .map(PolicyEntry::getSubjects)
-                    .flatMap(ETagValueGenerator::generate);
+                    .flatMap(this::generateETagValue);
         }
     }
 
@@ -1326,7 +1325,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifySubject command) {
-            return ETagValueGenerator.generate(command.getSubject());
+            return generateETagValue(command.getSubject());
         }
     }
 
@@ -1426,7 +1425,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return policy.getEntryFor(command.getLabel())
                     .map(PolicyEntry::getSubjects)
                     .flatMap(subjects -> subjects.getSubject(command.getSubjectId()))
-                    .flatMap(ETagValueGenerator::generate);
+                    .flatMap(this::generateETagValue);
         }
     }
 
@@ -1475,7 +1474,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifyResources command) {
-            return ETagValueGenerator.generate(command.getResources());
+            return generateETagValue(command.getResources());
         }
     }
 
@@ -1512,7 +1511,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         protected Optional<CharSequence> determineETagValue(final RetrieveResources command) {
             return policy.getEntryFor(command.getLabel())
                     .map(PolicyEntry::getResources).flatMap(
-                            ETagValueGenerator::generate);
+                            this::generateETagValue);
         }
     }
 
@@ -1573,7 +1572,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final ModifyResource command) {
-            return ETagValueGenerator.generate(command.getResource());
+            return generateETagValue(command.getResource());
         }
     }
 
@@ -1676,7 +1675,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return policy.getEntryFor(command.getLabel())
                     .map(PolicyEntry::getResources)
                     .map(resources -> resources.getResource(command.getResourceKey()))
-                    .flatMap(ETagValueGenerator::generate);
+                    .flatMap(this::generateETagValue);
         }
     }
 
@@ -1705,7 +1704,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected Optional<CharSequence> determineETagValue(final SudoRetrievePolicy command) {
-            return ETagValueGenerator.generate(policy);
+            return generateETagValue(policy);
         }
     }
 
