@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -24,6 +26,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 
@@ -76,16 +79,36 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                 })
                 .match(QueryThingsResponse.class, qtr -> {
                     final QueryThingsHolder queryThingsHolder =
-                            queryThingsRequests.remove(qtr.getDittoHeaders().getCorrelationId().orElse(""));
+                            queryThingsRequests.get(qtr.getDittoHeaders().getCorrelationId().orElse(""));
+
+                    queryThingsHolder.queryThingsResponse = qtr;
 
                     final List<String> thingIds = qtr.getSearchResult().stream()
                             .map(val -> val.asObject().getValue(Thing.JsonFields.ID).orElse(null))
                             .collect(Collectors.toList());
-                    final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
-                            .dittoHeaders(qtr.getDittoHeaders())
-                            .selectedFields(queryThingsHolder.queryThings.getFields())
-                            .build();
-                    aggregatorProxy.tell(retrieveThings, queryThingsHolder.originatingSender);
+
+                    if (thingIds.isEmpty()) {
+                        queryThingsHolder.originatingSender.tell(qtr, getSelf());
+                    } else {
+                        final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
+                                .dittoHeaders(qtr.getDittoHeaders())
+                                .selectedFields(queryThingsHolder.queryThings.getFields())
+                                .build();
+                        aggregatorProxy.tell(retrieveThings, getSelf());
+                    }
+                })
+                .match(RetrieveThingsResponse.class, rtr -> {
+                    final QueryThingsHolder queryThingsHolder =
+                            queryThingsRequests.remove(rtr.getDittoHeaders().getCorrelationId().orElse(""));
+
+                    final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(SearchResult.newBuilder()
+                                    .addAll(rtr.getThings().stream().map(Thing::toJson).collect(JsonCollectors.valuesToArray()))
+                                    .nextPageOffset(queryThingsHolder.queryThingsResponse.getSearchResult().getNextPageOffset())
+                                    .build(),
+                            rtr.getDittoHeaders()
+                    );
+
+                    queryThingsHolder.originatingSender.tell(queryThingsResponse, getSelf());
                 })
 
                 /* send all other Commands to Concierge Service */
@@ -112,6 +135,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
     private static final class QueryThingsHolder {
         private final QueryThings queryThings;
         private final ActorRef originatingSender;
+        private QueryThingsResponse queryThingsResponse;
 
         private QueryThingsHolder(final QueryThings queryThings, final ActorRef originatingSender) {
             this.queryThings = queryThings;
