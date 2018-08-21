@@ -32,6 +32,12 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-http_${scala.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
