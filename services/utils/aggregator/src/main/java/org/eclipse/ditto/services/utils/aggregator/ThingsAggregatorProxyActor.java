@@ -55,7 +55,6 @@ import akka.util.Timeout;
  * Acts as a client for {@code org.eclipse.ditto.services.concierge.starter.actors.ThingsAggregatorActor} which responds
  * to a {@link RetrieveThings} command via a {@link SourceRef} which is a pointer in the cluster emitting the retrieved
  * {@link Thing}s one after one in a stream.
- * <br/>
  * That ensures that the cluster messages size must not be increased when streaming a larger amount of Things in the
  * cluster.
  */
