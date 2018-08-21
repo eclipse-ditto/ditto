@@ -19,15 +19,14 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
- * Immutable implementation of {@link ExternalMessage}.
+ * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
+ * because objects of this class are sent as messages between actors.
  */
-@Immutable
-final class ImmutableExternalMessage implements ExternalMessage {
+final class UnmodifiableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
     private final boolean response;
@@ -39,7 +38,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
     @Nullable private final AuthorizationContext authorizationContext;
     @Nullable private final ThingIdEnforcement thingIdEnforcement;
 
-    ImmutableExternalMessage(final Map<String, String> headers,
+    UnmodifiableExternalMessage(final Map<String, String> headers,
             final boolean response,
             final boolean error,
             final PayloadType payloadType,
@@ -70,7 +69,9 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     @Override
     public ExternalMessage withHeaders(final Map<String, String> additionalHeaders) {
-        return ConnectivityModelFactory.newExternalMessageBuilder(this).withAdditionalHeaders(additionalHeaders).build();
+        return ConnectivityModelFactory.newExternalMessageBuilder(this)
+                .withAdditionalHeaders(additionalHeaders)
+                .build();
     }
 
     @Override
@@ -137,7 +138,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableExternalMessage that = (ImmutableExternalMessage) o;
+        final UnmodifiableExternalMessage that = (UnmodifiableExternalMessage) o;
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&

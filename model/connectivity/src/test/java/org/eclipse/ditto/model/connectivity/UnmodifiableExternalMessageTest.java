@@ -25,20 +25,22 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ImmutableExternalMessage}.
+ * Unit test for {@link UnmodifiableExternalMessage}.
  */
-public final class ImmutableExternalMessageTest {
+public final class UnmodifiableExternalMessageTest {
 
-    @Ignore("TODO: make external message immutable or document its correct usage")
+    @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableExternalMessage.class, areImmutable(),
+        // The field "bytePayload" is mutable.
+        // Assume the user never modifies it.
+        assertInstancesOf(UnmodifiableExternalMessage.class, areImmutable(),
                 assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
                 provided(ByteBuffer.class, AuthorizationContext.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableExternalMessage.class)
+        EqualsVerifier.forClass(UnmodifiableExternalMessage.class)
                 .withPrefabValues(ByteBuffer.class,
                         ByteBuffer.wrap("red" .getBytes()),
                         ByteBuffer.wrap("black" .getBytes()))

@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 /**
  * Mutable builder for building new instances of ExternalMessage.
  */
-final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
+final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder {
 
     private Map<String, String> headers;
     private boolean response = false;
@@ -40,7 +40,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      *
      * @param message the ExternalMessage to use for initialization.
      */
-    MutableExternalMessageBuilder(final ExternalMessage message) {
+    UnmodifiableExternalMessageBuilder(final ExternalMessage message) {
         this.headers = new HashMap<>(message.getHeaders());
         this.bytePayload = message.getBytePayload().orElse(null);
         this.textPayload = message.getTextPayload().orElse(null);
@@ -56,7 +56,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      *
      * @param headers the headers to use for initialization.
      */
-    MutableExternalMessageBuilder(final Map<String, String> headers) {
+    UnmodifiableExternalMessageBuilder(final Map<String, String> headers) {
         this.headers = new HashMap<>(headers);
     }
 
@@ -130,7 +130,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
+        return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
                 authorizationContext, thingIdEnforcement);
     }
 

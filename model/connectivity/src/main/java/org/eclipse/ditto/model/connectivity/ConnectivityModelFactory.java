@@ -219,7 +219,7 @@ public final class ConnectivityModelFactory {
      * @return the builder.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers) {
-        return new MutableExternalMessageBuilder(headers);
+        return new UnmodifiableExternalMessageBuilder(headers);
     }
 
     /**
@@ -229,7 +229,7 @@ public final class ConnectivityModelFactory {
      * @return the builder.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
-        return new MutableExternalMessageBuilder(externalMessage);
+        return new UnmodifiableExternalMessageBuilder(externalMessage);
     }
 
     /**
