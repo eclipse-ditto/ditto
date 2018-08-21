@@ -68,6 +68,8 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregatorproxy_retrievethings";
 
+    private static final int ASK_TIMEOUT = 60;
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef targetActor;
@@ -125,7 +127,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(30, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
                 .thenAccept(sourceRef ->
                         handleSourceRef(
                                 (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
@@ -139,7 +141,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(30, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
                 .thenAccept(sourceRef ->
                         handleSourceRef(
                                 (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
