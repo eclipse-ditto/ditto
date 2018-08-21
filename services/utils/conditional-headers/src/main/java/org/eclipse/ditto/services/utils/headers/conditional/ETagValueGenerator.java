@@ -21,7 +21,7 @@ import org.eclipse.ditto.model.base.entity.Revision;
 import akka.http.javadsl.model.headers.EntityTag;
 
 /**
- * Responsible for creating the value for the ETag Header
+ * Responsible for creating the value for the ETag Header.
  */
 public final class ETagValueGenerator {
 
@@ -41,17 +41,20 @@ public final class ETagValueGenerator {
         }
 
         if (object instanceof Entity) {
-            return generate((Entity<? extends Revision>) object);
+            return generateForTopLevelEntity((Entity<? extends Revision>) object);
+        } else {
+            return generateForSubEntity(object);
         }
+    }
 
-        return Optional.of(Integer.toString(object.hashCode()))
+    private static Optional<CharSequence> generateForTopLevelEntity(final Entity<? extends Revision> topLevelEntity) {
+        return topLevelEntity.getRevision()
+                .map(Revision::toString)
                 .map(ETagValueGenerator::toETagValue);
     }
 
-    private static Optional<CharSequence> generate(final Entity<? extends Revision> topLevelEntity) {
-
-        return topLevelEntity.getRevision()
-                .map(Revision::toString)
+    private static Optional<CharSequence> generateForSubEntity(final Object object) {
+        return Optional.of(Integer.toString(object.hashCode()))
                 .map(ETagValueGenerator::toETagValue);
     }
 
