@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
@@ -109,7 +108,7 @@ public final class SearchRootActor extends AbstractActor {
                 MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(rawConfig, pubSubMediator, mongoClientWrapper);
+        final ActorRef searchActor = initializeSearchActor(rawConfig, mongoClientWrapper);
 
         final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
                 thingsSyncPersistence, policiesSyncPersistence);
@@ -122,7 +121,7 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final Config rawConfig, ActorRef pubSubMediator, final MongoClientWrapper
+    private ActorRef initializeSearchActor(final Config rawConfig, final MongoClientWrapper
             mongoClientWrapper) {
         final ThingsSearchPersistence thingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
@@ -144,7 +143,7 @@ public final class SearchRootActor extends AbstractActor {
                 QueryActor.props(criteriaFactory, fieldExpressionFactory, queryBuilderFactory));
 
         return startChildActor(SearchActor.ACTOR_NAME,
-                SearchActor.props(pubSubMediator, aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
+                SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
     }
 
     private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader, final MongoClientWrapper mongoClientWrapper,
