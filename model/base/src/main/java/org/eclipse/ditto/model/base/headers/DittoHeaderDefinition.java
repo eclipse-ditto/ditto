@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -186,7 +185,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
         return writeToExternalHeaders;
     }
 
-    @Nonnull
     @Override
     public String toString() {
         return getKey();
