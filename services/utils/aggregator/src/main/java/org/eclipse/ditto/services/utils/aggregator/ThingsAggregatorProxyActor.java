@@ -15,13 +15,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
@@ -43,6 +46,7 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.function.Function;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
@@ -54,9 +58,8 @@ import akka.util.Timeout;
 /**
  * Acts as a client for {@code org.eclipse.ditto.services.concierge.starter.actors.ThingsAggregatorActor} which responds
  * to a {@link RetrieveThings} command via a {@link SourceRef} which is a pointer in the cluster emitting the retrieved
- * {@link Thing}s one after one in a stream.
- * That ensures that the cluster messages size must not be increased when streaming a larger amount of Things in the
- * cluster.
+ * {@link Thing}s one after one in a stream. That ensures that the cluster messages size must not be increased when
+ * streaming a larger amount of Things in the cluster.
  */
 public final class ThingsAggregatorProxyActor extends AbstractActor {
 
@@ -151,26 +154,24 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final Command<?> originatingCommand, final ActorRef originatingSender,
             final ActorMaterializer actorMaterializer) {
 
-        final Comparator<Thing> comparator = (t1, t2) -> {
-            final String r1ThingId = t1.getId().orElse(null);
-            final String r2ThingId = t2.getId().orElse(null);
-            return Integer.compare(thingIds.indexOf(r1ThingId), thingIds.indexOf(r2ThingId));
+        final Comparator<JsonValue> comparator = (t1, t2) -> {
+            final String thingId1 = t1.asObject().getValue(Thing.JsonFields.ID).orElse(null);
+            final String thingId2 = t2.asObject().getValue(Thing.JsonFields.ID).orElse(null);
+            return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
         };
 
-        final Function<? extends CommandResponse<?>, List<Thing>> firstThingListSupplier;
-        final Function<List<Thing>, CommandResponse<?>> overallResponseSupplier;
+        final Function<Jsonifiable<?>, List<JsonValue>> firstThingListSupplier;
+        final Function<List<JsonValue>, CommandResponse<?>> overallResponseSupplier;
 
         if (originatingCommand instanceof SudoRetrieveThings) {
             firstThingListSupplier = supplyInitialThingListFromSudoRetrieveThingResponse();
             overallResponseSupplier = supplySudoRetrieveThingsResponse(
-                    originatingCommand.getDittoHeaders(),
-                    ((SudoRetrieveThings) originatingCommand).getSelectedFields().orElse(null)
+                    originatingCommand.getDittoHeaders()
             );
         } else {
             firstThingListSupplier = supplyInitialThingListFromRetrieveThingResponse();
             overallResponseSupplier = supplyRetrieveThingsResponse(
                     originatingCommand.getDittoHeaders(),
-                    ((RetrieveThings) originatingCommand).getSelectedFields().orElse(null),
                     ((RetrieveThings) originatingCommand).getNamespace().orElse(null)
             );
         }
@@ -182,7 +183,12 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         final CompletionStage<?> o = (CompletionStage<?>) sourceRef.getSource()
                 .map(firstThingListSupplier)
                 .log("retrieve-thing-response", log)
-                .reduce((a, b) -> mergeLists((List<Thing>) a, (List<Thing>) b, comparator))
+                .recover(new PFBuilder()
+                        .match(NoSuchElementException.class,
+                                nsee -> overallResponseSupplier.apply(Collections.emptyList()))
+                        .build()
+                )
+                .reduce((a, b) -> mergeLists((List<JsonValue>) a, (List<JsonValue>) b, comparator))
                 .map(overallResponseSupplier)
                 .via(stopTimer(timer))
                 .runWith(Sink.last(), actorMaterializer);
@@ -191,38 +197,38 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .to(originatingSender);
     }
 
-    private Function<RetrieveThingResponse, List<Thing>> supplyInitialThingListFromRetrieveThingResponse() {
-        return retrieveThingResponse -> Collections.singletonList((retrieveThingResponse).getThing());
+    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromRetrieveThingResponse() {
+        return retrieveThingResponse -> retrieveThingResponse instanceof RetrieveThingResponse ?
+                Collections.singletonList(((RetrieveThingResponse) retrieveThingResponse)
+                        .getEntity(retrieveThingResponse.getImplementedSchemaVersion())) :
+                null;
     }
 
-    private Function<SudoRetrieveThingResponse, List<Thing>> supplyInitialThingListFromSudoRetrieveThingResponse() {
-        return sudoRetrieveThingResponse -> Collections.singletonList(sudoRetrieveThingResponse.getThing());
+    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromSudoRetrieveThingResponse() {
+        return sudoRetrieveThingResponse -> sudoRetrieveThingResponse instanceof SudoRetrieveThingResponse ?
+                Collections.singletonList(((SudoRetrieveThingResponse) sudoRetrieveThingResponse)
+                        .getEntity(sudoRetrieveThingResponse.getImplementedSchemaVersion())) :
+                null;
     }
 
-    private Function<List<Thing>, CommandResponse<?>> supplyRetrieveThingsResponse(
+    private Function<List<JsonValue>, CommandResponse<?>> supplyRetrieveThingsResponse(
             final DittoHeaders dittoHeaders,
-            @Nullable final JsonFieldSelector selectedFields,
             @Nullable final String namespace) {
-        return things -> RetrieveThingsResponse.of((List<Thing>) things,
-                selectedFields,
-                null,
+        return things -> RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
                 namespace,
                 dittoHeaders);
     }
 
-    private Function<List<Thing>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
-            final DittoHeaders dittoHeaders,
-            @Nullable final JsonFieldSelector selectedFields) {
-        return things -> SudoRetrieveThingsResponse.of((List<Thing>) things,
-                selectedFields,
-                null,
+    private Function<List<JsonValue>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
+            final DittoHeaders dittoHeaders) {
+        return things -> SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
                 dittoHeaders);
     }
 
-    private static List<Thing> mergeLists(final List<Thing> first,
-            final List<Thing> second, final Comparator<Thing> comparator) {
+    private static List<JsonValue> mergeLists(final List<JsonValue> first,
+            final List<JsonValue> second, final Comparator<JsonValue> comparator) {
 
-        final List<Thing> arrayList = new ArrayList<>(first);
+        final List<JsonValue> arrayList = new ArrayList<>(first);
         arrayList.addAll(second);
         arrayList.sort(comparator);
 

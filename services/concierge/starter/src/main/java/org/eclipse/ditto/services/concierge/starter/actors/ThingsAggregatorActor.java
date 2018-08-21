@@ -22,6 +22,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
@@ -29,7 +30,6 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 
@@ -41,7 +41,6 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
-import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
@@ -141,7 +140,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
             final Command command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<SourceRef<CommandResponse>> commandResponseSource = Source.from(thingIds)
+        final CompletionStage<?> commandResponseSource = Source.from(thingIds)
                 .filter(thingId -> thingIdMatcher.reset(thingId).matches())
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
@@ -158,7 +157,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
                     }
                     return ConciergeWrapper.wrapForEnforcer(toBeWrapped);
                 })
-                .ask(calculateParallelism(thingIds), targetActor, CommandResponse.class,
+                .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
                 .runWith(StreamRefs.sourceRef(), actorMaterializer);
