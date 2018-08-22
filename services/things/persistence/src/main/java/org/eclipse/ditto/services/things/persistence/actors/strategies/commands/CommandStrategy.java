@@ -80,7 +80,7 @@ public interface CommandStrategy<T extends Command> {
          * @param notifyConsumer the consumer that is called for a response or an exception
          * @param becomeDeletedRunnable runnable that is called if the actor should now act as deleted handler
          */
-        void apply(BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+        void apply(BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
                 Consumer<WithDittoHeaders> notifyConsumer,
                 Runnable becomeDeletedRunnable);
 

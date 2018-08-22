@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
 
@@ -29,7 +28,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeature} command.
  */
 @Immutable
-final class RetrieveFeatureStrategy extends AbstractETagAppendingCommandStrategy<RetrieveFeature> {
+final class RetrieveFeatureStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeature, Feature> {
 
     /**
      * Constructs a new {@code RetrieveFeatureStrategy} object.
@@ -43,14 +43,18 @@ final class RetrieveFeatureStrategy extends AbstractETagAppendingCommandStrategy
             final long nextRevision, final RetrieveFeature command) {
         final String thingId = context.getThingId();
 
-        return getThingOrThrow(thing).getFeatures()
-                .map(features -> getFeatureResult(features, thingId, command))
-                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featureNotFound(thingId,
+        return extractFeatures(thing)
+                .map(features -> getFeatureResult(features, thingId, command, thing))
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
                         command.getFeatureId(), command.getDittoHeaders())));
     }
 
-    private static Result getFeatureResult(final Features features, final String thingId,
-            final RetrieveFeature command) {
+    private Optional<Features> extractFeatures(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures();
+    }
+
+    private Result getFeatureResult(final Features features, final String thingId,
+            final RetrieveFeature command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -58,8 +62,8 @@ final class RetrieveFeatureStrategy extends AbstractETagAppendingCommandStrategy
         return features.getFeature(featureId)
                 .map(feature -> getFeatureJson(feature, command))
                 .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
-                .map(ResultFactory::newResult)
-                .orElseGet(() -> ResultFactory.newResult(
+                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
     }
 
@@ -70,10 +74,8 @@ final class RetrieveFeatureStrategy extends AbstractETagAppendingCommandStrategy
     }
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final RetrieveFeature command) {
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .flatMap(ETagValueGenerator::generate);
+    public Optional<Feature> determineETagEntity(final RetrieveFeature command, @Nullable final Thing thing) {
+        return extractFeatures(thing)
+                .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 }

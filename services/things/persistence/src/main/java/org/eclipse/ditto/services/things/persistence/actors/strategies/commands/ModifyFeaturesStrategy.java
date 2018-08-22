@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
@@ -29,7 +28,8 @@ import org.eclipse.ditto.signals.events.things.FeaturesModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures} command.
  */
 @Immutable
-final class ModifyFeaturesStrategy extends AbstractETagAppendingCommandStrategy<ModifyFeatures> {
+final class ModifyFeaturesStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyFeatures, Features> {
 
     /**
      * Constructs a new {@code ModifyFeaturesStrategy} object.
@@ -42,35 +42,41 @@ final class ModifyFeaturesStrategy extends AbstractETagAppendingCommandStrategy<
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatures command) {
 
-        return getThingOrThrow(thing).getFeatures()
+        return extractFeatures(thing)
                 .map(features -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision,
+    private Optional<Features> extractFeatures(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures();
+    }
+
+    private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyFeatures command) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 FeaturesModified.of(command.getId(), command.getFeatures(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyFeaturesResponse.modified(context.getThingId(), dittoHeaders));
+                ModifyFeaturesResponse.modified(context.getThingId(), dittoHeaders),
+                this);
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision,
+    private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyFeatures command) {
         final Features features = command.getFeatures();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 FeaturesCreated.of(command.getId(), features, nextRevision, getEventTimestamp(),
                         dittoHeaders),
-                ModifyFeaturesResponse.created(context.getThingId(), features, dittoHeaders));
+                ModifyFeaturesResponse.created(context.getThingId(), features, dittoHeaders),
+                this);
     }
 
+
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final ModifyFeatures command) {
-        return ETagValueGenerator.generate(command.getFeatures());
+    public Optional<Features> determineETagEntity(final ModifyFeatures command, @Nullable final Thing thing) {
+        return extractFeatures(thing);
     }
 }

@@ -17,11 +17,17 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
@@ -34,32 +40,59 @@ final class ResultFactory {
         throw new AssertionError();
     }
 
-    static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response) {
+    static CommandStrategy.Result newMutationResult(final ThingModifyCommand command,
+            final ThingModifiedEvent eventToPersist,
+            final ThingCommandResponse response, final ETagEntityProvider eTagEntityProvider) {
 
-        return newResult(eventToPersist, response, false);
+        return new MutationResult(command, eventToPersist, response, false, eTagEntityProvider);
     }
 
-    static CommandStrategy.Result newResult(final DittoRuntimeException dittoRuntimeException) {
-        return new InfoResult(dittoRuntimeException);
+    static CommandStrategy.Result newMutationResult(final ThingModifyCommand command,
+            final ThingModifiedEvent eventToPersist,
+            final ThingCommandResponse response, final boolean becomeDeleted, final ETagEntityProvider eTagProvider) {
+
+        return new MutationResult(command, eventToPersist, response, becomeDeleted, eTagProvider);
     }
 
-    static CommandStrategy.Result newResult(final WithDittoHeaders response) {
-        return new InfoResult(response);
+    static CommandStrategy.Result newErrorResult(final DittoRuntimeException dittoRuntimeException) {
+        return new DittoRuntimeExceptionResult(dittoRuntimeException);
+    }
+
+    static CommandStrategy.Result newQueryResult(final Command command, @Nullable final Thing completeThing,
+            final WithDittoHeaders response, @Nullable final ETagEntityProvider eTagEntityProvider) {
+
+        return new InfoResult(command, completeThing, response, eTagEntityProvider);
     }
 
     static CommandStrategy.Result emptyResult() {
-        return new EmptyResult();
+        return EmptyResult.INSTANCE;
     }
 
-    static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response, final boolean becomeDeleted) {
-
-        return new MutationResult(eventToPersist, response, becomeDeleted);
-    }
-
-    static CommandStrategy.Result newResult(final CompletionStage<WithDittoHeaders> futureResponse) {
+    static CommandStrategy.Result newFutureResult(final CompletionStage<WithDittoHeaders> futureResponse) {
         return new FutureInfoResult(futureResponse);
+    }
+
+
+    private static WithDittoHeaders appendETagHeaderIfProvided(final Command command,
+            final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing,
+            @Nullable final ETagEntityProvider eTagProvider) {
+        if (eTagProvider == null) {
+            return withDittoHeaders;
+        }
+
+        @SuppressWarnings("unchecked")
+        final Optional<Object> eTagEntityOpt = eTagProvider.determineETagEntity(command, thing);
+        if (eTagEntityOpt.isPresent()) {
+            final Optional<CharSequence> eTagValueOpt = ETagValueGenerator.generate(eTagEntityOpt.get());
+            if (eTagValueOpt.isPresent())  {
+                final CharSequence eTagValue = eTagValueOpt.get();
+                final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
+                        .eTag(eTagValue)
+                        .build();
+                return withDittoHeaders.setDittoHeaders(newDittoHeaders);
+            }
+        }
+        return withDittoHeaders;
     }
 
     /*
@@ -103,9 +136,10 @@ final class ResultFactory {
     }
 
     private static final class EmptyResult extends AbstractResult {
+        private static final EmptyResult INSTANCE = new EmptyResult();
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
             // do nothing
         }
@@ -137,23 +171,30 @@ final class ResultFactory {
     }
 
     private static final class MutationResult extends AbstractResult {
-
+        private final ThingModifyCommand command;
         private final ThingModifiedEvent eventToPersist;
         private final WithDittoHeaders response;
         private final boolean becomeDeleted;
+        @Nullable
+        private final ETagEntityProvider eTagProvider;
 
-        private MutationResult(final ThingModifiedEvent eventToPersist,
-                final WithDittoHeaders response, final boolean becomeDeleted) {
+        private MutationResult(final ThingModifyCommand command, final ThingModifiedEvent eventToPersist,
+                final WithDittoHeaders response, final boolean becomeDeleted,
+                @Nullable final ETagEntityProvider eTagProvider) {
+            this.command = command;
             this.eventToPersist = eventToPersist;
             this.response = response;
             this.becomeDeleted = becomeDeleted;
+            this.eTagProvider = eTagProvider;
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            persistConsumer.accept(eventToPersist, event -> {
-                notifyConsumer.accept(response);
+            persistConsumer.accept(eventToPersist, (event, resultingThing) -> {
+                final WithDittoHeaders notificationResponse =
+                        appendETagHeaderIfProvided(command, response, resultingThing, eTagProvider);
+                notifyConsumer.accept(notificationResponse);
                 if (becomeDeleted) {
                     becomeDeletedRunnable.run();
                 }
@@ -188,17 +229,30 @@ final class ResultFactory {
     }
 
     private static final class InfoResult extends AbstractResult {
-
+        private final Command command;
         private final WithDittoHeaders response;
+        @Nullable
+        private final Thing completeThing;
+        @Nullable
+        private final ETagEntityProvider eTagEntityProvider;
 
-        private InfoResult(final WithDittoHeaders response) {
+        private InfoResult(final Command command, @Nullable final Thing completeThing,
+                final WithDittoHeaders response,
+                @Nullable final ETagEntityProvider eTagEntityProvider) {
+
+            this.command = command;
+            this.completeThing = completeThing;
             this.response = response;
+            this.eTagEntityProvider = eTagEntityProvider;
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            notifyConsumer.accept(response);
+
+            final WithDittoHeaders notificationResponse =
+                    appendETagHeaderIfProvided(command, response, completeThing, eTagEntityProvider);
+            notifyConsumer.accept(notificationResponse);
         }
 
         @Override
@@ -232,6 +286,47 @@ final class ResultFactory {
 
     }
 
+    private static final class DittoRuntimeExceptionResult extends AbstractResult {
+        private final DittoRuntimeException dittoRuntimeException;
+
+        private DittoRuntimeExceptionResult(final DittoRuntimeException dittoRuntimeException) {
+            this.dittoRuntimeException = dittoRuntimeException;
+        }
+
+        @Override
+        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+
+            notifyConsumer.accept(dittoRuntimeException);
+        }
+
+        @Override
+        public Optional<ThingModifiedEvent> getEventToPersist() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<WithDittoHeaders> getCommandResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<DittoRuntimeException> getException() {
+            return Optional.of(dittoRuntimeException);
+        }
+
+        @Override
+        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean isBecomeDeleted() {
+            return false;
+        }
+
+    }
+
     private static final class FutureInfoResult extends AbstractResult {
 
         private final CompletionStage<WithDittoHeaders> futureResponse;
@@ -241,7 +336,7 @@ final class ResultFactory {
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
+        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
                 final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
             futureResponse.thenAccept(notifyConsumer);
         }

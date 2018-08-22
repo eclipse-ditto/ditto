@@ -18,8 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
 
@@ -27,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntryResponse;
  * This strategy handles the {@link RetrieveAclEntry} command.
  */
 @Immutable
-final class RetrieveAclEntryStrategy extends AbstractETagAppendingCommandStrategy<RetrieveAclEntry> {
+final class RetrieveAclEntryStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAclEntry, AclEntry> {
 
     /**
      * Constructs a new {@code RetrieveAclEntryStrategy} object.
@@ -43,18 +44,21 @@ final class RetrieveAclEntryStrategy extends AbstractETagAppendingCommandStrateg
         final AuthorizationSubject authorizationSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return getThingOrThrow(thing).getAccessControlList()
-                .flatMap(acl -> acl.getEntryFor(authorizationSubject))
-                .map(aclEntry -> ResultFactory.newResult(RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders)))
-                .orElseGet(() -> ResultFactory.newResult(
+        return extractAclEntry(command, thing)
+                .map(aclEntry -> ResultFactory.newQueryResult(command, thing,
+                        RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders), this))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders)));
     }
 
-    @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final RetrieveAclEntry command) {
+    private Optional<AclEntry> extractAclEntry(final RetrieveAclEntry command, final @Nullable Thing thing) {
         return getThingOrThrow(thing).getAccessControlList()
-                .flatMap(acl -> acl.getEntryFor(command.getAuthorizationSubject()))
-                .flatMap(ETagValueGenerator::generate);
+                .flatMap(acl -> acl.getEntryFor(command.getAuthorizationSubject()));
+    }
+
+
+    @Override
+    public Optional<AclEntry> determineETagEntity(final RetrieveAclEntry command, @Nullable final Thing thing) {
+        return extractAclEntry(command, thing);
     }
 }

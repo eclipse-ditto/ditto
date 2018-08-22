@@ -20,7 +20,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
 
@@ -28,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures} command.
  */
 @Immutable
-final class RetrieveFeaturesStrategy extends AbstractETagAppendingCommandStrategy<RetrieveFeatures> {
+final class RetrieveFeaturesStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatures, Features> {
 
     /**
      * Constructs a new {@code RetrieveFeaturesStrategy} object.
@@ -43,11 +43,15 @@ final class RetrieveFeaturesStrategy extends AbstractETagAppendingCommandStrateg
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return getThingOrThrow(thing).getFeatures()
+        return extractFeatures(thing)
                 .map(features -> getFeaturesJson(features, command))
                 .map(featuresJson -> RetrieveFeaturesResponse.of(thingId, featuresJson, dittoHeaders))
-                .map(ResultFactory::newResult)
-                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featuresNotFound(thingId, dittoHeaders)));
+                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featuresNotFound(thingId, dittoHeaders)));
+    }
+
+    private Optional<Features> extractFeatures(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures();
     }
 
     private static JsonObject getFeaturesJson(final Features features, final RetrieveFeatures command) {
@@ -57,8 +61,7 @@ final class RetrieveFeaturesStrategy extends AbstractETagAppendingCommandStrateg
     }
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final RetrieveFeatures command) {
-        return getThingOrThrow(thing).getFeatures().flatMap(ETagValueGenerator::generate);
+    public Optional<Features> determineETagEntity(final RetrieveFeatures command, @Nullable final Thing thing) {
+        return extractFeatures(thing);
     }
 }

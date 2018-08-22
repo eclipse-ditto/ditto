@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.events.things.AclModified;
@@ -30,7 +29,8 @@ import org.eclipse.ditto.signals.events.things.AclModified;
  * This strategy handles the {@link ModifyAcl} command.
  */
 @Immutable
-public final class ModifyAclStrategy extends AbstractETagAppendingCommandStrategy<ModifyAcl> {
+public final class ModifyAclStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAcl, AccessControlList> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
@@ -49,18 +49,17 @@ public final class ModifyAclStrategy extends AbstractETagAppendingCommandStrateg
         final Validator aclValidator = AclValidator.newInstance(newAccessControlList,
                 Thing.MIN_REQUIRED_PERMISSIONS);
         if (!aclValidator.isValid()) {
-            return ResultFactory.newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
+            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
                     dittoHeaders));
         }
 
-        return ResultFactory.newResult(AclModified.of(thingId, newAccessControlList, nextRevision,
+        return ResultFactory.newMutationResult(command, AclModified.of(thingId, newAccessControlList, nextRevision,
                 getEventTimestamp(), dittoHeaders),
-                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()));
+                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), this);
     }
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final ModifyAcl command) {
-        return ETagValueGenerator.generate(command.getAccessControlList());
+    public Optional<AccessControlList> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
+        return getThingOrThrow(thing).getAccessControlList();
     }
 }

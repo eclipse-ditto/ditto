@@ -18,20 +18,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
+import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-
-import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit tests for {@link ResultFactory}.
@@ -39,8 +39,12 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ResultFactoryTest {
 
     private final Dummy mock = mock(Dummy.class);
+    private final Thing thing = mock(Thing.class);
+    private final ThingQueryCommand thingQueryCommand = mock(ThingQueryCommand.class);
+    private final ThingModifyCommand thingModifyCommand = mock(ThingModifyCommand.class);
     private final ThingModifiedEvent thingModifiedEvent = mock(ThingModifiedEvent.class);
     private final ThingCommandResponse response = mock(ThingCommandResponse.class);
+    private final ETagEntityProvider eTagEntityProvider = mock(ETagEntityProvider.class);
     private final DittoRuntimeException exception = mock(DittoRuntimeException.class);
 
     @Test
@@ -49,8 +53,9 @@ public final class ResultFactoryTest {
     }
 
     @Test
-    public void notifyResponse() {
-        final CommandStrategy.Result result = ResultFactory.newResult(response);
+    public void notifyQueryResponse() {
+        final CommandStrategy.Result result =
+                ResultFactory.newQueryResult(thingQueryCommand, thing, response, eTagEntityProvider);
 
         result.apply(mock::persist, mock::notify, mock::becomeDeleted);
 
@@ -61,7 +66,7 @@ public final class ResultFactoryTest {
 
     @Test
     public void notifyException() {
-        final CommandStrategy.Result result = ResultFactory.newResult(exception);
+        final CommandStrategy.Result result = ResultFactory.newErrorResult(exception);
 
         result.apply(mock::persist, mock::notify, mock::becomeDeleted);
 
@@ -71,24 +76,26 @@ public final class ResultFactoryTest {
     }
 
     @Test
-    public void persistAndNotify() {
-        persistAndNotify(false);
+    public void notifyMutationResponseWithNotBecomingDeleted() {
+        assertNotifyMutationResponse(false);
     }
 
     @Test
-    public void persistAndNotifyAndBecomeDeleted() {
-        persistAndNotify(true);
+    public void notifyMutationResponseWithBecomingDeleted() {
+        assertNotifyMutationResponse(true);
     }
 
-    private void persistAndNotify(final boolean becomeDeleted) {
-        final CommandStrategy.Result result = ResultFactory.newResult(thingModifiedEvent, response, becomeDeleted);
+    private void assertNotifyMutationResponse(final boolean becomeDeleted) {
+        final CommandStrategy.Result result =
+                ResultFactory.newMutationResult(thingModifyCommand, thingModifiedEvent, response, becomeDeleted,
+                        eTagEntityProvider);
 
         result.apply(mock::persist, mock::notify, mock::becomeDeleted);
 
         @SuppressWarnings("unchecked")
-        final ArgumentCaptor<Consumer<ThingModifiedEvent>> consumer = ArgumentCaptor.forClass(Consumer.class);
+        final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer = ArgumentCaptor.forClass(BiConsumer.class);
         verify(mock).persist(same(thingModifiedEvent), consumer.capture());
-        consumer.getValue().accept(thingModifiedEvent);
+        consumer.getValue().accept(thingModifiedEvent, thing);
         verify(mock).notify(response);
         verify(mock, becomeDeleted ? times(1) : never()).becomeDeleted();
         verify(mock, never()).notify(exception);
@@ -96,7 +103,7 @@ public final class ResultFactoryTest {
 
     interface Dummy {
 
-        void persist(ThingModifiedEvent event, Consumer<ThingModifiedEvent> handler);
+        void persist(ThingModifiedEvent event, BiConsumer<ThingModifiedEvent, Thing> handler);
 
         void notify(WithDittoHeaders response);
 

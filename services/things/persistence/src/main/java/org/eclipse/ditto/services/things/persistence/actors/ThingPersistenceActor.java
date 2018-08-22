@@ -50,6 +50,7 @@ import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveS
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -352,7 +353,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         // Unchecked warning suppressed for `persistAndApplyConsumer`.
         // It is actually type-safe with the (infinitely-big) type parameter
         // this.<ThingModifiedEvent<? extends ThingModifiedEvent<? extends ThingModifiedEvent<... ad nauseam ...>>>>
-        final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistAndApplyConsumer =
+        final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistAndApplyConsumer =
                 this::persistAndApplyEvent;
 
         result.apply(persistAndApplyConsumer, asyncNotifySender(), this::becomeThingDeletedHandler);
@@ -384,7 +385,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private <A extends ThingModifiedEvent<? extends A>> void persistAndApplyEvent(
             final A event,
-            final Consumer<A> handler) {
+            final BiConsumer<A, Thing> handler) {
 
         final A modifiedEvent;
         if (thing != null) {
@@ -398,13 +399,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         if (modifiedEvent.getDittoHeaders().isDryRun()) {
-            handler.accept(modifiedEvent);
+            handler.accept(modifiedEvent, thing);
         } else {
             persistEvent(modifiedEvent, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
                 applyEvent(persistedEvent);
 
-                handler.accept(persistedEvent);
+                handler.accept(persistedEvent, thing);
             });
         }
     }
@@ -595,8 +596,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                         getNextRevisionNumber(), Instant.now(), commandHeaders);
             }
 
-            persistAndApplyEvent(thingCreated, event -> {
-                notifySender(CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
+            //TODO: try to move this whole code to its own strategy to allow re-use of etag-handling
+            persistAndApplyEvent(thingCreated, (event, resultThing) -> {
+                final Optional<CharSequence> eTag = ETagValueGenerator.generate(resultThing);
+                final DittoHeaders responseHeaders =
+                        eTag.map(charSequence -> thingCreated.getDittoHeaders().toBuilder().eTag(charSequence).build())
+                                .orElseGet(thingCreated::getDittoHeaders);
+                notifySender(CreateThingResponse.of(thing, responseHeaders));
                 log.debug("Created new Thing with ID <{}>.", thingId);
                 becomeThingCreatedHandler();
             });

@@ -18,8 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 
@@ -27,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties
  * This strategy handles the {@link RetrieveFeatureProperties} command.
  */
 @Immutable
-final class RetrieveFeaturePropertiesStrategy extends AbstractETagAppendingCommandStrategy<RetrieveFeatureProperties> {
+final class RetrieveFeaturePropertiesStrategy extends
+        AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatureProperties, FeatureProperties> {
 
     /**
      * Constructs a new {@code RetrieveFeaturePropertiesStrategy} object.
@@ -42,15 +43,19 @@ final class RetrieveFeaturePropertiesStrategy extends AbstractETagAppendingComma
         final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
 
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
-                .map(feature -> getFeatureProperties(feature, thingId, command))
-                .orElseGet(() -> ResultFactory.newResult(
+        return extractFeature(command, thing)
+                .map(feature -> getFeatureProperties(feature, thingId, command, thing))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(thingId, featureId, command.getDittoHeaders())));
     }
 
-    private static Result getFeatureProperties(final Feature feature, final String thingId,
-            final RetrieveFeatureProperties command) {
+    private Optional<Feature> extractFeature(final RetrieveFeatureProperties command, final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()));
+    }
+
+    private Result getFeatureProperties(final Feature feature, final String thingId,
+            final RetrieveFeatureProperties command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -58,17 +63,16 @@ final class RetrieveFeaturePropertiesStrategy extends AbstractETagAppendingComma
         return feature.getProperties()
                 .map(featureProperties -> RetrieveFeaturePropertiesResponse.of(thingId, featureId,
                         featureProperties, dittoHeaders))
-                .map(ResultFactory::newResult)
-                .orElseGet(() -> ResultFactory.newResult(
+                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders)));
     }
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeatureProperties command) {
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .flatMap(Feature::getProperties)
-                .flatMap(ETagValueGenerator::generate);
+    public Optional<FeatureProperties> determineETagEntity(final RetrieveFeatureProperties command,
+            @Nullable final Thing thing) {
+
+        return extractFeature(command, thing)
+                .flatMap(Feature::getProperties);
     }
 }

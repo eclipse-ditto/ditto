@@ -18,8 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
 
@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition
  */
 @Immutable
 public final class RetrieveFeatureDefinitionStrategy extends
-        AbstractETagAppendingCommandStrategy<RetrieveFeatureDefinition> {
+        AbstractConditionalHeadersCheckingCommandStrategy<RetrieveFeatureDefinition, FeatureDefinition> {
 
     /**
      * Constructs a new {@code RetrieveFeatureDefinitionStrategy} object.
@@ -43,15 +43,19 @@ public final class RetrieveFeatureDefinitionStrategy extends
         final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
 
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
-                .map(feature -> getFeatureDefinition(feature, thingId, command))
-                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.featureNotFound(thingId,
+        return extractFeature(command, thing)
+                .map(feature -> getFeatureDefinition(feature, thingId, command, thing))
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
                         featureId, command.getDittoHeaders())));
     }
 
-    private static Result getFeatureDefinition(final Feature feature, final String thingId,
-            final RetrieveFeatureDefinition command) {
+    private Optional<Feature> extractFeature(final RetrieveFeatureDefinition command, final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()));
+    }
+
+    private Result getFeatureDefinition(final Feature feature, final String thingId,
+            final RetrieveFeatureDefinition command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -59,17 +63,17 @@ public final class RetrieveFeatureDefinitionStrategy extends
         return feature.getDefinition()
                 .map(featureDefinition -> RetrieveFeatureDefinitionResponse.of(thingId, featureId,
                         featureDefinition, dittoHeaders))
-                .map(ResultFactory::newResult)
-                .orElseGet(() -> ResultFactory.newResult(
+                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
     }
 
+
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeatureDefinition command) {
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(command.getFeatureId()))
-                .flatMap(Feature::getDefinition)
-                .flatMap(ETagValueGenerator::generate);
+    public Optional<FeatureDefinition> determineETagEntity(final RetrieveFeatureDefinition command,
+            @Nullable final Thing thing) {
+
+        return extractFeature(command, thing)
+                .flatMap(Feature::getDefinition);
     }
 }

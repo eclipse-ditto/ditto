@@ -18,8 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 
@@ -27,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
  * This strategy handles the {@link RetrieveAcl} command.
  */
 @Immutable
-final class RetrieveAclStrategy extends AbstractETagAppendingCommandStrategy<RetrieveAcl> {
+final class RetrieveAclStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAcl, AccessControlList> {
 
     /**
      * Constructs a new {@code RetrieveAclStrategy} object.
@@ -40,18 +41,21 @@ final class RetrieveAclStrategy extends AbstractETagAppendingCommandStrategy<Ret
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveAcl command) {
 
-        final JsonObject aclJson = getThingOrThrow(thing).getAccessControlList()
+        final JsonObject aclJson = extractAcl(thing)
                 .map(acl -> acl.toJson(command.getImplementedSchemaVersion()))
                 .orElseGet(JsonFactory::newObject);
 
-        return ResultFactory.newResult(
-                RetrieveAclResponse.of(context.getThingId(), aclJson, command.getDittoHeaders()));
+        return ResultFactory.newQueryResult(command, thing,
+                RetrieveAclResponse.of(context.getThingId(), aclJson, command.getDittoHeaders()), this);
+    }
+
+    private Optional<AccessControlList> extractAcl(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getAccessControlList();
     }
 
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final RetrieveAcl command) {
-        return getThingOrThrow(thing).getAccessControlList().flatMap(ETagValueGenerator::generate);
+    public Optional<AccessControlList> determineETagEntity(final RetrieveAcl command, @Nullable final Thing thing) {
+        return extractAcl(thing);
     }
 }

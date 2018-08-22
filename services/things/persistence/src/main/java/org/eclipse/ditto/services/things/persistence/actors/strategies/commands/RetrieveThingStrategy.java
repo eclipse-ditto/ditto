@@ -25,7 +25,6 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -38,7 +37,8 @@ import akka.event.DiagnosticLoggingAdapter;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<RetrieveThing> {
+final class RetrieveThingStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveThing, Thing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -63,7 +63,8 @@ final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<R
 
         return command.getSnapshotRevision()
                 .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
-                .orElseGet(() -> ResultFactory.newResult(getRetrieveThingResponse(thing, command)));
+                .orElseGet(() -> ResultFactory.newQueryResult(command, thing, getRetrieveThingResponse(thing, command),
+                        this));
     }
 
     private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
@@ -75,7 +76,7 @@ final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<R
     private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
             final RetrieveThing command) {
 
-        return ResultFactory.newResult(
+        final CompletionStage<WithDittoHeaders> futureResponse =
                 loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command).handle((message, error) -> {
                     if (error != null) {
                         final DiagnosticLoggingAdapter log = context.getLog();
@@ -85,7 +86,8 @@ final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<R
                     return message != null
                             ? message
                             : getThingUnavailableException(command);
-                }));
+                });
+        return ResultFactory.newFutureResult(futureResponse);
     }
 
     private static CompletionStage<WithDittoHeaders> loadThingSnapshot(
@@ -107,7 +109,6 @@ final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<R
             return RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
                     command.getDittoHeaders());
         } else {
-
             return notAccessible(command);
         }
     }
@@ -132,13 +133,12 @@ final class RetrieveThingStrategy extends AbstractETagAppendingCommandStrategy<R
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
-        return ResultFactory.newResult(
+        return ResultFactory.newErrorResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
     @Override
-    protected Optional<CharSequence> determineETagValue(@Nullable final Thing thing, final long nextRevision,
-            final RetrieveThing command) {
-        return ETagValueGenerator.generate(thing);
+    public Optional<Thing> determineETagEntity(final RetrieveThing command, @Nullable final Thing thing) {
+        return Optional.ofNullable(thing);
     }
 }
