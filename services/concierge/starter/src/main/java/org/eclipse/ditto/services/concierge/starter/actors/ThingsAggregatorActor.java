@@ -137,7 +137,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private void retrieveThingsAndSendResult(final List<String> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
-            final Command command, final ActorRef resultReceiver) {
+            final Command<?> command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final CompletionStage<?> commandResponseSource = Source.from(thingIds)
