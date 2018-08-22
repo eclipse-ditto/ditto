@@ -201,14 +201,14 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         return retrieveThingResponse -> retrieveThingResponse instanceof RetrieveThingResponse ?
                 Collections.singletonList(((RetrieveThingResponse) retrieveThingResponse)
                         .getEntity(retrieveThingResponse.getImplementedSchemaVersion())) :
-                null;
+                Collections.emptyList();
     }
 
     private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromSudoRetrieveThingResponse() {
         return sudoRetrieveThingResponse -> sudoRetrieveThingResponse instanceof SudoRetrieveThingResponse ?
                 Collections.singletonList(((SudoRetrieveThingResponse) sudoRetrieveThingResponse)
                         .getEntity(sudoRetrieveThingResponse.getImplementedSchemaVersion())) :
-                null;
+                Collections.emptyList();
     }
 
     private Function<List<JsonValue>, CommandResponse<?>> supplyRetrieveThingsResponse(
