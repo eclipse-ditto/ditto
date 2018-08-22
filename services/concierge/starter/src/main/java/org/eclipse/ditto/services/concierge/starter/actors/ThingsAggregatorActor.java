@@ -58,7 +58,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
 
-    private static final int MAX_PARALLELISM = 50;
+    private static final int MAX_PARALLELISM = 20;
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
