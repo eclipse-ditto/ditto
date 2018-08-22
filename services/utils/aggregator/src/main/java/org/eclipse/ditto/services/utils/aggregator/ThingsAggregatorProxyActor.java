@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
@@ -53,6 +54,7 @@ import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import akka.util.Timeout;
 
 /**
@@ -181,6 +183,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .build();
 
         final CompletionStage<?> o = (CompletionStage<?>) sourceRef.getSource()
+                .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
                 .map(firstThingListSupplier)
                 .log("retrieve-thing-response", log)
                 .recover(new PFBuilder()
