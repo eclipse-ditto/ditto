@@ -12,10 +12,10 @@
 package org.eclipse.ditto.services.concierge.starter.actors;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -60,17 +60,17 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final int MAX_PARALLELISM = 20;
 
+    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
     private final ExecutionContext aggregatorDispatcher;
-    private final Matcher thingIdMatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final ActorMaterializer actorMaterializer;
 
     private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
-        thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
         retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
         actorMaterializer = ActorMaterializer.create(getContext());
     }
@@ -141,7 +141,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final CompletionStage<?> commandResponseSource = Source.from(thingIds)
-                .filter(thingId -> thingIdMatcher.reset(thingId).matches())
+                .filter(Objects::nonNull)
+                .filterNot(String::isEmpty)
+                .filter(thingId -> THING_ID_PATTERN.matcher(thingId).matches())
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
                     if (command instanceof RetrieveThings) {
