@@ -99,7 +99,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 QueryThingsResponse.of(SearchResult.newBuilder()
                                                 .addAll(rtr.getThings()
                                                         .stream()
-                                                        .map(Thing::toJson)
+                                                        .map(t -> queryThings.getFields()
+                                                                .map(fields -> t.toJson(rtr.getImplementedSchemaVersion(), fields))
+                                                                .orElseGet(() -> t.toJson(rtr.getImplementedSchemaVersion()))
+                                                        )
                                                         .collect(JsonCollectors.valuesToArray()))
                                                 .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset())
                                                 .build(),
