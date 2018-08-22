@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -71,6 +70,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(QueryThingsResponse.class, qtr -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, qtr);
                     queryThingsResponse = qtr;
 
                     log.debug("Received QueryThingsResponse: {}", qtr);
@@ -92,18 +92,13 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     }
                 })
                 .match(RetrieveThingsResponse.class, rtr -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, rtr);
                     log.debug("Received RetrieveThingsResponse: {}", rtr);
 
                     if (queryThingsResponse != null) {
                         final QueryThingsResponse theQueryThingsResponse =
                                 QueryThingsResponse.of(SearchResult.newBuilder()
-                                                .addAll(rtr.getThings()
-                                                        .stream()
-                                                        .map(t -> queryThings.getFields()
-                                                                .map(fields -> t.toJson(rtr.getImplementedSchemaVersion(), fields))
-                                                                .orElseGet(() -> t.toJson(rtr.getImplementedSchemaVersion()))
-                                                        )
-                                                        .collect(JsonCollectors.valuesToArray()))
+                                                .addAll(rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray())
                                                 .nextPageOffset(queryThingsResponse.getSearchResult().getNextPageOffset())
                                                 .build(),
                                         rtr.getDittoHeaders()
