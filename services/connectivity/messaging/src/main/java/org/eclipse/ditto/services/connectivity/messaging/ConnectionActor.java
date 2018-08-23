@@ -111,6 +111,7 @@ import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
+import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -139,6 +140,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
+
+    /**
+     * Message to self to trigger termination after deletion.
+     */
+    private static final Object STOP_SELF_IF_DELETED = new Object();
 
     /**
      * Validator of all supported connections.
@@ -292,7 +298,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                         }
                         getContext().become(connectionCreatedBehaviour);
                     } else {
-                        stopSelfAfterDelay();
+                        stopSelfIfDeletedAfterDelay();
                     }
 
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
@@ -319,6 +325,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in initial behaviour with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
+                .matchEquals(STOP_SELF_IF_DELETED, msg -> stopSelf())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -354,6 +361,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
+                .matchEquals(STOP_SELF_IF_DELETED, msg -> {
+                    // do nothing; this connection is not deleted.
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -873,13 +883,11 @@ public final class ConnectionActor extends AbstractPersistentActor {
         getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
     }
 
-    private void stopSelfAfterDelay() {
-        final FiniteDuration delay = DELETED_ACTOR_LIFETIME;
-        final String message = MessageFormat.format("stop self after <{0}>", delay);
-        final PerformTask stopSelfTask = new PerformTask(message, ConnectionActor::stopSelf);
+    private void stopSelfIfDeletedAfterDelay() {
+        final ExecutionContextExecutor dispatcher = getContext().dispatcher();
         getContext().system()
                 .scheduler()
-                .scheduleOnce(delay, getSelf(), stopSelfTask, getContext().dispatcher(), ActorRef.noSender());
+                .scheduleOnce(DELETED_ACTOR_LIFETIME, getSelf(), STOP_SELF_IF_DELETED, dispatcher, ActorRef.noSender());
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
