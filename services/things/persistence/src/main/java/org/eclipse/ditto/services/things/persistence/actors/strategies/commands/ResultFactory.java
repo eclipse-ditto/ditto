@@ -155,6 +155,7 @@ final class ResultFactory {
                     "command=" + command +
                     ", eventToPersist=" + eventToPersist +
                     ", response=" + response +
+                    ", becomeCreated=" + becomeCreated +
                     ", becomeDeleted=" + becomeDeleted +
                     ", eTagProvider=" + eTagProvider +
                     ']';
