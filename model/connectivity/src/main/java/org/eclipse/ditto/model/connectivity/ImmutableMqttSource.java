@@ -31,6 +31,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 public final class ImmutableMqttSource extends DelegateSource implements MqttSource {
 
+    // user should set qos for sources. the default is qos=0 for convenience
+    private static final Integer DEFAULT_QOS = 0;
     private final int qos;
     private final Set<String> filters;
 
@@ -61,7 +63,7 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
      */
     public static Source fromJson(final JsonObject jsonObject, final int index) {
         final Source source = ImmutableSource.fromJson(jsonObject, index);
-        final int readQos = jsonObject.getValueOrThrow(MqttSource.JsonFields.QOS);
+        final int readQos = jsonObject.getValue(MqttSource.JsonFields.QOS).orElse(DEFAULT_QOS);
         final Set<String> readFilters = jsonObject.getValue(MqttSource.JsonFields.FILTERS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
