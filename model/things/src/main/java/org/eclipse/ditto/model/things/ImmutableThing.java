@@ -134,6 +134,11 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
+    public boolean isDeleted() {
+        return ThingLifecycle.DELETED.equals(lifecycle);
+    }
+
+    @Override
     public Optional<String> getId() {
         return Optional.ofNullable(thingId);
     }

@@ -27,14 +27,18 @@ import org.junit.Test;
 public class ETagValueGeneratorTest {
 
     @Test
-    public void generateForEntity() {
-        final String expectedETagValue = "4711";
-        final Revision mockRevision = mock(Revision.class);
-        when(mockRevision.toString()).thenReturn(expectedETagValue);
-        final Entity mockEntity = mock(Entity.class);
-        when(mockEntity.getRevision()).thenReturn(Optional.of(mockRevision));
+    public void generateForNonDeletedEntity() {
+        final String mockedETagValue = "4711";
+        final Entity mockEntity = createMockEntity(false, mockedETagValue);
 
-        assertETagGeneration(mockEntity, expectedETagValue);
+        assertETagGeneration(mockEntity, mockedETagValue);
+    }
+
+    @Test
+    public void generateForDeletedEntity() {
+        final Entity mockEntity = createMockEntity(true, "4711");
+
+        assertETagGeneration(mockEntity, null);
     }
 
     @Test
@@ -50,6 +54,15 @@ public class ETagValueGeneratorTest {
         final Optional<CharSequence> generatedETagValue = ETagValueGenerator.generate(null);
 
         assertThat(generatedETagValue).isNotPresent();
+    }
+
+    private static Entity createMockEntity(final boolean deleted, final String mockedETagValue) {
+        final Revision mockRevision = mock(Revision.class);
+        when(mockRevision.toString()).thenReturn(mockedETagValue);
+        final Entity mockEntity = mock(Entity.class);
+        when(mockEntity.isDeleted()).thenReturn(deleted);
+        when(mockEntity.getRevision()).thenReturn(Optional.of(mockRevision));
+        return mockEntity;
     }
 
     private void assertETagGeneration(final Object obj, @Nullable final String expectedETagValue) {

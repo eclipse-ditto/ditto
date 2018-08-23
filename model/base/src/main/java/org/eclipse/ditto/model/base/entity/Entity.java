@@ -39,18 +39,25 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
     Optional<String> getId();
 
     /**
-     * Returns the current revision of this Thing.
+     * Returns the current revision of this entity.
      *
-     * @return the current revision of this Thing.
+     * @return the current revision of this entity.
      */
     Optional<T> getRevision();
 
     /**
-     * Returns the modified timestamp of this Thing.
+     * Returns the modified timestamp of this entity.
      *
      * @return the timestamp.
      */
     Optional<Instant> getModified();
+
+    /**
+     * Returns whether this entitity is deleted.
+     *
+     * @return {@code true}, if deleted; false, otherwise.
+     */
+    boolean isDeleted();
 
     /**
      * Returns all non hidden marked fields of this object.

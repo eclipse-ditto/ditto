@@ -48,6 +48,10 @@ public final class ETagValueGenerator {
     }
 
     private static Optional<CharSequence> generateForTopLevelEntity(final Entity<? extends Revision> topLevelEntity) {
+        if (topLevelEntity.isDeleted()) {
+            return Optional.empty();
+        }
+
         return topLevelEntity.getRevision()
                 .map(Revision::toString)
                 .map(ETagValueGenerator::toETagValue);

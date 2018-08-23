@@ -204,6 +204,11 @@ final class ImmutablePolicy implements Policy {
     }
 
     @Override
+    public boolean isDeleted() {
+        return PolicyLifecycle.DELETED.equals(lifecycle);
+    }
+
+    @Override
     public Policy setEntry(final PolicyEntry policyEntry) {
         checkNotNull(policyEntry, "entry to be set to this Policy");
 
