@@ -49,7 +49,7 @@ public final class JjwtDeserializer implements Deserializer {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Object deserialize(byte[] bytes) {
+    public Object deserialize(final byte[] bytes) {
 
         ConditionChecker.argumentNotNull(bytes, "JSON byte array cannot be null");
 
@@ -83,7 +83,8 @@ public final class JjwtDeserializer implements Deserializer {
     }
 
     private static Object toJavaObject(final JsonValue jsonValue) {
-        Object result;
+        final Object result;
+
         if (null == jsonValue) {
             result = null;
         } else if (jsonValue.isNull()) {
@@ -109,6 +110,7 @@ public final class JjwtDeserializer implements Deserializer {
             throw new IllegalStateException(
                     MessageFormat.format("Failed to convert {0} to a Java object", jsonValue));
         }
+
         return result;
     }
 
