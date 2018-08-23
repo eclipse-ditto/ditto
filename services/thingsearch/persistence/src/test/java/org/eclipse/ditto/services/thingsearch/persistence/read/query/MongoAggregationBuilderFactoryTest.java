@@ -11,10 +11,13 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
+
+import com.typesafe.config.Config;
 
 /**
  * Unit test for {@link MongoAggregationBuilderFactoryTest}.
@@ -24,7 +27,8 @@ public final class MongoAggregationBuilderFactoryTest {
     /** */
     @Test
     public void assertImmutability() {
-        assertInstancesOf(MongoAggregationBuilderFactory.class, areImmutable());
+        assertInstancesOf(MongoAggregationBuilderFactory.class, areImmutable(),
+                provided(Config.class).isAlsoImmutable());
     }
 
 }

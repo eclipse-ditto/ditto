@@ -17,24 +17,32 @@ import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
 
+import com.typesafe.config.Config;
+
 /**
  * Mongo implementation for {@link AggregationBuilderFactory}.
  */
 @Immutable
 public final class MongoAggregationBuilderFactory implements AggregationBuilderFactory {
 
-    public static AggregationBuilder newBuilder() {
-        return new PolicyRestrictedMongoSearchAggregation.Builder();
+    private final Config config;
+
+    public MongoAggregationBuilderFactory(final Config config) {
+        this.config = config;
+    }
+
+    public static AggregationBuilder newBuilder(final Config config) {
+        return new PolicyRestrictedMongoSearchAggregation.Builder(config);
     }
 
     @Override
     public AggregationBuilder newBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder().filterCriteria(criteria);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(config).filterCriteria(criteria);
     }
 
     @Override
     public AggregationBuilder newCountBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder().filterCriteria(criteria).count(true);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(config).filterCriteria(criteria).count(true);
     }
 
 }

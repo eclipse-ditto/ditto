@@ -72,8 +72,8 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
-    protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
-    protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory();
+    protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory(ConfigFactory.load("test"));
+    protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory(ConfigFactory.load("test"));
     private static MongoDbResource mongoResource;
     private static MongoClientWrapper mongoClient;
     /** */

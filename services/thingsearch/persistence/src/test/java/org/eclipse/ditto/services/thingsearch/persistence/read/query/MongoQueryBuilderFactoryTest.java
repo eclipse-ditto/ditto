@@ -19,12 +19,14 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 /**
  * Unit test for {@link MongoQueryBuilderFactory}.
  */
 public final class MongoQueryBuilderFactoryTest {
 
-    private final QueryBuilderFactory fac = new MongoQueryBuilderFactory();
+    private final QueryBuilderFactory fac = new MongoQueryBuilderFactory(ConfigFactory.load("test"));
 
     /** */
     @Test

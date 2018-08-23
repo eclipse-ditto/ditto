@@ -21,7 +21,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 
 /**
@@ -60,10 +59,12 @@ final class MongoQueryBuilder implements QueryBuilder {
      * Creates a builder for a limited query ("standard" search).
      *
      * @param criteria the query criteria.
+     * @param maxPageSize the max page size which should be able
+     * @param defaultPageSize the default page size which should be applied when no explicit one is specified
      * @throws NullPointerException if {@code criteria} is {@code null}.
      */
-    public static MongoQueryBuilder limited(final Criteria criteria) {
-        return new MongoQueryBuilder(criteria, QueryConstants.MAX_LIMIT, QueryConstants.DEFAULT_LIMIT);
+    public static MongoQueryBuilder limited(final Criteria criteria, final int maxPageSize, final int defaultPageSize) {
+        return new MongoQueryBuilder(criteria, maxPageSize, defaultPageSize);
     }
 
     /**

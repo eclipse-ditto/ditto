@@ -20,12 +20,14 @@ import java.util.List;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests limited instances of {@link MongoQueryBuilder}.
@@ -37,17 +39,25 @@ public final class MongoQueryBuilderLimitedTest {
 
     private Criteria criteria = Mockito.mock(Criteria.class);
     private MongoQueryBuilder underTest;
+    private Config config;
+    private int maxPageSizeFromConfig;
+    private int defaultPageSizeFromConfig;
 
     /** */
     @Before
     public void setUp() {
-        underTest = MongoQueryBuilder.limited(criteria);
+        config = ConfigFactory.load("test");
+        maxPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE);
+        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
     /** */
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
-        MongoQueryBuilder.limited(null);
+        MongoQueryBuilder.limited(null,
+                config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE),
+                config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE));
     }
 
     /** */
@@ -70,7 +80,7 @@ public final class MongoQueryBuilderLimitedTest {
     /** */
     @Test
     public void buildWithLimit() {
-        final int limit = QueryConstants.MAX_LIMIT - 1;
+        final int limit = maxPageSizeFromConfig - 1;
         final Query query = underTest.limit(limit).build();
 
         assertThat(query.getLimit()).isEqualTo(limit);
@@ -88,7 +98,7 @@ public final class MongoQueryBuilderLimitedTest {
     /** */
     @Test(expected = IllegalArgumentException.class)
     public void buildWithLimitGreaterThanMaxValue() {
-        final long limitTooHigh = (long) QueryConstants.MAX_LIMIT + 1;
+        final long limitTooHigh = (long) maxPageSizeFromConfig + 1;
         underTest.limit(limitTooHigh);
     }
 
