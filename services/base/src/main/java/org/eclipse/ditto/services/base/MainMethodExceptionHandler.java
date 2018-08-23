@@ -14,10 +14,13 @@ package org.eclipse.ditto.services.base;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.concurrent.Callable;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.slf4j.Logger;
+
+import akka.actor.ActorSystem;
 
 /**
  * This class wraps the execution of a Runnable for catching {@code Throwable}s. The Runnable is assumed to be the
@@ -56,18 +59,21 @@ final class MainMethodExceptionHandler {
      * @param mainMethodBody the body of the {@code main} method to be executed.
      * @throws NullPointerException if {@code mainMethodBody} is {@code null}.
      */
-    public void run(final Runnable mainMethodBody) {
-        tryToRunMainMethodBody(checkNotNull(mainMethodBody, "Runnable to be executed"));
+    public ActorSystem call(final Callable<ActorSystem> mainMethodBody) {
+        return tryToRunMainMethodBody(checkNotNull(mainMethodBody, "Runnable to be executed"));
     }
 
     @SuppressWarnings("squid:S1181")
-    private void tryToRunMainMethodBody(final Runnable mainMethodBody) {
+    private ActorSystem tryToRunMainMethodBody(final Callable<ActorSystem> mainMethodBody) {
         try {
-            mainMethodBody.run();
+            return mainMethodBody.call();
+        } catch (final RuntimeException | Error t) {
+            logger.error(MessageFormat.format(LOG_MESSAGE_PATTERN, logger.getName()), t);
+            throw t;
         } catch (final Throwable t) {
             // Deliberately catching Throwable here for being informed about really every exception of main.
             logger.error(MessageFormat.format(LOG_MESSAGE_PATTERN, logger.getName()), t);
-            throw t;
+            throw new RuntimeException("Exception on main thread: " + t.getMessage(), t);
         }
     }
 

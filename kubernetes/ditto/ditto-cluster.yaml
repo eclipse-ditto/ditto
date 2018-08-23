@@ -54,7 +54,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -111,7 +111,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -168,11 +168,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
-        - name: LOG_LEVEL
-          value: DEBUG
-        - name: LOG_LEVEL_APPLICATION
-          value: DEBUG
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -228,7 +224,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -284,7 +280,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -342,7 +338,7 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         - name: IBM_JAVA_OPTIONS
-          value: "-Xms256m -Xmx256m -Xss512k"
+          value: "-XX:MaxRAMPercentage=80 -XX:InitialRAMPercentage=40 -XX:+ExitOnOutOfMemoryError"
 ---
 apiVersion: v1
 kind: Service

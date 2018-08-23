@@ -155,7 +155,7 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.SERVICE_UNAVAILABLE.toInt())
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
                 })
                 .match(JsonRuntimeException.class, jre -> {
@@ -180,7 +180,7 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.SERVICE_UNAVAILABLE.toInt())
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
                     );
                 })
                 .match(Status.Failure.class, failure -> failure.cause() instanceof DittoRuntimeException, failure -> {
@@ -400,8 +400,10 @@ public final class HttpRequestActor extends AbstractActor {
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final Optional<HttpStatusCode> responseStatusCode =
                 Optional.of(messageCommandResponse.getStatusCode())
-                        .filter(code -> StatusCodes.lookup(code.toInt()).isPresent());
+                        .filter(code -> StatusCodes.lookup(code.toInt()).isPresent())
         // only allow status code which are known to akka-http
+                        .filter(code -> !HttpStatusCode.BAD_GATEWAY.equals(code));
+        // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
         // if statusCode is != NO_CONTENT
         if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {

@@ -15,6 +15,7 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.handleExceptions;
 import static akka.http.javadsl.server.Directives.handleRejections;
+import static akka.http.javadsl.server.Directives.parameterOptional;
 import static akka.http.javadsl.server.Directives.pathPrefixTest;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
@@ -24,7 +25,6 @@ import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPath
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.REALM_DEVOPS;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.DevopsBasicAuthenticationDirective.authenticateDevopsBasic;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective.logRequestResult;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.ResponseRewritingDirective.rewriteResponse;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.AuthorizationContextVersioningDirective.mapAuthorizationContext;
 import static org.eclipse.ditto.services.gateway.endpoints.utils.DirectivesLoggingUtils.enhanceLogWithCorrelationId;
 
@@ -36,6 +36,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -46,6 +48,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
@@ -94,7 +97,6 @@ import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RejectionHandler;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.stream.ActorMaterializer;
 import akka.util.ByteString;
 
 /**
@@ -133,7 +135,6 @@ public final class RootRoute {
     private final StatsRoute statsRoute;
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
-    private final ActorMaterializer materializer;
     private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
     private final ProtocolAdapter protocolAdapter;
 
@@ -142,14 +143,13 @@ public final class RootRoute {
      *
      * @param actorSystem the Actor System.
      * @param config the configuration of the service.
-     * @param materializer the actor materializer of the actor system.
      * @param proxyActor the proxy actor delegating commands.
      * @param streamingActor the {@link org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor} reference.
      * @param healthCheckingActor the health-checking actor to use.
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param httpClient the Http Client to use.
      */
-    public RootRoute(final ActorSystem actorSystem, final Config config, final ActorMaterializer materializer,
+    public RootRoute(final ActorSystem actorSystem, final Config config,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
@@ -157,8 +157,6 @@ public final class RootRoute {
             final HttpClientFacade httpClient) {
         checkNotNull(actorSystem, "Actor System");
         checkNotNull(proxyActor, "proxyActor");
-
-        this.materializer = materializer;
 
         final StatusAndHealthProvider
                 statusHealthProvider = DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStateSupplier);
@@ -264,11 +262,9 @@ public final class RootRoute {
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
                         ensureCorrelationId(correlationId ->
-                                rewriteResponse(materializer, correlationId, () ->
-                                        RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
-                                                logRequestResult(correlationId, () ->
-                                                        innerRouteProvider.apply(correlationId)
-                                                )
+                                RequestTimeoutHandlingDirective.handleRequestTimeout(correlationId, () ->
+                                        logRequestResult(correlationId, () ->
+                                                innerRouteProvider.apply(correlationId)
                                         )
                                 )
                         )
@@ -321,12 +317,15 @@ public final class RootRoute {
                                                 apiVersion,
                                                 authContextWithPrefixedSubjects,
                                                 authContext ->
-                                                        extractDittoHeaders(
-                                                                authContext,
-                                                                apiVersion,
-                                                                correlationId,
-                                                                dittoHeaders ->
-                                                                        buildApiSubRoutes(ctx, dittoHeaders)
+                                                        parameterOptional(TopicPath.Channel.LIVE.getName(), liveParam ->
+                                                                extractDittoHeaders(
+                                                                        authContext,
+                                                                        apiVersion,
+                                                                        correlationId,
+                                                                        liveParam.orElse(null),
+                                                                        dittoHeaders ->
+                                                                                buildApiSubRoutes(ctx, dittoHeaders)
+                                                                )
                                                         )
                                         )
                         )
@@ -361,7 +360,7 @@ public final class RootRoute {
                 // /api/{apiVersion}/policies
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
-                sseThingsRoute.buildThingsSseRoute(ctx, dittoHeaders),
+                sseThingsRoute.buildThingsSseRoute(ctx, dittoHeaders, Function.identity()),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -390,10 +389,10 @@ public final class RootRoute {
     }
 
     private static Route extractDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version, final String correlationId,
+            final Integer version, final String correlationId, @Nullable final String liveParm,
             final Function<DittoHeaders, Route> inner) {
 
-        final DittoHeaders dittoHeaders = buildDittoHeaders(authorizationContext, version, correlationId);
+        final DittoHeaders dittoHeaders = buildDittoHeaders(authorizationContext, version, correlationId, liveParm);
         return inner.apply(dittoHeaders);
     }
 
@@ -425,13 +424,17 @@ public final class RootRoute {
     }
 
     private static DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext,
-            final Integer version, final String correlationId) {
+            final Integer version, final String correlationId, @Nullable final String liveParm) {
         final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
                 .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
         final DittoHeadersBuilder builder = DittoHeaders.newBuilder()
                 .authorizationContext(authorizationContext)
                 .schemaVersion(jsonSchemaVersion)
                 .correlationId(correlationId);
+
+        if (liveParm != null) { // once the "live" query param was set - no matter what the value was - use live channel
+            builder.channel(TopicPath.Channel.LIVE.getName());
+        }
 
         authorizationContext.getFirstAuthorizationSubject().map(AuthorizationSubject::getId).ifPresent(builder::source);
 

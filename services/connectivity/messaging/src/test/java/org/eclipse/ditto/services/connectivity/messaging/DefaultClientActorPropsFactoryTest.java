@@ -29,23 +29,22 @@ import akka.actor.Props;
 import akka.remote.DaemonMsgCreate;
 import akka.serialization.Serialization;
 import akka.serialization.SerializationExtension;
-import akka.serialization.Serializer;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit tests for {@link DefaultConnectionActorPropsFactory}.
+ * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
-public class DefaultConnectionActorPropsFactoryTest {
+public class DefaultClientActorPropsFactoryTest {
 
     private ActorSystem actorSystem;
     private Serialization serialization;
-    private ConnectionActorPropsFactory underTest;
+    private ClientActorPropsFactory underTest;
 
     @Before
     public void setUp() throws java.io.NotSerializableException {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         serialization = SerializationExtension.get(actorSystem);
-        underTest = DefaultConnectionActorPropsFactory.getInstance();
+        underTest = DefaultClientActorPropsFactory.getInstance();
     }
 
     @After
@@ -62,12 +61,7 @@ public class DefaultConnectionActorPropsFactoryTest {
      */
     @Test
     public void amqp091ActorPropsIsSerializable() {
-        final Props props = underTest.getActorPropsForType(randomConnection(AMQP_091), actorSystem.deadLetters());
-        final Object objectToSerialize = wrapForSerialization(props);
-        final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
-        final Object deserializedObject = serialization.deserialize(bytes, objectToSerialize.getClass()).get();
-
-        assertThat(deserializedObject).isEqualTo(objectToSerialize);
+        actorPropsIsSerializable(AMQP_091);
     }
 
     /**
@@ -76,7 +70,12 @@ public class DefaultConnectionActorPropsFactoryTest {
      */
     @Test
     public void amqp10ActorPropsIsSerializable() {
-        final Props props = underTest.getActorPropsForType(randomConnection(AMQP_10), actorSystem.deadLetters());
+        actorPropsIsSerializable(AMQP_10);
+    }
+
+
+    private void actorPropsIsSerializable(final ConnectionType connectionType) {
+        final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters());
         final Object objectToSerialize = wrapForSerialization(props);
         final byte[] bytes = serialization.findSerializerFor(objectToSerialize).toBinary(objectToSerialize);
         final Object deserializedObject = serialization.deserialize(bytes, objectToSerialize.getClass()).get();
@@ -102,8 +101,7 @@ public class DefaultConnectionActorPropsFactoryTest {
                 .newConnectionBuilder(template.getId(),
                         connectionType,
                         template.getConnectionStatus(),
-                        template.getUri(),
-                        template.getAuthorizationContext())
+                        template.getUri())
                 .sources(template.getSources())
                 .targets(template.getTargets())
                 .build();

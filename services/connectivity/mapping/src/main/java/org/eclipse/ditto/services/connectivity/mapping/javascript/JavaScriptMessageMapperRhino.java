@@ -235,8 +235,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                     headers = Collections.emptyMap();
                 }
 
-                final ExternalMessageBuilder messageBuilder = ConnectivityModelFactory.newExternalMessageBuilder(headers,
-                        adaptable.getTopicPath().getPath());
+                final ExternalMessageBuilder messageBuilder =
+                        ConnectivityModelFactory.newExternalMessageBuilder(headers);
 
                 if (!(contentType instanceof Undefined)) {
                     messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,

@@ -21,12 +21,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -36,8 +33,8 @@ import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
+import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.slf4j.Logger;
 
@@ -66,13 +63,8 @@ import kamon.system.SystemMetrics;
 /**
  * Abstract base implementation of a Ditto service which takes care of the complete startup procedure.
  * <p>
- * This class provides the template method {@link #startActorSystem()} which by default starts the Akka actor system as
- * well as all Akka actors of this service which are required for startup.
- * </p>
- * <p>
- * Each hook method may be overridden to change this particular part of the startup procedure. Please have a look at
- * the Javadoc comment before overriding a hook method. The hook methods are automatically called in the following
- * order:
+ * Each hook method may be overridden to change this particular part of the startup procedure. Please have a look at the
+ * Javadoc comment before overriding a hook method. The hook methods are automatically called in the following order:
  * </p>
  * <ol>
  * <li>{@link #determineConfig()},</li>
@@ -105,8 +97,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     private final String rootActorName;
     private final C configReader;
 
+    @Nullable
     private PrometheusReporter prometheusReporter;
-    private ActorSystem actorSystem;
 
     /**
      * Constructs a new {@code DittoService} object.
@@ -132,9 +124,11 @@ public abstract class DittoService<C extends ServiceConfigReader> {
 
     /**
      * Starts this service. Any thrown {@code Throwable}s will be logged and re-thrown.
+     *
+     * @return the created ActorSystem during startup
      */
-    public void start() {
-        MainMethodExceptionHandler.getInstance(logger).run(this::doStart);
+    public ActorSystem start() {
+        return MainMethodExceptionHandler.getInstance(logger).call(this::doStart);
     }
 
     /**
@@ -143,13 +137,17 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * May be overridden to <em>completely</em> change the way how this service is started.
      * <em>Note: If this method is overridden, no other method of this class will be called automatically.</em>
      * </p>
+     * @return the created ActorSystem during startup
      */
-    protected void doStart() {
+    protected ActorSystem doStart() {
         logRuntimeParameters();
         configureMongoDbSuffixBuilder();
         startKamon();
-        startActorSystem();
-        startKamonPrometheusHttpEndpoint();
+        final Config config = configReader.getRawConfig();
+        final ActorSystem actorSystem = createActorSystem(config);
+        initializeActorSystem(config, actorSystem);
+        startKamonPrometheusHttpEndpoint(actorSystem);
+        return actorSystem;
     }
 
     private void logRuntimeParameters() {
@@ -190,8 +188,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     /**
      * Starts the Akka actor system as well as all required actors.
      * <p>
-     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this
-     * method is overridden, none of the following mentioned methods and their descendant methods will be called
+     * May be overridden to change the way how the Akka actor system and actors are started. <em>Note: If this method is
+     * overridden, none of the following mentioned methods and their descendant methods will be called
      * automatically:</em>
      * </p>
      * <ul>
@@ -202,13 +200,7 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
      */
-    protected void startActorSystem() {
-        final Config config = configReader.getRawConfig();
-        final double parallelismMax =
-                config.getDouble("akka.actor.default-dispatcher.fork-join-executor.parallelism-max");
-        logger.info("Running 'default-dispatcher' with 'parallelism-max': <{}>", parallelismMax);
-        actorSystem = createActorSystem(config);
-
+    protected void initializeActorSystem(final Config config, final ActorSystem actorSystem) {
         AkkaManagement.get(actorSystem).start();
         ClusterBootstrap.get(actorSystem).start();
 
@@ -217,50 +209,26 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
 
-        final AtomicBoolean gracefulShutdown = new AtomicBoolean(false);
-
         CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "Log shutdown initiation",
+                CoordinatedShutdown.PhaseBeforeServiceUnbind(), "log_shutdown_initiation",
                 () -> {
                     logger.info("Initiated coordinated shutdown - gracefully shutting down..");
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
 
         CoordinatedShutdown.get(actorSystem).addTask(
-                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "Log successful graceful shutdown",
+                CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "log_successful_graceful_shutdown",
                 () -> {
                     logger.info("Graceful shutdown completed.");
-                    gracefulShutdown.set(true);
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
-
-        actorSystem.registerOnTermination(() -> {
-            if (gracefulShutdown.get()) {
-                exit(0);
-            } else {
-                exit(-1);
-            }
-        });
-    }
-
-    private void exit(int status) {
-        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        final String message = String.format("Exiting JVM with status code '%d'", status);
-        scheduler.schedule(() -> {
-            if(status == 0) {
-                logger.info(message);
-            }else {
-                logger.warn(message);
-            }
-            System.exit(status);
-        }, 0, TimeUnit.SECONDS);
     }
 
     /**
      * Starts Prometheus HTTP endpoint on which Prometheus may scrape the data.
      */
-    private void startKamonPrometheusHttpEndpoint() {
-        if (configReader.metrics().isPrometheusEnabled()) {
+    private void startKamonPrometheusHttpEndpoint(final ActorSystem actorSystem) {
+        if (configReader.metrics().isPrometheusEnabled() && prometheusReporter != null) {
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
             final Route prometheusReporterRoute = PrometheusReporterRoute
                     .buildPrometheusReporterRoute(prometheusReporter);
@@ -269,7 +237,14 @@ public abstract class DittoService<C extends ServiceConfigReader> {
                             ConnectHttp.toHost(configReader.metrics().getPrometheusHostname(),
                                     configReader.metrics().getPrometheusPort()), materializer);
 
-            binding.exceptionally(failure -> {
+            binding.thenAccept(theBinding -> CoordinatedShutdown.get(actorSystem).addTask(
+                    CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_prometheus_http_endpoint", () -> {
+                        logger.info("Gracefully shutting down Prometheus HTTP endpoint..");
+                        // prometheus requests don't get the luxury of being processed a long time after shutdown:
+                        return theBinding.terminate(Duration.ofSeconds(1))
+                                .handle((httpTerminated, e) -> Done.getInstance());
+                    })
+            ).exceptionally(failure -> {
                 logger.error("Kamon Prometheus HTTP endpoint could not be started: {}", failure.getMessage(), failure);
                 logger.error("Terminating actorSystem!");
                 actorSystem.terminate();
@@ -350,8 +325,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     /**
      * Starts the root actor(s) of this service.
      * <p>
-     * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this
-     * method is overridden, the following methods will not be called automatically:</em>
+     * May be overridden to change the way how the root actor(s) of this service are started. <em>Note: If this method
+     * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
      * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>

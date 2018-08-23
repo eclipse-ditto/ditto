@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -68,14 +69,17 @@ public final class RabbitMQConsumerActor extends AbstractActor {
 
     private final String sourceAddress;
     private final ActorRef messageMappingProcessor;
+    private final AuthorizationContext authorizationContext;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     @Nullable private AddressMetric addressMetric = null;
 
-    private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor) {
+    private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor, final
+    AuthorizationContext authorizationContext) {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
+        this.authorizationContext = authorizationContext;
     }
 
     /**
@@ -83,16 +87,18 @@ public final class RabbitMQConsumerActor extends AbstractActor {
      *
      * @param source the source of messages
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param authorizationContext the authorization context of this source
      * @return the Akka configuration Props object.
      */
-    static Props props(final String source, final ActorRef messageMappingProcessor) {
+    static Props props(final String source, final ActorRef messageMappingProcessor, final
+    AuthorizationContext authorizationContext) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
                     public RabbitMQConsumerActor create() {
-                        return new RabbitMQConsumerActor(source, messageMappingProcessor);
+                        return new RabbitMQConsumerActor(source, messageMappingProcessor, authorizationContext);
                     }
                 });
     }
@@ -144,6 +150,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             } else {
                 externalMessageBuilder.withBytes(body);
             }
+            externalMessageBuilder.withAuthorizationContext(authorizationContext);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final Exception e) {

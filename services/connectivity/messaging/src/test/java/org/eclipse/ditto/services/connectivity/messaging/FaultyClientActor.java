@@ -24,28 +24,28 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
 /**
- * A ConnectionActor implementation that fails for every command received and answers with an exception.
- * If {@code allowCreate} is {@code true} the first create command will return success (required to aloow open/close/delete).
+ * A ClientActor implementation that fails for every command received and answers with an exception.
+ * If {@code allowCreate} is {@code true} the first create command will return success (required to test open/close/delete).
  */
-public class FaultyConnectionActor extends AbstractActor {
+public class FaultyClientActor extends AbstractActor {
 
-    static final ConnectionActorPropsFactory faultyConnectionActorPropsFactory =
-            (connection, conciergeForwarder) -> FaultyConnectionActor.props(true);
+    static final ClientActorPropsFactory faultyClientActorPropsFactory =
+            (connection, conciergeForwarder) -> FaultyClientActor.props(true);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private boolean allowCreate;
 
-    private FaultyConnectionActor(final boolean allowCreate) {
+    private FaultyClientActor(final boolean allowCreate) {
         this.allowCreate = allowCreate;
     }
 
     public static Props props(final boolean allowFirstCreateCommand) {
-        return Props.create(FaultyConnectionActor.class, new Creator<FaultyConnectionActor>() {
+        return Props.create(FaultyClientActor.class, new Creator<FaultyClientActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public FaultyConnectionActor create() {
-                return new FaultyConnectionActor(allowFirstCreateCommand);
+            public FaultyClientActor create() {
+                return new FaultyClientActor(allowFirstCreateCommand);
             }
         });
     }

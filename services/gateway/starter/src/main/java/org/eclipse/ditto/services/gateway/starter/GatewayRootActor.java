@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.gateway.starter;
 
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -40,10 +41,12 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -131,7 +134,8 @@ final class GatewayRootActor extends AbstractActor {
 
         // start the cluster sharding proxies for retrieving Statistics via StatisticActor about them:
         ClusterSharding.get(actorSystem)
-                .startProxy(PoliciesMessagingConstants.SHARD_REGION, Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
+                .startProxy(PoliciesMessagingConstants.SHARD_REGION,
+                        Optional.of(PoliciesMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
         ClusterSharding.get(actorSystem)
                 .startProxy(ThingsMessagingConstants.SHARD_REGION, Optional.of(ThingsMessagingConstants.CLUSTER_ROLE),
@@ -171,11 +175,20 @@ final class GatewayRootActor extends AbstractActor {
         }
 
         final CompletionStage<ServerBinding> binding = Http.get(actorSystem)
-                .bindAndHandle(createRoute(actorSystem, config, materializer, proxyActor, streamingActor,
-                        healthCheckActor).flow(actorSystem, materializer),
+                .bindAndHandle(createRoute(actorSystem, config, proxyActor, streamingActor, healthCheckActor)
+                                .flow(actorSystem, materializer),
                         ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
-        binding.exceptionally(failure -> {
+        binding.thenAccept(theBinding -> {
+                    log.info("Serving HTTP requests on port {} ...", theBinding.localAddress().getPort());
+                    CoordinatedShutdown.get(actorSystem).addTask(
+                            CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_http_endpoint", () -> {
+                                log.info("Gracefully shutting down user HTTP endpoint..");
+                                return theBinding.terminate(Duration.ofSeconds(10))
+                                        .handle((httpTerminated, e) -> Done.getInstance());
+                            });
+                }
+        ).exceptionally(failure -> {
             log.error(failure, "Something very bad happened: {}", failure.getMessage());
             actorSystem.terminate();
             return null;
@@ -224,12 +237,11 @@ final class GatewayRootActor extends AbstractActor {
 
     private Route createRoute(final ActorSystem actorSystem,
             final Config config,
-            final ActorMaterializer materializer,
             final ActorRef proxyActor,
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor) {
         final HttpClientFacade httpClient = HttpClientFacade.getInstance(actorSystem);
-        final RootRoute rootRoute = new RootRoute(actorSystem, config, materializer, proxyActor, streamingActor,
+        final RootRoute rootRoute = new RootRoute(actorSystem, config, proxyActor, streamingActor,
                 healthCheckingActor, new ClusterStatusSupplier(Cluster.get(actorSystem)), httpClient);
         return rootRoute.buildRoute();
     }

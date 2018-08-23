@@ -23,14 +23,15 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.connectivity.messaging.ConnectionActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.connectivity.messaging.DefaultConnectionActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -46,13 +47,16 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
@@ -144,7 +148,8 @@ public final class ConnectivityRootActor extends AbstractActor {
 
     private ConnectivityRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer) {
+            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer,
+            @Nullable final ConnectivityCommandInterceptor commandValidator) {
 
         final Config config = configReader.getRawConfig();
         final boolean healthCheckEnabled = config.getBoolean(ConfigKeys.HealthCheck.ENABLED);
@@ -177,14 +182,14 @@ public final class ConnectivityRootActor extends AbstractActor {
                         Optional.of(ConciergeMessagingConstants.CLUSTER_ROLE),
                         ShardRegionExtractor.of(numberOfShards, actorSystem));
 
-        final ActorRef conciergeForwarder =  startChildActor(ConciergeForwarderActor.ACTOR_NAME,
+        final ActorRef conciergeForwarder = startChildActor(ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy,
                         conciergeForwarderSignalTransformer));
 
-        final ConnectionActorPropsFactory propsFactory = DefaultConnectionActorPropsFactory.getInstance();
+        final ClientActorPropsFactory propsFactory = DefaultClientActorPropsFactory.getInstance();
         final Props connectionSupervisorProps =
                 ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                        conciergeForwarder, propsFactory);
+                        conciergeForwarder, propsFactory, commandValidator);
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem)
@@ -210,11 +215,42 @@ public final class ConnectivityRootActor extends AbstractActor {
                 ConnectHttp.toHost(hostname, config.getInt(ConfigKeys.Http.PORT)),
                 materializer);
 
-        binding.exceptionally(failure ->
-        {
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    return theBinding.terminate(Duration.ofSeconds(1))
+                            .handle((httpTerminated, e) -> Done.getInstance());
+                })
+        ).exceptionally(failure -> {
             log.error("Something very bad happened! " + failure.getMessage(), failure);
             getContext().system().terminate();
             return null;
+        });
+    }
+
+    /**
+     * Creates Akka configuration object Props for this ConnectivityRootActor.
+     *
+     * @param configReader the configuration reader of this service.
+     * @param pubSubMediator the PubSub mediator Actor.
+     * @param materializer the materializer for the akka actor system.
+     * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
+     * concierge service
+     * @param commandValidator custom command validator for connectivity commands
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final Function<Signal<?>, Signal<?>> conciergeForwarderSignalTransformer,
+            final ConnectivityCommandInterceptor commandValidator) {
+        return Props.create(ConnectivityRootActor.class, new Creator<ConnectivityRootActor>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public ConnectivityRootActor create() {
+                return new ConnectivityRootActor(configReader, pubSubMediator, materializer,
+                        conciergeForwarderSignalTransformer, commandValidator);
+            }
         });
     }
 
@@ -237,7 +273,7 @@ public final class ConnectivityRootActor extends AbstractActor {
             @Override
             public ConnectivityRootActor create() {
                 return new ConnectivityRootActor(configReader, pubSubMediator, materializer,
-                        conciergeForwarderSignalTransformer);
+                        conciergeForwarderSignalTransformer, null);
             }
         });
     }

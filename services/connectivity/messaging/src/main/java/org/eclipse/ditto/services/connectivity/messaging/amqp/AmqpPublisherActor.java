@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
@@ -37,8 +36,8 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.OutboundSignal;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -67,8 +66,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private Instant lastMessagePublishedAt;
 
 
-    private AmqpPublisherActor(final Session session, final Set<Target> targets) {
-        super(targets);
+    private AmqpPublisherActor(final Session session) {
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
         addressMetric =
@@ -80,16 +78,15 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param session the jms session
-     * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final Session session, final Set<Target> targets) {
+    static Props props(final Session session) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(session, targets);
+                return new AmqpPublisherActor(session);
             }
         });
     }
@@ -97,7 +94,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ExternalMessage.class, this::isResponseOrError, response -> {
+                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
+                    final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received response or error {} ", response);
@@ -110,13 +108,15 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         log.info("Response dropped, missing replyTo address: {}", response);
                     }
                 })
-                .match(ExternalMessage.class, message -> {
+                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
+                    final ExternalMessage message = outbound.getExternalMessage();
                     final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
                     LogUtil.enhanceLogWithCorrelationId(log, correlationId);
                     log.debug("Received mapped message {} ", message);
 
-                    final Set<AmqpTarget> destinationForMessage = getDestinationForMessage(message);
-                    destinationForMessage.forEach(amqpTarget -> sendMessage(amqpTarget, message));
+                    outbound.getTargets().stream()
+                            .map(t -> toPublishTarget(t.getAddress()))
+                            .forEach(amqpTarget -> sendMessage(amqpTarget, message));
                 })
                 .match(AddressMetric.class, this::handleAddressMetric)
                 .match(RetrieveAddressMetric.class, ram -> {

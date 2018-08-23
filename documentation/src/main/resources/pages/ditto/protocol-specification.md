@@ -81,7 +81,6 @@ HTTP protocol, for example the prefix `ditto-*`.
   channel
   raw-request-url
   read-subjects
-  source
   subject
   timeout-access
   ```

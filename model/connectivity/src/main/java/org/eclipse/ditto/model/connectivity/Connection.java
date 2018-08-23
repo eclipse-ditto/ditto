@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,7 +24,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -63,21 +63,16 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     ConnectionStatus getConnectionStatus();
 
     /**
-     * Returns the Authorization Context of this {@code Connection}.
-     *
-     * @return the Authorization Context.
-     */
-    AuthorizationContext getAuthorizationContext();
-
-    /**
-     * Returns a set of the sources of this {@code Connection}.
+     * Returns a list of the sources of this {@code Connection}.
      *
      * @return the sources
      */
-    Set<Source> getSources();
+    List<Source> getSources();
 
     /**
      * Returns a set of targets of this {@code Connection}.
+     *
+     * @return the targets
      */
     Set<Target> getTargets();
 
@@ -145,7 +140,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      *
      * @return the path.
      */
-    String getPath();
+    Optional<String> getPath();
 
     /**
      * Whether to validate server certificates on connection establishment,
@@ -254,14 +249,6 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<String> URI =
                 JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the {@code Connection} authorization context (list of authorization subjects).
-         */
-        public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**

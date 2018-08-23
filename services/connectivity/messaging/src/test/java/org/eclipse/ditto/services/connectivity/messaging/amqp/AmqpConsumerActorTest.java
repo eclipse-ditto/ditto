@@ -24,14 +24,13 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.AfterClass;
@@ -145,15 +144,14 @@ public class AmqpConsumerActorTest {
             final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
             final Props messageMappingProcessorProps =
-                    MessageMappingProcessorActor.props(getRef(), getRef(),
-                            AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                            mappingProcessor, CONNECTION_ID);
+                    MessageMappingProcessorActor.props(getRef(), getRef(), mappingProcessor, CONNECTION_ID);
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
 
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor));
+                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -192,9 +190,7 @@ public class AmqpConsumerActorTest {
         final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testActor, testActor,
-                        AuthorizationContext.newInstance(AuthorizationSubject.newInstance("foo:bar")),
-                        mappingProcessor, CONNECTION_ID);
+                MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
 
         final DefaultResizer resizer = new DefaultResizer(1, 5);
 
