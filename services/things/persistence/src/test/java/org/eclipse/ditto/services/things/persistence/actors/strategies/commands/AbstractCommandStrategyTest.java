@@ -59,7 +59,10 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static CommandStrategy.Context getDefaultContext() {
-        return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter);
+        final Runnable becomeCreatedRunnable = mock(Runnable.class);
+        final Runnable becomeDeletedRunnable = mock(Runnable.class);
+        return DefaultContext.getInstance(THING_ID, logger, thingSnapshotter, becomeCreatedRunnable,
+                becomeDeletedRunnable);
     }
 
     protected static void assertModificationResult(final CommandStrategy underTest, @Nullable final Thing thing,
@@ -72,16 +75,19 @@ public abstract class AbstractCommandStrategyTest {
     protected static void assertModificationResult(final CommandStrategy underTest, @Nullable final Thing thing,
             final Command command, final Class<? extends ThingModifiedEvent> expectedEventClass,
             final CommandResponse expectedCommandResponse, final boolean becomeDeleted) {
-        final CommandStrategy.Result result = applyStrategy(underTest, thing, command);
 
-        assertModificationResult(result, expectedEventClass, thing, expectedCommandResponse, becomeDeleted);
+        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
+
+        assertModificationResult(context, result, expectedEventClass, thing, expectedCommandResponse, becomeDeleted);
     }
 
     protected static void assertErrorResult(final CommandStrategy underTest,
             @Nullable final Thing thing, final Command command,
             final DittoRuntimeException expectedException) {
 
-        final CommandStrategy.Result result = applyStrategy(underTest, thing, command);
+        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
 
         assertInfoResult(result, expectedException);
     }
@@ -90,7 +96,8 @@ public abstract class AbstractCommandStrategyTest {
             @Nullable final Thing thing, final Command command,
             final CommandResponse expectedCommandResponse) {
 
-        final CommandStrategy.Result result = applyStrategy(underTest, thing, command);
+        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
 
         assertInfoResult(result, expectedCommandResponse);
     }
@@ -99,29 +106,32 @@ public abstract class AbstractCommandStrategyTest {
             @Nullable final Thing thing, final Command command,
             final WithDittoHeaders expectedResponse) {
 
-        final CommandStrategy.Result result = applyStrategy(underTest, thing, command);
+        final CommandStrategy.Context context = getDefaultContext();
+        final CommandStrategy.Result result = applyStrategy(underTest, context, thing, command);
 
-        assertInfoResult(result, expectedResponse, true);
+        assertInfoResult(context, result, expectedResponse, true);
     }
 
     protected static void assertUnhandledResult(final AbstractCommandStrategy underTest,
             @Nullable final Thing thing, final Command command,
             final WithDittoHeaders expectedResponse) {
 
+        final CommandStrategy.Context context = getDefaultContext();
         @SuppressWarnings("unchecked")
-        final CommandStrategy.Result result = underTest.unhandled(AbstractCommandStrategyTest.getDefaultContext(), thing,
-                AbstractCommandStrategyTest.NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.unhandled(context, thing, NEXT_REVISION, command);
 
         assertInfoResult(result, expectedResponse);
     }
 
-    private static void assertModificationResult(final CommandStrategy.Result result,
+    private static void assertModificationResult(final CommandStrategy.Context context,
+            final CommandStrategy.Result result,
             final Class<? extends ThingModifiedEvent> eventClazz, @Nullable final Thing currentThing,
             final WithDittoHeaders expectedResponse, final boolean becomeDeleted) {
+
         final ArgumentCaptor<ThingModifiedEvent> event = ArgumentCaptor.forClass(eventClazz);
         final DummyCommandHandler mock = mock(DummyCommandHandler.class);
 
-        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+        result.apply(context, mock::persist, mock::notify);
 
         @SuppressWarnings("unchecked")
         final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer = ArgumentCaptor.forClass(BiConsumer.class);
@@ -135,19 +145,21 @@ public abstract class AbstractCommandStrategyTest {
         final Thing modifiedThing = eventHandleStrategy.handle(event.getValue(), currentThing, newRevision);
         consumer.getValue().accept(event.getValue(), modifiedThing);
         verify(mock).notify(expectedResponse);
-        verify(mock, becomeDeleted ? times(1) : never()).becomeDeleted();
+        verify(context.getBecomeDeletedRunnable(), becomeDeleted ? times(1) : never()).run();
     }
 
-    private static void assertInfoResult(final CommandStrategy.Result result,
-            final WithDittoHeaders infoResponse) {
-        assertInfoResult(result, infoResponse, false);
+    private static void assertInfoResult(final CommandStrategy.Result result, final WithDittoHeaders infoResponse) {
+        final CommandStrategy.Context context = getDefaultContext();
+
+        assertInfoResult(context, result, infoResponse, false);
     }
 
-    private static void assertInfoResult(final CommandStrategy.Result result,
+    private static void assertInfoResult(final CommandStrategy.Context context,
+            final CommandStrategy.Result result,
             final WithDittoHeaders infoResponse, final boolean waitForNotification) {
         final DummyCommandHandler mock = mock(DummyCommandHandler.class);
 
-        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+        result.apply(context, mock::persist, mock::notify);
 
         if (waitForNotification) {
             verify(mock, timeout(3000)).notify(infoResponse);
@@ -155,14 +167,16 @@ public abstract class AbstractCommandStrategyTest {
             verify(mock).notify(infoResponse);
         }
         verify(mock, never()).persist(any(), any());
-        verify(mock, never()).becomeDeleted();
+        verify(context.getBecomeDeletedRunnable(), never()).run();
     }
 
-    private static CommandStrategy.Result applyStrategy(final CommandStrategy underTest, final @Nullable Thing thing,
+    private static CommandStrategy.Result applyStrategy(final CommandStrategy underTest,
+            final CommandStrategy.Context context,
+            final @Nullable Thing thing,
             final Command command) {
+
         @SuppressWarnings("unchecked")
-        final CommandStrategy.Result result = underTest.apply(AbstractCommandStrategyTest.getDefaultContext(), thing,
-                AbstractCommandStrategyTest.NEXT_REVISION, command);
+        final CommandStrategy.Result result = underTest.apply(context, thing, NEXT_REVISION, command);
         return result;
     }
 

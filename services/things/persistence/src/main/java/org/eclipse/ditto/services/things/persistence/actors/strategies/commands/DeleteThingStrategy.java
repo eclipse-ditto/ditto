@@ -49,7 +49,7 @@ final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingComman
 
         return ResultFactory.newMutationResult(command,
                 ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteThingResponse.of(thingId, dittoHeaders), true, this);
+                DeleteThingResponse.of(thingId, dittoHeaders), false,true, this);
     }
 
     @Override

@@ -26,12 +26,15 @@ import java.util.function.BiConsumer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+
+import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Unit tests for {@link ResultFactory}.
@@ -54,51 +57,70 @@ public final class ResultFactoryTest {
 
     @Test
     public void notifyQueryResponse() {
+        final CommandStrategy.Context context = createContext();
         final CommandStrategy.Result result =
                 ResultFactory.newQueryResult(thingQueryCommand, thing, response, eTagEntityProvider);
 
-        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+        result.apply(context, mock::persist, mock::notify);
 
         verify(mock).notify(response);
         verify(mock, never()).persist(any(), any());
-        verify(mock, never()).becomeDeleted();
+        verify(context.getBecomeDeletedRunnable(), never()).run();
+        verify(context.getBecomeCreatedRunnable(), never()).run();
     }
 
     @Test
     public void notifyException() {
+        final CommandStrategy.Context context = createContext();
         final CommandStrategy.Result result = ResultFactory.newErrorResult(exception);
 
-        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+        result.apply(context, mock::persist, mock::notify);
 
         verify(mock).notify(exception);
         verify(mock, never()).persist(any(), any());
-        verify(mock, never()).becomeDeleted();
+        verify(context.getBecomeDeletedRunnable(), never()).run();
+        verify(context.getBecomeCreatedRunnable(), never()).run();
     }
 
     @Test
-    public void notifyMutationResponseWithNotBecomingDeleted() {
-        assertNotifyMutationResponse(false);
+    public void notifyMutationResponseWithNeitherBecomingDeletedNorCreated() {
+        assertNotifyMutationResponse(false, false);
+    }
+
+    @Test
+    public void notifyMutationResponseWithBecomingCreated() {
+        assertNotifyMutationResponse(true, false);
     }
 
     @Test
     public void notifyMutationResponseWithBecomingDeleted() {
-        assertNotifyMutationResponse(true);
+        assertNotifyMutationResponse(false, true);
     }
 
-    private void assertNotifyMutationResponse(final boolean becomeDeleted) {
+    private void assertNotifyMutationResponse(final boolean becomeCreated, final boolean becomeDeleted) {
+        final CommandStrategy.Context context = createContext();
         final CommandStrategy.Result result =
-                ResultFactory.newMutationResult(thingModifyCommand, thingModifiedEvent, response, becomeDeleted,
-                        eTagEntityProvider);
+                ResultFactory.newMutationResult(thingModifyCommand, thingModifiedEvent, response,
+                        becomeCreated, becomeDeleted, eTagEntityProvider);
 
-        result.apply(mock::persist, mock::notify, mock::becomeDeleted);
+        result.apply(context, mock::persist, mock::notify);
 
         @SuppressWarnings("unchecked")
         final ArgumentCaptor<BiConsumer<ThingModifiedEvent, Thing>> consumer = ArgumentCaptor.forClass(BiConsumer.class);
         verify(mock).persist(same(thingModifiedEvent), consumer.capture());
         consumer.getValue().accept(thingModifiedEvent, thing);
         verify(mock).notify(response);
-        verify(mock, becomeDeleted ? times(1) : never()).becomeDeleted();
+        verify(context.getBecomeCreatedRunnable(), becomeCreated? times(1) : never()).run();
+        verify(context.getBecomeDeletedRunnable(), becomeDeleted ? times(1) : never()).run();
         verify(mock, never()).notify(exception);
+    }
+
+    private static CommandStrategy.Context createContext() {
+        final DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
+        final ThingSnapshotter snapshotter = mock(ThingSnapshotter.class);
+
+        return DefaultContext.getInstance("org.example:my-thing", log, snapshotter,
+                mock(Runnable.class), mock(Runnable.class));
     }
 
     interface Dummy {
@@ -106,8 +128,6 @@ public final class ResultFactoryTest {
         void persist(ThingModifiedEvent event, BiConsumer<ThingModifiedEvent, Thing> handler);
 
         void notify(WithDittoHeaders response);
-
-        void becomeDeleted();
 
     }
 

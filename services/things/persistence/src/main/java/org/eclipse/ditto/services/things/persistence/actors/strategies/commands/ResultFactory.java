@@ -43,14 +43,15 @@ final class ResultFactory {
             final ThingModifiedEvent eventToPersist,
             final ThingCommandResponse response, final ETagEntityProvider eTagEntityProvider) {
 
-        return new MutationResult(command, eventToPersist, response, false, eTagEntityProvider);
+        return new MutationResult(command, eventToPersist, response, false, false, eTagEntityProvider);
     }
 
     static CommandStrategy.Result newMutationResult(final ThingModifyCommand command,
             final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response, final boolean becomeDeleted, final ETagEntityProvider eTagProvider) {
+            final ThingCommandResponse response, final boolean becomeCreated, final boolean becomeDeleted,
+            final ETagEntityProvider eTagProvider) {
 
-        return new MutationResult(command, eventToPersist, response, becomeDeleted, eTagProvider);
+        return new MutationResult(command, eventToPersist, response, becomeCreated, becomeDeleted, eTagProvider);
     }
 
     static CommandStrategy.Result newErrorResult(final DittoRuntimeException dittoRuntimeException) {
@@ -99,8 +100,9 @@ final class ResultFactory {
         private static final EmptyResult INSTANCE = new EmptyResult();
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
             // do nothing
         }
 
@@ -114,29 +116,35 @@ final class ResultFactory {
         private final ThingModifyCommand command;
         private final ThingModifiedEvent eventToPersist;
         private final WithDittoHeaders response;
+        private final boolean becomeCreated;
         private final boolean becomeDeleted;
         @Nullable
         private final ETagEntityProvider eTagProvider;
 
         private MutationResult(final ThingModifyCommand command, final ThingModifiedEvent eventToPersist,
-                final WithDittoHeaders response, final boolean becomeDeleted,
+                final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted,
                 @Nullable final ETagEntityProvider eTagProvider) {
             this.command = command;
             this.eventToPersist = eventToPersist;
             this.response = response;
+            this.becomeCreated = becomeCreated;
             this.becomeDeleted = becomeDeleted;
             this.eTagProvider = eTagProvider;
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
             persistConsumer.accept(eventToPersist, (event, resultingThing) -> {
                 final WithDittoHeaders notificationResponse =
                         appendETagHeaderIfProvided(command, response, resultingThing, eTagProvider);
                 notifyConsumer.accept(notificationResponse);
                 if (becomeDeleted) {
-                    becomeDeletedRunnable.run();
+                    context.getBecomeDeletedRunnable().run();
+                }
+                if (becomeCreated) {
+                    context.getBecomeCreatedRunnable().run();
                 }
             });
         }
@@ -172,8 +180,9 @@ final class ResultFactory {
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
 
             final WithDittoHeaders notificationResponse =
                     appendETagHeaderIfProvided(command, response, completeThing, eTagEntityProvider);
@@ -199,8 +208,9 @@ final class ResultFactory {
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
 
             notifyConsumer.accept(dittoRuntimeException);
         }
@@ -222,8 +232,10 @@ final class ResultFactory {
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+
             futureResponse.thenAccept(notifyConsumer);
         }
 

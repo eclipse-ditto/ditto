@@ -51,7 +51,7 @@ final class RetrieveThingStrategy
     public boolean isDefined(final Context context, @Nullable final Thing thing,
             final RetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
-                .map(t -> !isThingDeleted(t))
+                .map(t -> !t.isDeleted())
                 .orElse(false);
 
         return Objects.equals(context.getThingId(), command.getId()) && thingExists;
