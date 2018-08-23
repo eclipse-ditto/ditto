@@ -291,7 +291,7 @@ public final class AggregationPolicyAuthIT extends AbstractReadPersistenceITBase
             final Collection<String> grantedPermissions,
             final Collection<String> revokedPermissions) {
         final Collection<Subject> s = subjects.stream()
-                .map(subjectId -> Subject.newInstance(subjectId, SubjectType.UNKNOWN))
+                .map(subjectId -> Subject.newInstance(subjectId, SubjectType.GENERATED))
                 .collect(Collectors.toList());
         final Collection<Resource> r = resourceKeys.stream()
                 .map(key -> Resource.newInstance(

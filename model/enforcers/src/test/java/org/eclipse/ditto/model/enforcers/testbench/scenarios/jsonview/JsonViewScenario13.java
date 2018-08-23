@@ -108,12 +108,12 @@ public final class JsonViewScenario13 implements JsonViewScenario {
     private static Policy createPolicy() {
         return PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
                 .forLabel(LABEL_OWNER)
-                .setSubject(SUBJECT_ID_OWNER, SubjectType.UNKNOWN)
+                .setSubject(SUBJECT_ID_OWNER, SubjectType.GENERATED)
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"), Permission.READ, Permission.WRITE)
                 .setGrantedPermissions(PoliciesResourceType.thingResource("/"), Permission.READ, Permission.WRITE)
                 .setGrantedPermissions(PoliciesResourceType.messageResource("/"), Permission.READ, Permission.WRITE)
                 .forLabel(LABEL_CLIENT)
-                .setSubject(SUBJECT_ID_CLIENT, SubjectType.UNKNOWN)
+                .setSubject(SUBJECT_ID_CLIENT, SubjectType.GENERATED)
                 .setGrantedPermissions(PoliciesResourceType.thingResource("/features/" + GYROSCOPE_FEATURE.getId()),
                         Permission.READ, Permission.WRITE)
                 .build();

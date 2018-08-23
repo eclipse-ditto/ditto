@@ -29,7 +29,7 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
     /**
      * Returns a new {@code Subject} with the specified {@code issuer}, {@code subject} and
-     * subject type {@link SubjectType#UNKNOWN}.
+     * subject type {@link SubjectType#GENERATED}.
      *
      * @param issuer the character sequence for the SubjectId's {@code issuer}.
      * @param subject the character sequence for the SubjectId's {@code subject}.
@@ -68,7 +68,7 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
     /**
      * Returns a new {@code Subject} object with the given {@code subjectId} and
-     * subject type {@link SubjectType#UNKNOWN}.
+     * subject type {@link SubjectType#GENERATED}.
      *
      * @param subjectId the ID of the new Subject.
      * @return a new {@code Subject} object.
