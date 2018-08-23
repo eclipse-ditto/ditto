@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -95,47 +94,8 @@ final class ResultFactory {
         return withDittoHeaders;
     }
 
-    /*
-     * Results are actor messages. They must be thread-safe even though some (i. e., FutureInfoResult) may not be
-     * immutable.
-     */
-    private abstract static class AbstractResult implements CommandStrategy.Result {
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final CommandStrategy.Result that = (CommandStrategy.Result) o;
-            return isBecomeDeleted() == that.isBecomeDeleted() &&
-                    Objects.equals(getEventToPersist(), that.getEventToPersist()) &&
-                    Objects.equals(getCommandResponse(), that.getCommandResponse()) &&
-                    Objects.equals(getException(), that.getException()) &&
-                    Objects.equals(getFutureResponse(), that.getFutureResponse());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(getEventToPersist(), getCommandResponse(), getException(), getFutureResponse(),
-                    isBecomeDeleted());
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "eventToPersist=" + getEventToPersist().orElse(null) +
-                    ", response=" + getCommandResponse().orElse(null) +
-                    ", exception=" + getException().orElse(null) +
-                    ", futureResponse=" + getFutureResponse().orElse(null) +
-                    ", becomeDeleted=" + isBecomeDeleted() +
-                    "]";
-        }
-    }
-
-    private static final class EmptyResult extends AbstractResult {
+    private static final class EmptyResult implements CommandStrategy.Result {
         private static final EmptyResult INSTANCE = new EmptyResult();
 
         @Override
@@ -145,32 +105,12 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
+        public String toString() {
+            return this.getClass().getSimpleName() + " []";
         }
     }
 
-    private static final class MutationResult extends AbstractResult {
+    private static final class MutationResult implements CommandStrategy.Result {
         private final ThingModifyCommand command;
         private final ThingModifiedEvent eventToPersist;
         private final WithDittoHeaders response;
@@ -202,33 +142,18 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.of(eventToPersist);
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "command=" + command +
+                    ", eventToPersist=" + eventToPersist +
+                    ", response=" + response +
+                    ", becomeDeleted=" + becomeDeleted +
+                    ", eTagProvider=" + eTagProvider +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.of(response);
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return becomeDeleted;
-        }
-
     }
 
-    private static final class InfoResult extends AbstractResult {
+    private static final class InfoResult implements CommandStrategy.Result {
         private final Command command;
         private final WithDittoHeaders response;
         @Nullable
@@ -256,37 +181,17 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "command=" + command +
+                    ", response=" + response +
+                    ", completeThing=" + completeThing +
+                    ", eTagEntityProvider=" + eTagEntityProvider +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return response instanceof DittoRuntimeException
-                    ? Optional.empty()
-                    : Optional.of(response);
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return response instanceof DittoRuntimeException
-                    ? Optional.of((DittoRuntimeException) response)
-                    : Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
-        }
-
     }
 
-    private static final class DittoRuntimeExceptionResult extends AbstractResult {
+    private static final class DittoRuntimeExceptionResult implements CommandStrategy.Result {
         private final DittoRuntimeException dittoRuntimeException;
 
         private DittoRuntimeExceptionResult(final DittoRuntimeException dittoRuntimeException) {
@@ -301,33 +206,14 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "dittoRuntimeException=" + dittoRuntimeException +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.of(dittoRuntimeException);
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
-        }
-
     }
 
-    private static final class FutureInfoResult extends AbstractResult {
+    private static final class FutureInfoResult implements CommandStrategy.Result {
 
         private final CompletionStage<WithDittoHeaders> futureResponse;
 
@@ -342,29 +228,10 @@ final class ResultFactory {
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "futureResponse=" + futureResponse +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.of(futureResponse);
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
-        }
-
     }
 }

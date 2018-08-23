@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAclEntryResponse;
@@ -27,9 +26,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.events.things.AclEntryCreated;
 import org.eclipse.ditto.signals.events.things.AclEntryModified;
 import org.junit.Before;
@@ -65,13 +64,11 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), aclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
+        final Thing thing = THING_V2.toBuilder().removePolicyId().build();
 
-        assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryCreated.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, thing, command,
+                AclEntryCreated.class,
                 modifyAclEntryResponse(context.getThingId(), aclEntry, command.getDittoHeaders(), true));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
@@ -86,12 +83,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         modifiedAclEntry.getAuthorizationSubject(), Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(expectedException);
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V2, command, expectedException);
     }
 
     @Test
@@ -102,13 +94,9 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyAclEntry command = ModifyAclEntry.of(context.getThingId(), modifiedAclEntry, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryModified.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V1, command,
+                AclEntryModified.class,
                 modifyAclEntryResponse(context.getThingId(), modifiedAclEntry, command.getDittoHeaders(), false));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
@@ -124,12 +112,7 @@ public final class ModifyAclEntryStrategyTest extends AbstractCommandStrategyTes
                         Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(expectedException);
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V1, command, expectedException);
     }
 
 }

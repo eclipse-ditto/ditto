@@ -11,13 +11,13 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
@@ -50,13 +50,9 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), featureId, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertiesDeleted.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V2, command,
+                FeaturePropertiesDeleted.class,
                 DeleteFeaturePropertiesResponse.of(context.getThingId(), featureId, command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
@@ -64,15 +60,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
-                        command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+                        command.getDittoHeaders());
+
+        assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }
 
     @Test
@@ -81,15 +73,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), featureId, DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        final DittoRuntimeException expectedException =
                 ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
-                        command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+                        command.getDittoHeaders());
+
+        assertErrorResult(underTest, THING_V2.removeFeature(featureId), command, expectedException);
     }
 
     @Test
@@ -98,15 +86,11 @@ public final class DeleteFeaturePropertiesStrategyTest extends AbstractCommandSt
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteFeatureProperties command =
                 DeleteFeatureProperties.of(context.getThingId(), feature.getId(), DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(feature), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        final DittoRuntimeException expectedException =
                 ExceptionFactory.featurePropertiesNotFound(context.getThingId(), command.getFeatureId(),
-                        command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+                        command.getDittoHeaders());
+
+        assertErrorResult(underTest, THING_V2.setFeature(feature), command, expectedException);
     }
 
 }

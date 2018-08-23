@@ -11,9 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
-import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.*;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAclResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,7 +20,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.events.things.AclModified;
 import org.junit.Before;
@@ -50,12 +48,8 @@ public final class ModifyAclStrategyTest extends AbstractCommandStrategyTest {
         final AccessControlList acl = ThingsModelFactory.newAcl(TestConstants.Authorization.ACL_ENTRY_OLDMAN);
         final ModifyAcl modifyAcl = ModifyAcl.of(context.getThingId(), acl, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V1, NEXT_REVISION, modifyAcl);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AclModified.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V1, modifyAcl,
+                AclModified.class,
                 modifyAclResponse(context.getThingId(), acl, modifyAcl.getDittoHeaders(), false));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 }

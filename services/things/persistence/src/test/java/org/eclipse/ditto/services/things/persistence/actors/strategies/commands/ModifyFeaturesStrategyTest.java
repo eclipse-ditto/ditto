@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -61,14 +60,9 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result =
-                underTest.apply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesCreated.class);
-        assertThat(result.getCommandResponse()).contains(
-                modifyFeaturesResponse(context.getThingId(), command.getFeatures(), command.getDittoHeaders(), true));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V2.removeFeatures(), command,
+                FeaturesCreated.class,
+                modifyFeaturesResponse(context.getThingId(), modifiedFeatures, command.getDittoHeaders(), true));
     }
 
     @Test
@@ -76,13 +70,9 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyFeatures command = ModifyFeatures.of(context.getThingId(), modifiedFeatures, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(FeaturesModified.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V2, command,
+                FeaturesModified.class,
                 modifyFeaturesResponse(context.getThingId(), modifiedFeatures, command.getDittoHeaders(), false));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
 }

@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAttributesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -59,14 +58,9 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
 
-        final CommandStrategy.Result result =
-                underTest.apply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributesCreated.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+                AttributesCreated.class,
                 modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), true));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
     @Test
@@ -75,13 +69,9 @@ public final class ModifyAttributesStrategyTest extends AbstractCommandStrategyT
         final ModifyAttributes command =
                 ModifyAttributes.of(context.getThingId(), modifiedAttributes, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.apply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributesModified.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V2, command,
+                AttributesModified.class,
                 modifyAttributesResponse(context.getThingId(), modifiedAttributes, command.getDittoHeaders(), false));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
 }
