@@ -85,7 +85,6 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
@@ -96,6 +95,7 @@ import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.UnwindOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -410,11 +410,17 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         private Criteria filterCriteria = AnyCriteriaImpl.getInstance();
         private List<Object> authorizationSubjects = Collections.emptyList();
         private List<SortOption> sortOptions = Collections.emptyList();
-        private int limit = QueryConstants.DEFAULT_LIMIT;
+        private int limit;
         private int skip = 0;
         private boolean count = false;
         private boolean withDeletedThings = false;
         private boolean sudo = false;
+        private final Config config;
+
+        Builder(final Config config) {
+            this.config = config;
+            limit = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        }
 
         @Override
         public Builder filterCriteria(final Criteria filterCriteria) {
@@ -442,7 +448,8 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         @Override
         public Builder limit(final long limit) {
-            this.limit = Validator.checkLimit(limit, QueryConstants.MAX_LIMIT);
+            this.limit =
+                    Validator.checkLimit(limit, config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE));
             return this;
         }
 

@@ -28,13 +28,14 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -47,10 +48,14 @@ public final class MongoQueryTest {
     private static final ThingsFieldExpressionFactory EFT = new ThingsFieldExpressionFactoryImpl();
     private List<SortOption> knownSortOptions;
     private Bson knownSortOptionsExpectedBson;
+    private int defaultPageSizeFromConfig;
 
     /** */
     @Before
     public void before() {
+        final Config config = ConfigFactory.load("test");
+        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+
         final SortFieldExpression sortExp1 = EFT.sortByThingId();
         final SortFieldExpression sortExp2 = EFT.sortByAttribute("test");
         knownSortOptions =
@@ -78,7 +83,7 @@ public final class MongoQueryTest {
     /** */
     @Test
     public void criteriaIsCorrectlySet() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, QueryConstants.DEFAULT_LIMIT,
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
                 MongoQueryBuilder.DEFAULT_SKIP);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
@@ -87,7 +92,7 @@ public final class MongoQueryTest {
     /** */
     @Test
     public void emptySortOptions() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), QueryConstants.DEFAULT_LIMIT,
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, Collections.emptyList(), defaultPageSizeFromConfig,
                 MongoQueryBuilder.DEFAULT_SKIP);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);
@@ -106,7 +111,7 @@ public final class MongoQueryTest {
     /** */
     @Test
     public void sortOptionsAreCorrectlySet() {
-        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, QueryConstants.DEFAULT_LIMIT,
+        final MongoQuery query = new MongoQuery(KNOWN_CRIT, knownSortOptions, defaultPageSizeFromConfig,
                 MongoQueryBuilder.DEFAULT_SKIP);
 
         assertThat(query.getCriteria()).isEqualTo(KNOWN_CRIT);

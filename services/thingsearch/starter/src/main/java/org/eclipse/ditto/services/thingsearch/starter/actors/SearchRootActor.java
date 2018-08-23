@@ -135,8 +135,8 @@ public final class SearchRootActor extends AbstractActor {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
-        final AggregationBuilderFactory aggregationBuilderFactory = new MongoAggregationBuilderFactory();
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory();
+        final AggregationBuilderFactory aggregationBuilderFactory = new MongoAggregationBuilderFactory(rawConfig);
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(rawConfig);
         final ActorRef aggregationQueryActor = startChildActor(AggregationQueryActor.ACTOR_NAME,
                 AggregationQueryActor.props(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory));
         final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,

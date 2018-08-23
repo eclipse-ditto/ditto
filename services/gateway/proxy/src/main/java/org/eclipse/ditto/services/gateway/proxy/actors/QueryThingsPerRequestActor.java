@@ -29,7 +29,13 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
 /**
- *
+ * Actor which is started for each {@link QueryThings} command in the gateway handling the response from "things-search",
+ * retrieving the found things from "things" via the {@code aggregatorProxyActor} and responding to the
+ * {@code originatingSender} with the combined result.
+ * <p>
+ * This is needed in gateway so that we can maintain the max. cluster-message size in Ditto while still being able to
+ * respond to searches with max. 200 search results.
+ * </p>
  */
 final class QueryThingsPerRequestActor extends AbstractActor {
 

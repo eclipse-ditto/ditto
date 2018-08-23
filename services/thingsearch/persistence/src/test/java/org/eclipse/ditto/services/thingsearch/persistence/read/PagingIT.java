@@ -23,14 +23,18 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
+import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests for the paging functionality of search persistence.
@@ -47,6 +51,17 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     private static final List<String> THING_IDS = Arrays.asList(THING_ID1, THING_ID2, THING_ID3, THING_ID4, THING_ID5,
             THING_ID6);
     private final ThingsFieldExpressionFactory eft = new ThingsFieldExpressionFactoryImpl();
+
+    private int maxPageSizeFromConfig;
+    private int defaultPageSizeFromConfig;
+
+    /** */
+    @Before
+    public void setUp() {
+        final Config config = ConfigFactory.load("test");
+        maxPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE);
+        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+    }
 
     @Override
     void createTestDataV1() {
@@ -138,7 +153,7 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     public void defaultLimitValue() {
         // prepare
         final int moreThanLimit = 30;
-        final long totalThingsCount = QueryConstants.DEFAULT_LIMIT + moreThanLimit;
+        final long totalThingsCount = defaultPageSizeFromConfig + moreThanLimit;
         final List<String> allThings = new ArrayList<>((int) totalThingsCount);
         for (int i = 0; i < totalThingsCount; i++) {
             final String thingId = thingId(NAMESPACE, "thingId") + String.format("%03d", i);
@@ -151,16 +166,16 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
                 aggregation -> aggregation);
 
         // verify
-        final List<String> expectedList = allThings.subList(0, QueryConstants.DEFAULT_LIMIT);
-        assertPaging(result, expectedList, QueryConstants.DEFAULT_LIMIT);
+        final List<String> expectedList = allThings.subList(0, defaultPageSizeFromConfig);
+        assertPaging(result, expectedList, defaultPageSizeFromConfig);
     }
 
     /** */
     @Test(expected = IllegalArgumentException.class)
     public void limitValueExceedsMaximum() {
         executeVersionedQueryWithChangeOptions(
-                query -> query.limit(QueryConstants.MAX_LIMIT + 1),
-                aggregation -> aggregation.limit(QueryConstants.MAX_LIMIT + 1));
+                query -> query.limit(maxPageSizeFromConfig + 1),
+                aggregation -> aggregation.limit(maxPageSizeFromConfig + 1));
     }
 
     private static void assertPaging(final ResultList<String> actualResult, final List<String> expectedList,
