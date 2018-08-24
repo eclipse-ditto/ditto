@@ -55,6 +55,7 @@ public abstract class AbstractReceiveStrategy<T> implements ReceiveStrategy<T> {
                 logger.debug("Applying command '{}': {}", command.getType(), command.toJsonString());
             }
         }
+
         doApply(message);
     }
 

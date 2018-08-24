@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
@@ -38,6 +40,19 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttributes command) {
+
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final long lengthWithOutAttributes = getThingOrThrow(thing).removeAttributes()
+                    .toJsonString()
+                    .length();
+            final long attributesLength = command.getAttributes().toJsonString().length()
+                    + "attributes".length() + 5L;
+            if (lengthWithOutAttributes + attributesLength > maxSize) {
+                throw ThingTooLargeException.newBuilder(lengthWithOutAttributes + attributesLength, maxSize)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        });
 
         return getThingOrThrow(thing).getAttributes()
                 .map(attributes -> getModifyResult(context, nextRevision, command))

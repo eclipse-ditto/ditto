@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -18,9 +19,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -37,7 +41,6 @@ public final class ModifyFeaturesTest {
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(ModifyFeatures.JSON_FEATURES, TestConstants.Feature.FEATURES.toJson(FieldType.regularOrSpecial()))
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -76,5 +79,22 @@ public final class ModifyFeaturesTest {
 
         assertThat(underTest).isNotNull();
         assertThat((Jsonifiable) underTest.getFeatures()).isEqualTo(TestConstants.Feature.FEATURES);
+    }
+
+    @Test
+    public void modifyTooLargeFeatures() {
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        final JsonObject largeAttributes = JsonObject.newBuilder()
+                .set("a", sb.toString())
+                .build();
+        final Features features = Features.newBuilder()
+                .set(Feature.newBuilder().properties(largeAttributes).withId("foo").build())
+                .build();
+
+        assertThatThrownBy(() -> ModifyFeatures.of("foo:bar", features,DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
     }
 }

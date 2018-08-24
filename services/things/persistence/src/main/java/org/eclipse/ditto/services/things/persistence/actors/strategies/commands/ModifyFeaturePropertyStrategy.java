@@ -19,6 +19,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
@@ -41,6 +43,19 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
+
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final long lengthWithOutProperty = getThingOrThrow(thing).removeFeatureProperty(featureId, command.getPropertyPointer())
+                    .toJsonString()
+                    .length();
+            final long propertyLength = command.getPropertyValue().toString().length()
+                    + command.getPropertyPointer().length() + 5L;
+            if (lengthWithOutProperty + propertyLength > maxSize) {
+                throw ThingTooLargeException.newBuilder(lengthWithOutProperty + propertyLength, maxSize)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        });
 
         return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(featureId))

@@ -346,8 +346,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @SuppressWarnings("unchecked")
     private void handleCommand(final Command command) {
-        final CommandStrategy.Result result = COMMAND_RECEIVE_STRATEGY.apply(defaultContext, thing,
-                getNextRevisionNumber(), command);
+        final CommandStrategy.Result result;
+        try {
+            result = COMMAND_RECEIVE_STRATEGY.apply(defaultContext, thing,
+                    getNextRevisionNumber(), command);
+        } catch (final DittoRuntimeException e) {
+            getSender().tell(e, getSelf());
+            return;
+        }
 
         // Unchecked warning suppressed for `persistAndApplyConsumer`.
         // It is actually type-safe with the (infinitely-big) type parameter

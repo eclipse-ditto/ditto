@@ -48,9 +48,11 @@ import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -106,7 +108,6 @@ import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestActorRef;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.PartialFunction;
 import scala.concurrent.Await;
@@ -478,6 +479,42 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
                 assertThingInResponse(retrieveThingResponse.getThing(), thingWithFirstLevelFields);
+            }
+        };
+    }
+
+    @Test
+    public void modifyAttributeSoThatThingGetsTooLarge() {
+        new TestKit(actorSystem) {
+            {
+                final ThingBuilder.FromScratch thingBuilder = Thing.newBuilder()
+                        .setPermissions(AuthorizationSubject.newInstance("nginx:ditto"),
+                                Permission.READ, Permission.WRITE, Permission.ADMINISTRATE)
+                        .setId("thing:id");
+                int i = 0;
+                Thing thing;
+                do {
+                    thingBuilder.setAttribute(JsonPointer.of("attr" + i), JsonValue.of(i));
+                    thing = thingBuilder.build();
+                    i++;
+                } while(thing.toJsonString().length() < TestConstants.THING_SIZE_LIMIT_BYTES);
+
+                thing = thing.removeAttribute("attr" + (i-1));
+
+                final ActorRef underTest = createPersistenceActorFor(thing);
+
+                // creating the Thing should be possible as we are below the limit:
+                final CreateThing createThing = CreateThing.of(thing, null, DittoHeaders.newBuilder()
+                        .schemaVersion(JsonSchemaVersion.V_1).build());
+                underTest.tell(createThing, getRef());
+                expectMsgClass(CreateThingResponse.class);
+
+                // but modifying the Thing attribute which would cause the Thing to exceed the limit should not be allowed:
+                final ModifyAttribute modifyAttribute = ModifyAttribute.of(thing.getId().get(), JsonPointer.of("foo"),
+                        JsonValue.of("bar"), DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build());
+                underTest.tell(modifyAttribute, getRef());
+
+                expectMsgClass(ThingTooLargeException.class);
             }
         };
     }

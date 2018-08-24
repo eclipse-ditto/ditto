@@ -12,14 +12,20 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.TestConstants;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
@@ -82,6 +88,40 @@ public final class ModifyFeaturesStrategyTest extends AbstractCommandStrategyTes
                 ModifyFeaturesResponse.modified(context.getThingId(), command.getDittoHeaders()));
         assertThat(result.getException()).isEmpty();
         assertThat(result.isBecomeDeleted()).isFalse();
+    }
+
+    @Test
+    public void modifyFeaturePropertiesSoThatThingGetsTooLarge() {
+        final CommandStrategy.Context context = getDefaultContext();
+
+        final Feature feature = Feature.newBuilder()
+                .properties(JsonObject.newBuilder().set("foo", false).set("bar", 42).build())
+                .withId("myFeature")
+                .build();
+
+        final long staticOverhead = 80;
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<THING_SIZE_LIMIT_BYTES-staticOverhead; i++) {
+            sb.append('a');
+        }
+        final JsonObject largeAttributes = JsonObject.newBuilder()
+                .set("a", sb.toString())
+                .build();
+        final String thingId = "foo:bar";
+        final Thing thing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttributes(largeAttributes)
+                .build();
+
+        // creating the Thing should be possible as we are below the limit:
+        CreateThing.of(thing, null, DittoHeaders.empty());
+
+        final ModifyFeatures command =
+                ModifyFeatures.of(thingId, Features.newBuilder().set(feature).build(), DittoHeaders.empty());
+
+        // but modifying the features which would cause the Thing to exceed the limit should not be allowed:
+        assertThatThrownBy(() -> underTest.doApply(context, thing, NEXT_REVISION, command))
+                .isInstanceOf(ThingTooLargeException.class);
     }
 
 }
