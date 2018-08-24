@@ -15,11 +15,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryBuilderFactory;
-
-import com.typesafe.config.Config;
 
 /**
  * Mongo implementation for {@link QueryBuilderFactory}.
@@ -27,29 +26,18 @@ import com.typesafe.config.Config;
 @Immutable
 public final class MongoQueryBuilderFactory implements QueryBuilderFactory {
 
-    private final Config config;
+    private final LimitsConfigReader limitsConfigReader;
 
-    /**
-     *
-     */
-    public static final String LIMITS_SEARCH_DEFAULT_PAGE_SIZE = "ditto.limits.things-search.default-page-size";
+    public MongoQueryBuilderFactory(final LimitsConfigReader limitsConfigReader) {
 
-    /**
-     *
-     */
-    public static final String LIMITS_SEARCH_MAX_PAGE_SIZE = "ditto.limits.things-search.max-page-size";
-
-    public MongoQueryBuilderFactory(final Config config) {
-
-        this.config = config;
+        this.limitsConfigReader = limitsConfigReader;
     }
 
     @Override
     public QueryBuilder newBuilder(final Criteria criteria) {
         checkCriteria(criteria);
         return MongoQueryBuilder.limited(criteria,
-                config.getInt(LIMITS_SEARCH_MAX_PAGE_SIZE),
-                config.getInt(LIMITS_SEARCH_DEFAULT_PAGE_SIZE));
+                limitsConfigReader.thingsSearchMaxPageSize(), limitsConfigReader.thingsSearchDefaultPageSize());
     }
 
     @Override

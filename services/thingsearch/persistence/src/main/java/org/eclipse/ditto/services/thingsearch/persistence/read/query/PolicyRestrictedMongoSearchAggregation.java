@@ -69,6 +69,7 @@ import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreatePolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateUnwoundBsonVisitor;
@@ -95,7 +96,6 @@ import com.mongodb.client.model.BsonField;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.UnwindOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
-import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -415,11 +415,11 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         private boolean count = false;
         private boolean withDeletedThings = false;
         private boolean sudo = false;
-        private final Config config;
+        private final LimitsConfigReader limitsConfigReader;
 
-        Builder(final Config config) {
-            this.config = config;
-            limit = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        Builder(final LimitsConfigReader limitsConfigReader) {
+            this.limitsConfigReader = limitsConfigReader;
+            limit = limitsConfigReader.thingsSearchDefaultPageSize();
         }
 
         @Override
@@ -448,8 +448,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         @Override
         public Builder limit(final long limit) {
-            this.limit =
-                    Validator.checkLimit(limit, config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE));
+            this.limit = Validator.checkLimit(limit, limitsConfigReader.thingsSearchMaxPageSize());
             return this;
         }
 

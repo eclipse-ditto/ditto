@@ -31,9 +31,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * This command modifies {@link Resources} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
@@ -71,6 +73,14 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
         this.policyId = policyId;
         this.label = label;
         this.resources = resources;
+
+        // when max Policy size was specified via system property, apply the max size check of the JSON:
+        PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
+            final int length = resources.toJsonString().length();
+            if (length > maxSize) {
+                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+            }
+        });
     }
 
     /**
@@ -160,7 +170,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resources.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(resources.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

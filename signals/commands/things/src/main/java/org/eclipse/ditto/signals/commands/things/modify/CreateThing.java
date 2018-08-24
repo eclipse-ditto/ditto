@@ -32,9 +32,11 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command creates a new Thing. It contains the full {@link Thing} including the Thing ID which should be used for
@@ -78,6 +80,14 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         super(TYPE, dittoHeaders);
         this.thing = thing;
         this.initialPolicy = initialPolicy;
+
+        // when max Thing size was specified via system property, apply the max size check of the JSON:
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final int length = thing.toJsonString().length();
+            if (length > maxSize) {
+                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+            }
+        });
     }
 
     /**

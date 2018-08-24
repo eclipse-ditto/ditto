@@ -31,9 +31,11 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
@@ -78,6 +80,14 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         this.thingId = thingId;
         this.thing = thing;
         this.initialPolicy = initialPolicy;
+
+        // when max Thing size was specified via system property, apply the max size check of the JSON:
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final int length = thing.toJsonString().length();
+            if (length > maxSize) {
+                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+            }
+        });
     }
 
     /**

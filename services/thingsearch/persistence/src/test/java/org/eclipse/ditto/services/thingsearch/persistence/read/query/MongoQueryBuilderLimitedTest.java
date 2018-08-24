@@ -17,6 +17,8 @@ import static org.mockito.Mockito.mock;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
@@ -26,7 +28,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -39,25 +40,22 @@ public final class MongoQueryBuilderLimitedTest {
 
     private Criteria criteria = Mockito.mock(Criteria.class);
     private MongoQueryBuilder underTest;
-    private Config config;
     private int maxPageSizeFromConfig;
     private int defaultPageSizeFromConfig;
 
     /** */
     @Before
     public void setUp() {
-        config = ConfigFactory.load("test");
-        maxPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE);
-        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
+        maxPageSizeFromConfig = limitsConfigReader.thingsSearchMaxPageSize();
+        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
         underTest = MongoQueryBuilder.limited(criteria, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
     /** */
     @Test(expected = NullPointerException.class)
     public void createWithNullCriteria() {
-        MongoQueryBuilder.limited(null,
-                config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE),
-                config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE));
+        MongoQueryBuilder.limited(null, maxPageSizeFromConfig, defaultPageSizeFromConfig);
     }
 
     /** */

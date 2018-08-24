@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -57,6 +59,26 @@ public interface PolicyCommand<T extends PolicyCommand> extends Command<T> {
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * Returns the maximal allowed Policy size in this environment. This is extracted from a system property
+     * {@code "ditto.limits.policies.max-size.bytes"} and cached upon first retrieval.
+     *
+     * @return the maximal allowed Policy size.
+     */
+    static Optional<Long> getMaxPolicySize() {
+        // lazily initialize static variable upon first access with the system properties value:
+        if (PolicyCommandRegistry.maxPolicySize == null) {
+            PolicyCommandRegistry.maxPolicySize = Long.parseLong(
+                    System.getProperty("ditto.limits.policies.max-size.bytes", "-1"));
+        }
+
+        if (PolicyCommandRegistry.maxPolicySize > 0) {
+            return Optional.of(PolicyCommandRegistry.maxPolicySize);
+        } else {
+            return Optional.empty();
+        }
+    }
 
     /**
      * This class contains definitions for all specific fields of a {@code PolicyCommand}'s JSON representation.

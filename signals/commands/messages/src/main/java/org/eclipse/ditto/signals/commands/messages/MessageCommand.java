@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
@@ -112,6 +114,26 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
                 .addLeaf(JsonKey.of(fId)))
                 .orElse(JsonPointer.empty());
         return path.append(pathSuffix);
+    }
+
+    /**
+     * Returns the maximal allowed message payload size in this environment. This is extracted from a system property
+     * {@code "ditto.limits.messages.max-size.bytes"} and cached upon first retrieval.
+     *
+     * @return the maximal allowed message payload size.
+     */
+    static Optional<Long> getMaxMessagePayloadSize() {
+        // lazily initialize static variable upon first access with the system properties value:
+        if (MessageCommandRegistry.maxMessagePayloadSize == null) {
+            MessageCommandRegistry.maxMessagePayloadSize = Long.parseLong(
+                    System.getProperty("ditto.limits.messages.max-size.bytes", "-1"));
+        }
+
+        if (MessageCommandRegistry.maxMessagePayloadSize > 0) {
+            return Optional.of(MessageCommandRegistry.maxMessagePayloadSize);
+        } else {
+            return Optional.empty();
+        }
     }
 
 
