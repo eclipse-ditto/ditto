@@ -135,7 +135,7 @@ public final class BaseClientData {
     }
 
     /**
-     * Remove info related to the last command. Should be called when entering a stable state (GENERATED, CONNECTED,
+     * Remove info related to the last command. Should be called when entering a stable state (UNKNOWN, CONNECTED,
      * DISCONNECTED).
      *
      * @return data without info related to the last command.

@@ -28,7 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ImmutableJsonWebToken}.
- * GENERATED tokens can be decrypted at https://jwt.io
+ * Tokens can be decrypted at https://jwt.io
  */
 public final class ImmutableJsonWebTokenTest {
 

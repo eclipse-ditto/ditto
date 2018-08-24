@@ -19,7 +19,7 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 
 /**
- * Interface for authentication providers such as GENERATED authentication.
+ * Interface for authentication providers such as JSON Web Token authentication.
  */
 public interface AuthenticationProvider {
 

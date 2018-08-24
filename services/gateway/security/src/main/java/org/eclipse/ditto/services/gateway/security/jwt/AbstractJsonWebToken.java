@@ -51,8 +51,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
         final String[] authorizationStringSplit = authorizationString.split(AUTHORIZATION_DELIMITER);
 
         if (authorizationStringSplit.length != 2) {
-            throw GatewayAuthenticationFailedException.newBuilder("The GENERATED Authorization Header is invalid!")
-                    .build();
+            throw GatewayAuthenticationFailedException.newBuilder("The Authorization Header is invalid!").build();
         }
 
         final String jwtBase64Encoded = authorizationStringSplit[1];
@@ -67,7 +66,7 @@ public abstract class AbstractJsonWebToken implements JsonWebToken {
             body = JsonFactory.newObject(new String(bodyBytes, StandardCharsets.UTF_8));
         } catch (final IllegalArgumentException | JsonParseException e) {
             throw GatewayJwtInvalidException.newBuilder()
-                    .description("Check if your GENERATED has the correct format and is Base64 URL encoded.")
+                    .description("Check if your JSON Web Token has the correct format and is Base64 URL encoded.")
                     .cause(e)
                     .build();
         }

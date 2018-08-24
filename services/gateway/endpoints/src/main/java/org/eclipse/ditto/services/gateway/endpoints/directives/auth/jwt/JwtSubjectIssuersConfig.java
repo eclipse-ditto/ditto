@@ -37,7 +37,7 @@ public final class JwtSubjectIssuersConfig {
     /**
      * Constructor.
      *
-     * @param configItems the items (configurations for each GENERATED issuer)
+     * @param configItems the items (configurations for each subject issuer)
      */
     public JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems) {
         requireNonNull(configItems);
