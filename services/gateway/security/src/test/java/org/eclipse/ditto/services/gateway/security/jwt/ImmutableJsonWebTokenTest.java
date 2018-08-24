@@ -28,7 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ImmutableJsonWebToken}.
- * UNKNOWN tokens can be decrypted at https://jwt.io
+ * GENERATED tokens can be decrypted at https://jwt.io
  */
 public final class ImmutableJsonWebTokenTest {
 
@@ -65,7 +65,7 @@ public final class ImmutableJsonWebTokenTest {
     public void tryToParseTokenFromMissingAuthorization() {
         assertThatExceptionOfType(GatewayAuthenticationFailedException.class)
                 .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization"))
-                .withMessage("The UNKNOWN Authorization Header is invalid!")
+                .withMessage("The GENERATED Authorization Header is invalid!")
                 .withNoCause();
     }
 

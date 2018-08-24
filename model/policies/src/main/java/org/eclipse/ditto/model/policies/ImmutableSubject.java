@@ -41,14 +41,14 @@ final class ImmutableSubject implements Subject {
 
     /**
      * Returns a new {@code Subject} object with the given {@code subjectId} and
-     * subject type {@link SubjectType#UNKNOWN}.
+     * subject type {@link SubjectType#GENERATED}.
      *
      * @param subjectId the ID of the new Subject.
      * @return a new {@code Subject} object.
      * @throws NullPointerException if {@code subjectId} is {@code null}.
      */
     public static Subject of(final SubjectId subjectId) {
-        return new ImmutableSubject(subjectId, SubjectType.UNKNOWN);
+        return new ImmutableSubject(subjectId, SubjectType.GENERATED);
     }
 
     /**

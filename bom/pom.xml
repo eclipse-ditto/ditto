@@ -46,8 +46,7 @@
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
-        <jjwt.version>0.7.0</jjwt.version>
-        <jackson.version>2.9.5</jackson.version>
+        <jjwt.version>0.10.1</jjwt.version>
         <asm.version>5.2</asm.version>
         <qpid-jms-client.version>0.35.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
@@ -235,9 +234,15 @@
                 <artifactId>parboiled_${scala.version}</artifactId>
                 <version>${parboiled.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt</artifactId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
 
@@ -256,17 +261,6 @@
                 <groupId>org.reactivestreams</groupId>
                 <artifactId>reactive-streams</artifactId>
                 <version>${reactive-streams.version}</version>
-            </dependency>
-            <!-- jjwt 0.7.0 uses a jackson-databind version with a security bug - explicitly enforce using a newer one: -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
@@ -601,6 +595,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-health</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-jwt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

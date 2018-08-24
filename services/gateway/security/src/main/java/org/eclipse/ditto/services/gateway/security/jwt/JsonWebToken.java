@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 /**
  * Representation for a JSON Web Token.
  *
- * @see <a href="https://tools.ietf.org/html/rfc7519">JSON Web Token (UNKNOWN)</a>
+ * @see <a href="https://tools.ietf.org/html/rfc7519">JSON Web Token (GENERATED)</a>
  */
 public interface JsonWebToken {
 
