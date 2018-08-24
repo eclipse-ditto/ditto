@@ -28,10 +28,11 @@ public class ETagValueGeneratorTest {
 
     @Test
     public void generateForNonDeletedEntity() {
-        final String mockedETagValue = "4711";
-        final Entity mockEntity = createMockEntity(false, mockedETagValue);
+        final String mockedRevision = "4711";
+        final Entity mockEntity = createMockEntity(false, mockedRevision);
 
-        assertETagGeneration(mockEntity, mockedETagValue);
+        final String expectedETagValue = "\"rev:4711\"";
+        assertETagGeneration(mockEntity, expectedETagValue);
     }
 
     @Test
@@ -43,8 +44,8 @@ public class ETagValueGeneratorTest {
 
     @Test
     public void generateForNonEntityObject() {
-        final  String arbitraryObject = "1234";
-        final String expectedETagValue = String.valueOf(arbitraryObject.hashCode());
+        final String arbitraryObject = "1234";
+        final String expectedETagValue = "\"hash:" + String.valueOf(arbitraryObject.hashCode()) + "\"";
 
         assertETagGeneration(arbitraryObject, expectedETagValue);
     }

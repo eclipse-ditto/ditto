@@ -18,12 +18,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.Revision;
 
-import akka.http.javadsl.model.headers.EntityTag;
-
 /**
  * Responsible for creating the value for the ETag Header.
  */
 public final class ETagValueGenerator {
+
+    private static final String TOP_LEVEL_ENTITY_PREFIX = "rev:";
+    private static final String SUB_RESOURCE_PREFIX = "hash:";
 
     private ETagValueGenerator() {}
 
@@ -54,15 +55,23 @@ public final class ETagValueGenerator {
 
         return topLevelEntity.getRevision()
                 .map(Revision::toString)
+                .map(value -> TOP_LEVEL_ENTITY_PREFIX + value)
+                .map(ETagValueGenerator::enquote)
                 .map(ETagValueGenerator::toETagValue);
     }
 
     private static Optional<CharSequence> generateForSubEntity(final Object object) {
         return Optional.of(Integer.toString(object.hashCode()))
+                .map(value -> SUB_RESOURCE_PREFIX + value)
+                .map(ETagValueGenerator::enquote)
                 .map(ETagValueGenerator::toETagValue);
     }
 
+    private static String enquote(final String stringToPutInQuotes) {
+        return "\"" + stringToPutInQuotes + "\"";
+    }
+
     private static CharSequence toETagValue(String value) {
-        return EntityTag.create(value, false).tag();
+        return EntityTag.strong(value).getOpaqueTag();
     }
 }

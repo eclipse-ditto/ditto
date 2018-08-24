@@ -65,6 +65,9 @@ public class EntityTag {
         return new EntityTag(weak, opaqueTag);
     }
 
+    static EntityTag strong(final String opaqueTag) {
+        return new EntityTag(false, opaqueTag);
+    }
 
     private static boolean isWeak(final String entityTag) {
         return entityTag.startsWith("W/");

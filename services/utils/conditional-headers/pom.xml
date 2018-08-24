@@ -28,10 +28,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.version}</artifactId>
-        </dependency>
 
     </dependencies>
 
