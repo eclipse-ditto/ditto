@@ -56,9 +56,12 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
     private long publishedMessages = 0L;
     private Instant lastMessagePublishedAt;
     private final AddressMetric addressMetric;
+    private final boolean dryRun;
 
-    private MqttPublisherActor(final MqttConnectionSettings settings, final ActorRef mqttClientActor) {
+    private MqttPublisherActor(final MqttConnectionSettings settings, final ActorRef mqttClientActor,
+            final boolean dryRun) {
         this.mqttClientActor = mqttClientActor;
+        this.dryRun = dryRun;
 
         final Sink<MqttMessage, CompletionStage<Done>> mqttSink = MqttSink.create(settings, MqttQoS.atMostOnce());
 
@@ -77,13 +80,13 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
                         0, null);
     }
 
-    static Props props(final MqttConnectionSettings settings, final ActorRef mqttClientActor) {
+    static Props props(final MqttConnectionSettings settings, final ActorRef mqttClientActor, final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttPublisherActor create() {
-                return new MqttPublisherActor(settings, mqttClientActor);
+                return new MqttPublisherActor(settings, mqttClientActor, dryRun);
             }
         });
     }
@@ -91,6 +94,9 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun, outbound -> {
+                    log.info("Message dropped in dryrun mode: {}", outbound);
+                })
                 .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId =
@@ -149,6 +155,10 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
         publishedMessages++;
         lastMessagePublishedAt = Instant.now();
+    }
+
+    private boolean isDryRun(final Object message) {
+        return dryRun;
     }
 
     private MqttMessage mapExternalMessageToMqttMessage(

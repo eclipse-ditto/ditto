@@ -49,12 +49,16 @@ public class MqttConsumerActor extends AbstractActor {
     private Instant lastMessageConsumedAt;
     private final AddressMetric addressMetric;
     private final ActorRef deadLetters;
+    private final boolean dryRun;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext, final Set<String> enforcementFilters) {
+            final AuthorizationContext sourceAuthorizationContext,
+            final Set<String> enforcementFilters,
+            final boolean dryRun) {
         this.messageMappingProcessor = messageMappingProcessor;
         this.sourceAuthorizationContext = sourceAuthorizationContext;
         this.enforcementFilters = enforcementFilters;
+        this.dryRun = dryRun;
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
@@ -62,13 +66,16 @@ public class MqttConsumerActor extends AbstractActor {
     }
 
     static Props props(final ActorRef messageMappingProcessor,
-            final AuthorizationContext sourceAuthorizationContext, final Set<String> enforcementFilters) {
+            final AuthorizationContext sourceAuthorizationContext,
+            final Set<String> enforcementFilters,
+            final boolean dryRun) {
         return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttConsumerActor create() {
-                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcementFilters);
+                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcementFilters,
+                        dryRun);
             }
         });
     }
@@ -76,6 +83,9 @@ public class MqttConsumerActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(MqttMessage.class, this::isDryRun, message -> {
+                    log.info("Dropping message in dryRun mode: {}", message);
+                })
                 .match(MqttMessage.class, message -> {
 
                     log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
@@ -119,6 +129,10 @@ public class MqttConsumerActor extends AbstractActor {
         } else {
             return null;
         }
+    }
+
+    private boolean isDryRun(final Object message) {
+        return dryRun;
     }
 
     private void handleConsumerStreamMessage(final MqttClientActor.ConsumerStreamMessage message) {

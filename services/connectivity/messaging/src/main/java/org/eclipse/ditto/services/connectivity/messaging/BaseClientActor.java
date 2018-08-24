@@ -528,8 +528,14 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
-        return matchEvent(Status.Status.class, BaseClientData.class,
+    /**
+     * Creates the handler for messages in testing state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
+        return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
                     final Status.Status answerToPublish;
                     if (status instanceof Status.Failure) {

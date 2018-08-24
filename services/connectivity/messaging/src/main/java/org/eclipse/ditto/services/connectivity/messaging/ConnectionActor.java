@@ -178,6 +178,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final FiniteDuration flushPendingResponsesTimeout;
     private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
     @Nullable private Cancellable flushPendingResponsesTrigger;
+    @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -258,6 +259,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
+        cancelStopSelfIfDeletedTrigger();
         flushPendingResponses();
         super.postStop();
     }
@@ -363,6 +365,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(PerformTask.class, this::performTask)
                 .matchEquals(STOP_SELF_IF_DELETED, msg -> {
                     // do nothing; this connection is not deleted.
+                    cancelStopSelfIfDeletedTrigger();
                 })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -885,9 +888,17 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void stopSelfIfDeletedAfterDelay() {
         final ExecutionContextExecutor dispatcher = getContext().dispatcher();
-        getContext().system()
+        cancelStopSelfIfDeletedTrigger();
+        stopSelfIfDeletedTrigger = getContext().system()
                 .scheduler()
                 .scheduleOnce(DELETED_ACTOR_LIFETIME, getSelf(), STOP_SELF_IF_DELETED, dispatcher, ActorRef.noSender());
+    }
+
+    private void cancelStopSelfIfDeletedTrigger() {
+        if (stopSelfIfDeletedTrigger != null) {
+            stopSelfIfDeletedTrigger.cancel();
+            stopSelfIfDeletedTrigger = null;
+        }
     }
 
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
