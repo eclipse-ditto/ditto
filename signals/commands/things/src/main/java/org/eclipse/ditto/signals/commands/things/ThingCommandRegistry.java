@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
@@ -25,7 +24,6 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandRegistry
 /**
  * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link ThingCommand}s.
  */
-@Immutable
 public final class ThingCommandRegistry extends AbstractCommandRegistry<ThingCommand> {
 
     @Nullable static Long maxThingSize = null;

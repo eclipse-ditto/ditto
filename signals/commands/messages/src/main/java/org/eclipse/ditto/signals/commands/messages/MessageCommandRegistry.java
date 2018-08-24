@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
@@ -23,7 +22,6 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
 /**
  * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link MessageCommand}s.
  */
-@Immutable
 public final class MessageCommandRegistry extends AbstractCommandRegistry<MessageCommand> {
 
     @Nullable static Long maxMessagePayloadSize = null;
