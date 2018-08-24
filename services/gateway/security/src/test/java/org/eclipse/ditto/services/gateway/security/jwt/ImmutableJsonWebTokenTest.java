@@ -65,7 +65,7 @@ public final class ImmutableJsonWebTokenTest {
     public void tryToParseTokenFromMissingAuthorization() {
         assertThatExceptionOfType(GatewayAuthenticationFailedException.class)
                 .isThrownBy(() -> ImmutableJsonWebToken.fromAuthorizationString("Authorization"))
-                .withMessage("The GENERATED Authorization Header is invalid!")
+                .withMessage("The Authorization Header is invalid!")
                 .withNoCause();
     }
 
