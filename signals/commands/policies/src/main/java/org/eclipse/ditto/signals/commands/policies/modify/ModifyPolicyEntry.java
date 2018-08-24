@@ -31,8 +31,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
  * This command modifies a {@link PolicyEntry}.
@@ -65,6 +67,14 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
         PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyEntry = policyEntry;
+
+        // when max Policy size was specified via system property, apply the max size check of the JSON:
+        PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
+            final int length = policyEntry.toJsonString().length();
+            if (length > maxSize) {
+                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+            }
+        });
     }
 
     /**
@@ -142,7 +152,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

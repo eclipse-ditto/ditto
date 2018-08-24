@@ -108,7 +108,7 @@ public final class SearchRootActor extends AbstractActor {
                 MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(rawConfig, mongoClientWrapper);
+        final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
 
         final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
                 thingsSyncPersistence, policiesSyncPersistence);
@@ -121,8 +121,10 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final Config rawConfig, final MongoClientWrapper
+    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final MongoClientWrapper
             mongoClientWrapper) {
+
+        final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
@@ -135,8 +137,9 @@ public final class SearchRootActor extends AbstractActor {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
-        final AggregationBuilderFactory aggregationBuilderFactory = new MongoAggregationBuilderFactory(rawConfig);
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(rawConfig);
+        final AggregationBuilderFactory aggregationBuilderFactory =
+                new MongoAggregationBuilderFactory(configReader.limits());
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(configReader.limits());
         final ActorRef aggregationQueryActor = startChildActor(AggregationQueryActor.ACTOR_NAME,
                 AggregationQueryActor.props(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory));
         final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,

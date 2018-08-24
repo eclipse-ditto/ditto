@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
 import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
@@ -350,6 +351,8 @@ public abstract class DittoService<C extends ServiceConfigReader> {
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
 
+            injectSystemPropertiesLimits(configReader);
+
             startMainRootActor(actorSystem, getMainRootActorProps(configReader, pubSubMediator, materializer));
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(configReader, pubSubMediator,
                     materializer));
@@ -364,6 +367,22 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      */
     protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
         // Does nothing by default.
+    }
+
+    /**
+     * Sets system properties with the limits of entities used in the Ditto services. Those limits are applied in
+     * {@code Command}s, e.g. when creating a {@code Thing}.
+     * <p>
+     * May be overwritten to specify more/other limits.
+     * </p>
+     *
+     * @param configReader the Ditto configReader providing the limits from configuration
+     */
+    protected void injectSystemPropertiesLimits(final C configReader) {
+        final LimitsConfigReader limits = configReader.limits();
+        System.setProperty("ditto.limits.things.max-size.bytes", Long.toString(limits.thingsMaxSize()));
+        System.setProperty("ditto.limits.policies.max-size.bytes", Long.toString(limits.policiesMaxSize()));
+        System.setProperty("ditto.limits.messages.max-size.bytes", Long.toString(limits.messagesMaxSize()));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {

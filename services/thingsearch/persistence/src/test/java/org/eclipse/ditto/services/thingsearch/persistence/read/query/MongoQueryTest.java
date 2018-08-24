@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
@@ -34,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -53,8 +54,9 @@ public final class MongoQueryTest {
     /** */
     @Before
     public void before() {
-        final Config config = ConfigFactory.load("test");
-        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
+
+        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
 
         final SortFieldExpression sortExp1 = EFT.sortByThingId();
         final SortFieldExpression sortExp2 = EFT.sortByAttribute("test");

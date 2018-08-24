@@ -13,11 +13,10 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
-
-import com.typesafe.config.Config;
 
 /**
  * Mongo implementation for {@link AggregationBuilderFactory}.
@@ -25,24 +24,24 @@ import com.typesafe.config.Config;
 @Immutable
 public final class MongoAggregationBuilderFactory implements AggregationBuilderFactory {
 
-    private final Config config;
+    private final LimitsConfigReader limitsConfigReader;
 
-    public MongoAggregationBuilderFactory(final Config config) {
-        this.config = config;
+    public MongoAggregationBuilderFactory(final LimitsConfigReader limitsConfigReader) {
+        this.limitsConfigReader = limitsConfigReader;
     }
 
-    public static AggregationBuilder newBuilder(final Config config) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(config);
+    public static AggregationBuilder newBuilder(final LimitsConfigReader limitsConfigReader) {
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader);
     }
 
     @Override
     public AggregationBuilder newBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(config).filterCriteria(criteria);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria);
     }
 
     @Override
     public AggregationBuilder newCountBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder(config).filterCriteria(criteria).count(true);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria).count(true);
     }
 
 }

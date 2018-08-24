@@ -22,10 +22,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
-import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.FeatureDefinitionEmptyException;
 import org.eclipse.ditto.model.things.FeatureDefinitionIdentifierInvalidException;
+import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
@@ -74,6 +75,7 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(AclNotModifiableException.ERROR_CODE, AclNotModifiableException::fromJson);
         parseStrategies.put(ThingConflictException.ERROR_CODE, ThingConflictException::fromJson);
         parseStrategies.put(ThingIdInvalidException.ERROR_CODE, ThingIdInvalidException::fromJson);
+        parseStrategies.put(ThingTooLargeException.ERROR_CODE, ThingTooLargeException::fromJson);
         parseStrategies.put(ThingIdNotExplicitlySettableException.ERROR_CODE,
                 ThingIdNotExplicitlySettableException::fromJson);
         parseStrategies.put(ThingNotAccessibleException.ERROR_CODE, ThingNotAccessibleException::fromJson);

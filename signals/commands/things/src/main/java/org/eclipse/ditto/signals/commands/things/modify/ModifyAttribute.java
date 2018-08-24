@@ -31,8 +31,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * This command modifies an attribute.
@@ -71,6 +73,14 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.thingId = thingId;
         this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
+
+        // when max Thing size was specified via system property, apply the max size check of the JSON:
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final int length = attributeValue.toString().length();
+            if (length > maxSize) {
+                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+            }
+        });
     }
 
     /**
@@ -156,7 +166,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(attributeValue);
+        return Optional.of(attributeValue);
     }
 
     @Override

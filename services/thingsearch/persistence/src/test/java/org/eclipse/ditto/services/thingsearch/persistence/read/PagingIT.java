@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
@@ -33,7 +34,6 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -58,9 +58,9 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     /** */
     @Before
     public void setUp() {
-        final Config config = ConfigFactory.load("test");
-        maxPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_MAX_PAGE_SIZE);
-        defaultPageSizeFromConfig = config.getInt(MongoQueryBuilderFactory.LIMITS_SEARCH_DEFAULT_PAGE_SIZE);
+        final LimitsConfigReader limitsConfigReader = DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test"));
+        maxPageSizeFromConfig = limitsConfigReader.thingsSearchMaxPageSize();
+        defaultPageSizeFromConfig = limitsConfigReader.thingsSearchDefaultPageSize();
     }
 
     @Override
@@ -181,7 +181,7 @@ public final class PagingIT extends AbstractVersionedThingSearchPersistenceITBas
     private static void assertPaging(final ResultList<String> actualResult, final List<String> expectedList,
             final long expectedNextPageOffset) {
 
-        assertThat(actualResult).containsOnly(expectedList.toArray(new String[expectedList.size()]));
+        assertThat(actualResult).containsOnly(expectedList.toArray(new String[0]));
         assertThat(actualResult.nextPageOffset()).isEqualTo(expectedNextPageOffset);
     }
 
