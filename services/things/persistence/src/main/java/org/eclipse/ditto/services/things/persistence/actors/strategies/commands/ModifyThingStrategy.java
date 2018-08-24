@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -25,7 +24,8 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
@@ -47,6 +47,18 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
+
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final long length = getThingOrThrow(thing)
+                    .toJsonString()
+                    .length();
+            if (length > maxSize) {
+                throw ThingTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        });
+
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
             return handleModifyExistingWithV1Command(context, thing, nextRevision, command);
         }
@@ -210,7 +222,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     }
 
     @Override
-    protected Result unhandled(final Context context, final Thing thing,
+    protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
         return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }

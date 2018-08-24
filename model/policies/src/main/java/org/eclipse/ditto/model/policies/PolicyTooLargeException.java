@@ -85,7 +85,7 @@ public final class PolicyTooLargeException extends DittoRuntimeException impleme
 
         private Builder(final long actualBytes, final long maxBytes) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, actualBytes / 1024, maxBytes / 1024));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, actualBytes / 1024.0, maxBytes / 1024.0));
         }
 
         @Override

@@ -18,6 +18,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -39,6 +41,19 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttribute command) {
+
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final long lengthWithOutAttribute = getThingOrThrow(thing).removeAttribute(command.getAttributePointer())
+                    .toJsonString()
+                    .length();
+            final long attributeLength = command.getAttributeValue().toString().length()
+                    + command.getAttributePointer().length() + 5L;
+            if (lengthWithOutAttribute + attributeLength > maxSize) {
+                throw ThingTooLargeException.newBuilder(lengthWithOutAttribute + attributeLength, maxSize)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        });
 
         return getThingOrThrow(thing).getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))

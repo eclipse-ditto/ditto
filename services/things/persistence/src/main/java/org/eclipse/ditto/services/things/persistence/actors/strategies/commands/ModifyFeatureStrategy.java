@@ -17,6 +17,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
@@ -38,6 +40,19 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeature command) {
+
+        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
+            final long lengthWithOutFeature = getThingOrThrow(thing).removeFeature(command.getFeatureId())
+                    .toJsonString()
+                    .length();
+            final long featureLength = command.getFeature().toJsonString().length()
+                    + command.getFeatureId().length() + 5L;
+            if (lengthWithOutFeature + featureLength > maxSize) {
+                throw ThingTooLargeException.newBuilder(lengthWithOutFeature + featureLength, maxSize)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build();
+            }
+        });
 
         return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
