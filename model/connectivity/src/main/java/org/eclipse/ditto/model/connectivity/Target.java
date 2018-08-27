@@ -38,6 +38,14 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     String getAddress();
 
     /**
+     * Create a copy of this object with the target address replaced.
+     *
+     * @param newAddress new value for the address field.
+     * @return a copy of this object retaining the class and all other fields.
+     */
+    Target withAddress(final String newAddress);
+
+    /**
      * @return set of topics that should be published via this target
      */
     Set<Topic> getTopics();

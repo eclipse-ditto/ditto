@@ -34,6 +34,11 @@ public final class ImmutableMqttTarget extends DelegateTarget implements MqttTar
     }
 
     @Override
+    public Target withAddress(final String newAddress) {
+        return new ImmutableMqttTarget(delegate.withAddress(newAddress), qos);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
 
         final JsonObjectBuilder jsonObjectBuilder = delegate.toJson(schemaVersion, predicate).toBuilder();

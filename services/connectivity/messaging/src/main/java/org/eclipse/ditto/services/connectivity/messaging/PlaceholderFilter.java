@@ -78,7 +78,7 @@ final class PlaceholderFilter {
                 .map(target -> {
                     final String filtered =
                             applyThingPlaceholder(target.getAddress(), thingPlaceholder, unresolvedPlaceholderListener);
-                    return filtered != null ? ConnectivityModelFactory.newTarget(target, filtered) : null;
+                    return filtered != null ? target.withAddress(filtered) : null;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());

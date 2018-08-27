@@ -19,11 +19,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -51,7 +49,6 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionVa
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -176,8 +173,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
     private final FiniteDuration flushPendingResponsesTimeout;
-    private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
-    @Nullable private Cancellable flushPendingResponsesTrigger;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
     private ConnectionActor(final String connectionId,
@@ -260,7 +255,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
         cancelStopSelfIfDeletedTrigger();
-        flushPendingResponses();
         super.postStop();
     }
 
@@ -384,10 +378,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void handleSignal(final Signal<?> signal) {
-        // since a signal arrives, event subscription works in the absence of outdated events.
-        // flush pending responses regardless whether the signal is forwarded or not.
-        flushPendingResponses();
-
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             log.debug("Signal dropped: Client actor not ready.");
@@ -626,7 +616,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                                         connectionActor -> {
                                             connectionActor.unsubscribeFromEvents();
                                             connectionActor.stopClientActor();
-                                            schedulePendingResponse(closeConnectionResponse, origin);
+                                            origin.tell(closeConnectionResponse, getSelf());
                                         });
                         self.tell(performTask, ActorRef.noSender());
                     },
@@ -916,17 +906,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {
-        // flush previous responses before scheduling the next flush
-        flushPendingResponses();
-        pendingResponses.add(WithSender.of(response, sender));
-        final PerformTask flushPendingResponses =
-                new PerformTask("flush pending responses", ConnectionActor::flushPendingResponses);
-        flushPendingResponsesTrigger = getContext().system().scheduler()
+        getContext().system().scheduler()
                 .scheduleOnce(flushPendingResponsesTimeout,
-                        getSelf(),
-                        flushPendingResponses,
+                        sender,
+                        response,
                         getContext().dispatcher(),
-                        ActorRef.noSender());
+                        getSelf());
     }
 
     private static Consumer<ConnectionActor> subscribeForEventsAndScheduleResponse(
@@ -937,24 +922,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
             connectionActor.subscribeForEvents();
             connectionActor.schedulePendingResponse(response, sender);
         };
-    }
-
-    /**
-     * Send all pending responses to their senders and cancel response flushing trigger.
-     */
-    private void flushPendingResponses() {
-        cancelFlushPendingResponsesTrigger();
-        while (!pendingResponses.isEmpty()) {
-            final WithSender<ConnectivityCommandResponse> withSender = pendingResponses.remove();
-            withSender.getSender().tell(withSender.getMessage(), getSelf());
-        }
-    }
-
-    private void cancelFlushPendingResponsesTrigger() {
-        if (flushPendingResponsesTrigger != null) {
-            flushPendingResponsesTrigger.cancel();
-            flushPendingResponsesTrigger = null;
-        }
     }
 
     /**

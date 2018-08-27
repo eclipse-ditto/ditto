@@ -57,6 +57,11 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
+    public Target withAddress(final String newAddress) {
+        return new ImmutableTarget(newAddress, topics, authorizationContext);
+    }
+
+    @Override
     public Set<Topic> getTopics() {
         return topics;
     }
