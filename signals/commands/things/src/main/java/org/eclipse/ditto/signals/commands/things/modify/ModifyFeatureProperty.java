@@ -85,7 +85,9 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
             final int length = propertyValue.toString().length();
             if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+                throw ThingTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

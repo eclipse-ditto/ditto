@@ -72,7 +72,9 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
         PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
             final int length = policyEntry.toJsonString().length();
             if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+                throw PolicyTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

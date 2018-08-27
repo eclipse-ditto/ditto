@@ -267,7 +267,12 @@ public final class WebsocketRoute {
                     DittoHeaders.empty(), // unused
                     (s, unused) -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s)));
 
-            final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            final Signal<? extends Signal> signal;
+            try {
+                signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            } catch (final DittoRuntimeException e) {
+                throw e.setDittoHeaders(e.getDittoHeaders().toBuilder().origin(connectionCorrelationId).build());
+            }
             final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
             // add headers given by parent route first so that protocol message may override them

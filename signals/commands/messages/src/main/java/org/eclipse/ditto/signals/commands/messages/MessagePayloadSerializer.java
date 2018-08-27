@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 
 /**
@@ -53,7 +54,7 @@ class MessagePayloadSerializer {
                 encodedString = new String(base64Encoded.array(), StandardCharsets.UTF_8);
             }
 
-            injectMessagePayload(messageBuilder, predicate, encodedString);
+            injectMessagePayload(messageBuilder, predicate, encodedString, message.getHeaders());
         } else if (payloadOptional.isPresent()) {
             final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
@@ -61,23 +62,27 @@ class MessagePayloadSerializer {
                 MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
                     final int length = ((JsonValue) payload).toString().length();
                     if (length > maxPayloadSize) {
-                        throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize).build();
+                        throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize)
+                                .dittoHeaders(message.getHeaders())
+                                .build();
                     }
                 });
                 messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
             } else {
-                injectMessagePayload(messageBuilder, predicate, payload.toString());
+                injectMessagePayload(messageBuilder, predicate, payload.toString(), message.getHeaders());
             }
         }
     }
 
     private static void injectMessagePayload(final JsonObjectBuilder messageBuilder,
-            final Predicate<JsonField> predicate, final String encodedString) {
+            final Predicate<JsonField> predicate, final String encodedString, final MessageHeaders messageHeaders) {
 
         MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
             final int length = encodedString.length();
             if (length > maxPayloadSize) {
-                throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize).build();
+                throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize)
+                        .dittoHeaders(messageHeaders)
+                        .build();
             }
         });
 
@@ -85,7 +90,9 @@ class MessagePayloadSerializer {
     }
 
     static void deserialize(final Optional<JsonValue> messagePayloadOptional,
-            final MessageBuilder messageBuilder, final String contentType) {
+            final MessageBuilder messageBuilder, final MessageHeaders messageHeaders) {
+
+        final String contentType = messageHeaders.getContentType().orElse("");
         if (messagePayloadOptional.isPresent()) {
             final JsonValue payload = messagePayloadOptional.get();
             if (shouldBeInterpretedAsText(contentType)) {
@@ -99,6 +106,7 @@ class MessagePayloadSerializer {
                 MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
                     if (payloadBytes.length > maxPayloadSize) {
                         throw MessagePayloadSizeTooLargeException.newBuilder(payloadBytes.length, maxPayloadSize)
+                                .dittoHeaders(messageHeaders)
                                 .build();
                     }
                 });

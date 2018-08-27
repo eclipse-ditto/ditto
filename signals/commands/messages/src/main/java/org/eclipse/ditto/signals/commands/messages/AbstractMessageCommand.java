@@ -128,7 +128,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
         final MessageBuilder<T> messageBuilder = Message.newBuilder(messageHeaders);
         MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder,
-                messageHeaders.getContentType().orElse(""));
+                messageHeaders);
         return messageBuilder.build();
     }
 
