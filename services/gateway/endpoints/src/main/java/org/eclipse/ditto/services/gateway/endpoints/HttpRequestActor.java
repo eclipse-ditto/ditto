@@ -14,12 +14,14 @@ package org.eclipse.ditto.services.gateway.endpoints;
 import static org.eclipse.ditto.services.gateway.starter.service.util.FireAndForgetMessageUtil.isFireAndForgetMessage;
 
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -51,11 +54,13 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.Location;
+import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.scaladsl.model.ContentType$;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
@@ -84,6 +89,7 @@ public final class HttpRequestActor extends AbstractActor {
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final ActorRef proxyActor;
+    private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final Cancellable serverRequestTimeoutCancellable;
     private final java.time.Duration serverRequestTimeout;
@@ -91,9 +97,11 @@ public final class HttpRequestActor extends AbstractActor {
 
     private java.time.Duration messageTimeout;
 
-    private HttpRequestActor(final ActorRef proxyActor, final HttpRequest request,
+    private HttpRequestActor(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
+            final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
         this.proxyActor = proxyActor;
+        this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
 
         final Config config = getContext().system().settings().config();
@@ -121,8 +129,10 @@ public final class HttpRequestActor extends AbstractActor {
                     logger.debug("Got 'CommandResponse' 'WithEntity' message");
                     final WithEntity withEntity = (WithEntity) commandResponse;
 
-                    final HttpResponse responseWithoutBody = HttpResponse.create()
+                    final HttpResponse responseWithoutHeaders = HttpResponse.create()
                             .withStatus(commandResponse.getStatusCode().toInt());
+                    final HttpResponse responseWithoutBody = enhanceResponseWithExternalDittoHeaders(
+                            responseWithoutHeaders, commandResponse.getDittoHeaders());
 
                     completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
                             withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
@@ -141,34 +151,29 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(ErrorResponse.class, errorResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, errorResponse);
                     logger.info("Got 'ErrorResponse': {}", errorResponse);
-                    final DittoRuntimeException cre = errorResponse.getDittoRuntimeException();
-                    completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
+                    final DittoRuntimeException dre = errorResponse.getDittoRuntimeException();
+                    completeWithDittoRuntimeException(dre);
                 })
                 .match(CommandResponse.class, commandResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.warning("Got 'CommandResponse' message which did not implement the required interfaces "
                             + "'WithEntity' / 'WithOptionalEntity': {}", commandResponse);
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .match(JsonRuntimeException.class, jre -> {
                     // wrap JsonRuntimeExceptions
-                    final DittoJsonException cre = new DittoJsonException(jre);
-                    logDittoRuntimeException(cre);
-                    completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
+                    final DittoJsonException dre = new DittoJsonException(jre);
+                    logDittoRuntimeException(dre);
+                    completeWithDittoRuntimeException(dre);
                 })
-                .match(DittoRuntimeException.class, cre -> {
-                    logDittoRuntimeException(cre);
-                    completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
+                .match(DittoRuntimeException.class, dre -> {
+                    logDittoRuntimeException(dre);
+                    completeWithDittoRuntimeException(dre);
                 })
                 .match(ReceiveTimeout.class, receiveTimeout -> {
                     logger.info("Got ReceiveTimeout when a response was expected: '{}'", receiveTimeout);
@@ -180,28 +185,24 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .match(Status.Failure.class, failure -> failure.cause() instanceof DittoRuntimeException, failure -> {
-                    final DittoRuntimeException cre = (DittoRuntimeException) failure.cause();
-                    logDittoRuntimeException(cre);
-                    completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
+                    final DittoRuntimeException dre = (DittoRuntimeException) failure.cause();
+                    logDittoRuntimeException(dre);
+                    completeWithDittoRuntimeException(dre);
                 })
                 .match(Status.Failure.class, failure -> {
                     logger.error(failure.cause().fillInStackTrace(),
                             "Got Status.Failure when a command response was expected: '{}'",
                             failure.cause().getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
                         serverRequestTimeoutMessage -> handleServerRequestTimeout())
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a command response: {}", m);
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt())
-                    );
+                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
                 .build();
     }
@@ -222,17 +223,20 @@ public final class HttpRequestActor extends AbstractActor {
         }
     }
 
-    private static HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
+    private HttpResponse createCommandResponse(final HttpRequest request, final CommandResponse commandResponse,
             final WithOptionalEntity withOptionalEntity) {
 
+        final Function<HttpResponse, HttpResponse> addExternalDittoHeaders =
+                response -> enhanceResponseWithExternalDittoHeaders(response, commandResponse.getDittoHeaders());
         final Function<HttpResponse, HttpResponse> addModifiedLocationHeaderForCreatedResponse =
                 createModifiedLocationHeaderAddingResponseMapper(request, commandResponse);
+        final Function<HttpResponse, HttpResponse> addHeaders =
+                addExternalDittoHeaders.andThen(addModifiedLocationHeaderForCreatedResponse);
 
         final Function<HttpResponse, HttpResponse> addBodyIfEntityExists =
                 createBodyAddingResponseMapper(commandResponse, withOptionalEntity);
 
-        return createHttpResponseWithHeadersAndBody(commandResponse,
-                addModifiedLocationHeaderForCreatedResponse, addBodyIfEntityExists);
+        return createHttpResponseWithHeadersAndBody(commandResponse, addHeaders, addBodyIfEntityExists);
     }
 
     private static Function<HttpResponse, HttpResponse> createBodyAddingResponseMapper(
@@ -290,9 +294,9 @@ public final class HttpRequestActor extends AbstractActor {
         return addBody.apply(addHeaders.apply(response));
     }
 
-    private void logDittoRuntimeException(final DittoRuntimeException cre) {
-        LogUtil.enhanceLogWithCorrelationId(logger, cre);
-        logger.info("DittoRuntimeException '{}': {}", cre.getErrorCode(), cre.getMessage());
+    private void logDittoRuntimeException(final DittoRuntimeException dre) {
+        LogUtil.enhanceLogWithCorrelationId(logger, dre);
+        logger.info("DittoRuntimeException '{}': {}", dre.getErrorCode(), dre.getMessage());
     }
 
     /**
@@ -300,11 +304,13 @@ public final class HttpRequestActor extends AbstractActor {
      * request}, and {@code httpResponseFuture} which will be completed with a {@link HttpResponse}.
      *
      * @param proxyActor the proxy actor which delegates commands.
+     * @param headerTranslator the {@link HeaderTranslator} used to map ditto headers to (external) Http headers.
      * @param request the HTTP request
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
      * @return the configuration object.
      */
-    public static Props props(final ActorRef proxyActor, final HttpRequest request,
+    public static Props props(final ActorRef proxyActor, final HeaderTranslator headerTranslator, final HttpRequest
+            request,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
         return Props.create(HttpRequestActor.class, new Creator<HttpRequestActor>() {
@@ -312,7 +318,7 @@ public final class HttpRequestActor extends AbstractActor {
 
             @Override
             public HttpRequestActor create() {
-                return new HttpRequestActor(proxyActor, request, httpResponseFuture);
+                return new HttpRequestActor(proxyActor, headerTranslator, request, httpResponseFuture);
             }
         });
     }
@@ -353,10 +359,10 @@ public final class HttpRequestActor extends AbstractActor {
                     }
 
                     if (cause instanceof DittoRuntimeException) {
-                        final DittoRuntimeException cre = (DittoRuntimeException) cause;
-                        logDittoRuntimeException(cre);
-                        completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                                .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString()))
+                        final DittoRuntimeException dre = (DittoRuntimeException) cause;
+                        logDittoRuntimeException(dre);
+                        completeWithResult(HttpResponse.create().withStatus(dre.getStatusCode().toInt())
+                                .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()))
                         );
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected");
@@ -365,10 +371,10 @@ public final class HttpRequestActor extends AbstractActor {
                         );
                     }
                 })
-                .match(DittoRuntimeException.class, cre -> {
-                    logDittoRuntimeException(cre);
-                    completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString())));
+                .match(DittoRuntimeException.class, dre -> {
+                    logDittoRuntimeException(dre);
+                    completeWithResult(HttpResponse.create().withStatus(dre.getStatusCode().toInt())
+                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString())));
                 })
                 .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
                         serverRequestTimeoutMessage -> handleServerRequestTimeout())
@@ -448,7 +454,7 @@ public final class HttpRequestActor extends AbstractActor {
                     HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.NO_CONTENT).toInt());
         }
 
-        return httpResponse;
+        return enhanceResponseWithExternalDittoHeaders(httpResponse, messageCommandResponse.getDittoHeaders());
     }
 
     private void handleServerRequestTimeout() {
@@ -456,6 +462,15 @@ public final class HttpRequestActor extends AbstractActor {
                 serverRequestTimeout);
         // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
         stop();
+    }
+
+    private void completeWithDittoRuntimeException(final DittoRuntimeException dre) {
+        final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(dre.getStatusCode().toInt())
+                .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()));
+        final HttpResponse response =
+                enhanceResponseWithExternalDittoHeaders(responseWithoutHeaders, dre.getDittoHeaders());
+
+        completeWithResult(response);
     }
 
     private void completeWithResult(final HttpResponse response) {
@@ -466,6 +481,22 @@ public final class HttpRequestActor extends AbstractActor {
             logger.debug("Responding with Entity: {}", response.entity());
         }
         stop();
+    }
+
+    private HttpResponse enhanceResponseWithExternalDittoHeaders(final HttpResponse response,
+            final DittoHeaders allDittoHeaders) {
+        final Map<String, String> externalHeaders = headerTranslator.toExternalHeaders(allDittoHeaders);
+
+        if (externalHeaders.isEmpty()) {
+            logger.debug("No external headers for enhancing the response, returning it as-is.");
+            return response;
+        }
+
+        logger.debug("Enhancing response with external headers: <{}>.", externalHeaders);
+        final List<HttpHeader> externalHttpHeaders = new LinkedList<>();
+        externalHeaders.forEach((k, v) -> (externalHttpHeaders).add(RawHeader.create(k, v)));
+
+        return response.withHeaders(externalHttpHeaders);
     }
 
     private void stop() {

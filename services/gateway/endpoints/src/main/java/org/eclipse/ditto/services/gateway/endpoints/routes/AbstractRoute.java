@@ -27,10 +27,17 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.utils.RequestPreProcessors;
+import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -60,9 +67,12 @@ public abstract class AbstractRoute {
             .withoutUrlDecoding()
             .build();
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractRoute.class);
+
     protected final ActorRef proxyActor;
     protected final ActorMaterializer materializer;
     private final ActorSystem actorSystem;
+    private final HeaderTranslator headerTranslator;
 
     /**
      * Constructs the abstract route builder.
@@ -77,6 +87,16 @@ public abstract class AbstractRoute {
 
         this.proxyActor = proxyActor;
         this.actorSystem = actorSystem;
+
+
+        final Config config = actorSystem.settings().config();
+        final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
+        final ProtocolAdapterProvider protocolAdapterProvider =
+                protocolConfig.loadProtocolAdapterProvider(actorSystem);
+
+        headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+        LOGGER.info("Using headerTranslator <{}>.", headerTranslator);
+
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc ->
                         Supervision.stop() // in any case, stop!
@@ -178,6 +198,7 @@ public abstract class AbstractRoute {
 
     protected ActorRef createHttpPerRequestActor(final RequestContext ctx,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
-        return actorSystem.actorOf(HttpRequestActor.props(proxyActor, ctx.getRequest(), httpResponseFuture));
+        return actorSystem.actorOf(HttpRequestActor.props(proxyActor, headerTranslator, ctx.getRequest(),
+                httpResponseFuture));
     }
 }
