@@ -78,7 +78,9 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
         PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
             final int length = resources.toJsonString().length();
             if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+                throw PolicyTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

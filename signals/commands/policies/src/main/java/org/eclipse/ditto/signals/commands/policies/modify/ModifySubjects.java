@@ -78,7 +78,9 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
         PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
             final int length = subjects.toJsonString().length();
             if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+                throw PolicyTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

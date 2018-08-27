@@ -76,7 +76,9 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
                     .toString()
                     .length();
             if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+                throw PolicyTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

@@ -67,7 +67,9 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
         PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
             final int length = policy.toJsonString().length();
             if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize).build();
+                throw PolicyTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

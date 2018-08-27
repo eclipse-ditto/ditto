@@ -85,7 +85,9 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
             final int length = thing.toJsonString().length();
             if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+                throw ThingTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

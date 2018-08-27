@@ -72,7 +72,9 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
         ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
             final int length = attributes.toJsonString().length();
             if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize).build();
+                throw ThingTooLargeException.newBuilder(length, maxSize)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
             }
         });
     }

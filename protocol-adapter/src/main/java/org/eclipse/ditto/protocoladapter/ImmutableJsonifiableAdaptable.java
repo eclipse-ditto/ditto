@@ -134,7 +134,7 @@ final class ImmutableJsonifiableAdaptable implements JsonifiableAdaptable {
     }
 
     @Override
-    public Adaptable setDittoHeaders(@Nonnull final DittoHeaders dittoHeaders) {
+    public JsonifiableAdaptable setDittoHeaders(@Nonnull final DittoHeaders dittoHeaders) {
         return new ImmutableJsonifiableAdaptable(delegateAdaptable.setDittoHeaders(dittoHeaders));
     }
 }
