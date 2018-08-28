@@ -80,7 +80,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.thing = thing;
         this.initialPolicy = initialPolicy;
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

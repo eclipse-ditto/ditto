@@ -64,7 +64,8 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
         this.policyId = policyId;
         this.policy = policy;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

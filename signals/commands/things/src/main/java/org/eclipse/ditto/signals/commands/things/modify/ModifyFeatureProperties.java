@@ -78,7 +78,8 @@ public final class ModifyFeatureProperties extends AbstractCommand<ModifyFeature
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.properties = checkNotNull(properties, "Feature Properties");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> properties.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> properties.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

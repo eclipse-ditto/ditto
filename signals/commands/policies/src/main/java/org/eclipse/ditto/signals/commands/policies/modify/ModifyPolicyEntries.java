@@ -67,12 +67,12 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
         this.policyId = policyId;
         this.policyEntries = policyEntries;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                () -> StreamSupport.stream(policyEntries.spliterator(), false)
-                        .map(PolicyEntry::toJson)
-                        .collect(JsonCollectors.valuesToArray())
-                        .toString()
-                        .length(),
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() ->
+                        StreamSupport.stream(policyEntries.spliterator(), false)
+                                .map(PolicyEntry::toJson)
+                                .collect(JsonCollectors.valuesToArray())
+                                .toString()
+                                .length(),
                 () -> dittoHeaders);
     }
 

@@ -37,6 +37,9 @@ import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
+import org.eclipse.ditto.signals.commands.messages.MessageCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
@@ -380,9 +383,12 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      */
     protected void injectSystemPropertiesLimits(final C configReader) {
         final LimitsConfigReader limits = configReader.limits();
-        System.setProperty("ditto.limits.things.max-size.bytes", Long.toString(limits.thingsMaxSize()));
-        System.setProperty("ditto.limits.policies.max-size.bytes", Long.toString(limits.policiesMaxSize()));
-        System.setProperty("ditto.limits.messages.max-size.bytes", Long.toString(limits.messagesMaxSize()));
+        System.setProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
+                Long.toString(limits.thingsMaxSize()));
+        System.setProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
+                Long.toString(limits.policiesMaxSize()));
+        System.setProperty(MessageCommandSizeValidator.DITTO_LIMITS_MESSAGES_MAX_SIZE_BYTES,
+                Long.toString(limits.messagesMaxSize()));
     }
 
     private static ActorRef getDistributedPubSubMediatorActor(final ActorSystem actorSystem) {

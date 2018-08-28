@@ -25,7 +25,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
@@ -892,8 +892,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
             try {
-                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> modifiedPolicy.toJsonString().length(), command::getDittoHeaders);
-            } catch (DittoRuntimeException e) {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> modifiedPolicy.toJsonString().length(),
+                        command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
                 notifySender(e);
             }
 
@@ -1000,7 +1001,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                 .toString()
                                 .length(),
                         command::getDittoHeaders);
-            } catch (DittoRuntimeException e) {
+            } catch (final PolicyTooLargeException e) {
                 notifySender(e);
             }
 
@@ -1038,14 +1039,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
             try {
-                PolicyCommandSizeValidator.getInstance().ensureValidSize(
-                        () -> {
-                            final long policyLength = policy.removeEntry(label).toJsonString().length();
-                            final long entryLength =
-                                    policyEntry.toJsonString().length() + label.toString().length() + 5L;
-                            return policyLength + entryLength;
-                        }, command::getDittoHeaders);
-            } catch (DittoRuntimeException e) {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
+                    final long policyLength = policy.removeEntry(label).toJsonString().length();
+                    final long entryLength =
+                            policyEntry.toJsonString().length() + label.toString().length() + 5L;
+                    return policyLength + entryLength;
+                }, command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
                 notifySender(e);
             }
 
@@ -1434,7 +1434,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                             .length() + 5L;
                     return policyLength + resourcesLength;
                 }, command::getDittoHeaders);
-            } catch (DittoRuntimeException e) {
+            } catch (final PolicyTooLargeException e) {
                 notifySender(e);
             }
 

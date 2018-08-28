@@ -9,21 +9,23 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-
 package org.eclipse.ditto.signals.commands.things;
-
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
 
 /**
- * Command size validator for thing commands
+ * Command size validator for thing commands.
  */
-public class ThingCommandSizeValidator extends AbstractCommandSizeValidator {
+public final class ThingCommandSizeValidator extends AbstractCommandSizeValidator<ThingTooLargeException> {
+
+    /**
+     * System property name of the property defining the max Thing size in bytes.
+     */
+    public static final String DITTO_LIMITS_THINGS_MAX_SIZE_BYTES = "ditto.limits.things.max-size.bytes";
 
     @Nullable private static ThingCommandSizeValidator instance;
 
@@ -32,23 +34,23 @@ public class ThingCommandSizeValidator extends AbstractCommandSizeValidator {
     }
 
     @Override
-    protected DittoRuntimeException newInvalidSizeException(final long maxSize, final long actualSize,
+    protected ThingTooLargeException newInvalidSizeException(final long maxSize, final long actualSize,
             final DittoHeaders headers) {
         return ThingTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headers).build();
     }
 
     /**
      * The singleton instance for this command size validator. Will be initialized at first call.
+     *
      * @return Singleton instance
      */
     public static ThingCommandSizeValidator getInstance() {
         if (null == instance) {
-            long maxSize = Long.parseLong(System.getProperty("ditto.limits.things.max-size.bytes", "-1"));
-            instance = (maxSize > 0) ? new ThingCommandSizeValidator(maxSize) : new ThingCommandSizeValidator(null) ;
+            final long maxSize =
+                    Long.parseLong(System.getProperty(DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, DEFAULT_LIMIT));
+            instance = (maxSize > 0) ? new ThingCommandSizeValidator(maxSize) : new ThingCommandSizeValidator(null);
         }
-
         return instance;
     }
-
 
 }

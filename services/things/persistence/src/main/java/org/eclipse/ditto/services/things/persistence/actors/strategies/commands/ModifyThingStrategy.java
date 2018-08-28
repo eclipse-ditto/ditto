@@ -49,7 +49,8 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
 
         final Thing nonNullThing = getThingOrThrow(thing);
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(), command::getDittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(),
+                command::getDittoHeaders);
 
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
             return handleModifyExistingWithV1Command(context, nonNullThing, nextRevision, command);

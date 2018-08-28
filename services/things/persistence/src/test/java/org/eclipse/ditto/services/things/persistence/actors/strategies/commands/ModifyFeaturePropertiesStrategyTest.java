@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
@@ -39,7 +40,7 @@ import org.junit.Test;
 public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandStrategyTest {
 
     private static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty("ditto.limits.things.max-size.bytes", "-1"));
+            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     private static String featureId;
     private static FeatureProperties modifiedFeatureProperties;
@@ -69,7 +70,8 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.doApply(context, THING_V1.removeFeatures(), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -86,7 +88,8 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.doApply(context, THING_V1.removeFeature(featureId), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).isEmpty();
         assertThat(result.getCommandResponse()).isEmpty();
@@ -104,7 +107,8 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
                 ModifyFeatureProperties.of(context.getThingId(), featureId, modifiedFeatureProperties,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.setFeature(featureWithoutProperties), NEXT_REVISION, command);
+        final CommandStrategy.Result result =
+                underTest.doApply(context, THING_V1.setFeature(featureWithoutProperties), NEXT_REVISION, command);
 
         assertThat(result.getEventToPersist()).containsInstanceOf(FeaturePropertiesCreated.class);
         assertThat(result.getCommandResponse()).contains(
@@ -142,7 +146,7 @@ public final class ModifyFeaturePropertiesStrategyTest extends AbstractCommandSt
 
         final long staticOverhead = 80;
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<THING_SIZE_LIMIT_BYTES-staticOverhead;i++) {
+        for (int i = 0; i < THING_SIZE_LIMIT_BYTES - staticOverhead; i++) {
             sb.append('a');
         }
         final JsonObject largeAttributes = JsonObject.newBuilder()
