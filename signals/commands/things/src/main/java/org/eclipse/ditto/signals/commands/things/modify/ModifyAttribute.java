@@ -74,15 +74,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
-        // when max Thing size was specified via system property, apply the max size check of the JSON:
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final int length = attributeValue.toString().length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        ThingCommand.ensureMaxThingSize(() -> attributeValue.toString().length(), () -> dittoHeaders);
     }
 
     /**

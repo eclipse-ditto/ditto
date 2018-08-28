@@ -41,27 +41,25 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttribute command) {
+        final Thing nonNullThing = getThingOrThrow(thing);
 
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final long lengthWithOutAttribute = getThingOrThrow(thing).removeAttribute(command.getAttributePointer())
+        ThingCommand.ensureMaxThingSize(() -> {
+            final long lengthWithOutAttribute = nonNullThing.removeAttribute(command.getAttributePointer())
                     .toJsonString()
                     .length();
             final long attributeLength = command.getAttributeValue().toString().length()
                     + command.getAttributePointer().length() + 5L;
-            if (lengthWithOutAttribute + attributeLength > maxSize) {
-                throw ThingTooLargeException.newBuilder(lengthWithOutAttribute + attributeLength, maxSize)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
-        });
+            return lengthWithOutAttribute + attributeLength;
+        }, command::getDittoHeaders);
 
-        return getThingOrThrow(thing).getAttributes()
+        return nonNullThing.getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))
                 .map(attributes -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyAttribute command) {
+    private static Result getModifyResult(final Context context, final long nextRevision,
+            final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -72,7 +70,8 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
                 ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders));
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyAttribute command) {
+    private static Result getCreateResult(final Context context, final long nextRevision,
+            final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();

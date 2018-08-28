@@ -41,20 +41,17 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeature command) {
 
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final long lengthWithOutFeature = getThingOrThrow(thing).removeFeature(command.getFeatureId())
+        final Thing nonNullThing = getThingOrThrow(thing);
+        ThingCommand.ensureMaxThingSize(() -> {
+            final long lengthWithOutFeature = nonNullThing.removeFeature(command.getFeatureId())
                     .toJsonString()
                     .length();
             final long featureLength = command.getFeature().toJsonString().length()
                     + command.getFeatureId().length() + 5L;
-            if (lengthWithOutFeature + featureLength > maxSize) {
-                throw ThingTooLargeException.newBuilder(lengthWithOutFeature + featureLength, maxSize)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
-        });
+            return lengthWithOutFeature + featureLength;
+        }, command::getDittoHeaders);
 
-        return getThingOrThrow(thing).getFeatures()
+        return nonNullThing.getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()))
                 .map(feature -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));

@@ -48,33 +48,24 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
 
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final long length = getThingOrThrow(thing)
-                    .toJsonString()
-                    .length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
-        });
+        final Thing nonNullThing = getThingOrThrow(thing);
+
+        ThingCommand.ensureMaxThingSize(() -> nonNullThing.toJsonString().length(), command::getDittoHeaders);
 
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-            return handleModifyExistingWithV1Command(context, thing, nextRevision, command);
+            return handleModifyExistingWithV1Command(context, nonNullThing, nextRevision, command);
         }
 
         // from V2 upwards, use this logic:
-        return handleModifyExistingWithV2Command(context, thing, nextRevision, command);
+        return handleModifyExistingWithV2Command(context, nonNullThing, nextRevision, command);
     }
 
-    private static Result handleModifyExistingWithV1Command(final Context context,
-            @Nullable final Thing thing, final long nextRevision,
+    private static Result handleModifyExistingWithV1Command(final Context context, final Thing thing, final long nextRevision,
             final ModifyThing command) {
-        final Thing theThing = getThingOrThrow(thing);
-        if (JsonSchemaVersion.V_1.equals(theThing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV1Command(context, theThing, nextRevision, command);
+        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+            return handleModifyExistingV1WithV1Command(context, thing, nextRevision, command);
         } else {
-            return handleModifyExistingV2WithV1Command(context, theThing, nextRevision, command);
+            return handleModifyExistingV2WithV1Command(context, thing, nextRevision, command);
         }
     }
 
@@ -130,13 +121,12 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 .build();
     }
 
-    private static Result handleModifyExistingWithV2Command(final Context context, @Nullable final Thing thing,
+    private static Result handleModifyExistingWithV2Command(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        final Thing theThing = getThingOrThrow(thing);
-        if (JsonSchemaVersion.V_1.equals(theThing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV2Command(context, theThing, nextRevision, command);
+        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+            return handleModifyExistingV1WithV2Command(context, thing, nextRevision, command);
         } else {
-            return handleModifyExistingV2WithV2Command(context, theThing, nextRevision, command);
+            return handleModifyExistingV2WithV2Command(context, thing, nextRevision, command);
         }
     }
 

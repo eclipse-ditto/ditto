@@ -66,15 +66,7 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
         this.thingId = thingId;
         this.features = checkNotNull(features, "Features");
 
-        // when max Thing size was specified via system property, apply the max size check of the JSON:
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final int length = features.toJsonString().length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        ThingCommand.ensureMaxThingSize(() -> features.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

@@ -31,7 +31,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
-import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -63,15 +62,7 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
         super(TYPE, dittoHeaders);
         this.policy = policy;
 
-        // when max Policy size was specified via system property, apply the max size check of the JSON:
-        PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
-            final int length = policy.toJsonString().length();
-            if (length > maxSize) {
-                throw PolicyTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        PolicyCommand.ensureMaxPolicySize(() -> policy.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

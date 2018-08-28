@@ -81,15 +81,7 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         this.thing = thing;
         this.initialPolicy = initialPolicy;
 
-        // when max Thing size was specified via system property, apply the max size check of the JSON:
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final int length = thing.toJsonString().length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        ThingCommand.ensureMaxThingSize(() -> thing.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

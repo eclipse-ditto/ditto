@@ -81,15 +81,7 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.propertyPointer = checkNotNull(propertyPointer, "Property JsonPointer");
         this.propertyValue = checkNotNull(propertyValue, "Property Value");
 
-        // when max Thing size was specified via system property, apply the max size check of the JSON:
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final int length = propertyValue.toString().length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        ThingCommand.ensureMaxThingSize(() -> propertyValue.toString().length(), () -> dittoHeaders);
     }
 
     /**
