@@ -20,6 +20,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
 
+/**
+ * Command size validator for message commands
+ */
 public class MessageCommandSizeValidator extends AbstractCommandSizeValidator {
 
     @Nullable private static MessageCommandSizeValidator instance;
@@ -34,6 +37,10 @@ public class MessageCommandSizeValidator extends AbstractCommandSizeValidator {
         return MessagePayloadSizeTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headers).build();
     }
 
+    /**
+     * The singleton instance for this command size validator. Will be initialized at first call.
+     * @return Singleton instance
+     */
     public static MessageCommandSizeValidator getInstance() {
         if (null == instance) {
             long maxSize = Long.parseLong(System.getProperty("ditto.limits.messages.max-size.bytes", "-1"));
