@@ -31,14 +31,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureProperties;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdValidator;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies a {@link org.eclipse.ditto.model.things.Feature}'s properties.
@@ -80,7 +78,7 @@ public final class ModifyFeatureProperties extends AbstractCommand<ModifyFeature
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.properties = checkNotNull(properties, "Feature Properties");
 
-        ThingCommand.ensureMaxThingSize(() -> properties.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> properties.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

@@ -31,11 +31,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
@@ -81,7 +80,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         this.thing = thing;
         this.initialPolicy = initialPolicy;
 
-        ThingCommand.ensureMaxThingSize(() -> thing.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

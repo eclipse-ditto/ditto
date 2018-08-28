@@ -14,8 +14,6 @@ package org.eclipse.ditto.signals.commands.things;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandRegistry;
@@ -25,8 +23,6 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandRegistry
  * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link ThingCommand}s.
  */
 public final class ThingCommandRegistry extends AbstractCommandRegistry<ThingCommand> {
-
-    @Nullable static Long maxThingSize = null;
 
     private ThingCommandRegistry(final Map<String, JsonParsable<ThingCommand>> parseStrategies) {
         super(parseStrategies);

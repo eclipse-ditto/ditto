@@ -120,43 +120,6 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
     }
 
     /**
-     * Returns the maximal allowed message payload size in this environment. This is extracted from a system property
-     * {@code "ditto.limits.messages.max-size.bytes"} and cached upon first retrieval.
-     *
-     * @return the maximal allowed message payload size.
-     */
-    static Optional<Long> getMaxMessagePayloadSize() {
-        // lazily initialize static variable upon first access with the system properties value:
-        if (MessageCommandRegistry.maxMessagePayloadSize == null) {
-            MessageCommandRegistry.maxMessagePayloadSize = Long.parseLong(
-                    System.getProperty("ditto.limits.messages.max-size.bytes", "-1"));
-        }
-
-        if (MessageCommandRegistry.maxMessagePayloadSize > 0) {
-            return Optional.of(MessageCommandRegistry.maxMessagePayloadSize);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Guard function that throws when a message payload size limit is specified and the given size supplier returns a
-     * size less than the limit.
-     * @param sizeSupplier the length calc function (only called when limit is present)
-     * @param headersSupplier the headersSupplier for the exception
-     * @throws org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException if size limit is set and exceeded
-     */
-    static void ensureMaxMessagePayloadSize(final LongSupplier sizeSupplier, final Supplier<DittoHeaders> headersSupplier) {
-        MessageCommand.getMaxMessagePayloadSize().ifPresent(maxSize -> {
-            long actualSize = sizeSupplier.getAsLong();
-            if (maxSize < actualSize) {
-                throw MessagePayloadSizeTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headersSupplier.get()).build();
-            }
-        });
-    }
-
-
-    /**
      * This class contains definitions for all specific fields of a {@code MessageCommand}'s JSON representation.
      *
      */

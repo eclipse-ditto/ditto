@@ -60,41 +60,6 @@ public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithTh
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
 
-    /**
-     * Returns the maximal allowed Thing size in this environment. This is extracted from a system property
-     * {@code "ditto.limits.things.max-size.bytes"} and cached upon first retrieval.
-     *
-     * @return the maximal allowed Thing size.
-     */
-    static Optional<Long> getMaxThingSize() {
-        // lazily initialize static variable upon first access with the system properties value:
-        if (ThingCommandRegistry.maxThingSize == null) {
-            ThingCommandRegistry.maxThingSize = Long.parseLong(
-                    System.getProperty("ditto.limits.things.max-size.bytes", "-1"));
-        }
-
-        if (ThingCommandRegistry.maxThingSize > 0) {
-            return Optional.of(ThingCommandRegistry.maxThingSize);
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Guard function that throws when a thing size limit is specified and the given size supplier returns a size
-     * less than the limit.
-     * @param sizeSupplier the length calc function (only called when limit is present)
-     * @param headersSupplier the headersSupplier for the exception
-     * @throws org.eclipse.ditto.model.things.ThingTooLargeException if size limit is set and exceeded
-     */
-    static void ensureMaxThingSize(final LongSupplier sizeSupplier, final Supplier<DittoHeaders> headersSupplier) {
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            long actualSize = sizeSupplier.getAsLong();
-            if (maxSize < actualSize) {
-                throw ThingTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headersSupplier.get()).build();
-            }
-        });
-    }
 
     /**
      * This class contains definitions for all specific fields of a {@code ThingCommand}'s JSON representation.

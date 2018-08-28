@@ -18,8 +18,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -44,7 +43,7 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
         final String featureId = command.getFeatureId();
 
         final Thing nonNullThing = getThingOrThrow(thing);
-        ThingCommand.ensureMaxThingSize(() -> {
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
             final long lengthWithOutProperties = nonNullThing.removeFeatureProperties(command.getFeatureId())
                     .toJsonString()
                     .length();

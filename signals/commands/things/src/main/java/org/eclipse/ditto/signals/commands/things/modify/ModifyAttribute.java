@@ -31,10 +31,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies an attribute.
@@ -74,7 +73,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
-        ThingCommand.ensureMaxThingSize(() -> attributeValue.toString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () -> dittoHeaders);
     }
 
     /**

@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link PolicyEntry}s.
@@ -67,7 +67,7 @@ public final class ModifyPolicyEntries extends AbstractCommand<ModifyPolicyEntri
         this.policyId = policyId;
         this.policyEntries = policyEntries;
 
-        PolicyCommand.ensureMaxPolicySize(
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(
                 () -> StreamSupport.stream(policyEntries.spliterator(), false)
                         .map(PolicyEntry::toJson)
                         .collect(JsonCollectors.valuesToArray())

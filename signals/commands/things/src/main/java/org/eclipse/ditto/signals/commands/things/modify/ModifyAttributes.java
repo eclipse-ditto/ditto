@@ -32,11 +32,10 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingIdValidator;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies all {@code Thing}'s attributes at once.
@@ -68,7 +67,7 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
         this.thingId = thingId;
         this.attributes = checkNotNull(attributes, "Attributes");
 
-        ThingCommand.ensureMaxThingSize(() -> attributes.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributes.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

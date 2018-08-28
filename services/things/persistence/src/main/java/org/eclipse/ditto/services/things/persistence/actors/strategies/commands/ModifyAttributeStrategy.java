@@ -18,8 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -43,7 +42,7 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
             final long nextRevision, final ModifyAttribute command) {
         final Thing nonNullThing = getThingOrThrow(thing);
 
-        ThingCommand.ensureMaxThingSize(() -> {
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
             final long lengthWithOutAttribute = nonNullThing.removeAttribute(command.getAttributePointer())
                     .toJsonString()
                     .length();

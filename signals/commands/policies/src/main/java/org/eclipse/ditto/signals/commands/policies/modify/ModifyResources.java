@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link Resources} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
@@ -73,7 +73,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
         this.label = label;
         this.resources = resources;
 
-        PolicyCommand.ensureMaxPolicySize(() -> resources.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> resources.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**
