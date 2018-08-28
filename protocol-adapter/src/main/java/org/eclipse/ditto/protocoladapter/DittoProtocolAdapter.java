@@ -35,7 +35,6 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
@@ -418,9 +417,6 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
             final ThingErrorRegistry thingErrorRegistry = ThingErrorRegistry.newInstance();
             thingErrorRegistry.getTypes()
                     .forEach(type -> parseStrategies.put(type, thingErrorRegistry));
-            final PolicyErrorRegistry policyErrorRegistry = PolicyErrorRegistry.newInstance();
-            policyErrorRegistry.getTypes()
-                    .forEach(type -> parseStrategies.put(type, policyErrorRegistry));
             final MessageErrorRegistry messageErrorRegistry = MessageErrorRegistry.newInstance();
             messageErrorRegistry.getTypes()
                     .forEach(type -> parseStrategies.put(type, messageErrorRegistry));

@@ -359,7 +359,7 @@ public final class WebsocketRoute {
             try {
                 errorResponse = ThingErrorResponse.of(MessageHeaders.of(enhancedHeaders).getThingId(),
                         (DittoRuntimeException) jsonifiable, enhancedHeaders);
-            } catch (final IllegalStateException e) {
+            } catch (final IllegalStateException | IllegalArgumentException | DittoRuntimeException e) {
                 // thrown if headers did not contain the thing ID:
                 errorResponse = ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
             }
