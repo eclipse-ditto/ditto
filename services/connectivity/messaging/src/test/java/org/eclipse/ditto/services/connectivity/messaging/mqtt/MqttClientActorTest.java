@@ -20,28 +20,26 @@ import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newF
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttSource;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.StreamCorruptedException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import org.awaitility.Awaitility;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -67,11 +65,6 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
-import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -88,14 +81,10 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.stream.alpakka.mqtt.MqttMessage;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
-import io.moquette.interception.AbstractInterceptHandler;
-import io.moquette.interception.InterceptHandler;
-import io.moquette.interception.messages.InterceptConnectMessage;
-import io.moquette.interception.messages.InterceptDisconnectMessage;
-import io.moquette.interception.messages.InterceptSubscribeMessage;
-import io.moquette.server.Server;
-import io.moquette.server.config.MemoryConfig;
+import akka.util.ByteString;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -116,7 +105,6 @@ public class MqttClientActorTest {
 
     private final FreePort freePort = new FreePort();
     @Rule public final MqttServerRule mqttServer = new MqttServerRule(freePort.getPort());
-    @Rule public final MqttClientRule mqttClient = new MqttClientRule(freePort.getPort());
 
     @BeforeClass
     public static void setUp() {
@@ -130,7 +118,7 @@ public class MqttClientActorTest {
     }
 
     @Before
-    public void startServer() {
+    public void initializeConnection() {
         connectionId = TestConstants.createRandomConnectionId();
         serverHost = "tcp://localhost:" + freePort.getPort();
         connection =
@@ -145,15 +133,11 @@ public class MqttClientActorTest {
     @Test
     public void testConnect() {
         new TestKit(actorSystem) {{
-            final Props props = MqttClientActor.props(connection, getRef());
+            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
-
-            // wait for consumer + publisher + test client
-            Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(3L));
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
@@ -161,12 +145,13 @@ public class MqttClientActorTest {
     }
 
     @Test
-    public void testConsumeFromTopic() throws MqttException {
-        testConsumeFromTopic(connection, SOURCE_ADDRESS, true);
+    public void testConsumeFromTopic() {
+        testConsumeModifyThing(connection, SOURCE_ADDRESS)
+                .expectMsgClass(ModifyThing.class);
     }
 
     @Test
-    public void testConsumeFromTopicWithIdEnforcement() throws MqttException {
+    public void testConsumeFromTopicWithIdEnforcement() {
         final MqttSource mqttSource = newFilteredMqttSource(1, 1, AUTHORIZATION_CONTEXT,
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}",
                 1,
@@ -177,11 +162,12 @@ public class MqttClientActorTest {
                         serverHost)
                         .sources(singletonList(mqttSource))
                         .build();
-        testConsumeFromTopic(connectionWithEnforcement, "eclipse/ditto/thing", true);
+        testConsumeModifyThing(connectionWithEnforcement, "eclipse/ditto/thing")
+                .expectMsgClass(ModifyThing.class);
     }
 
     @Test
-    public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() throws MqttException {
+    public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
         final MqttSource mqttSource = newFilteredMqttSource(1, 1, AUTHORIZATION_CONTEXT,
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
                 1, // qos
@@ -195,142 +181,112 @@ public class MqttClientActorTest {
                         .sources(singletonList(mqttSource))
                         .build();
 
-        final AtomicBoolean receivedErrorResponse = new AtomicBoolean(false);
-        mqttClient.subscribeWithResponse("replies", 1, (topic, message) -> {
-            assertThat(new String(message.getPayload())).contains(IdEnforcementFailedException.ERROR_CODE);
-            receivedErrorResponse.set(true);
-        }).waitForCompletion();
+        final MqttMessage message = testConsumeModifyThing(connectionWithEnforcement, "eclipse/invalid/address")
+                .expectMsgClass(MqttMessage.class);
 
-        testConsumeFromTopic(connectionWithEnforcement, "eclipse/invalid/address", false);
+        final String payload = new String(message.payload().toByteBuffer().array(), UTF_8);
 
-        Awaitility.await().untilTrue(receivedErrorResponse);
+        assertThat(payload).contains(IdEnforcementFailedException.ERROR_CODE);
     }
 
-    private void testConsumeFromTopic(final Connection connection, final String publishTopic,
-            final boolean expectSuccess) throws MqttException {
-        new TestKit(actorSystem) {{
-
-            final Props props = MqttClientActor.props(connection, getRef());
+    private TestKit testConsumeModifyThing(final Connection connection, final String publishTopic) {
+        return new TestKit(actorSystem) {{
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            final Props props = mqttClientActor(connection, getRef(),
+                    MockMqttConnectionFactory.with(getRef(), mqttMessage(publishTopic, TestConstants.modifyThing())));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
-            watch(mqttClientActor);
-
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
-
-            // wait for consumer + publisher + test client
-            Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(3L));
-
-            mqttClient.publish(publishTopic, TestConstants.modifyThing().getBytes(UTF_8), 0, false);
-
-            if (expectSuccess) {
-                expectMsgClass(ModifyThing.class);
-            }
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
         }};
     }
 
     @Test
-    public void testReconnectAndConsumeFromTopic() throws MqttException {
+    public void testReconnectAndConsumeFromTopic() {
         new TestKit(actorSystem) {{
-            final Props props = MqttClientActor.props(connection, getRef());
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            final Props props = mqttClientActor(connection, getRef(),
+                    MockMqttConnectionFactory.with(getRef(), mqttMessage(SOURCE_ADDRESS, TestConstants.modifyThing())));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
 
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            // wait for consumer + publisher + test client
-            Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(3L));
-
-            final String modifyThing = TestConstants.modifyThing();
-
-            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
-
+            // ModifyThing automatically published by mock connection
             expectMsgClass(ModifyThing.class);
 
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
 
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
+            // ModifyThing automatically published by mock connection
             expectMsgClass(ModifyThing.class);
 
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
+            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
         }};
     }
 
     @Test
-    public void testConsumeMultipleTopics() {
+    public void testConsumeMultipleSources() {
         new TestKit(actorSystem) {{
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
 
-            final List<String> subscriptions =
-                    Arrays.asList("A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3");
-            final Collection<String> expectedSubscriptions = new ConcurrentSkipListSet<>(subscriptions);
-            final AtomicLong connected = new AtomicLong(0);
-
-            mqttServer.addInterceptHandler(new AbstractInterceptHandler() {
-                @Override
-                public String getID() {
-                    return connectionId;
-                }
-
-                @Override
-                public void onSubscribe(final InterceptSubscribeMessage msg) {
-                    expectedSubscriptions.remove(msg.getTopicFilter());
-                }
-            });
+            final List<String> irrelevantTopics = Arrays.asList("irrelevant", "topics");
+            final String[] subscriptions =
+                    new String[]{"A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3"};
+            final MqttMessage[] mockMessages =
+                    Stream.concat(irrelevantTopics.stream(), Arrays.stream(subscriptions))
+                            .map(topic -> mqttMessage(topic, TestConstants.modifyThing()))
+                            .toArray(MqttMessage[]::new);
 
             final Connection multipleSources =
                     ConnectivityModelFactory.newConnectionBuilder(connectionId, ConnectionType.MQTT,
                             ConnectionStatus.OPEN, serverHost)
                             .sources(Arrays.asList(
-                                    newFilteredMqttSource(3, 1, AUTHORIZATION_CONTEXT, "filter", 1, "A1"),
-                                    newFilteredMqttSource(2, 2, AUTHORIZATION_CONTEXT, "filter", 1, "B1", "B2"),
-                                    newFilteredMqttSource(1, 3, AUTHORIZATION_CONTEXT, "filter", 1, "C1", "C2", "C3"))
+                                    newMqttSource(3, 1, AUTHORIZATION_CONTEXT, 1, "A1"),
+                                    newMqttSource(2, 2, AUTHORIZATION_CONTEXT, 1, "B1", "B2"),
+                                    newMqttSource(1, 3, AUTHORIZATION_CONTEXT, 1, "C1", "C2", "C3"))
                             )
                             .build();
 
             final String connectionId = TestConstants.createRandomConnectionId();
-            final Props props = MqttClientActor.props(multipleSources, getRef());
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
+            final Props props = mqttClientActor(multipleSources, getRef(),
+                    MockMqttConnectionFactory.with(getRef(), mockMessages));
+            final ActorRef underTest = actorSystem.actorOf(props);
 
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            Awaitility.await().until(expectedSubscriptions::isEmpty);
+            final List<String> receivedTopics = new LinkedList<>();
+            IntStream.range(0, subscriptions.length).forEach(i -> {
+                LOGGER.info("Consuming message {}", i);
+                final String topic = expectMsgClass(ModifyThing.class).getDittoHeaders().get("mqtt.topic");
+                LOGGER.info("Got message with topic {}", topic);
+                receivedTopics.add(topic);
+            });
 
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
+            underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
 
-            Awaitility.await().untilAtomic(connected, equalTo(0L));
+            assertThat(receivedTopics).containsExactlyInAnyOrder(subscriptions);
         }};
     }
 
     @Test
-    public void testPublishToTopic() throws MqttException {
+    public void testPublishToTopic() {
         new TestKit(actorSystem) {{
-            final Props props = MqttClientActor.props(connection, getRef());
-            final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
+            final TestProbe controlProbe = TestProbe.apply(actorSystem);
+            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
+            final ActorRef underTest = actorSystem.actorOf(props);
 
-            mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            // wait for consumer + publisher + test client
-            Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(3L));
-
-            final AtomicReference<MqttMessage> receivedMessage = new AtomicReference<>();
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singleton(""));
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
-
-            mqttClient.subscribeWithResponse(TARGET.getAddress(), 0, (topic, message) -> {
-                final String received = new String(message.getPayload(), UTF_8);
-                LOGGER.info("Received message in test client on topic <{}>: {}", topic, received);
-                receivedMessage.set(message);
-            }).waitForCompletion();
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
             final OutboundSignal.WithExternalMessage mappedSignal =
@@ -339,27 +295,24 @@ public class MqttClientActorTest {
                     ConnectivityModelFactory.newExternalMessageBuilder(new HashMap<>()).withText(expectedJson).build();
             when(mappedSignal.getExternalMessage()).thenReturn(externalMessage);
             when(mappedSignal.getTargets()).thenReturn(singleton(TARGET));
-            mqttClientActor.tell(mappedSignal, getRef());
+            underTest.tell(mappedSignal, getRef());
 
-            Awaitility.await().until(() -> {
-                if (receivedMessage.get() == null) {
-                    LOGGER.info("No message received so far...");
-                    return false;
-                }
-                return expectedJson.equals(new String(receivedMessage.get().getPayload(), UTF_8));
-            });
+            final MqttMessage receivedMessage = expectMsgClass(MqttMessage.class);
+            LOGGER.info("Got thing modified message at topic {}", receivedMessage.topic());
 
-            mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(DISCONNECTED_SUCCESS);
+            underTest.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
+            controlProbe.expectMsg(DISCONNECTED_SUCCESS);
+
+            assertThat(receivedMessage.topic()).isEqualTo(TARGET.getAddress());
+            assertThat(receivedMessage.payload()).isEqualTo(ByteString.fromString(expectedJson));
         }};
     }
 
     @Test
     public void testTestConnection() {
         new TestKit(actorSystem) {{
-            final Props props = MqttClientActor.props(connection, getRef());
+            final Props props = mqttClientActor(connection, getRef(), MockMqttConnectionFactory.with(getRef()));
             final ActorRef mqttClientActor = actorSystem.actorOf(props);
-            watch(mqttClientActor);
 
             mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
@@ -367,60 +320,35 @@ public class MqttClientActorTest {
     }
 
     @Test
-    public void testTestConnectionFails() throws Exception {
+    public void testTestConnectionFails() {
         new TestKit(actorSystem) {{
+            final Props props = mqttClientActor(connection, getRef(),
+                    MockMqttConnectionFactory.withError(getRef(), new StreamCorruptedException("Psalms 38:5")));
+            final ActorRef mqttClientActor = actorSystem.actorOf(props);
 
-            final int newPort = new FreePort().getPort();
-            final Connection newConnection = connection.toBuilder()
-                    .uri("tcp://localhost:" + newPort)
-                    .build();
-
-            try (final ServerSocket serverSocket = new ServerSocket(newPort)) {
-                // start server that closes accepted socket immediately
-                // so that failure is not triggered by connection failure shortcut
-                CompletableFuture.runAsync(() -> {
-                    while (true) {
-                        try (final Socket socket = serverSocket.accept()) {
-                            LOGGER.info("Incoming connection to port {} accepted at port {} ",
-                                    serverSocket.getLocalPort(),
-                                    socket.getPort());
-                        } catch (final IOException e) {
-                            // server socket closed, quitting.
-                            break;
-                        }
-                    }
-                });
-
-                final Props props = MqttClientActor.props(newConnection, getRef());
-                final ActorRef mqttClientActor = actorSystem.actorOf(props);
-
-                mqttClientActor.tell(TestConnection.of(newConnection, DittoHeaders.empty()), getRef());
-                final Status.Failure failure = expectMsgClass(Status.Failure.class);
-                assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
-            }
+            mqttClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+            final Status.Failure failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
         }};
     }
 
     @Test
-    public void testRetrieveConnectionMetrics() throws MqttException {
+    public void testRetrieveConnectionMetrics() {
         new TestKit(actorSystem) {
             {
                 final Connection connectionWithAdditionalSources = connection.toBuilder()
                         .sources(singletonList(
                                 ConnectivityModelFactory.newMqttSource(1, 2, AUTHORIZATION_CONTEXT, 1,
                                         "topic1", "topic2"))).build();
-
-                final Props props = MqttClientActor.props(connectionWithAdditionalSources, getRef());
-                final ActorRef mqttClientActor = actorSystem.actorOf(props);
-
-                // wait for 2 consumers + publisher + test client
-                Awaitility.await().untilAtomic(mqttServer.getConnectionCount(), equalTo(4L));
-
                 final String modifyThing = TestConstants.modifyThing();
-                mqttClient.publish(SOURCE_ADDRESS, modifyThing.getBytes(UTF_8), 0, false);
+
+                final Props props = mqttClientActor(connectionWithAdditionalSources, getRef(),
+                        MockMqttConnectionFactory.with(getRef(), mqttMessage(SOURCE_ADDRESS, modifyThing)));
+                final ActorRef underTest = actorSystem.actorOf(props);
+
                 expectMsgClass(ModifyThing.class);
 
-                mqttClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
+                underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
 
                 final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                         expectMsgClass(RetrieveConnectionMetricsResponse.class);
@@ -466,6 +394,17 @@ public class MqttClientActorTest {
         };
     }
 
+    private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
+            final Function<Connection, MqttConnectionFactory> factoryCreator) {
+
+        return Props.create(MqttClientActor.class, () ->
+                new MqttClientActor(connection, connection.getConnectionStatus(), testProbe, factoryCreator));
+    }
+
+    private static MqttMessage mqttMessage(final String topic, final String payload) {
+        return MqttMessage.create(topic, ByteString.fromArray(payload.getBytes(UTF_8)));
+    }
+
     private static class FreePort {
 
         private final int port;
@@ -484,107 +423,51 @@ public class MqttClientActorTest {
         }
     }
 
-    private static class MqttClientRule extends ExternalResource {
-
-        private final int port;
-        private final String clientId;
-        private final MqttClient mqttClient;
-
-        private MqttClientRule(final int port) {
-            this(port, "test-client");
-        }
-
-        private MqttClientRule(final int port, final String clientId) {
-            this.port = port;
-            this.clientId = clientId;
-            try {
-                mqttClient = new MqttClient("tcp://localhost:" + this.port, this.clientId);
-            } catch (final MqttException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-
-        private void publish(final String topic, final byte[] payload, final int qos, final boolean retained)
-                throws MqttException {
-            mqttClient.publish(topic, payload, qos, retained);
-        }
-
-        private IMqttToken subscribeWithResponse(final String topicFilter, final int qos,
-                final IMqttMessageListener messageListener)
-                throws MqttException {
-            return mqttClient.subscribeWithResponse(topicFilter, qos, messageListener);
-        }
-
-
-        @Override
-        protected void before() throws Throwable {
-            mqttClient.connect();
-        }
-
-        @Override
-        protected void after() {
-            try {
-                if (mqttClient.isConnected()) {
-                    mqttClient.disconnect();
-                }
-                mqttClient.close(true);
-            } catch (final MqttException e) {
-                LOGGER.error("Failed to disconnect: {}", e.getMessage(), e);
-            }
-        }
-    }
-
+    /**
+     * Fools the fast-failing mechanism of BaseClientActor so that MqttClientActor can be tested.
+     * BaseClientActor does not attempt to connect if the host address of the connection URI is not reachable.
+     */
     private static class MqttServerRule extends ExternalResource {
 
-        private final String serverId = "TestServer-" + UUID.randomUUID();
         private final int port;
-        private Server server;
-        private final AtomicLong connectionCount = new AtomicLong(0);
+
+        @Nullable
+        private ServerSocket serverSocket;
 
         private MqttServerRule(final int port) {
             LOGGER.info("Starting server at port {}", port);
             this.port = port;
         }
 
-        private AtomicLong getConnectionCount() {
-            return connectionCount;
-        }
-
-        private void addInterceptHandler(final InterceptHandler interceptHandler) {
-            server.addInterceptHandler(interceptHandler);
-        }
-
-        private void stop() {
-            server.stopServer();
-        }
-
         @Override
-        protected void before() throws Throwable {
-            final MemoryConfig memoryConfig = new MemoryConfig(new Properties());
-            memoryConfig.setProperty("port", Integer.toString(port));
-            server = new Server();
-            server.startServer(memoryConfig);
-            server.addInterceptHandler(new AbstractInterceptHandler() {
-                @Override
-                public String getID() {
-                    return serverId;
-                }
-
-                @Override
-                public void onConnect(final InterceptConnectMessage msg) {
-                    connectionCount.incrementAndGet();
-                }
-
-                @Override
-                public void onDisconnect(final InterceptDisconnectMessage msg) {
-                    connectionCount.decrementAndGet();
+        protected void before() throws Exception {
+            serverSocket = new ServerSocket(port);
+            // start server that closes accepted socket immediately
+            // so that failure is not triggered by connection failure shortcut
+            CompletableFuture.runAsync(() -> {
+                while (true) {
+                    try (final Socket socket = serverSocket.accept()) {
+                        LOGGER.info("Incoming connection to port {} accepted at port {} ",
+                                serverSocket.getLocalPort(),
+                                socket.getPort());
+                    } catch (final IOException e) {
+                        // server socket closed, quitting.
+                        break;
+                    }
                 }
             });
         }
 
         @Override
         protected void after() {
-            stop();
+            try {
+                if (serverSocket != null) {
+                    // should complete future exceptionally via IOException in dispatcher thread
+                    serverSocket.close();
+                }
+            } catch (final IOException e) {
+                // don't care; next test uses a new port.
+            }
         }
     }
 }

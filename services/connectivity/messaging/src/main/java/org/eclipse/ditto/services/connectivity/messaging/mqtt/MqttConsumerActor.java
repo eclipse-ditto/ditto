@@ -31,7 +31,6 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
@@ -141,8 +140,8 @@ public class MqttConsumerActor extends AbstractActor {
                 replyStreamAck();
                 break;
             case STREAM_ENDED:
-                log.debug("Underlying stream completed, shutdown consumer actor.");
-                getSelf().tell(PoisonPill.getInstance(), getSelf());
+                // sometimes Akka sends STREAM_ENDED out-of-band before the last stream element
+                log.info("Underlying stream completed, waiting for shutdown by parent.");
                 break;
             case STREAM_ACK:
                 log.error("Protocol violation: STREAM_ACK");

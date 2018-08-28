@@ -38,10 +38,8 @@ import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.stream.ActorMaterializer;
 import akka.stream.OverflowStrategy;
-import akka.stream.alpakka.mqtt.MqttConnectionSettings;
 import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
-import akka.stream.alpakka.mqtt.javadsl.MqttSink;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
@@ -58,12 +56,12 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
     private final AddressMetric addressMetric;
     private final boolean dryRun;
 
-    private MqttPublisherActor(final MqttConnectionSettings settings, final ActorRef mqttClientActor,
+    private MqttPublisherActor(final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
-        final Sink<MqttMessage, CompletionStage<Done>> mqttSink = MqttSink.create(settings, MqttQoS.atMostOnce());
+        final Sink<MqttMessage, CompletionStage<Done>> mqttSink = factory.newSink();
 
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
                 akka.stream.javadsl.Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
@@ -80,13 +78,13 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
                         0, null);
     }
 
-    static Props props(final MqttConnectionSettings settings, final ActorRef mqttClientActor, final boolean dryRun) {
+    static Props props(final MqttConnectionFactory factory, final ActorRef mqttClientActor, final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttPublisherActor create() {
-                return new MqttPublisherActor(settings, mqttClientActor, dryRun);
+                return new MqttPublisherActor(factory, mqttClientActor, dryRun);
             }
         });
     }

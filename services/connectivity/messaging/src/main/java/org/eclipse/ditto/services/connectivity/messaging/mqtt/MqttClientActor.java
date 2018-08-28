@@ -12,18 +12,17 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -42,10 +41,6 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.paho.client.mqttv3.IMqttActionListener;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
 
 import akka.Done;
 import akka.NotUsed;
@@ -53,7 +48,6 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -64,17 +58,12 @@ import akka.stream.Outlet;
 import akka.stream.SharedKillSwitch;
 import akka.stream.SinkShape;
 import akka.stream.UniformFanOutShape;
-import akka.stream.alpakka.mqtt.MqttConnectionSettings;
 import akka.stream.alpakka.mqtt.MqttMessage;
-import akka.stream.alpakka.mqtt.MqttQoS;
-import akka.stream.alpakka.mqtt.MqttSourceSettings;
-import akka.stream.alpakka.mqtt.javadsl.MqttSource;
 import akka.stream.javadsl.Balance;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
-import scala.collection.JavaConverters;
 import scala.util.Either;
 
 /**
@@ -87,13 +76,16 @@ public class MqttClientActor extends BaseClientActor {
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
+    private final Function<Connection, MqttConnectionFactory> connectionFactoryCreator;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
-    private MqttClientActor(final Connection connection,
+    MqttClientActor(final Connection connection,
             final ConnectionStatus desiredConnectionStatus,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final Function<Connection, MqttConnectionFactory> connectionFactoryCreator) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
+        this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
     }
@@ -106,8 +98,9 @@ public class MqttClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
+        final Function<Connection, MqttConnectionFactory> connectionFactoryCreator = MqttConnectionFactory::of;
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder);
+                conciergeForwarder, connectionFactoryCreator);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -139,8 +132,8 @@ public class MqttClientActor extends BaseClientActor {
     }
 
     @Override
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
-        return super.inConnectedState()
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
+        return super.inAnyState()
                 .event(CountPublishedMqttMessage.class, (message, data) -> {
                     incrementPublishedMessageCounter();
                     return stay();
@@ -213,11 +206,10 @@ public class MqttClientActor extends BaseClientActor {
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      */
     private void connectClient(final Connection connection, final boolean dryRun) {
-        final MqttConnectionSettings connectionSettings =
-                MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection());
+        final MqttConnectionFactory factory = connectionFactoryCreator.apply(connection);
 
         // start publisher
-        startMqttPublisher(connectionSettings, dryRun);
+        startMqttPublisher(factory, dryRun);
 
         // start consumers
         if (isConsuming()) {
@@ -230,25 +222,24 @@ public class MqttClientActor extends BaseClientActor {
                 final ActorRef mappingActor = messageMappingProcessor.right().get();
                 // start new KillSwitch for the next batch of consumers
                 refreshConsumerKillSwitch(KillSwitches.shared("consumerKillSwitch"));
-                connection().getSources()
-                        .forEach(source -> startMqttConsumers(connectionSettings, mappingActor, source, dryRun));
+                connection().getSources().forEach(source ->
+                        startMqttConsumers(factory, mappingActor, source, dryRun));
             }
         } else {
             log.info("Not starting consumption because there is no source.");
         }
     }
 
-    private void startMqttPublisher(final MqttConnectionSettings connectionSettings, final boolean dryRun) {
+    private void startMqttPublisher(final MqttConnectionFactory factory, final boolean dryRun) {
         log.info("Starting MQTT publisher actor.");
         // ensure no previous publisher stays in memory
         stopMqttPublisher();
-        final MqttConnectionSettings publisherSettings = connectionSettings.withClientId(connectionId() + "-publisher");
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(publisherSettings, getSelf(), dryRun));
+                MqttPublisherActor.props(factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
 
-    private void startMqttConsumers(final MqttConnectionSettings connectionSettings,
+    private void startMqttConsumers(final MqttConnectionFactory factory,
             final ActorRef messageMappingProcessorActor,
             final Source source,
             final boolean dryRun) {
@@ -263,17 +254,13 @@ public class MqttClientActor extends BaseClientActor {
             return;
         }
 
-        final List<Pair<String, MqttQoS>> subscriptions = new ArrayList<>();
         final org.eclipse.ditto.model.connectivity.MqttSource mqttSource =
                 (org.eclipse.ditto.model.connectivity.MqttSource) source;
-        final int qos = mqttSource.getQos();
-        final MqttQoS mqttQos = MqttValidator.getQoS(qos);
-        source.getAddresses().forEach(sourceAddress -> subscriptions.add(Pair.create(sourceAddress, mqttQos)));
 
         for (int i = 0; i < source.getConsumerCount(); i++) {
 
             log.debug("Starting {}. consumer actor for source <{}> on connection <{}>.", i, source.getIndex(),
-                    connectionId());
+                    factory.connectionId());
 
             final String uniqueSuffix = getUniqueSourceSuffix(source.getIndex(), i);
             final String actorNamePrefix = MqttConsumerActor.ACTOR_NAME_PREFIX + uniqueSuffix;
@@ -286,14 +273,10 @@ public class MqttClientActor extends BaseClientActor {
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);
         }
 
-        final String clientId = connectionId() + "-source" + source.getIndex();
-        final MqttSourceSettings settings =
-                MqttSourceSettings.create(connectionSettings.withClientId(clientId))
-                        .withSubscriptions(JavaConverters.asScalaBuffer(subscriptions).toSeq());
         // TODO make configurable
         final Integer bufferSize = 8;
         final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
-                createMqttSource(settings, bufferSize);
+                factory.newSource(mqttSource, bufferSize);
 
         // TODO use RestartSource
 //            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> restartingSource =
@@ -306,7 +289,7 @@ public class MqttClientActor extends BaseClientActor {
 
         final CompletionStage<Done> subscriptionInitialized =
                 mqttStreamSource.viaMat(consumerKillSwitch.flow(), Keep.left())
-                        .map(this::countConsumedMqttMessage)
+                        .map(this::countConsumedMessage)
                         .toMat(consumerLoadBalancer, Keep.left())
                         .run(ActorMaterializer.create(getContext()));
 
@@ -315,11 +298,12 @@ public class MqttClientActor extends BaseClientActor {
         final ActorRef self = getSelf();
         pendingStatusReportsFromStreams.add(firstConsumer);
         subscriptionInitialized.handle((done, error) -> {
+            final Collection<String> sourceAddresses = source.getAddresses();
             if (error == null) {
-                log.info("Subscriptions {} initialized successfully", subscriptions);
+                log.info("Subscriptions {} initialized successfully", sourceAddresses);
                 self.tell(new Status.Success(done), firstConsumer);
             } else {
-                log.info("Subscriptions {} failed due to {}: {}", subscriptions,
+                log.info("Subscriptions {} failed due to {}: {}", sourceAddresses,
                         error.getClass().getCanonicalName(), error.getMessage());
                 self.tell(new ImmutableConnectionFailure(null, error, "subscriptions"), firstConsumer);
             }
@@ -327,7 +311,7 @@ public class MqttClientActor extends BaseClientActor {
         });
     }
 
-    private <T> T countConsumedMqttMessage(final T mqttMessage) {
+    private <T> T countConsumedMessage(final T mqttMessage) {
         getSelf().tell(new CountConsumedMqttMessage(), ActorRef.noSender());
         return mqttMessage;
     }
@@ -423,13 +407,6 @@ public class MqttClientActor extends BaseClientActor {
         }
     }
 
-    private static akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> createMqttSource(
-            final MqttSourceSettings settings,
-            final int bufferSize) {
-
-        return MqttSource.atMostOnce(settings, bufferSize);
-    }
-
     private static <T> Graph<SinkShape<T>, NotUsed> createConsumerLoadBalancer(final Collection<ActorRef> routees) {
         return GraphDSL.create(builder -> {
             final UniformFanOutShape<T, T> loadBalancer = builder.add(Balance.create(routees.size()));
@@ -448,20 +425,6 @@ public class MqttClientActor extends BaseClientActor {
         });
     }
 
-    private static void forceCloseTestClient(@Nullable final MqttAsyncClient testClient,
-            final DiagnosticLoggingAdapter log) {
-        try {
-            if (testClient != null) {
-                if (testClient.isConnected()) {
-                    testClient.disconnectForcibly();
-                }
-                testClient.close(true);
-            }
-        } catch (final MqttException closingException) {
-            log.error(closingException, "MQTT test client failed to close!");
-        }
-    }
-
     /**
      * Self message to increment published message counter.
      */
@@ -471,42 +434,6 @@ public class MqttClientActor extends BaseClientActor {
      * Self message to increment consumed message counter.
      */
     private static final class CountConsumedMqttMessage {}
-
-    /**
-     * Callback for connection tests.
-     */
-    private static final class TestActionListener implements IMqttActionListener {
-
-        private final MqttAsyncClient client;
-        private final Connection connection;
-        private final DiagnosticLoggingAdapter log;
-        private final CompletableFuture<Status.Status> future;
-
-        private TestActionListener(final MqttAsyncClient client,
-                final Connection connection,
-                final DiagnosticLoggingAdapter log,
-                final CompletableFuture<Status.Status> future) {
-
-            this.client = client;
-            this.connection = connection;
-            this.log = log;
-            this.future = future;
-        }
-
-        @Override
-        public void onSuccess(final IMqttToken asyncActionToken) {
-            forceCloseTestClient(client, log);
-            final String message = "mqtt connection to " + connection.getUri() + " established successfully";
-            future.complete(new Status.Success(message));
-        }
-
-        @Override
-        public void onFailure(final IMqttToken asyncActionToken, final Throwable e) {
-            forceCloseTestClient(client, log);
-            log.info("MQTT test client failed due to {}: {}", e.getClass().getCanonicalName(), e.getMessage());
-            future.complete(new Status.Failure(e));
-        }
-    }
 
     enum ConsumerStreamMessage {
 
