@@ -20,6 +20,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
 
+/**
+ * Command size validator for thing commands
+ */
 public class ThingCommandSizeValidator extends AbstractCommandSizeValidator {
 
     @Nullable private static ThingCommandSizeValidator instance;
@@ -34,6 +37,10 @@ public class ThingCommandSizeValidator extends AbstractCommandSizeValidator {
         return ThingTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headers).build();
     }
 
+    /**
+     * The singleton instance for this command size validator. Will be initialized at first call.
+     * @return Singleton instance
+     */
     public static ThingCommandSizeValidator getInstance() {
         if (null == instance) {
             long maxSize = Long.parseLong(System.getProperty("ditto.limits.things.max-size.bytes", "-1"));

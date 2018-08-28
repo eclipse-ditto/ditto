@@ -20,6 +20,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandSizeValidator;
 
+/**
+ * Command size validator for policy commands
+ */
 public class PolicyCommandSizeValidator extends AbstractCommandSizeValidator {
 
     @Nullable private static PolicyCommandSizeValidator instance;
@@ -34,6 +37,10 @@ public class PolicyCommandSizeValidator extends AbstractCommandSizeValidator {
         return PolicyTooLargeException.newBuilder(actualSize, maxSize).dittoHeaders(headers).build();
     }
 
+    /**
+     * The singleton instance for this command size validator. Will be initialized at first call.
+     * @return Singleton instance
+     */
     public static PolicyCommandSizeValidator getInstance() {
         if (null == instance) {
             long maxSize = Long.parseLong(System.getProperty("ditto.limits.policies.max-size.bytes", "-1"));

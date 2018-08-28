@@ -21,6 +21,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
+/**
+ * Base command size validator class
+ */
 public abstract class AbstractCommandSizeValidator {
 
     @Nullable private final Long maxSize;
@@ -29,6 +32,10 @@ public abstract class AbstractCommandSizeValidator {
         this.maxSize = maxSize;
     }
 
+    /**
+     * Returns the maximum allowed command size
+     * @return the size
+     */
     public Optional<Long> getMaxSize() {
         return Optional.ofNullable(maxSize);
     }
