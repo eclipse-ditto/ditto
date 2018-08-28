@@ -891,15 +891,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Policy modifiedPolicy = command.getPolicy();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
-                final long length = modifiedPolicy.toJsonString()
-                        .length();
-                if (length > maxSize) {
-                    notifySender(PolicyTooLargeException.newBuilder(length, maxSize)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build());
-                }
-            });
+            try {
+                PolicyCommand.ensureMaxPolicySize(() -> modifiedPolicy.toJsonString().length(), command::getDittoHeaders);
+            } catch (PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
 
@@ -996,18 +992,17 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
-                final long entriesLength = StreamSupport.stream(policyEntries.spliterator(), false)
-                        .map(PolicyEntry::toJson)
-                        .collect(JsonCollectors.valuesToArray())
-                        .toString()
-                        .length();
-                if (entriesLength > maxSize) {
-                    notifySender(PolicyTooLargeException.newBuilder(entriesLength, maxSize)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build());
-                }
-            });
+            try {
+                PolicyCommand.ensureMaxPolicySize(
+                        () -> StreamSupport.stream(policyEntries.spliterator(), false)
+                                .map(PolicyEntry::toJson)
+                                .collect(JsonCollectors.valuesToArray())
+                                .toString()
+                                .length(),
+                        command::getDittoHeaders);
+            } catch (PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             final ModifyPolicyEntriesResponse response = ModifyPolicyEntriesResponse.of(policyId, dittoHeaders);
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, policyEntries,
@@ -1042,16 +1037,17 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Label label = policyEntry.getLabel();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
-                final long policyLength = policy.removeEntry(label).toJsonString().length();
-                final long entryLength = policyEntry.toJsonString()
-                        .length() + label.toString().length() + 5L;
-                if (policyLength + entryLength > maxSize) {
-                    notifySender(PolicyTooLargeException.newBuilder(policyLength + entryLength, maxSize)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build());
-                }
-            });
+            try {
+                PolicyCommand.ensureMaxPolicySize(
+                        () -> {
+                            final long policyLength = policy.removeEntry(label).toJsonString().length();
+                            final long entryLength =
+                                    policyEntry.toJsonString().length() + label.toString().length() + 5L;
+                            return policyLength + entryLength;
+                        }, command::getDittoHeaders);
+            } catch (PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             final PoliciesValidator validator = PoliciesValidator.newInstance(policy.setEntry(policyEntry));
 
@@ -1424,23 +1420,23 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Resources resources = command.getResources();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            PolicyCommand.getMaxPolicySize().ifPresent(maxSize -> {
-                final List<ResourceKey> rks = resources.stream()
-                        .map(Resource::getResourceKey)
-                        .collect(Collectors.toList());
-                Policy tmpPolicy = policy;
-                for (final ResourceKey rk : rks) {
-                    tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
-                }
-                final long policyLength = tmpPolicy.toJsonString().length();
-                final long resourcesLength = resources.toJsonString()
-                        .length() + 5L;
-                if (policyLength + resourcesLength > maxSize) {
-                    notifySender(PolicyTooLargeException.newBuilder(policyLength + resourcesLength, maxSize)
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build());
-                }
-            });
+            try {
+                PolicyCommand.ensureMaxPolicySize(() -> {
+                    final List<ResourceKey> rks = resources.stream()
+                            .map(Resource::getResourceKey)
+                            .collect(Collectors.toList());
+                    Policy tmpPolicy = policy;
+                    for (final ResourceKey rk : rks) {
+                        tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
+                    }
+                    final long policyLength = tmpPolicy.toJsonString().length();
+                    final long resourcesLength = resources.toJsonString()
+                            .length() + 5L;
+                    return policyLength + resourcesLength;
+                }, command::getDittoHeaders);
+            } catch (PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             if (policy.getEntryFor(label).isPresent()) {
                 final PoliciesValidator validator =

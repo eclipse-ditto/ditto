@@ -11,13 +11,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
@@ -40,21 +41,17 @@ public final class ModifyAttributesStrategy extends AbstractCommandStrategy<Modi
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttributes command) {
-
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final long lengthWithOutAttributes = getThingOrThrow(thing).removeAttributes()
+        final Thing nonNullThing = getThingOrThrow(thing);
+        ThingCommand.ensureMaxThingSize(() -> {
+            final long lengthWithOutAttributes = nonNullThing.removeAttributes()
                     .toJsonString()
                     .length();
             final long attributesLength = command.getAttributes().toJsonString().length()
                     + "attributes".length() + 5L;
-            if (lengthWithOutAttributes + attributesLength > maxSize) {
-                throw ThingTooLargeException.newBuilder(lengthWithOutAttributes + attributesLength, maxSize)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
-        });
+            return lengthWithOutAttributes + attributesLength;
+        }, command::getDittoHeaders);
 
-        return getThingOrThrow(thing).getAttributes()
+        return nonNullThing.getAttributes()
                 .map(attributes -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }

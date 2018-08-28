@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.FeatureProperties;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -79,15 +80,7 @@ public final class ModifyFeatureProperties extends AbstractCommand<ModifyFeature
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.properties = checkNotNull(properties, "Feature Properties");
 
-        // when max Thing size was specified via system property, apply the max size check of the JSON:
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final int length = properties.toJsonString().length();
-            if (length > maxSize) {
-                throw ThingTooLargeException.newBuilder(length, maxSize)
-                        .dittoHeaders(dittoHeaders)
-                        .build();
-            }
-        });
+        ThingCommand.ensureMaxThingSize(() -> properties.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

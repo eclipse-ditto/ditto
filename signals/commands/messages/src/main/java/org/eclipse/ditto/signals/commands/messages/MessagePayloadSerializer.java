@@ -58,15 +58,10 @@ class MessagePayloadSerializer {
         } else if (payloadOptional.isPresent()) {
             final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
+                MessageCommand.ensureMaxMessagePayloadSize(
+                        () -> ((JsonValue) payload).toString().length(),
+                        message::getHeaders);
 
-                MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
-                    final int length = ((JsonValue) payload).toString().length();
-                    if (length > maxPayloadSize) {
-                        throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize)
-                                .dittoHeaders(message.getHeaders())
-                                .build();
-                    }
-                });
                 messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
             } else {
                 injectMessagePayload(messageBuilder, predicate, payload.toString(), message.getHeaders());
@@ -76,16 +71,7 @@ class MessagePayloadSerializer {
 
     private static void injectMessagePayload(final JsonObjectBuilder messageBuilder,
             final Predicate<JsonField> predicate, final String encodedString, final MessageHeaders messageHeaders) {
-
-        MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
-            final int length = encodedString.length();
-            if (length > maxPayloadSize) {
-                throw MessagePayloadSizeTooLargeException.newBuilder(length, maxPayloadSize)
-                        .dittoHeaders(messageHeaders)
-                        .build();
-            }
-        });
-
+        MessageCommand.ensureMaxMessagePayloadSize(encodedString::length, () -> messageHeaders);
         messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
     }
 
@@ -103,14 +89,7 @@ class MessagePayloadSerializer {
                         : payload.toString();
                 final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
 
-                MessageCommand.getMaxMessagePayloadSize().ifPresent(maxPayloadSize -> {
-                    if (payloadBytes.length > maxPayloadSize) {
-                        throw MessagePayloadSizeTooLargeException.newBuilder(payloadBytes.length, maxPayloadSize)
-                                .dittoHeaders(messageHeaders)
-                                .build();
-                    }
-                });
-
+                MessageCommand.ensureMaxMessagePayloadSize(() -> payloadBytes.length, () -> messageHeaders);
                 messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
             }
         }

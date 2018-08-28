@@ -43,21 +43,18 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
+        final Thing nonNullThing = getThingOrThrow(thing);
 
-        ThingCommand.getMaxThingSize().ifPresent(maxSize -> {
-            final long lengthWithOutProperty = getThingOrThrow(thing).removeFeatureProperty(featureId, command.getPropertyPointer())
+        ThingCommand.ensureMaxThingSize(() -> {
+            final long lengthWithOutProperty = nonNullThing.removeFeatureProperty(featureId, command.getPropertyPointer())
                     .toJsonString()
                     .length();
             final long propertyLength = command.getPropertyValue().toString().length()
                     + command.getPropertyPointer().length() + 5L;
-            if (lengthWithOutProperty + propertyLength > maxSize) {
-                throw ThingTooLargeException.newBuilder(lengthWithOutProperty + propertyLength, maxSize)
-                        .dittoHeaders(command.getDittoHeaders())
-                        .build();
-            }
-        });
+            return lengthWithOutProperty + propertyLength;
+        }, command::getDittoHeaders);
 
-        return getThingOrThrow(thing).getFeatures()
+        return nonNullThing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId))
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(
