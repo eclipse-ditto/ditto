@@ -88,6 +88,11 @@ public abstract class ProtocolAdapterProvider {
         }
 
         @Override
+        public Class getSerializationType() {
+            return getJavaType();
+        }
+
+        @Override
         public boolean shouldReadFromExternalHeaders() {
             return false;
         }

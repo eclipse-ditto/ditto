@@ -12,12 +12,12 @@
 package org.eclipse.ditto.services.policies.persistence.testhelper;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntryResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResourceResponse;
@@ -96,6 +96,6 @@ public class ETagTestUtils {
     }
 
     private static DittoHeaders appendETagHeader(final Object object, final DittoHeaders dittoHeaders) {
-        return dittoHeaders.toBuilder().eTag(ETagValueGenerator.generate(object).get()).build();
+        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).get()).build();
     }
 }

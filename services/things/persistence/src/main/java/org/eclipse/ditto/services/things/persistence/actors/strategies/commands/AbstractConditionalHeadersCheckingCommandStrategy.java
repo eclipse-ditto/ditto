@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -19,12 +20,12 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagComparison;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
-import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeadersNotModifiedException;
-import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeadersPreconditionFailedException;
+import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailed;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModified;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
@@ -73,53 +74,45 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
      */
     private Optional<Result> checkConditionalHeaders(final C command, @Nullable final Thing thing) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final String currentETagValue = determineETagEntity(command, thing)
-                .flatMap(ETagValueGenerator::generate)
-                .map(String::valueOf)
+        final EntityTag currentETagValue = determineETagEntity(command, thing)
+                .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
-        final String ifMatchValue = dittoHeaders.get(IF_MATCH_HEADER_KEY);
-
-        if (ifMatchValue != null && !ETagComparison.strong(currentETagValue, ifMatchValue)) {
-
-            final DittoRuntimeException exception =
-                    buildException(IF_MATCH_HEADER_KEY, ifMatchValue, currentETagValue, command);
-            return Optional.of(ResultFactory.newErrorResult(exception));
-
-        }
-
-        final String ifNoneMatchValue = dittoHeaders.get(IF_NONE_MATCH_HEADER_KEY);
-
-        if (ifNoneMatchValue != null && !ETagComparison.weak(currentETagValue, ifNoneMatchValue)) {
-            final DittoRuntimeException exception =
-                    buildException(IF_NONE_MATCH_HEADER_KEY, ifNoneMatchValue, currentETagValue, command);
-            return Optional.of(ResultFactory.newErrorResult(exception));
+        final List<PreconditionHeader> preconditionHeaders = PreconditionHeader.fromDittoHeaders(dittoHeaders);
+        for (PreconditionHeader preconditionHeader : preconditionHeaders) {
+            if (!preconditionHeader.meetsConditionFor(currentETagValue)) {
+                final DittoRuntimeException exception = buildException(preconditionHeader, currentETagValue, command);
+                return Optional.of(ResultFactory.newErrorResult(exception));
+            }
         }
 
         return Optional.empty();
     }
 
-    private DittoRuntimeException buildException(final String headerKey, final String headerValue,
-            @Nullable final String currentETagValue, final C command) {
+    private DittoRuntimeException buildException(final PreconditionHeader preconditionHeader,
+            @Nullable final EntityTag currentETagValue, final C command) {
+
+        final String headerKey = preconditionHeader.getKey();
+        final String headerValue = preconditionHeader.getValue();
 
         if (IF_MATCH_HEADER_KEY.equals(headerKey) || command instanceof ThingModifyCommand) {
-            return PreconditionHeadersPreconditionFailedException
+            return ThingPreconditionFailed
                     .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
                     .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
                     .build();
         } else {
-            return PreconditionHeadersNotModifiedException
-                    .newBuilder(headerValue, currentETagValue)
+            return ThingPreconditionNotModified
+                    .newBuilder(headerValue, String.valueOf(currentETagValue))
                     .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
                     .build();
         }
     }
 
-    private DittoHeaders appendETagIfNotNull(final DittoHeaders dittoHeaders, @Nullable final CharSequence eTagValue) {
-        if (eTagValue == null) {
+    private DittoHeaders appendETagIfNotNull(final DittoHeaders dittoHeaders, @Nullable final EntityTag entityTag) {
+        if (entityTag == null) {
             return dittoHeaders;
         }
-        return dittoHeaders.toBuilder().eTag(eTagValue).build();
+        return dittoHeaders.toBuilder().eTag(entityTag).build();
     }
 
     private boolean headersContainConditionalHeaders(final DittoHeaders dittoHeaders) {

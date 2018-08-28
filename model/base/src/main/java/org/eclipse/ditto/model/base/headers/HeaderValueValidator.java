@@ -13,6 +13,8 @@ package org.eclipse.ditto.model.base.headers;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -26,10 +28,14 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
 /**
  * Checks if a specified CharSequence is a valid representation of a {@link HeaderDefinition}'s Java type. If a checked
- * value is invalid an IllegalArgumentException is thrown. The following types are recognised:
+ * value is invalid an {@link DittoHeaderInvalidException} is thrown. The following types are recognised:
  * <ul>
  *     <li>{@code boolean}/{@code Boolean},</li>
  *     <li>{@code int}/{@code Integer},</li>
@@ -42,7 +48,6 @@ import org.eclipse.ditto.json.JsonValue;
 public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, CharSequence> {
 
     private static final HeaderValueValidator INSTANCE = new HeaderValueValidator();
-    private static final String MSG_TEMPLATE = "Value <{0}> for key <{1}> is not a valid {2}!";
 
     private HeaderValueValidator() {
         super();
@@ -68,6 +73,10 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
             validateBooleanValue(definition.getKey(), charSequence);
         } else if (isJsonArray(definitionJavaType)) {
             validateJsonArrayValue(definition.getKey(), charSequence);
+        } else if (isEntityTag(definitionJavaType)) {
+            validateEntityTag(definition.getKey(), charSequence);
+        } else if (isEntityTags(definitionJavaType)) {
+            validateEntityTags(definition.getKey(), charSequence);
         }
     }
 
@@ -77,10 +86,11 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
 
     @SuppressWarnings({"ResultOfMethodCallIgnored", "squid:S2201"})
     private static void validateIntegerValue(final String key, @Nullable final CharSequence value) {
+        final String headerValue = String.valueOf(value);
         try {
-            Integer.parseInt(String.valueOf(value));
+            Integer.parseInt(headerValue);
         } catch (final NumberFormatException e) {
-            throw new IllegalArgumentException(MessageFormat.format(MSG_TEMPLATE, value, key, "int"), e);
+            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "int").build();
         }
     }
 
@@ -90,10 +100,11 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
 
     @SuppressWarnings({"ResultOfMethodCallIgnored", "squid:S2201"})
     private static void validateLongValue(final String key, @Nullable final CharSequence value) {
+        final String headerValue = String.valueOf(value);
         try {
-            Long.parseLong(String.valueOf(value));
+            Long.parseLong(headerValue);
         } catch (final NumberFormatException e) {
-            throw new IllegalArgumentException(MessageFormat.format(MSG_TEMPLATE, value, key, "long"), e);
+            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "long").build();
         }
     }
 
@@ -102,9 +113,9 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     }
 
     private static void validateBooleanValue(final String key, @Nullable final CharSequence value) {
-        final String s = String.valueOf(value);
-        if (!"true".equals(s) && !"false".equals(s)) {
-            throw new IllegalArgumentException(MessageFormat.format(MSG_TEMPLATE, value, key, "boolean"));
+        final String headerValue = String.valueOf(value);
+        if (!"true".equals(headerValue) && !"false".equals(headerValue)) {
+            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "boolean").build();
         }
     }
 
@@ -116,18 +127,54 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
      * Checks if {@code value} is a JSON array and if all of its values are strings.
      */
     private static void validateJsonArrayValue(final String key, @Nullable final CharSequence value) {
+        final String headerValue = String.valueOf(value);
         try {
-            final JsonArray jsonArray = JsonFactory.newArray(String.valueOf(value));
+            final JsonArray jsonArray = JsonFactory.newArray(headerValue);
             final List<JsonValue> nonStringArrayValues = jsonArray.stream()
                     .filter(jsonValue -> !jsonValue.isString())
                     .collect(Collectors.toList());
             if (!nonStringArrayValues.isEmpty()) {
-                final String msgTemplate = "JSON array for <{0}> contained non-String values: {1}!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key, nonStringArrayValues));
+                final String msgTemplate = "JSON array for ''{0}'' contained non-String values.";
+                throw DittoHeaderInvalidException.fromMessage(MessageFormat.format(msgTemplate, key));
             }
-        } catch (final IllegalArgumentException | JsonParseException e) {
-            throw new IllegalArgumentException(MessageFormat.format(MSG_TEMPLATE, value, key, "JSON array"), e);
+        } catch (final JsonParseException e) {
+            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "JSON array").build();
         }
     }
 
+    private static boolean isEntityTags(final Class<?> type) {
+        return EntityTags.class.equals(type);
+    }
+
+    private void validateEntityTags(final String key, @Nullable final CharSequence charSequence) {
+        final String headerValue = String.valueOf(charSequence);
+        final String[] entityTags = headerValue.split("\\s*,\\s*");
+
+        for (String entityTag : entityTags) {
+            validateEntityTag(key, entityTag);
+        }
+    }
+
+    private static boolean isEntityTag(final Class<?> type) {
+        return EntityTag.class.equals(type);
+    }
+
+    // Warning suppressed since this is a fixed external URI.
+    @SuppressWarnings({"squid:S1075"})
+    private void validateEntityTag(final String key, @Nullable final CharSequence charSequence) {
+        final String headerValue = String.valueOf(charSequence);
+        if (!EntityTag.validate(headerValue)) {
+
+            final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
+                    DittoHeaderInvalidException.newBuilder(key, headerValue, "entity-tag");
+
+            try {
+                exceptionBuilder.href(new URI("https://tools.ietf.org/html/rfc7232#section-2.3"));
+            } catch (final URISyntaxException e) {
+                // Do nothing. If this happens, there is no href appended to the exception builder.
+            }
+
+            throw exceptionBuilder.build();
+        }
+    }
 }

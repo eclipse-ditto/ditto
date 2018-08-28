@@ -26,6 +26,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -47,7 +48,6 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -1104,7 +1104,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
                 if (validator.isValid()) {
                     final PolicyEntryDeleted policyEntryDeleted =
-                            PolicyEntryDeleted.of(policyId, label, getNextRevision(), getEventTimestamp(), dittoHeaders);
+                            PolicyEntryDeleted.of(policyId, label, getNextRevision(), getEventTimestamp(),
+                                    dittoHeaders);
 
                     processEvent(policyEntryDeleted,
                             event -> sendSuccessResponse(command, DeletePolicyEntryResponse.of(policyId, label,
@@ -1804,6 +1805,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         /**
          * Sends a success-Response, which may be extended with an ETag header.
+         *
          * @param command the command which caused the response
          * @param response the response, which may be extended
          */
@@ -1816,10 +1818,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         private WithDittoHeaders appendETagHeader(final C command, final WithDittoHeaders response) {
             final DittoHeaders dittoHeaders = response.getDittoHeaders();
 
-            final Optional<CharSequence> etagValueOpt = determineETagEntity(command)
-                    .flatMap(ETagValueGenerator::generate);
-            if (etagValueOpt.isPresent()) {
-                final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder().eTag(etagValueOpt.get()).build();
+            final Optional<EntityTag> entityTagOpt = determineETagEntity(command)
+                    .flatMap(EntityTag::fromEntity);
+            if (entityTagOpt.isPresent()) {
+                final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder().eTag(entityTagOpt.get()).build();
                 return response.setDittoHeaders(newDittoHeaders);
             }
 
@@ -1828,16 +1830,16 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         /**
          * Checks conditional headers on the (sub-)entity determined by the given {@code command}.
-         * @param command the command which addresses either the whole policy or a sub-entity
          *
+         * @param command the command which addresses either the whole policy or a sub-entity
          * @return {@code null} in case of success, a {@link DittoRuntimeException} otherwise.
          */
         @Nullable
         private DittoRuntimeException checkConditionalHeaders(final C command) {
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-            final CharSequence currentETagValue = determineETagEntity(command)
-                    .flatMap(ETagValueGenerator::generate)
+            final EntityTag currentEntityTag = determineETagEntity(command)
+                    .flatMap(EntityTag::fromEntity)
                     .orElse(null);
 
             //TODO: check conditional headers and create DittoRuntimeException with appropriate headers

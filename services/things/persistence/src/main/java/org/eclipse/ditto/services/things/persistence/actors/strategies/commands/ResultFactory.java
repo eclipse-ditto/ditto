@@ -21,9 +21,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.services.utils.headers.conditional.ETagValueGenerator;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
@@ -83,11 +83,11 @@ final class ResultFactory {
         @SuppressWarnings("unchecked")
         final Optional<Object> eTagEntityOpt = eTagProvider.determineETagEntity(command, thing);
         if (eTagEntityOpt.isPresent()) {
-            final Optional<CharSequence> eTagValueOpt = ETagValueGenerator.generate(eTagEntityOpt.get());
-            if (eTagValueOpt.isPresent())  {
-                final CharSequence eTagValue = eTagValueOpt.get();
+            final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
+            if (entityTagOpt.isPresent())  {
+                final EntityTag entityTag = entityTagOpt.get();
                 final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
-                        .eTag(eTagValue)
+                        .eTag(entityTag)
                         .build();
                 return withDittoHeaders.setDittoHeaders(newDittoHeaders);
             }

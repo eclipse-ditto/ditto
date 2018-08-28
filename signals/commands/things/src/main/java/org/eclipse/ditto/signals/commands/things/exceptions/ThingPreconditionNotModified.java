@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.headers.conditional;
+package org.eclipse.ditto.signals.commands.things.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -22,32 +22,34 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingException;
 
-public class PreconditionHeadersPreconditionFailedException extends DittoRuntimeException {
-
+public class ThingPreconditionNotModified extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "headers.precondition.failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.notmodified";
 
     private static final String MESSAGE_TEMPLATE =
-            "The comparison of precondition header ''{0}'' evaluated to false. . Expected: ''{1}'', Actual: ''{2}''.";
+            "The comparison of precondition header ''If-None-Match'' for the requested thing resource evaluated to " +
+                    "false. Expected: ''{1}'' not to match actual: ''{2}''.";
 
-    private static final String DEFAULT_DESCRIPTION = "The comparison of the provided precondition header with the " +
-            "current ETag value evaluated to false. Check the value of your conditional header value.";
+    private static final String DEFAULT_DESCRIPTION =
+            "The comparison of the provided precondition header ''If-None-Match'' with the current ETag value of the " +
+                    "requested thing resource evaluated to false. Check the value of your conditional header value.";
 
-    private PreconditionHeadersPreconditionFailedException(final DittoHeaders dittoHeaders,
+    private ThingPreconditionNotModified(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.NOT_MODIFIED, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code {@link PreconditionHeadersPreconditionFailedException }}.
+     * A mutable builder for a {@code {@link ThingPreconditionNotModified }}.
      *
      * @return the builder.
      */
@@ -56,15 +58,14 @@ public class PreconditionHeadersPreconditionFailedException extends DittoRuntime
     }
 
     /**
-     * A mutable builder for a {@code {@link PreconditionHeadersPreconditionFailedException }}.
+     * A mutable builder for a {@code {@link ThingPreconditionNotModified }}.
      *
-     * @param conditionalHeaderName the name of the conditional header.
      * @param expected the expected value.
      * @param actual the actual ETag value.
      * @return the builder.
      */
-    public static Builder newBuilder(final String conditionalHeaderName, final String expected, final String actual) {
-        return new Builder(conditionalHeaderName, expected, actual);
+    public static Builder newBuilder(final String expected, final String actual) {
+        return new Builder(expected, actual);
     }
 
     /**
@@ -72,9 +73,9 @@ public class PreconditionHeadersPreconditionFailedException extends DittoRuntime
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersPreconditionFailedException.
+     * @return the new ConditionalHeadersNotModifiedException.
      */
-    public static PreconditionHeadersPreconditionFailedException fromMessage(final String message,
+    public static ThingPreconditionNotModified fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
 
         return new Builder()
@@ -85,47 +86,44 @@ public class PreconditionHeadersPreconditionFailedException extends DittoRuntime
 
     /**
      * Constructs a new {@code ConditionalHeadersPreconditionFailedException} object with the exception message extracted from
-     * the given
-     * JSON object.
+     * the given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersPreconditionFailedException.
+     * @return the new ConditionalHeadersNotModifiedException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
-    public static PreconditionHeadersPreconditionFailedException fromJson(final JsonObject jsonObject,
+    public static ThingPreconditionNotModified fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link PreconditionHeadersPreconditionFailedException}.
+     * A mutable builder with a fluent API for a {@link ThingPreconditionNotModified}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<PreconditionHeadersPreconditionFailedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ThingPreconditionNotModified> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String conditionalHeaderName, final String expected, final String actual) {
+        private Builder(final String expected, final String actual) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, conditionalHeaderName, expected, actual));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, expected, actual));
         }
 
         @Override
-        protected PreconditionHeadersPreconditionFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected ThingPreconditionNotModified doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new PreconditionHeadersPreconditionFailedException(dittoHeaders, message, description, cause, href);
+            return new ThingPreconditionNotModified(dittoHeaders, message, description, cause, href);
         }
 
     }
-
-
 }

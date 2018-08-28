@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.headers.conditional;
+package org.eclipse.ditto.signals.commands.things.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -22,33 +22,34 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingException;
 
-public class OpaqueTagInvalidException extends DittoRuntimeException {
-
+public class ThingPreconditionFailed extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "headers.precondition.opaquetag.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.failed";
 
     private static final String MESSAGE_TEMPLATE =
-            "The opaque tag ''{0}'' of a precondition header is invalid. " +
-                    "See https://tools.ietf.org/html/rfc7232#section-2.3 for details about allowed syntax.";
+            "The comparison of precondition header ''{0}'' for this thing resource evaluated to false." +
+                    " Expected: ''{1}'', Actual: ''{2}''.";
 
-    private static final String DEFAULT_DESCRIPTION = "The opaque tag of the precondition header is invalid. " +
-            "See https://tools.ietf.org/html/rfc7232#section-2.3 for details about allowed syntax.";
+    private static final String DEFAULT_DESCRIPTION = "The comparison of the provided precondition header with the " +
+            "current ETag value of this thing resource evaluated to false. Check the value of your conditional header" +
+            " value.";
 
-    private OpaqueTagInvalidException(final DittoHeaders dittoHeaders,
+    private ThingPreconditionFailed(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.NOT_MODIFIED, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code {@link OpaqueTagInvalidException }}.
+     * A mutable builder for a {@code {@link ThingPreconditionFailed }}.
      *
      * @return the builder.
      */
@@ -57,13 +58,15 @@ public class OpaqueTagInvalidException extends DittoRuntimeException {
     }
 
     /**
-     * A mutable builder for a {@code {@link OpaqueTagInvalidException }}.
+     * A mutable builder for a {@code {@link ThingPreconditionFailed }}.
      *
-     * @param opaqueTag the opaque tag value.
+     * @param conditionalHeaderName the name of the conditional header.
+     * @param expected the expected value.
+     * @param actual the actual ETag value.
      * @return the builder.
      */
-    public static Builder newBuilder(final String opaqueTag) {
-        return new Builder(opaqueTag);
+    public static Builder newBuilder(final String conditionalHeaderName, final String expected, final String actual) {
+        return new Builder(conditionalHeaderName, expected, actual);
     }
 
     /**
@@ -71,9 +74,9 @@ public class OpaqueTagInvalidException extends DittoRuntimeException {
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersNotModifiedException.
+     * @return the new ConditionalHeadersPreconditionFailedException.
      */
-    public static OpaqueTagInvalidException fromMessage(final String message,
+    public static ThingPreconditionFailed fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
 
         return new Builder()
@@ -84,46 +87,46 @@ public class OpaqueTagInvalidException extends DittoRuntimeException {
 
     /**
      * Constructs a new {@code ConditionalHeadersPreconditionFailedException} object with the exception message extracted from
-     * the given JSON object.
+     * the given
+     * JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersNotModifiedException.
+     * @return the new ConditionalHeadersPreconditionFailedException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * JsonFields#MESSAGE} field.
      */
-    public static OpaqueTagInvalidException fromJson(final JsonObject jsonObject,
+    public static ThingPreconditionFailed fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link OpaqueTagInvalidException}.
+     * A mutable builder with a fluent API for a {@link ThingPreconditionFailed}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<OpaqueTagInvalidException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<ThingPreconditionFailed> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String opaqueTag) {
+        private Builder(final String conditionalHeaderName, final String expected, final String actual) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, opaqueTag));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, conditionalHeaderName, expected, actual));
         }
 
         @Override
-        protected OpaqueTagInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected ThingPreconditionFailed doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new OpaqueTagInvalidException(dittoHeaders, message, description, cause, href);
+            return new ThingPreconditionFailed(dittoHeaders, message, description, cause, href);
         }
 
     }
-
-
 }

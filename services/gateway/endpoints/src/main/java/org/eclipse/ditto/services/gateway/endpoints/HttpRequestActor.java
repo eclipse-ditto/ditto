@@ -465,12 +465,22 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void completeWithDittoRuntimeException(final DittoRuntimeException dre) {
-        final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(dre.getStatusCode().toInt())
-                .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()));
+
+        logDittoRuntimeException(dre);
+        final HttpResponse responseWithoutHeaders = buildResponseWithoutHeadersFromDittoRuntimeException(dre);
         final HttpResponse response =
                 enhanceResponseWithExternalDittoHeaders(responseWithoutHeaders, dre.getDittoHeaders());
 
         completeWithResult(response);
+    }
+
+    private HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(final DittoRuntimeException dre) {
+        final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(dre.getStatusCode().toInt());
+        if (HttpStatusCode.NOT_MODIFIED.equals(dre.getStatusCode())) {
+            return responseWithoutHeaders;
+        } else {
+            return responseWithoutHeaders.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()));
+        }
     }
 
     private void completeWithResult(final HttpResponse response) {

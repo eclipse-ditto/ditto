@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.utils.headers.conditional;
+package org.eclipse.ditto.model.base.headers.entitytag;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,37 +24,37 @@ import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.junit.Test;
 
-public class ETagValueGeneratorTest {
+public class EntityTagBuilderTest {
 
     @Test
-    public void generateForNonDeletedEntity() {
+    public void buildForNonDeletedEntity() {
         final String mockedRevision = "4711";
         final Entity mockEntity = createMockEntity(false, mockedRevision);
 
         final String expectedETagValue = "\"rev:4711\"";
-        assertETagGeneration(mockEntity, expectedETagValue);
+        assertEntityTagGeneration(mockEntity, EntityTag.fromString(expectedETagValue));
     }
 
     @Test
-    public void generateForDeletedEntity() {
+    public void buildForDeletedEntity() {
         final Entity mockEntity = createMockEntity(true, "4711");
 
-        assertETagGeneration(mockEntity, null);
+        assertEntityTagGeneration(mockEntity, null);
     }
 
     @Test
-    public void generateForNonEntityObject() {
+    public void buildForNonEntityObject() {
         final String arbitraryObject = "1234";
         final String expectedETagValue = "\"hash:" + String.valueOf(arbitraryObject.hashCode()) + "\"";
 
-        assertETagGeneration(arbitraryObject, expectedETagValue);
+        assertEntityTagGeneration(arbitraryObject, EntityTag.fromString(expectedETagValue));
     }
 
     @Test
-    public void generateForNull() {
-        final Optional<CharSequence> generatedETagValue = ETagValueGenerator.generate(null);
+    public void buildForNull() {
+        final Optional<EntityTag> builtETagValue = EntityTagBuilder.buildFromEntity(null);
 
-        assertThat(generatedETagValue).isNotPresent();
+        assertThat(builtETagValue).isNotPresent();
     }
 
     private static Entity createMockEntity(final boolean deleted, final String mockedETagValue) {
@@ -66,16 +66,16 @@ public class ETagValueGeneratorTest {
         return mockEntity;
     }
 
-    private void assertETagGeneration(final Object obj, @Nullable final String expectedETagValue) {
-        final Optional<CharSequence> generatedETagValueOpt = ETagValueGenerator.generate(obj);
-        if (expectedETagValue == null) {
-            assertThat(generatedETagValueOpt).isNotPresent();
+    private void assertEntityTagGeneration(final Object obj, @Nullable final EntityTag expectedEntityTag) {
+        final Optional<EntityTag> builtEntityTagOpt = EntityTagBuilder.buildFromEntity(obj);
+        if (expectedEntityTag == null) {
+            assertThat(builtEntityTagOpt).isNotPresent();
             return;
         }
 
-        final CharSequence generatedETagValue = generatedETagValueOpt.orElseThrow(() -> new
+        final EntityTag builtEntityTag = builtEntityTagOpt.orElseThrow(() -> new
                 AssertionError("Expected ETag, but is empty."));
 
-        assertThat(generatedETagValue).isEqualTo(expectedETagValue);
+        assertThat(builtEntityTag).isEqualTo(expectedEntityTag);
     }
 }
