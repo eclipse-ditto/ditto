@@ -73,7 +73,8 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
         this.label = label;
         this.subjects = subjects;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> subjects.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> subjects.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

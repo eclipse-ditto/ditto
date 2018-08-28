@@ -73,7 +73,8 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
         this.label = label;
         this.resources = resources;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> resources.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> resources.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

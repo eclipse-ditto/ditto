@@ -73,7 +73,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
-        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
+                dittoHeaders);
     }
 
     /**

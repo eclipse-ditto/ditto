@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -91,7 +92,7 @@ import scala.runtime.BoxedUnit;
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty("ditto.limits.policies.max-size.bytes", "-1"));
+            System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
 
     @Before
     public void setup() {

@@ -62,7 +62,8 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
         super(TYPE, dittoHeaders);
         this.policy = policy;
 
-        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

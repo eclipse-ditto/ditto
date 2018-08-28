@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.junit.BeforeClass;
 import org.mockito.Mockito;
 
@@ -27,7 +28,7 @@ public abstract class AbstractCommandStrategyTest {
     protected static final long NEXT_REVISION = 42L;
 
     protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
-            System.getProperty("ditto.limits.things.max-size.bytes", "-1"));
+            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     protected static DiagnosticLoggingAdapter logger;
     protected static ThingSnapshotter thingSnapshotter;
