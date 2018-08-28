@@ -31,11 +31,10 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.ThingIdValidator;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies all existing Features of a Thing.
@@ -66,7 +65,7 @@ public final class ModifyFeatures extends AbstractCommand<ModifyFeatures>
         this.thingId = thingId;
         this.features = checkNotNull(features, "Features");
 
-        ThingCommand.ensureMaxThingSize(() -> features.toJsonString().length(), () -> dittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> features.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

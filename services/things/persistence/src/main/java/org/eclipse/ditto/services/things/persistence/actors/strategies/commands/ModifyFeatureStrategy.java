@@ -17,8 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
@@ -42,7 +41,7 @@ final class ModifyFeatureStrategy extends AbstractCommandStrategy<ModifyFeature>
             final long nextRevision, final ModifyFeature command) {
 
         final Thing nonNullThing = getThingOrThrow(thing);
-        ThingCommand.ensureMaxThingSize(() -> {
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
             final long lengthWithOutFeature = nonNullThing.removeFeature(command.getFeatureId())
                     .toJsonString()
                     .length();

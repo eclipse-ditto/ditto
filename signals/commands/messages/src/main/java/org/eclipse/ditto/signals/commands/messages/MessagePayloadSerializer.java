@@ -23,7 +23,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageHeaders;
-import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 
 /**
  * (De-)Serializes message payloads of {@code MessageCommand}s and {@code MessageCommandResponse}s.
@@ -58,7 +57,7 @@ class MessagePayloadSerializer {
         } else if (payloadOptional.isPresent()) {
             final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
-                MessageCommand.ensureMaxMessagePayloadSize(
+                MessageCommandSizeValidator.getInstance().ensureValidSize(
                         () -> ((JsonValue) payload).toString().length(),
                         message::getHeaders);
 
@@ -71,7 +70,7 @@ class MessagePayloadSerializer {
 
     private static void injectMessagePayload(final JsonObjectBuilder messageBuilder,
             final Predicate<JsonField> predicate, final String encodedString, final MessageHeaders messageHeaders) {
-        MessageCommand.ensureMaxMessagePayloadSize(encodedString::length, () -> messageHeaders);
+        MessageCommandSizeValidator.getInstance().ensureValidSize(encodedString::length, () -> messageHeaders);
         messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
     }
 
@@ -89,7 +88,7 @@ class MessagePayloadSerializer {
                         : payload.toString();
                 final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
 
-                MessageCommand.ensureMaxMessagePayloadSize(() -> payloadBytes.length, () -> messageHeaders);
+                MessageCommandSizeValidator.getInstance().ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
                 messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
             }
         }

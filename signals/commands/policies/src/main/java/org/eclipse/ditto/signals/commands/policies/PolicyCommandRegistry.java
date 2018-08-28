@@ -14,8 +14,6 @@ package org.eclipse.ditto.signals.commands.policies;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandRegistry;
@@ -25,8 +23,6 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandRegis
  * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link PolicyCommand}s.
  */
 public final class PolicyCommandRegistry extends AbstractCommandRegistry<PolicyCommand> {
-
-    @Nullable static Long maxPolicySize = null;
 
     private PolicyCommandRegistry(final Map<String, JsonParsable<PolicyCommand>> parseStrategies) {
         super(parseStrategies);

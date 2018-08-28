@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies a {@link Policy}.
@@ -64,7 +64,7 @@ public final class ModifyPolicy extends AbstractCommand<ModifyPolicy> implements
         this.policyId = policyId;
         this.policy = policy;
 
-        PolicyCommand.ensureMaxPolicySize(() -> policy.toJsonString().length(), () -> dittoHeaders);
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () -> dittoHeaders);
     }
 
     /**

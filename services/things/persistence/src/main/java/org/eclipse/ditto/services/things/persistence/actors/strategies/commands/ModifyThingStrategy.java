@@ -24,8 +24,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingTooLargeException;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
@@ -50,7 +49,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
 
         final Thing nonNullThing = getThingOrThrow(thing);
 
-        ThingCommand.ensureMaxThingSize(() -> nonNullThing.toJsonString().length(), command::getDittoHeaders);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(), command::getDittoHeaders);
 
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
             return handleModifyExistingWithV1Command(context, nonNullThing, nextRevision, command);
