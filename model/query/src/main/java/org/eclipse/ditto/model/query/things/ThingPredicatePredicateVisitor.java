@@ -18,8 +18,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
+import org.eclipse.ditto.model.things.Thing;
 
 /**
  * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s match a given filter.

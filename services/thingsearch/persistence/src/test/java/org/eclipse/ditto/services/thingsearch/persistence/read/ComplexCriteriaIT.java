@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.things.Attributes;
 import org.junit.Test;
 
 /**

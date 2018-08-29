@@ -18,14 +18,14 @@ import static org.eclipse.ditto.services.thingsearch.persistence.TestConstants.t
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.things.Attributes;
-import org.eclipse.ditto.model.things.Feature;
-import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.Features;
 import org.junit.Test;
 
 /**

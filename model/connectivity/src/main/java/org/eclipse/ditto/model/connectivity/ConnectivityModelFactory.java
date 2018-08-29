@@ -314,7 +314,7 @@ public final class ConnectivityModelFactory {
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
-     * @param topics the topics for which this target will receive signals
+     * @param topics the FilteredTopics for which this target will receive signals
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return the created {@link Target}
      */
@@ -328,8 +328,8 @@ public final class ConnectivityModelFactory {
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopics that should be published via this target
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,

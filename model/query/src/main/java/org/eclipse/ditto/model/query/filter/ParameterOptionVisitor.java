@@ -17,20 +17,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.thingsearch.LimitOption;
-import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearch.OptionVisitor;
-import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
 import org.eclipse.ditto.model.query.model.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.model.query.SortDirection;
 import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.model.thingsearch.LimitOption;
+import org.eclipse.ditto.model.thingsearch.Option;
+import org.eclipse.ditto.model.thingsearch.OptionVisitor;
+import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * OptionVisitor for the parsed parameters. Goes through the list of option parameters and creates the persistence
  * specific output out of them.
  */
+@AllValuesAreNonnullByDefault
 public final class ParameterOptionVisitor implements OptionVisitor {
 
     private final QueryBuilder queryBuilder;

@@ -13,10 +13,10 @@ package org.eclipse.ditto.model.query.model.criteria.visitors;
 
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
+import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 
 /**
  * Interface of compositional interpreters of search criteria ({@link Criteria}).

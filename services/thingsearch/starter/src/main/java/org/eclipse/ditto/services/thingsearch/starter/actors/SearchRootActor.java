@@ -17,25 +17,24 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.services.base.config.HttpConfigReader;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
-import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
 import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.services.base.config.HttpConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
+import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;

@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -55,7 +55,7 @@ final class ImmutableTarget implements Target {
      * Creates a new {@code ImmutableTarget} instance.
      *
      * @param address the address of this target
-     * @param topics set of topics that should be published via this target
+     * @param topics set of FilteredTopics that should be published via this target
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return a new instance of ImmutableTarget
      */
@@ -68,8 +68,8 @@ final class ImmutableTarget implements Target {
      * Creates a new {@code ImmutableTarget} instance.
      *
      * @param address the address of this target
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopics that should be published via this target
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return a new instance of ImmutableTarget
      */
@@ -84,8 +84,8 @@ final class ImmutableTarget implements Target {
      * Creates a new {@code ImmutableTarget} instance.
      *
      * @param address the address of this target
-     * @param requiredTopic the required topic that should be published via this target
-     * @param additionalTopics additional set of topics that should be published via this target
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopic that should be published via this target
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return a new instance of ImmutableTarget
      */

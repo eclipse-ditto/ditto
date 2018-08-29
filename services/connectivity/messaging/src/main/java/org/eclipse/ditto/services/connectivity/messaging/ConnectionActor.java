@@ -358,7 +358,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             return;
         }
         if (uniqueTopics.isEmpty()) {
-            log.debug("Signal dropped: No topic paths present.");
+            log.debug("Signal dropped: No topics present.");
             return;
         }
         if (connectionId.equals(signal.getDittoHeaders().getOrigin().orElse(null))) {

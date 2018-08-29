@@ -21,12 +21,12 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.model.query.Query;
 import org.eclipse.ditto.model.query.model.query.SortDirection;
 import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetSortBsonVisitor;
 
 import com.mongodb.client.model.Sorts;
 

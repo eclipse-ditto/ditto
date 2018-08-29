@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.thingsearch.persistence;
 
 import static com.mongodb.client.model.Filters.eq;
 
-import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;

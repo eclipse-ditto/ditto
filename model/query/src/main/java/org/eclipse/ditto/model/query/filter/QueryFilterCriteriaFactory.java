@@ -18,13 +18,13 @@ import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.thingsearchparser.ParserException;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
+import org.eclipse.ditto.model.thingsearchparser.ParserException;
+import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
+import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
 
 /**
  * The place for query filter manipulations

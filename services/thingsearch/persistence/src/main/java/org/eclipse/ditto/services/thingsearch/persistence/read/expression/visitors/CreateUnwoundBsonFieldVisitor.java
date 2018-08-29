@@ -26,10 +26,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.model.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
 
 import com.mongodb.client.model.Filters;
 

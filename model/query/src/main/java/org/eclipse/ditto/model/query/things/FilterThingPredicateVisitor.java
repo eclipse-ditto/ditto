@@ -14,9 +14,9 @@ package org.eclipse.ditto.model.query.things;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.visitors.FilterFieldExpressionVisitor;
+import org.eclipse.ditto.model.things.Thing;
 
 /**
  * FilterFieldExpressionVisitor for Java {@link Predicate}s of {@link Thing}s.
@@ -67,6 +67,6 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
 
     @Override
     public Predicate<Thing> visitGlobalReads() {
-        return thing -> true; // TODO what about them?
+        return thing -> true; // not relevant for Thing Predicates
     }
 }

@@ -19,9 +19,6 @@ import java.util.stream.Stream;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetPolicyRestrictionBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetUnwoundExistsFilterBsonVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
@@ -29,6 +26,9 @@ import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.PolicyRestrictedFieldExpression;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetPolicyRestrictionBsonVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetUnwoundExistsFilterBsonVisitor;
 
 import com.mongodb.client.model.Filters;
 

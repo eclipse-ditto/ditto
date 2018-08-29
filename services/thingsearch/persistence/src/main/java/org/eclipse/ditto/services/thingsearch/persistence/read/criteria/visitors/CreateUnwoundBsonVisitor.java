@@ -18,12 +18,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.CreateUnwoundBsonFieldVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.CreateUnwoundBsonFieldVisitor;
 
 import com.mongodb.client.model.Filters;
 

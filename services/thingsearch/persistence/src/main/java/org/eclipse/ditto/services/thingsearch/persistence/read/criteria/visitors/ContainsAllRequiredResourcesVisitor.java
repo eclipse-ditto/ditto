@@ -16,12 +16,12 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.IsInternalViewVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.IsInternalViewVisitor;
 
 /**
  * Tests whether all resources requried to evaluate a search criteria are present.

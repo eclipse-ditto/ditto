@@ -12,8 +12,8 @@
 package org.eclipse.ditto.model.query.model.expression;
 
 
-import org.eclipse.ditto.model.query.model.expression.visitors.FieldExpressionVisitor;
 import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.expression.visitors.FieldExpressionVisitor;
 
 /**
  * Field expression: Used to create criteria based on certain fields.

@@ -14,11 +14,11 @@ package org.eclipse.ditto.model.query.things;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.things.Thing;
 
 /**
  * CriteriaVisitor for Java {@link Predicate}s of {@link Thing}s.

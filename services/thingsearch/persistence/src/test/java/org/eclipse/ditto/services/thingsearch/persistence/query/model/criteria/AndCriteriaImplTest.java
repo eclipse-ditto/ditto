@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.model.query.model.criteria.AndCriteriaImpl;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;

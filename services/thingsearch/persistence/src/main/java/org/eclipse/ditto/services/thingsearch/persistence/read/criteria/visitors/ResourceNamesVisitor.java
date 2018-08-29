@@ -16,11 +16,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFieldIdentifierVisitor;
 import org.eclipse.ditto.model.query.model.criteria.Predicate;
 import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFieldIdentifierVisitor;
 
 /**
  * Collects names of resources.

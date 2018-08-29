@@ -12,10 +12,10 @@
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.model.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 

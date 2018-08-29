@@ -16,11 +16,11 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.criteria.EqPredicateImpl;
 import org.eclipse.ditto.model.query.model.criteria.FieldCriteriaImpl;
 import org.eclipse.ditto.model.query.model.expression.AttributeExpressionImpl;
+import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;

@@ -18,6 +18,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.eclipse.ditto.model.query.AnswerWithSelf;
 import org.eclipse.ditto.model.query.model.expression.FieldExpressionFactory;
 import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
 import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
@@ -32,8 +33,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-
-import org.eclipse.ditto.model.query.AnswerWithSelf;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
