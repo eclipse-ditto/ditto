@@ -17,6 +17,7 @@ import static akka.http.javadsl.server.Directives.logResult;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -41,10 +42,12 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
 
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
@@ -186,6 +189,13 @@ public final class PoliciesRootActor extends AbstractActor {
                 .bindAndHandle(createRoute(getContext().system(), healthCheckingActor).flow(getContext().system(),
                         materializer), ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
 
+        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
+                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
+                    log.info("Gracefully shutting down status/health HTTP endpoint..");
+                    return theBinding.terminate(Duration.ofSeconds(1))
+                            .handle((httpTerminated, e) -> Done.getInstance());
+                })
+        );
         binding.thenAccept(this::logServerBinding)
                 .exceptionally(failure -> {
                     log.error(failure, "Something very bad happened: {}", failure.getMessage());

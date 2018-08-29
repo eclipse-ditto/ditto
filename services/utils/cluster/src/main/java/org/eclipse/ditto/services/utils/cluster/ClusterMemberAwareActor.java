@@ -34,7 +34,7 @@ import akka.cluster.Member;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -77,7 +77,7 @@ public final class ClusterMemberAwareActor extends AbstractActor {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public ClusterMemberAwareActor create() throws Exception {
+            public ClusterMemberAwareActor create() {
                 return new ClusterMemberAwareActor(serviceName, majorityCheckEnabled, majorityCheckDelay);
             }
         });
@@ -141,7 +141,7 @@ public final class ClusterMemberAwareActor extends AbstractActor {
                             weaklyUpMember,
                             knownAddress);
 
-                    final Set<Member> unreachableMembers = JavaConversions.setAsJavaSet(cluster.state().unreachable());
+                    final Set<Member> unreachableMembers = JavaConverters.setAsJavaSet(cluster.state().unreachable());
                     unreachableMembers.stream().map(Member::address).filter(a -> a.equals(knownAddress))
                             .findFirst().ifPresent(a ->
                     {
@@ -229,30 +229,33 @@ public final class ClusterMemberAwareActor extends AbstractActor {
     private void handleCheckForMajority() {
         majorityCheck = null;
 
-        final Set<Member> unreachableMembers = JavaConversions.setAsJavaSet(cluster.state().unreachable());
-        final Set<Member> currentMembers = JavaConversions.setAsJavaSet(cluster.state().members());
+        final Set<Member> unreachableMembers = JavaConverters.setAsJavaSet(cluster.state().unreachable());
+        final Set<Member> currentMembers = JavaConverters.setAsJavaSet(cluster.state().members());
         final Set<Member> reachableMembers =
                 currentMembers.stream().filter(member -> !unreachableMembers.contains(member))
                         .collect(Collectors.toSet());
 
         if (!unreachableMembers.isEmpty()) {
-            log.info("{} unreachable member(s) '{}' cause a check for majority against the remaining"
+            log.warning("{} unreachable member(s) '{}' cause a check for majority against the remaining"
                             + " {} reachable member(s) '{}'", unreachableMembers.size(), unreachableMembers,
                     reachableMembers.size(), reachableMembers);
 
             if (unreachableMembers.size() > reachableMembers.size()) {
                 // there is a network partition and we are in the minority part of the cluster --> DOWN us
-                log.warning("Minority for service '{}' detected, manually DOWN myself ({})", serviceName,
+                log.warning("Service '{}' detected a minority, manually DOWN myself ({})",
+                        serviceName,
                         cluster.selfAddress());
                 cluster.down(cluster.selfAddress());
             } else if (unreachableMembers.size() < reachableMembers.size()) {
                 // there is a network partition and we are in the majority part of the cluster --> DOWN others
-                log.info("Majority for service '{}' detected, manually DOWN the minority: {}", serviceName,
+                log.warning("Service '{}' detected a majority, manually DOWN the minority: {}",
+                        serviceName,
                         unreachableMembers);
                 unreachableMembers.stream().map(Member::address).forEach(cluster::down);
             } else {
                 // there is a network partition and both sides are equal in size --> wait
-                log.warning("Ongoing network partition for service '{}'.", serviceName);
+                log.warning("Service '{}' detected ongoing network partition. Scheduling a new Majority check",
+                        serviceName);
                 scheduleMajorityCheck();
             }
         } else {

@@ -20,19 +20,19 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * The default implementation of {@link ConnectionActorPropsFactory}.
+ * The default implementation of {@link ClientActorPropsFactory}.
  */
-public final class DefaultConnectionActorPropsFactory implements ConnectionActorPropsFactory {
+public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private static final DefaultConnectionActorPropsFactory INSTANCE = new DefaultConnectionActorPropsFactory();
+    private static final DefaultClientActorPropsFactory INSTANCE = new DefaultClientActorPropsFactory();
 
-    private DefaultConnectionActorPropsFactory() {
+    private DefaultClientActorPropsFactory() {
     }
 
     /**
      * @return factory instance
      */
-    public static ConnectionActorPropsFactory getInstance() {
+    public static ClientActorPropsFactory getInstance() {
         return INSTANCE;
     }
 

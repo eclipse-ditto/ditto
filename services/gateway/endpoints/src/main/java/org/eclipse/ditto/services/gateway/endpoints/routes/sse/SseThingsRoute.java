@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -88,12 +90,13 @@ public class SseThingsRoute extends AbstractRoute {
      * @return {@code /things} SSE route.
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
-    public Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    public Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final Function<Route, Route> inner) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                        inner.apply(parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                                 parameterOptional(ThingsParameter.IDS.toString(),
                                                         idsString -> // "ids" is optional for SSE
                                                                 parameterOptional("filter", filterString ->
@@ -105,6 +108,7 @@ public class SseThingsRoute extends AbstractRoute {
                                                                 )
                                                 )
                                         )
+
                                 )
                         )
                 )

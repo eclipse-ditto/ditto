@@ -11,13 +11,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.MockConnectionActor.mockConnectionActorPropsFactory;
+import static java.util.Arrays.asList;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
+import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,12 +33,18 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
@@ -58,18 +66,49 @@ public class TestConstants {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
-    public static final String SUBJECT_ID = "mySolutionId:mySubject";
-    public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
-            AuthorizationSubject.newInstance(SUBJECT_ID));
-    private static final Set<Source> SOURCES = new HashSet<>(
-            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
-                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
-    private static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("twinEventExchange/twinEventRoutingKey",
-                    "_/_/things/twin/events")));
-    public static final String THING_ID = "ditto:thing";
-    private static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+
     public static final String CORRELATION_ID = "cid";
+
+    public static class Things {
+
+        public static final String NAMESPACE = "ditto";
+        public static final String ID = "thing";
+        public static final String THING_ID = NAMESPACE + ":" + ID;
+        public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+    }
+
+    public static class Authorization {
+
+        static final String SUBJECT_ID = "some:subject";
+        static final String SOURCE_SUBJECT_ID = "source:subject";
+        private static final String UNAUTHORIZED_SUBJECT_ID = "another:subject";
+        public static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(SUBJECT_ID));
+        public static final AuthorizationContext SOURCE_SPECIFIC_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(SOURCE_SUBJECT_ID));
+        private static final AuthorizationContext UNAUTHORIZED_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+                AuthorizationSubject.newInstance(UNAUTHORIZED_SUBJECT_ID));
+    }
+
+    public static class Sources {
+
+        public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
+                asList(newSource(2, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
+        public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
+                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"),
+                        newSource(1, 1, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"));
+    }
+
+    public static class Targets {
+
+        static final Target TARGET_WITH_PLACEHOLDER =
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+        static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+        private static final Target TWIN_TARGET_UNAUTHORIZED =
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+        private static final Target LIVE_TARGET = newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
+        private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+    }
 
     public static String createRandomConnectionId() {
         return "connection-" + UUID.randomUUID();
@@ -85,27 +124,49 @@ public class TestConstants {
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem),
-                AUTHORIZATION_CONTEXT)
-                .sources(SOURCES)
-                .targets(TARGETS)
+        return createConnection(connectionId, actorSystem, Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final List<Source> sources) {
+        return createConnection(connectionId, actorSystem, STATUS, sources);
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final ConnectionStatus status, final List<Source> sources) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri(actorSystem))
+                .sources(sources)
+                .targets(Targets.TARGETS)
                 .build();
+    }
+
+    public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
+            final Target... targets) {
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
+                .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
+                .targets(asSet(targets))
+                .build();
+    }
+
+    @SafeVarargs
+    public static <T> Set<T> asSet(final T... array) {
+        return new HashSet<>(asList(array));
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder) {
         return createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator, conciergeForwarder,
-                mockConnectionActorPropsFactory);
+                mockClientActorPropsFactory);
     }
 
     static ActorRef createConnectionSupervisorActor(final String connectionId, final ActorSystem actorSystem,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final ConnectionActorPropsFactory connectionActorPropsFactory) {
+            final ClientActorPropsFactory clientActorPropsFactory) {
         final Duration minBackoff = Duration.ofSeconds(1);
         final Duration maxBackoff = Duration.ofSeconds(5);
         final Double randomFactor = 1.0;
         final Props props = ConnectionSupervisorActor.props(minBackoff, maxBackoff, randomFactor, pubSubMediator,
-                conciergeForwarder, connectionActorPropsFactory);
+                conciergeForwarder, clientActorPropsFactory, null);
 
         final int maxAttemps = 5;
         final long backoffMs = 1000L;
@@ -125,12 +186,23 @@ public class TestConstants {
 
     public static ThingModifiedEvent thingModified(final Collection<String> readSubjects) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().readSubjects(readSubjects).build();
-        return ThingModified.of(THING, 1, dittoHeaders);
+        return ThingModified.of(Things.THING, 1, dittoHeaders);
+    }
+
+    public static MessageCommand sendThingMessage(final Collection<String> readSubjects) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .readSubjects(readSubjects)
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build();
+        final Message<Object> message =
+                Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, Things.THING_ID, "ditto").build())
+                        .build();
+        return SendThingMessage.of(Things.THING_ID, message, dittoHeaders);
     }
 
     public static String modifyThing() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
-        final ModifyThing modifyThing = ModifyThing.of(THING_ID, THING, null, dittoHeaders);
+        final ModifyThing modifyThing = ModifyThing.of(Things.THING_ID, Things.THING, null, dittoHeaders);
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
         final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         return jsonifiable.toJsonString();
@@ -152,7 +224,8 @@ public class TestConstants {
         }
 
         public static Props props() {
-            return Props.create(ConciergeForwarderActorMock.class, (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
+            return Props.create(ConciergeForwarderActorMock.class,
+                    (Creator<ConciergeForwarderActorMock>) ConciergeForwarderActorMock::new);
         }
 
         @Override

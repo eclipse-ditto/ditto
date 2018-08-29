@@ -157,7 +157,7 @@
         <!-- ### Other ### -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt</artifactId>
+            <artifactId>jjwt-api</artifactId>
         </dependency>
 
         <!-- ### Logging ### -->

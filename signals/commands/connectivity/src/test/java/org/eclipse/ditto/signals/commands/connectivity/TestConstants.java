@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 
 /**
  * Constants for testing.
@@ -38,20 +40,18 @@ public final class TestConstants {
     public static ConnectionType TYPE = ConnectionType.AMQP_10;
     public static ConnectionStatus STATUS = ConnectionStatus.OPEN;
 
-    public static String URI = "amqps://username:password@my.endpoint:443";
+    private static final String URI = "amqps://username:password@my.endpoint:443";
 
-    public static AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
+    private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    public static final Set<Source> SOURCES = new HashSet<>(
-            Arrays.asList(ConnectivityModelFactory.newSource(2, "amqp/source1"),
-                    ConnectivityModelFactory.newSource(2, "amqp/source2")));
+    private static final List<Source> SOURCES = Arrays.asList(ConnectivityModelFactory.newSource(2,0, AUTHORIZATION_CONTEXT, "amqp/source1"),
+            ConnectivityModelFactory.newSource(2,1, AUTHORIZATION_CONTEXT, "amqp/source2"));
 
-    public static final Set<Target> TARGETS = new HashSet<>(
-            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", "_/_/things/twin/events")));
+    private static final Set<Target> TARGETS = new HashSet<>(
+            Collections.singletonList(ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
 
-
-    public static MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
+    private static final MappingContext MAPPING_CONTEXT = ConnectivityModelFactory.newMappingContext(
             "JavaScript",
             Collections.singletonMap("incomingScript",
                     "function mapToDittoProtocolMsg(\n" +
@@ -88,13 +88,13 @@ public final class TestConstants {
                             "}"));
 
     public static Connection CONNECTION =
-            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI, AUTHORIZATION_CONTEXT)
+            ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .sources(SOURCES)
                     .targets(TARGETS)
                     .mappingContext(MAPPING_CONTEXT)
                     .build();
 
-    public static Map<String, ConnectionStatus> CONNECTION_STATUSES;
+    private static final Map<String, ConnectionStatus> CONNECTION_STATUSES;
 
     static {
         CONNECTION_STATUSES = new HashMap<>();

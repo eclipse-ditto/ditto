@@ -20,7 +20,10 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
-public class ConnectionFailedExceptionTest {
+/**
+ * Tests {@link ConnectionFailedException}.
+ */
+public final class ConnectionFailedExceptionTest {
 
 
     @Test

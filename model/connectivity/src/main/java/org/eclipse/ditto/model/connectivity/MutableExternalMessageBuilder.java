@@ -18,6 +18,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 
@@ -27,16 +28,13 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     private Map<String, String> headers;
-    @Nullable
-    private final String topicPath;
     private boolean response = false;
+    private boolean error = false;
     private ExternalMessage.PayloadType payloadType = ExternalMessage.PayloadType.UNKNOWN;
-    @Nullable
-    private String textPayload;
-    @Nullable
-    private ByteBuffer bytePayload;
-    @Nullable
-    private Adaptable originatingAdaptable;
+    @Nullable private String textPayload;
+    @Nullable private ByteBuffer bytePayload;
+    @Nullable private AuthorizationContext authorizationContext;
+    @Nullable private Adaptable originatingAdaptable;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -47,9 +45,10 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.headers = new HashMap<>(message.getHeaders());
         this.bytePayload = message.getBytePayload().orElse(null);
         this.textPayload = message.getTextPayload().orElse(null);
-        this.topicPath = message.getTopicPath().orElse(null);
         this.payloadType = message.getPayloadType();
         this.response = message.isResponse();
+        this.error = message.isError();
+        this.authorizationContext = message.getAuthorizationContext().orElse(null);
         this.originatingAdaptable = message.getOriginatingAdaptable().orElse(null);
     }
 
@@ -59,19 +58,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      * @param headers the headers to use for initialization.
      */
     MutableExternalMessageBuilder(final Map<String, String> headers) {
-        this(headers, null);
-    }
-
-    /**
-     * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code headers} and {@code messageType}.
-     *
-     * @param headers the headers to use for initialization.
-     * @param topicPath the topicPath to use for initialization.
-     */
-    MutableExternalMessageBuilder(final Map<String, String> headers,
-            @Nullable final String topicPath) {
         this.headers = new HashMap<>(headers);
-        this.topicPath = topicPath;
     }
 
     @Override
@@ -119,8 +106,20 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder withAuthorizationContext(final AuthorizationContext authorizationContext) {
+        this.authorizationContext = authorizationContext;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder asError(final boolean error) {
+        this.error = error;
         return this;
     }
 
@@ -132,8 +131,8 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, topicPath, response, payloadType, textPayload, bytePayload,
-                originatingAdaptable);
+        return new ImmutableExternalMessage(headers, topicPath, response, error, payloadType, textPayload, bytePayload,
+                authorizationContext, originatingAdaptable);
     }
 
 }

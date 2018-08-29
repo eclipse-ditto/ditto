@@ -8,6 +8,7 @@
 [![Build Status](https://travis-ci.org/eclipse/ditto.svg?branch=master)](https://travis-ci.org/eclipse/ditto)
 [![Maven Central](https://img.shields.io/maven-metadata/v/http/central.maven.org/maven2/org/eclipse/ditto/ditto/maven-metadata.xml.svg)](http://search.maven.org/#search|ga|1|org.eclipse.ditto)
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
+[![Lines of code](https://img.shields.io/badge/dynamic/xml.svg?label=Lines%20of%20code&url=https%3A%2F%2Fwww.openhub.net%2Fprojects%2Feclipse-ditto.xml%3Fapi_key%3D11ac3aa12a364fd87b461559a7eedcc53e18fb5a4cf1e43e02cb7a615f1f3d4f&query=%2Fresponse%2Fresult%2Fproject%2Fanalysis%2Ftotal_code_lines&colorB=lightgrey)](https://www.openhub.net/p/eclipse-ditto)
 
 [Eclipse Ditto](https://eclipse.org/ditto/) is the open-source project of Eclipse IoT that provides a ready-to-use functionality to manage the state of Digital Twins. It provides access to them and mediates between the physical world and this digital representation.
 
@@ -18,8 +19,8 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 ## Getting started
 
 In order to start up Ditto, you'll need
-* a running Docker daemon (at least version 17.06 CE)
-* Docker Compose installed (at least version 1.14)
+* a running Docker daemon (at least version 18.06 CE)
+* Docker Compose installed (at least version 1.22)
 
 ### Start Ditto
 

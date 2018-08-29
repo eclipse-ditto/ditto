@@ -38,7 +38,6 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -223,7 +222,6 @@ final class StreamingSessionActor extends AbstractActor {
 
     private void handleSignal(final Signal<?> signal) {
         LogUtil.enhanceLogWithCorrelationId(logger, signal);
-        acknowledgeSubscriptionForSignal(signal);
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         if (connectionCorrelationId.equals(dittoHeaders.getOrigin().orElse(null))) {
@@ -279,28 +277,6 @@ final class StreamingSessionActor extends AbstractActor {
             // let all events through if there was no criteria/filter set
             return true;
         }
-    }
-
-    private void acknowledgeSubscriptionForSignal(final Signal signal) {
-        if (isLiveSignal(signal)) {
-            if (signal instanceof MessageCommand &&
-                    outstandingSubscriptionAcks.contains(StreamingType.MESSAGES)) {
-                acknowledgeSubscription(StreamingType.MESSAGES, getSelf());
-            } else if (signal instanceof Command && outstandingSubscriptionAcks.contains(StreamingType.LIVE_COMMANDS)) {
-                acknowledgeSubscription(StreamingType.LIVE_COMMANDS, getSelf());
-            } else if (signal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.LIVE_EVENTS)) {
-                acknowledgeSubscription(StreamingType.LIVE_EVENTS, getSelf());
-            }
-        } else if (signal instanceof Event && outstandingSubscriptionAcks.contains(StreamingType.EVENTS)) {
-            acknowledgeSubscription(StreamingType.EVENTS, getSelf());
-        }
-    }
-
-    private static boolean isLiveSignal(final Signal signal) {
-        return signal.getDittoHeaders().getChannel()
-                .flatMap(TopicPath.Channel::forName)
-                .filter(TopicPath.Channel.LIVE::equals)
-                .isPresent();
     }
 
     private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {

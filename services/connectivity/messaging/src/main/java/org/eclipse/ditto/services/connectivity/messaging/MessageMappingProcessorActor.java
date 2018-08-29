@@ -63,23 +63,22 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final ActorRef publisherActor;
-    private final AuthorizationContext authorizationContext;
     private final Map<String, StartedTimer> timers;
 
     private final MessageMappingProcessor processor;
     private final String connectionId;
     private final ActorRef conciergeForwarder;
+    private final PlaceholderFilter placeholderFilter;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
             final String connectionId) {
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
-        this.authorizationContext = authorizationContext;
         this.processor = processor;
         this.connectionId = connectionId;
-
+        this.placeholderFilter = new PlaceholderFilter();
         timers = new ConcurrentHashMap<>();
     }
 
@@ -88,13 +87,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
      *
      * @param publisherActor actor that handles/publishes outgoing messages.
      * @param conciergeForwarder the actor used to send signals to the concierge service.
-     * @param authorizationContext the authorization context (authorized subjects) that are set in command headers.
      * @param processor the MessageMappingProcessor to use.
      * @param connectionId the connection id.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef publisherActor,
-            final ActorRef conciergeForwarder, final AuthorizationContext authorizationContext,
+            final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
             final String connectionId) {
 
@@ -103,17 +101,18 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
             @Override
             public MessageMappingProcessorActor create() {
-                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, authorizationContext,
-                        processor, connectionId);
+                return new MessageMappingProcessorActor(publisherActor, conciergeForwarder, processor, connectionId);
             }
         });
     }
+
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ExternalMessage.class, this::handle)
                 .match(CommandResponse.class, this::handleCommandResponse)
+                .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(Status.Failure.class, f -> log.warning("Got failure with cause {}: {}",
@@ -131,20 +130,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
 
-        final String authSubjectsArray = authorizationContext.stream()
-                .map(AuthorizationSubject::getId)
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray())
-                .toString();
-        final ExternalMessage messageWithAuthSubject =
-                externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), authSubjectsArray);
-
         try {
+            final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
+            final AuthorizationContext filteredContext =
+                    placeholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
+            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
+            final ExternalMessage messageWithAuthSubject =
+                    externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
+                            authSubjectsArray);
+
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
+
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
                 final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
-                        .authorizationContext(authorizationContext);
+                        .authorizationContext(filteredContext);
 
                 if (!signal.getDittoHeaders().getOrigin().isPresent()) {
                     adjustedHeadersBuilder.origin(connectionId);
@@ -154,7 +154,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 // does not choose/change the auth-subjects itself:
                 final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
                 startTrace(adjustedSignal);
-                log.info("Sending '{}' using conciergeForwarder", adjustedSignal.getType());
+
+                // This message is important to check if a command is accepted for a specific connection, as this
+                // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
+                log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder", adjustedSignal
+                        .getType());
                 conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
@@ -162,6 +166,25 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         } catch (final Exception e) {
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
+    }
+
+    private String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
+        return authorizationContext
+                .stream()
+                .map(AuthorizationSubject::getId)
+                .map(JsonFactory::newValue)
+                .collect(JsonCollectors.valuesToArray())
+                .toString();
+    }
+
+    private AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
+        final AuthorizationContext authorizationContext = externalMessage
+                .getAuthorizationContext()
+                .orElseThrow(() -> new IllegalArgumentException("No authorizationContext available."));
+        if (authorizationContext.isEmpty()) {
+            throw new IllegalArgumentException("Empty authorization context not allowed.");
+        }
+        return authorizationContext;
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -205,19 +228,36 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    private void handleSignal(final Signal<?> signal) {
+    private void handleOutboundSignal(final OutboundSignal outbound) {
+        final Signal<?> signal = outbound.getSource();
         enhanceLogUtil(signal);
-        log.debug("Handling signal: {}", signal);
+        log.debug("Handling outbound signal: {}", signal);
+        mapToExternalMessage(signal)
+                .map(message -> new MappedOutboundSignal(outbound, message))
+                .ifPresent(outboundSignal -> publisherActor.forward(outboundSignal, getContext()));
+    }
 
+    /**
+     * Is called for responses or errors which were directly sent to the mapping actor as a response.
+     *
+     * @param signal the response/error
+     */
+    private void handleSignal(final Signal<?> signal) {
+        // map to outbound signal without authorized target (responses and errors are only sent to its origin)
+        log.debug("Handling raw signal: {}", signal);
+        handleOutboundSignal(new UnmappedOutboundSignal(signal, Collections.emptySet()));
+    }
+
+    private Optional<ExternalMessage> mapToExternalMessage(final Signal<?> signal) {
         try {
-            processor.process(signal)
-                    .ifPresent(message -> publisherActor.forward(message, getContext()));
+            return processor.process(signal);
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));
         } catch (final Exception e) {
             log.warning("Got unexpected exception during processing Signal: {}", e.getMessage());
         }
+        return Optional.empty();
     }
 
     private void startTrace(final Signal<?> command) {

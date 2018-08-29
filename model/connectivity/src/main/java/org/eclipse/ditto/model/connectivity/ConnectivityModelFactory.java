@@ -11,8 +11,12 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.eclipse.ditto.model.connectivity.ImmutableSource.DEFAULT_CONSUMER_COUNT;
+
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +27,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 
 /**
  * Factory to create new {@link Connection} instances.
@@ -41,21 +46,19 @@ public final class ConnectivityModelFactory {
      * @param connectionType the connection type.
      * @param connectionStatus the connection status.
      * @param uri the connection URI.
-     * @param authorizationContext the connection authorization context.
      * @return the ConnectionBuilder.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ConnectionBuilder newConnectionBuilder(final String id,
             final ConnectionType connectionType,
             final ConnectionStatus connectionStatus,
-            final String uri,
-            final AuthorizationContext authorizationContext) {
-
-        return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri, authorizationContext);
+            final String uri) {
+        return ImmutableConnection.getBuilder(id, connectionType, connectionStatus, uri);
     }
 
     /**
-     * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with the
+     * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with
+     * the
      * values of the given Connection.
      *
      * @param connection the Connection which provides the initial values of the builder.
@@ -190,6 +193,8 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
+     * @param mappingEngine fully qualified classname of a mapping engine
+     * @param options the mapping options required to instantiate a mapper
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
@@ -220,19 +225,6 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new ExternalMessageBuilder for the passed {@code messageType} initialized with the passed
-     * {@code headers}.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @param topicPath the topicPath to initialize the builder with.
-     * @return the builder.
-     */
-    public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers,
-            final String topicPath) {
-        return new MutableExternalMessageBuilder(headers, topicPath);
-    }
-
-    /**
      * Creates a new ExternalMessageBuilder based on the passed existing {@code externalMessage}.
      *
      * @param externalMessage the ExternalMessage initialize the builder with.
@@ -242,26 +234,130 @@ public final class ConnectivityModelFactory {
         return new MutableExternalMessageBuilder(externalMessage);
     }
 
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param addresses the source addresses where messages are consumed from
+     * @param consumerCount how many consumer will consume of the new {@link Source}
+     * @return the created {@link Source}
+     */
     public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return ImmutableSource.of(addresses, consumerCount);
+        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0);
     }
 
-    public static Source newSource(final int consumerCount, final String... sources) {
-        return ImmutableSource.of(consumerCount, sources);
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param addresses the source addresses where messages are consumed from
+     * @param consumerCount how many consumer will consume of the new {@link Source}
+     * @param authorizationContext the authorization context
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final Set<String> addresses, final int consumerCount,
+            final AuthorizationContext authorizationContext) {
+        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0);
     }
 
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final int index, final AuthorizationContext authorizationContext,
+            final String... sources) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
+                authorizationContext, index);
+    }
+
+    /**
+     * Creates a new {@link Source}.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static Source newSource(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext,
+            final String... sources) {
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+    }
+
+    /**
+     * Creates a new {@code Source} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Source to be created.
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static Source sourceFromJson(final JsonObject jsonObject, final int index) {
+        return ImmutableSource.fromJson(jsonObject, index);
+    }
+
+    /**
+     * Creates a new {@link Target} from existing target but different address.
+     *
+     * @param target the target
+     * @param address the address where the signals will be published
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final Target target, final String address) {
+        return newTarget(address,  target.getAuthorizationContext(), target.getTopics());
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param topics the topics for which this target will receive signals
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
+            final Set<Topic> topics) {
+        return new ImmutableTarget(address, topics, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
+            final Topic requiredTopic, final Topic... additionalTopics) {
+        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@code Target} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the Target to be created.
+     * @return a new Source Target is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static Target targetFromJson(final JsonObject jsonObject) {
+        return ImmutableTarget.fromJson(jsonObject);
+    }
+
+    /**
+     * TODO TJ doc
+     * @param topicString
+     * @return
+     */
     public static Topic newTopic(final String topicString) {
         return ImmutableTopic.fromString(topicString);
     }
-
-    public static Target newTarget(final String address, final Set<String> topics) {
-        return ImmutableTarget.of(address, topics.stream().map(ConnectivityModelFactory::newTopic)
-                .collect(Collectors.toSet()));
-    }
-
-    public static Target newTarget(final String address, final String requiredTopic, final String... topics) {
-        return ImmutableTarget.of(address, ConnectivityModelFactory.newTopic(requiredTopic),
-                Arrays.stream(topics).map(ConnectivityModelFactory::newTopic).toArray(Topic[]::new));
-    }
-
 }

@@ -5,39 +5,62 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
 package org.eclipse.ditto.model.connectivity;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * TODO TJ javadoc
+ * Defines the topics that are currently supported in a {@link Connection}.
  */
-public interface Topic extends CharSequence {
+public enum Topic {
+
+    TWIN_EVENTS("_/_/things/twin/events", "things.events:"),
+    LIVE_MESSAGES("_/_/things/live/messages", "messages.commands:"),
+    LIVE_EVENTS("_/_/things/live/events", "things-live-events"),
+    LIVE_COMMANDS("_/_/things/live/commands", "things-live-commands");
+
+    private final String name;
+    private final String pubSubTopic;
+
+    Topic(final String name, final String pubSubTopic) {
+        this.pubSubTopic = pubSubTopic;
+        this.name = name;
+    }
 
     /**
-     *
-     * @return
+     * @return the corresponding pubsub topic used to subscribe to events of this type in the akka cluster
      */
-    String getPath();
+    public String getPubSubTopic() {
+        return pubSubTopic;
+    }
 
     /**
-     *
-     * @return
+     * @return the name of the topic
      */
-    Optional<String> getFilter();
+    public String getName() {
+        return name;
+    }
 
     /**
-     *
-     * @return
+     * @param name name of the topic
+     * @return the topic matching the given name
      */
-    default boolean hasFilter() {
-        return getFilter().isPresent();
+    public static Optional<Topic> forName(final CharSequence name) {
+        checkNotNull(name, "Name");
+        return Arrays.stream(values())
+                .filter(c -> c.name.contentEquals(name))
+                .findFirst();
     }
 
     @Override
-    String toString();
+    public String toString() {
+        return name;
+    }
 }

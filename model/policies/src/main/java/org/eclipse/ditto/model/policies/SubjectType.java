@@ -22,6 +22,11 @@ public interface SubjectType extends CharSequence {
     SubjectType UNKNOWN = PoliciesModelFactory.newSubjectType("unknown");
 
     /**
+     * Generated {@link Subject} type.
+     */
+    SubjectType GENERATED = PoliciesModelFactory.newSubjectType("generated");
+
+    /**
      * Returns a new {@link SubjectType} with the specified {@code subjectType}.
      *
      * @param subjectType the SubjectType char sequence.

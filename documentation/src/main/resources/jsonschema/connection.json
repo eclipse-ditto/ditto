@@ -42,22 +42,6 @@
         "amqps://user:password@localhost:5671"
       ]
     },
-    "authorizationContext": {
-      "$id": "/properties/authorizationContext",
-      "type": "array",
-      "title": "The authorization context",
-      "description": "The authorization context defines all authorization subjects associated with this connection",
-      "uniqueItems": true,
-      "items": {
-        "$id": "/properties/authorizationContext/items",
-        "type": "string",
-        "title": "Authorization Subject",
-        "description": "An authorization subject associated with this connection",
-        "examples": [
-          "myAuthorizationSubject"
-        ]
-      }
-    },
     "sources": {
       "$id": "/properties/sources",
       "type": "array",
@@ -68,7 +52,46 @@
         "$id": "/properties/sources/items",
         "type": "object",
         "title": "Source",
-        "description": "A subscription source subscribed by this connection"
+        "description": "A subscription source subscribed by this connection",
+        "properties": {
+          "addresses": {
+            "$id": "/properties/sources/properties/addresses",
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Array of source addresses",
+            "description": "The source addresses this connection consumes messages from.",
+            "items": {
+              "$id": "/properties/sources/items/addresses/items",
+              "type": "string",
+              "title": "Source address",
+              "description": "A source address to consume messages from."
+            }
+          },
+          "consumerCount": {
+            "$id": "/properties/sources/items/properties/consumerCount",
+            "type": "integer",
+            "title": "Consumer count",
+            "description": "The number of consumers that should be attached to each source address.",
+            "default": 1
+          },
+          "authorizationContext": {
+            "$id": "/properties/sources/items/properties/authorizationContext",
+            "type": "array",
+            "title": "The authorisation context",
+            "description": "The authorization context defines all authorization subjects associated for this source. ",
+            "uniqueItems": true,
+            "items": {
+              "$id": "/properties/authorizationContext/items",
+              "type": "string",
+              "title": "Authorization Subject",
+              "description": "An authorization subject associated with this source. You can either use a fixed subject or use a placeholder that resolves header values from incoming messages. For example to use the `device_id` header in the subject, you can specify the placeholder `{{ header:device_id }}` which is then replaced by Ditto when a message from this source is processed. By using a placeholder you can access any header value: `{{ header:<any-header-name> }}`.",
+              "examples": [
+                "ditto:myAuthorizationSubject",
+                "device:{{ header:device-id }}"
+              ]
+            }
+          }
+        }
       }
     },
     "targets": {
@@ -81,7 +104,49 @@
         "$id": "/properties/targets/items",
         "type": "object",
         "title": "Target",
-        "description": "A publish target served by this connection"
+        "description": "A publish target served by this connection",
+        "properties": {
+          "address": {
+            "$id": "/properties/targets/properties/address",
+            "type": "string",
+            "title": "Target address",
+            "description": "The target address where events, commands and messages are published to.  The following placeholders are allowed within the target address:\n * Thing ID: `{{ thing:id }}`\n * Thing Namespace: `{{ thing:namespace }}`\n * Thing Name: `{{ thing:name }}` (the part of the ID without the namespace)"
+          },
+          "topics": {
+            "$id": "/properties/targets/items/properties/topics",
+            "type": "array",
+            "title": "Topics",
+            "description": "The topics to which this target is registered for.",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "_/_/things/twin/events",
+                "_/_/things/live/commands",
+                "_/_/things/live/events",
+                "_/_/things/live/messages"
+              ],
+              "title": "Subscribed topics.",
+              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`"
+            }
+          },
+          "authorizationContext": {
+            "$id": "/properties/targets/items/properties/authorizationContext",
+            "type": "array",
+            "title": "The authorisation context",
+            "description": "The authorization context defines all authorization subjects associated for this target. ",
+            "uniqueItems": true,
+            "items": {
+              "$id": "/properties/authorizationContext/items",
+              "type": "string",
+              "title": "Authorization Subject",
+              "description": "An authorization subject associated with this target.",
+              "examples": [
+                "ditto:myAuthorizationSubject"
+              ]
+            }
+          }
+        }
       }
     },
     "clientCount": {

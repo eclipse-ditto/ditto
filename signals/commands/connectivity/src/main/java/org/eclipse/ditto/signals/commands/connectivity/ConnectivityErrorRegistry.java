@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -80,6 +81,7 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
         parseStrategies.put(ConnectionUnavailableException.ERROR_CODE, ConnectionUnavailableException::fromJson);
         parseStrategies.put(ConnectionFailedException.ERROR_CODE, ConnectionFailedException::fromJson);
         parseStrategies.put(ConnectionConflictException.ERROR_CODE, ConnectionConflictException::fromJson);
+        parseStrategies.put(ConnectionSignalIllegalException.ERROR_CODE, ConnectionSignalIllegalException::fromJson);
 
         return new ConnectivityErrorRegistry(parseStrategies);
     }
