@@ -110,8 +110,7 @@ final class WrappingMessageMapper implements MessageMapper {
         return mappedOpt.map(mapped -> {
             final ExternalMessageBuilder messageBuilder = ConnectivityModelFactory.newExternalMessageBuilder(mapped);
             messageBuilder
-                    .asResponse(adaptable.getPayload().getStatus().isPresent())
-                    .withOriginatingAdaptable(adaptable);
+                    .asResponse(adaptable.getPayload().getStatus().isPresent());
             adaptable.getHeaders()
                     .map(h -> h.get(ExternalMessage.REPLY_TO_HEADER))
                     .ifPresent(

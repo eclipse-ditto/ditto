@@ -22,7 +22,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * Immutable implementation of {@link ExternalMessage}.
@@ -37,7 +36,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
-    @Nullable private final Adaptable originatingAdaptable;
     @Nullable private final AuthorizationContext authorizationContext;
 
     ImmutableExternalMessage(final Map<String, String> headers,
@@ -46,8 +44,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload,
-            @Nullable final AuthorizationContext authorizationContext,
-            @Nullable final Adaptable originatingAdaptable) {
+            @Nullable final AuthorizationContext authorizationContext) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -56,7 +53,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
         this.authorizationContext = authorizationContext;
-        this.originatingAdaptable = originatingAdaptable;
     }
 
     @Override
@@ -126,11 +122,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
-    public Optional<Adaptable> getOriginatingAdaptable() {
-        return Optional.ofNullable(originatingAdaptable);
-    }
-
-    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -145,13 +136,12 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 Objects.equals(authorizationContext, that.authorizationContext) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
-                Objects.equals(originatingAdaptable, that.originatingAdaptable) &&
                 payloadType == that.payloadType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, topicPath, authorizationContext, originatingAdaptable);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext);
     }
 
     @Override
@@ -165,7 +155,6 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +
                 (bytePayload == null ? "null" : ("<binary> (size :" + bytePayload.array().length + ")")) + "'" +
-                ", originatingAdaptable=" + originatingAdaptable +
                 "]";
     }
 }

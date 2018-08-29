@@ -85,7 +85,6 @@ public final class DittoMessageMapper implements MessageMapper {
                         .withText(jsonString)
                         .asResponse(isResponse)
                         .asError(isError)
-                        .withOriginatingAdaptable(adaptable)
                 .build());
     }
 

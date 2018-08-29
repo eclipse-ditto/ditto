@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
 
@@ -41,10 +40,10 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -106,9 +105,9 @@ public class SseThingsRoute extends AbstractRoute {
                                                                                 idsString.map(ids -> ids.split(",")),
                                                                                 filterString.orElse(null))
                                                                 )
+                                                        )
                                                 )
                                         )
-
                                 )
                         )
                 )

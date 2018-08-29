@@ -174,7 +174,6 @@ public class DittoMessageMapperTest {
         Optional<ExternalMessage> message =
                 Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers)
                         .withText(adaptable.toJsonString())
-                        .withOriginatingAdaptable(adaptable)
                         .build());
         mappings.put(adaptable, message);
 
@@ -188,7 +187,6 @@ public class DittoMessageMapperTest {
 
         message = Optional.of(ConnectivityModelFactory.newExternalMessageBuilder(headers)
                 .withText(adaptable.toJsonString())
-                .withOriginatingAdaptable(adaptable)
                 .build());
         mappings.put(adaptable, message);
 

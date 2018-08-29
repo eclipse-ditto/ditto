@@ -23,9 +23,17 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -34,6 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 /**
  * Filters a set of targets by
@@ -48,13 +58,50 @@ public class SignalFilter {
     public static Set<Target> filter(final Connection connection, final Signal<?> signal) {
         final Topic topic = topicFromSignal(signal).orElse(null);
         return connection.getTargets().stream()
-                .filter(t -> isTargetSubscribedForTopic(t, topic))
+                .filter(t -> isTargetSubscribedForTopic(t, signal, topic))
                 .filter(t -> isTargetAuthorized(t, signal))
                 .collect(Collectors.toSet());
     }
 
-    private static boolean isTargetSubscribedForTopic(final Target t, @Nullable final Topic topicFromSignal) {
-        return t.getTopics().contains(topicFromSignal);
+    private static boolean isTargetSubscribedForTopic(final Target t, final Signal<?> signal,
+            @Nullable final Topic topicFromSignal) {
+        return t.getTopics().stream()
+                .filter(filteredTopic -> filteredTopic.getTopic().equals(topicFromSignal))
+                .anyMatch(filteredTopic -> {
+                    if (!filteredTopic.hasFilter()) {
+                        return true;
+                    } else {
+                        return filteredTopic.getFilter()
+                                .filter(filter -> SignalFilter.matchesFilter(filter, signal))
+                                .isPresent();
+                    }
+                });
+    }
+
+    private static boolean matchesFilter(final String filter, final Signal<?> signal) {
+
+        if (signal instanceof ThingEvent) {
+
+            // currently only ThingEvents may be filtered
+            return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
+                    .filter(thing -> ThingPredicateVisitor.apply(parseCriteria(filter))
+                            .test(thing)
+                    )
+                    .isPresent();
+        } else {
+            return true;
+        }
+    }
+
+    private static Criteria parseCriteria(final String filter) {
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+                new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+
+        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
     }
 
     private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {

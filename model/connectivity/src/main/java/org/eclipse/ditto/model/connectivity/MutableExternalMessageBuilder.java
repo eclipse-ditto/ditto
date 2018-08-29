@@ -20,7 +20,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.protocoladapter.Adaptable;
 
 /**
  * Mutable builder for building new instances of ExternalMessage.
@@ -34,7 +33,6 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     @Nullable private String textPayload;
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
-    @Nullable private Adaptable originatingAdaptable;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -49,7 +47,6 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.response = message.isResponse();
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
-        this.originatingAdaptable = message.getOriginatingAdaptable().orElse(null);
     }
 
     /**
@@ -124,15 +121,9 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
-    public ExternalMessageBuilder withOriginatingAdaptable(@Nullable final Adaptable originatingAdaptable) {
-        this.originatingAdaptable = originatingAdaptable;
-        return this;
-    }
-
-    @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, topicPath, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, originatingAdaptable);
+        return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
+                authorizationContext);
     }
 
 }

@@ -39,8 +39,8 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
@@ -152,7 +152,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private boolean snapshotInProgress = false;
     private final PlaceholderFilter placeholdersFilter = new PlaceholderFilter();
 
-    private Set<Topic> uniqueTopicPaths = Collections.emptySet();
+    private Set<Topic> uniqueTopics = Collections.emptySet();
 
     private final FiniteDuration flushPendingResponsesTimeout;
     private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
@@ -357,7 +357,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Signal dropped: No Connection configuration available.");
             return;
         }
-        if (uniqueTopicPaths.isEmpty()) {
+        if (uniqueTopics.isEmpty()) {
             log.debug("Signal dropped: No topic paths present.");
             return;
         }
@@ -742,8 +742,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
         // unsubscribe to previously subscribed topics
         unsubscribeFromEvents();
 
-        uniqueTopicPaths = connection.getTargets().stream()
-                .flatMap(target -> target.getTopics().stream().map(Topic::getPath))
+        uniqueTopics = connection.getTargets().stream()
+                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
                 .collect(Collectors.toSet());
 
         forEachPubSubTopicDo(pubSubTopic -> {
@@ -766,7 +766,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void forEachPubSubTopicDo(final Consumer<String> topicConsumer) {
-        uniqueTopicPaths.stream()
+        uniqueTopics.stream()
                 .map(Topic::getPubSubTopic)
                 .forEach(topicConsumer);
     }

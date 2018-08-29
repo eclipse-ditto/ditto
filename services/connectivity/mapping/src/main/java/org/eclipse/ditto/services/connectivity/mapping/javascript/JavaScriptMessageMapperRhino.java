@@ -255,7 +255,6 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
                             .build();
                 }
 
-                messageBuilder.withOriginatingAdaptable(adaptable);
                 return messageBuilder.build();
             }));
         } catch (final RhinoException e) {

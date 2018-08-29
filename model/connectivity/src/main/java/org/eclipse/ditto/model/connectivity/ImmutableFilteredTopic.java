@@ -15,51 +15,55 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 /**
- * TODO TJ javadoc
+ * Immutable implementation of {@link FilteredTopic}.
  */
-public final class ImmutableTopic implements Topic {
+@Immutable
+public final class ImmutableFilteredTopic implements FilteredTopic {
 
     private static final String FILTER = "?filter=";
 
-    private final String path;
+    private final Topic topic;
     @Nullable private final String filterString;
 
-    private ImmutableTopic(final String path, @Nullable final String filterString) {
-        this.path = path;
+    private ImmutableFilteredTopic(final Topic topic, @Nullable final String filterString) {
+        this.topic = topic;
         this.filterString = filterString;
     }
 
     /**
-     * Creates a new {@code ImmutableTopic} instance.
+     * Creates a new {@code ImmutableFilteredTopic} instance.
      *
-     * @param path the path of this topic
+     * @param topic the topic of this filtered topic
      * @param filterString the optional RQL filter string of this topic
-     * @return a new instance of ImmutableTopic
+     * @return a new instance of ImmutableFilteredTopic
      */
-    public static Topic of(final String path, @Nullable final String filterString) {
-        return new ImmutableTopic(path, filterString);
+    public static FilteredTopic of(final Topic topic, @Nullable final String filterString) {
+        return new ImmutableFilteredTopic(topic, filterString);
     }
 
     /**
-     * Creates a new {@code ImmutableTopic} instance.
+     * Creates a new {@code ImmutableFilteredTopic} instance.
      *
      * @param topicString the string representation of a topic
-     * @return a new instance of ImmutableTopic
+     * @return a new instance of ImmutableFilteredTopic
      */
-    public static Topic fromString(final String topicString) {
+    public static FilteredTopic fromString(final String topicString) {
         if (topicString.contains(FILTER)) {
             final String[] split = topicString.split("\\" + FILTER, 2);
-            return new ImmutableTopic(split[0], split[1]);
+            return new ImmutableFilteredTopic(Topic.forName(split[0])
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid topic: " + split[0])), split[1]);
         } else {
-            return new ImmutableTopic(topicString, null);
+            return new ImmutableFilteredTopic(Topic.forName(topicString)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid topic: " + topicString)), null);
         }
     }
 
     @Override
-    public String getPath() {
-        return path;
+    public Topic getTopic() {
+        return topic;
     }
 
     @Override
@@ -85,9 +89,9 @@ public final class ImmutableTopic implements Topic {
     @Override
     public String toString() {
         if (filterString != null) {
-            return path + FILTER + filterString;
+            return topic.getName() + FILTER + filterString;
         } else {
-            return path;
+            return topic.getName();
         }
     }
 
@@ -96,17 +100,17 @@ public final class ImmutableTopic implements Topic {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof ImmutableTopic)) {
+        if (!(o instanceof ImmutableFilteredTopic)) {
             return false;
         }
-        final ImmutableTopic that = (ImmutableTopic) o;
-        return Objects.equals(path, that.path) &&
+        final ImmutableFilteredTopic that = (ImmutableFilteredTopic) o;
+        return Objects.equals(topic, that.topic) &&
                 Objects.equals(filterString, that.filterString);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(path, filterString);
+        return Objects.hash(topic, filterString);
     }
 }
