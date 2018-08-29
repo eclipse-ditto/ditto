@@ -19,34 +19,6 @@ import java.util.function.BiFunction;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
-import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeDeleted;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesCreated;
-import org.eclipse.ditto.signals.events.things.AttributesDeleted;
-import org.eclipse.ditto.signals.events.things.AttributesModified;
-import org.eclipse.ditto.signals.events.things.FeatureCreated;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.FeaturesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
-import org.eclipse.ditto.signals.events.things.PolicyIdModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
