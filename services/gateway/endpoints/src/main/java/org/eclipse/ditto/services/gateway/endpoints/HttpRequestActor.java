@@ -150,9 +150,8 @@ public final class HttpRequestActor extends AbstractActor {
                         })
                 .match(ErrorResponse.class, errorResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, errorResponse);
-                    logger.info("Got 'ErrorResponse': {}", errorResponse);
                     final DittoRuntimeException dre = errorResponse.getDittoRuntimeException();
-                    completeWithDittoRuntimeException(dre);
+                    handleDittoRuntimeException(dre);
                 })
                 .match(CommandResponse.class, commandResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
@@ -168,13 +167,9 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(JsonRuntimeException.class, jre -> {
                     // wrap JsonRuntimeExceptions
                     final DittoJsonException dre = new DittoJsonException(jre);
-                    logDittoRuntimeException(dre);
-                    completeWithDittoRuntimeException(dre);
+                    handleDittoRuntimeException(dre);
                 })
-                .match(DittoRuntimeException.class, dre -> {
-                    logDittoRuntimeException(dre);
-                    completeWithDittoRuntimeException(dre);
-                })
+                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .match(ReceiveTimeout.class, receiveTimeout -> {
                     logger.info("Got ReceiveTimeout when a response was expected: '{}'", receiveTimeout);
                     final MessageTimeoutException mte =
@@ -189,8 +184,7 @@ public final class HttpRequestActor extends AbstractActor {
                 })
                 .match(Status.Failure.class, failure -> failure.cause() instanceof DittoRuntimeException, failure -> {
                     final DittoRuntimeException dre = (DittoRuntimeException) failure.cause();
-                    logDittoRuntimeException(dre);
-                    completeWithDittoRuntimeException(dre);
+                    handleDittoRuntimeException(dre);
                 })
                 .match(Status.Failure.class, failure -> {
                     logger.error(failure.cause().fillInStackTrace(),
@@ -360,10 +354,7 @@ public final class HttpRequestActor extends AbstractActor {
 
                     if (cause instanceof DittoRuntimeException) {
                         final DittoRuntimeException dre = (DittoRuntimeException) cause;
-                        logDittoRuntimeException(dre);
-                        completeWithResult(HttpResponse.create().withStatus(dre.getStatusCode().toInt())
-                                .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString()))
-                        );
+                        handleDittoRuntimeException(dre);
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected");
                         completeWithResult(
@@ -371,11 +362,7 @@ public final class HttpRequestActor extends AbstractActor {
                         );
                     }
                 })
-                .match(DittoRuntimeException.class, dre -> {
-                    logDittoRuntimeException(dre);
-                    completeWithResult(HttpResponse.create().withStatus(dre.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(dre.toJsonString())));
-                })
+                .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                 .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
                         serverRequestTimeoutMessage -> handleServerRequestTimeout())
                 .match(Command.class, command -> { // receive Commands
@@ -464,9 +451,12 @@ public final class HttpRequestActor extends AbstractActor {
         stop();
     }
 
-    private void completeWithDittoRuntimeException(final DittoRuntimeException dre) {
-
+    private void handleDittoRuntimeException(final DittoRuntimeException dre) {
         logDittoRuntimeException(dre);
+        completeWithDittoRuntimeException(dre);
+    }
+
+    private void completeWithDittoRuntimeException(final DittoRuntimeException dre) {
         final HttpResponse responseWithoutHeaders = buildResponseWithoutHeadersFromDittoRuntimeException(dre);
         final HttpResponse response =
                 enhanceResponseWithExternalDittoHeaders(responseWithoutHeaders, dre.getDittoHeaders());
