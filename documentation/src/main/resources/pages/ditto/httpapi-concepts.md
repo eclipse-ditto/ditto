@@ -1,6 +1,6 @@
 ---
 title: HTTP API concepts
-keywords: http, api, concepts, partial
+keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match, If-None-Match
 tags: [http]
 permalink: httpapi-concepts.html
 ---
@@ -375,3 +375,137 @@ Various `GET` request examples with field selectors:
 }
 ```
 
+## Conditional Requests
+
+The HTTP APIs for `Things` and `Policies` partially support `Conditional Requests` as defined in [RFC-7232](https://tools.ietf.org/html/rfc7232).
+
+### ETag
+
+For success responses on a resource, the `ETag` header is provided. For read responses, it contains the current 
+entity-tag of the resource. For write responses, it contains the entity-tag after successful write.
+The `ETag` has a different format for top-level resources and sub-resources.
+* Top-level resources (e.g. `.../things/{thingId}`): The entity-tag contains the revision of the 
+entity which is addressed by the resource in the format `"rev:<revision>"`, e.g. `"rev:2"`.
+* Sub-resources (e.g. `.../things/{thingId}/features/{featureId}`): The entity-tag contains a hash 
+of the current value of the addressed sub-resource in the format `"hash:<calculated-hash>"`, e.g. 
+`"hash:87192253740"`. Note that this format may change in the future.
+
+### Conditional Headers
+
+The following request headers can be used to issue Conditional Requests:
+* `If-Match`: 
+  * Read or write the resource only
+    * if the current entity-tag matches at least one of the entity-tags provided in this header
+    * or if it is `*` and the entity exists
+  * The response will be:
+    * in case of a match, the same response as if the header had not been specified
+    * in case of no match, status `412 (Precondition Failed)` with an error response containing detail information   
+* `If-None-Match`:
+  * Read or write the resource only
+    * if the current entity-tag does not match any one of the entity-tags provided in this header
+    * or if it is `*` and the entity does not exist
+  * The response will be:
+    * in case of no match, the same response as if the header had not been specified
+    * in case of a match:
+      * for write requests, status `412 (Precondition Failed)` with an error response containing detail information
+      * for read requests, status `304 (Not Modified)` without response body
+
+Note that the Ditto HTTP APIs always provide a `strong` entity-tag in the `ETag` header, you will never receive a `weak` 
+entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this strong
+entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232. 
+But we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary complexity.
+    
+### Examples
+
+The following examples show several scenarios on a top-level (Thing) resource. Nevertheless, these scenarious can 
+also be applied on any sub-resource in the same way.
+
+#### Create: Write only if the resource does not exist
+
+The following example request shows how you can make sure that a `PUT` request does not overwrite existing data, i.e.
+ how you can enforce that the Thing can only be created by the request.
+ 
+```
+PUT .../things/{thingId}
+If-None-Match: *
+```
+```json
+{
+  "policyId": "{policyId}",
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `201 (Created)` in case the creation was successful, i.e. the Thing did not yet exist.
+* `412 (Precondition Failed)` in case the creation failed, i.e. the Thing already exists.
+
+#### Update: Write only if the resource already exists
+
+The following example request shows how you can make sure that a `PUT` request does not create the resource, i.e. how
+ you can enforce that the Thing can only be updated by the request.
+ 
+```
+PUT .../things/{thingId}
+If-Match: *
+```
+```json
+{
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `204 (No Content)` in case the update was successful, i.e. the Thing already existed.
+* `412 (Precondition Failed)` in case the update failed, i.e. the Thing does not yet exist.
+
+#### Optimistic Locking
+
+First `GET` the Thing in order to retrieve both the current data and entity-tag:
+
+`GET .../things/{thingId}`:
+
+Response:
+
+`ETag: "rev:2"`
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+Assume that you detected the typo in the manufacturer attribute ("ACME crop") and want to fix this with a top-level 
+Thing PUT. You want to make sure that no one else has modified the Thing in the meantime, because otherwise his 
+changes would be lost. (You could also achieve this with a PUT on the concrete attribute, but for this example we 
+assume that you want to use a top-level Thing PUT.)
+
+`PUT` the Thing with the changed data and the entity-tag from the preceding `GET` response in the `If-Match` header.
+
+```
+PUT .../things/{thingId}
+If-Match: "rev:2"
+```
+```json
+{
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `204 (No Content)` in case the update was successful, i.e. no one else has changed the Thing in the meantime.
+* `412 (Precondition Failed)` in case the update was not successful, i.e. the Thing has been changed by someone else 
+in the meantime.
