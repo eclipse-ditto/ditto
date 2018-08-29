@@ -12,11 +12,11 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -356,7 +356,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             if (externalMessage.getThingIdEnforcement().isPresent()) {
                 final ThingIdEnforcement thingIdEnforcement = externalMessage.getThingIdEnforcement().get();
                 log.debug("Thing ID Enforcement enabled: {}", thingIdEnforcement);
-                final Set<String> filtered =
+                final Collection<String> filtered =
                         placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId(),
                                 this::logUnresolvedPlaceholder);
                 final String enforcementTarget = thingIdEnforcement.getTarget();

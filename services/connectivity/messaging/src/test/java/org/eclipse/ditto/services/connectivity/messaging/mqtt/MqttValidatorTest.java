@@ -17,6 +17,8 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -78,10 +80,26 @@ public final class MqttValidatorTest {
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
     }
 
+    @Test
+    public void testInvalidSourceTopicFilters() {
+        final MqttSource mqttSourceWithValidFilter =
+                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
+                        "things/+/{{ thing:id }}/#", 1, "#");
+        final MqttSource mqttSourceWithInvalidFilter =
+                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
+                        "things/#/{{ thing:id }}/+", 1, "#");
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+                ConnectionStatus.OPEN, "tcp://localhost:1883")
+                .sources(Arrays.asList(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter))
+                .build();
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
+    }
+
     private Connection connectionWithSource(final String source) {
         final MqttSource mqttSource =
                 ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
-                        "things/{{ thing.id }}", 1, source);
+                        "things/{{ thing:id }}", 1, source);
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(mqttSource))

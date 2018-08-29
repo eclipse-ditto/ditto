@@ -15,11 +15,14 @@ import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -28,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.MqttTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.PlaceholderFilter;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
@@ -82,8 +86,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
         final MqttSource mqttSource = (MqttSource) source;
         validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
-
-        // TODO validate filters
+        validateSourceFilters(mqttSource.getFilters(), dittoHeaders, sourceDescription);
     }
 
     @Override
@@ -119,6 +122,28 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
     }
 
+    private static void validateSourceFilters(final Collection<String> filters,
+            final DittoHeaders dittoHeaders,
+            final Supplier<String> sourceDescription) {
+
+        final String dummyThingId = "namespace:name";
+        final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
+        final Map<String, String> filtersMap = placeholderFilter.filterAddressesAsMap(filters, dummyThingId, filter -> {
+            throw invalidValueForConfig(filter, "filters", sourceDescription.get())
+                    .description("Placeholder substitution failed. " +
+                            "Please check the placeholder variables against the documentation.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        });
+        filtersMap.forEach((filter, mqttTopic) ->
+                validateMqttTopic(mqttTopic, true, errorMessage ->
+                        invalidValueForConfig(filter, "filters", sourceDescription.get())
+                                .description("The filter is not a valid MQTT topic after placeholder substitution. " +
+                                        "Wildcard characters are allowed.")
+                                .dittoHeaders(dittoHeaders)
+                                .build()));
+    }
+
     /*
      * MQTT Source does not support exactly-once delivery.
      */
@@ -126,8 +151,6 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders,
             final Supplier<String> errorSiteDescription) {
 
-        // TODO: test with qos=2
-        // validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 1);
         validateQoS(qos, dittoHeaders, errorSiteDescription, i -> 0 <= i && i <= 2);
     }
 
@@ -145,9 +168,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final Supplier<String> errorSiteDescription, final Predicate<Integer> predicate) {
 
         if (!predicate.test(qos)) {
-            final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{1}'' in {2}",
-                    qos, QOS, errorSiteDescription.get());
-            throw ConnectionConfigurationInvalidException.newBuilder(message)
+            throw invalidValueForConfig(qos, QOS, errorSiteDescription.get())
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
@@ -167,13 +188,30 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     private static void validateAddress(final String address, final boolean wildcardAllowed,
             final DittoHeaders dittoHeaders) {
+        validateMqttTopic(address, wildcardAllowed, errorMessage -> {
+            final String message = MessageFormat.format(INVALID_TOPIC_FORMAT, address, errorMessage);
+            return ConnectionConfigurationInvalidException.newBuilder(message)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        });
+    }
+
+    private static void validateMqttTopic(final String address, final boolean wildcardAllowed,
+            final Function<String, DittoRuntimeException> errorProducer) {
         try {
             MqttTopic.validate(address, wildcardAllowed);
         } catch (final IllegalArgumentException e) {
-            throw ConnectionConfigurationInvalidException.newBuilder(
-                    MessageFormat.format(INVALID_TOPIC_FORMAT, address, e.getMessage()))
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            throw errorProducer.apply(e.getMessage());
         }
+
+    }
+
+    private static ConnectionConfigurationInvalidException.Builder invalidValueForConfig(final Object value,
+            final String configName,
+            final String location) {
+
+        final String message = MessageFormat.format("Invalid value ''{0}'' for configuration ''{1}'' in {2}",
+                value, configName, location);
+        return ConnectionConfigurationInvalidException.newBuilder(message);
     }
 }

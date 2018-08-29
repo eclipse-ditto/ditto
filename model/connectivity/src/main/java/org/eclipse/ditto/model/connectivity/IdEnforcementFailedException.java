@@ -13,7 +13,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.Set;
+import java.util.Collection;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -70,7 +70,7 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
      * @param filters the configured filters.
      * @return the builder.
      */
-    public static Builder newBuilder(final String target, final Set<String> filters) {
+    public static Builder newBuilder(final String target, final Collection<String> filters) {
         return new Builder(target, filters);
     }
 
@@ -117,7 +117,7 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String target, final Set<String> filters) {
+        private Builder(final String target, final Collection<String> filters) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, target, filters));
         }

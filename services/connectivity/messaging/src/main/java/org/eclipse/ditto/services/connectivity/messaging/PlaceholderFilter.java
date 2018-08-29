@@ -12,8 +12,10 @@
 
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -30,7 +33,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
@@ -39,7 +41,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 /**
  * A filter implementation to replace defined placeholders with their values.
  */
-final class PlaceholderFilter {
+public final class PlaceholderFilter {
 
     private static final String PLACEHOLDER_START = "{{";
     private static final String PLACEHOLDER_END = "}}";
@@ -84,18 +86,38 @@ final class PlaceholderFilter {
                 .collect(Collectors.toSet());
     }
 
-    Set<String> filterAddresses(final Set<String> addresses, final String thingId,
+    Collection<String> filterAddresses(final Collection<String> addresses, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
+
         // check if we have to replace anything at all
         if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
             return addresses;
         }
 
+        return filterAddressesAsMap(addresses, thingId, unresolvedPlaceholderListener).values();
+    }
+
+    /**
+     * Apply thing placeholders to addresses and collect the result as a map.
+     *
+     * @param addresses addresses to apply placeholder substitution.
+     * @param thingId the thing ID.
+     * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
+     * @return map from successfully filtered addresses to the result of placeholder substitution.
+     */
+    public Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+
         final ThingPlaceholder thingPlaceholder = new ThingPlaceholder(thingId);
         return addresses.stream()
-                .map(address -> applyThingPlaceholder(address, thingPlaceholder, unresolvedPlaceholderListener))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+                .flatMap(address -> {
+                    final String filteredAddress =
+                            applyThingPlaceholder(address, thingPlaceholder, unresolvedPlaceholderListener);
+                    return filteredAddress == null
+                            ? Stream.empty()
+                            : Stream.of(new AbstractMap.SimpleEntry<>(address, filteredAddress));
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Nullable
@@ -143,14 +165,32 @@ final class PlaceholderFilter {
     }
 
     /**
-     *
+     * Definition of a placeholder variable.
      */
     interface Placeholder {
 
+        /**
+         * The part of the placeholder variable before ':'.
+         *
+         * @return the prefix.
+         */
         String getPrefix();
 
+        /**
+         * Test whether a placeholder name (i. e., the part after ':') is supported.
+         *
+         * @param name the placeholder name.
+         * @return whether the placeholder name is supported.
+         */
         boolean supports(String name);
 
+        /**
+         * Evaluate the placeholder variable by name.
+         *
+         * @param value the placeholder variable name (i. e., the part after ':').
+         * @return value of the placeholder variable if the placeholder name is supported, or an empty optional
+         * otherwise.
+         */
         Optional<String> apply(final String value);
     }
 
