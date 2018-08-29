@@ -28,6 +28,8 @@ public class EntityTag {
     private static final String ASTERISK = "\"*\"";
     private static final String WEAK_PREFIX = "W/";
 
+    private static final EntityTag ASTERISK_INSTANCE = new EntityTag(false, ASTERISK);
+
     private final boolean weak;
 
     private final String opaqueTag;
@@ -38,6 +40,13 @@ public class EntityTag {
         }
         this.weak = weak;
         this.opaqueTag = opaqueTag;
+    }
+
+    /**
+     * @return the {@code *} entity-tag value.
+     */
+    public static EntityTag asterisk() {
+        return ASTERISK_INSTANCE;
     }
 
     /**
