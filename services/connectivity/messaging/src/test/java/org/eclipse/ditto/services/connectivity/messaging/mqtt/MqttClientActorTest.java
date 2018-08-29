@@ -127,6 +127,7 @@ public class MqttClientActorTest {
                         .sources(singletonList(
                                 newMqttSource(1, 1, AUTHORIZATION_CONTEXT, 1, SOURCE_ADDRESS)))
                         .targets(singleton(TARGET))
+                        .failoverEnabled(true)
                         .build();
     }
 

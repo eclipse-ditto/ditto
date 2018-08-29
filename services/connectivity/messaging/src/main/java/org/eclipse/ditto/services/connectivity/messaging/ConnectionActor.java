@@ -47,7 +47,7 @@ import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValida
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -85,9 +85,6 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
-import com.typesafe.config.Config;
-
-import akka.ConfigurationException;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -126,13 +123,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private static final String UNRESOLVER_PLACEHOLDERS_MESSAGE =
             "Failed to substitute all placeholders in '{}', target is dropped.";
-
-    /**
-     * Default timeout for flushing pending responses.
-     *
-     * @see ConfigKeys.Connection#FLUSH_PENDING_RESPONSES_TIMEOUT
-     */
-    private static final java.time.Duration DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT = java.time.Duration.ofSeconds(5L);
 
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
@@ -194,19 +184,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
             this.commandValidator = dittoCommandValidator;
         }
 
-        final Config config = getContext().system().settings().config();
-        snapshotThreshold = config.getLong(ConfigKeys.Connection.SNAPSHOT_THRESHOLD);
-        if (snapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Connection.SNAPSHOT_THRESHOLD, snapshotThreshold));
-        }
+        final ConnectionConfigReader configReader =
+                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config());
+        snapshotThreshold = configReader.snapshotThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
-        final java.time.Duration javaFlushTimeout =
-                config.hasPath(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
-                        ? config.getDuration(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
-                        : DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT;
+        final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 

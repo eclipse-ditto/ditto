@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnecte
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 
 import akka.Done;
 import akka.NotUsed;
@@ -77,6 +79,7 @@ public class MqttClientActor extends BaseClientActor {
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
     private final Function<Connection, MqttConnectionFactory> connectionFactoryCreator;
+    private final int sourceBufferSize;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
@@ -88,6 +91,9 @@ public class MqttClientActor extends BaseClientActor {
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
         pendingStatusReportsFromStreams = new HashSet<>();
+        sourceBufferSize = ConnectionConfigReader.fromRawConfig(getContext().system().settings().config())
+                .mqtt()
+                .sourceBufferSize();
     }
 
     /**
@@ -273,16 +279,10 @@ public class MqttClientActor extends BaseClientActor {
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);
         }
 
-        // TODO make configurable
-        final Integer bufferSize = 8;
         final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
-                factory.newSource(mqttSource, bufferSize);
-
-        // TODO use RestartSource
-//            final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> restartingSource =
-//                    wrapWithAsRestartSource(() -> mqttStreamSource);
-//                        .mapAsync(1, cm -> cm.messageArrivedComplete().thenApply(unused2 -> cm.message()))
-//                        .take(input.size())
+                connection().isFailoverEnabled()
+                        ? wrapWithAsRestartSource(() -> factory.newSource(mqttSource, sourceBufferSize))
+                        : factory.newSource(mqttSource, sourceBufferSize);
 
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
@@ -318,33 +318,6 @@ public class MqttClientActor extends BaseClientActor {
 
     private String getUniqueSourceSuffix(final int sourceIndex, final int consumerIndex) {
         return sourceIndex + "-" + consumerIndex;
-    }
-
-    // TODO: keep RestartSource or not?
-    private <M> akka.stream.javadsl.Source<M, CompletionStage<Done>> wrapWithAsRestartSource(
-            final Creator<akka.stream.javadsl.Source<M, CompletionStage<Done>>> source) {
-        // makes use of the fact that these sources materialize a CompletionStage<Done>
-        final CompletableFuture<Done> fut = new CompletableFuture<>();
-        return RestartSource.withBackoff(
-                Duration.ofMillis(100),
-                Duration.ofSeconds(3),
-                0.2d, // randomFactor
-                5, // maxRestarts,
-                () ->
-                        source
-                                .create()
-                                .mapMaterializedValue(
-                                        mat ->
-                                                mat.handle(
-                                                        (done, exception) -> {
-                                                            if (done != null) {
-                                                                fut.complete(done);
-                                                            } else {
-                                                                fut.completeExceptionally(exception);
-                                                            }
-                                                            return fut.toCompletableFuture();
-                                                        })))
-                .mapMaterializedValue(ignore -> fut.toCompletableFuture());
     }
 
     @Override
@@ -419,10 +392,50 @@ public class MqttClientActor extends BaseClientActor {
                         error -> ConsumerStreamMessage.STREAM_ENDED);
                 final SinkShape<Object> sinkShape = builder.add(sink);
                 final Outlet<T> outlet = loadBalancer.out(i++);
-                builder.from(outlet).to(sinkShape); // TODO: check if this generates "unchecked" warning on Sonatype
+                builder.from(outlet).to(sinkShape);
             }
             return SinkShape.of(loadBalancer.in());
         });
+    }
+
+    /*
+     */
+
+    /**
+     * Wrap an Akka stream source in a RestartSource whose materialized value is equal to the first materialized value
+     * of the source.
+     * <p>
+     * WARNING: Only the first materialized value is meaningful.
+     * </p><p>
+     * TODO: make safe once  https://github.com/akka/akka/issues/24771  is fixed
+     * </p>
+     *
+     * @param source creator of the source that will be restarted when it fails.
+     * @param <E> type of stream elements.
+     * @param <M> type of materialized future values.
+     * @return the RestartSource.
+     */
+    private static <E, M> akka.stream.javadsl.Source<E, CompletionStage<M>> wrapWithAsRestartSource(
+            final Creator<akka.stream.javadsl.Source<E, CompletionStage<M>>> source) {
+
+        final CompletableFuture<M> future = new CompletableFuture<>();
+        final AtomicBoolean isFutureIncomplete = new AtomicBoolean(true);
+        return RestartSource.withBackoff(
+                Duration.ofMillis(128),
+                Duration.ofMinutes(15),
+                1.0, // random delay added up to 100% of the next delay
+                -1, // unbounded restarts
+                () -> source.create().mapMaterializedValue(mat -> {
+                    if (isFutureIncomplete.getAndSet(false)) {
+                        mat.thenAccept(future::complete)
+                                .exceptionally(e -> {
+                                    future.completeExceptionally(e);
+                                    return null;
+                                });
+                    }
+                    return mat;
+                }))
+                .mapMaterializedValue(ignore -> future);
     }
 
     /**
