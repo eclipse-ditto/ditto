@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
 /**
- * Builder for authentication directives.
+ * Factory for authentication directives.
  */
 public interface GatewayAuthenticationDirectiveFactory {
 

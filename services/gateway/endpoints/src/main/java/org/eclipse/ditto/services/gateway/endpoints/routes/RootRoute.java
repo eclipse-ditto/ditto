@@ -176,7 +176,7 @@ public final class RootRoute {
             final ActorRef streamingActor,
             final ActorRef healthCheckingActor,
             final Supplier<ClusterStatus> clusterStateSupplier,
-            final GatewayAuthenticationDirectiveFactory gatewayAuthenticationDirectiveBuilder,
+            final GatewayAuthenticationDirectiveFactory gatewayAuthenticationDirectiveFactory,
             final CustomApiRoutesProvider customApiRoutesProvider,
             final CustomHeadersHandler customHeadersHandler) {
         checkNotNull(actorSystem, "Actor System");
@@ -209,8 +209,8 @@ public final class RootRoute {
 
         supportedSchemaVersions = config.getIntList(ConfigKeys.SCHEMA_VERSIONS);
 
-        apiAuthenticationDirective = gatewayAuthenticationDirectiveBuilder.buildRestApiAuthentication();
-        wsAuthenticationDirective = gatewayAuthenticationDirectiveBuilder.buildWsAuthentication();
+        apiAuthenticationDirective = gatewayAuthenticationDirectiveFactory.buildRestApiAuthentication();
+        wsAuthenticationDirective = gatewayAuthenticationDirectiveFactory.buildWsAuthentication();
 
         exceptionHandler = createExceptionHandler();
 

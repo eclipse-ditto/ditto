@@ -33,6 +33,9 @@ import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 
+/**
+ * Ditto's default factory for building authentication directives.
+ */
 public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthenticationDirectiveFactory {
 
     private static final String JWT_ISSUER_GOOGLE_DOMAIN = "accounts.google.com";
