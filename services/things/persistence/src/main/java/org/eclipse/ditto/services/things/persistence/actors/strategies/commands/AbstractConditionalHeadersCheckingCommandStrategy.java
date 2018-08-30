@@ -68,14 +68,22 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
                 .orElse(null);
 
         if (skipPreconditionHeaderCheck(command, currentETagValue)) {
-            // For this cases a 404 is expected that should be returned by the implementing strategy.
+            // For this case a 404 is expected that should be returned by the implementing strategy.
             return super.apply(context, thing, nextRevision, command);
         }
 
-        return Optional
-                .of(checkIfMatch(command, currentETagValue))
-                .orElseGet(() -> checkIfNoneMatch(command, currentETagValue))
-                .orElseGet(() -> super.apply(context, thing, nextRevision, command));
+        return checkConditionalHeaders(command, currentETagValue).orElseGet(
+                () -> super.apply(context, thing, nextRevision, command)
+        );
+    }
+
+    private Optional<Result> checkConditionalHeaders(final C command, @Nullable final EntityTag currentETagValue) {
+        final Optional<Result> checkIfMatch = checkIfMatch(command, currentETagValue);
+        if (checkIfMatch.isPresent()) {
+            return checkIfMatch;
+        }
+
+        return checkIfNoneMatch(command, currentETagValue);
     }
 
     private boolean skipPreconditionHeaderCheck(final C command, @Nullable final EntityTag currentETagValue) {
