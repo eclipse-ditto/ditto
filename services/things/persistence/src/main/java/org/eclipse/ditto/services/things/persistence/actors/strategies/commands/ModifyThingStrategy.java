@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -25,7 +24,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
@@ -47,22 +46,26 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
+
+        final Thing nonNullThing = getThingOrThrow(thing);
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> nonNullThing.toJsonString().length(),
+                command::getDittoHeaders);
+
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-            return handleModifyExistingWithV1Command(context, thing, nextRevision, command);
+            return handleModifyExistingWithV1Command(context, nonNullThing, nextRevision, command);
         }
 
         // from V2 upwards, use this logic:
-        return handleModifyExistingWithV2Command(context, thing, nextRevision, command);
+        return handleModifyExistingWithV2Command(context, nonNullThing, nextRevision, command);
     }
 
-    private static Result handleModifyExistingWithV1Command(final Context context,
-            @Nullable final Thing thing, final long nextRevision,
+    private static Result handleModifyExistingWithV1Command(final Context context, final Thing thing, final long nextRevision,
             final ModifyThing command) {
-        final Thing theThing = getThingOrThrow(thing);
-        if (JsonSchemaVersion.V_1.equals(theThing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV1Command(context, theThing, nextRevision, command);
+        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+            return handleModifyExistingV1WithV1Command(context, thing, nextRevision, command);
         } else {
-            return handleModifyExistingV2WithV1Command(context, theThing, nextRevision, command);
+            return handleModifyExistingV2WithV1Command(context, thing, nextRevision, command);
         }
     }
 
@@ -118,13 +121,12 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 .build();
     }
 
-    private static Result handleModifyExistingWithV2Command(final Context context, @Nullable final Thing thing,
+    private static Result handleModifyExistingWithV2Command(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        final Thing theThing = getThingOrThrow(thing);
-        if (JsonSchemaVersion.V_1.equals(theThing.getImplementedSchemaVersion())) {
-            return handleModifyExistingV1WithV2Command(context, theThing, nextRevision, command);
+        if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
+            return handleModifyExistingV1WithV2Command(context, thing, nextRevision, command);
         } else {
-            return handleModifyExistingV2WithV2Command(context, theThing, nextRevision, command);
+            return handleModifyExistingV2WithV2Command(context, thing, nextRevision, command);
         }
     }
 
@@ -210,7 +212,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     }
 
     @Override
-    protected Result unhandled(final Context context, final Thing thing,
+    protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
         return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }

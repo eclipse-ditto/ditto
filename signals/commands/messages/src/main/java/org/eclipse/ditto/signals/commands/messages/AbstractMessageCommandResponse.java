@@ -104,8 +104,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
 
         final MessageHeaders messageHeaders = MessageHeaders.of(messageHeadersObject);
         final MessageBuilder<T> messageBuilder = Message.<T>newBuilder(messageHeaders);
-        final String contentType = messageHeaders.getContentType().orElse("");
-        MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder, contentType);
+        MessagePayloadSerializer.deserialize(messagePayloadOptional, messageBuilder, messageHeaders);
         return messageBuilder.build();
     }
 

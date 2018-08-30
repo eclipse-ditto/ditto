@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command creates a new Policy. It contains the full {@link Policy} including the Policy ID which should be used
@@ -60,6 +61,9 @@ public final class CreatePolicy extends AbstractCommand<CreatePolicy> implements
     private CreatePolicy(final Policy policy, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policy = policy;
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policy.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

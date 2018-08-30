@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.query.QueryBuilder;
 import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
@@ -25,10 +26,18 @@ import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
 @Immutable
 public final class MongoQueryBuilderFactory implements QueryBuilderFactory {
 
+    private final LimitsConfigReader limitsConfigReader;
+
+    public MongoQueryBuilderFactory(final LimitsConfigReader limitsConfigReader) {
+
+        this.limitsConfigReader = limitsConfigReader;
+    }
+
     @Override
     public QueryBuilder newBuilder(final Criteria criteria) {
         checkCriteria(criteria);
-        return MongoQueryBuilder.limited(criteria);
+        return MongoQueryBuilder.limited(criteria,
+                limitsConfigReader.thingsSearchMaxPageSize(), limitsConfigReader.thingsSearchDefaultPageSize());
     }
 
     @Override

@@ -11,10 +11,14 @@
  */
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -27,6 +31,7 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
     private final ActorRef devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
+    private final ActorRef aggregatorProxyActor;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
             final ActorRef devOpsCommandsActor,
@@ -35,6 +40,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
         this.devOpsCommandsActor = devOpsCommandsActor;
         this.conciergeForwarder = conciergeForwarder;
+
+        aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),
+                ThingsAggregatorProxyActor.ACTOR_NAME);
     }
 
     @Override
@@ -47,6 +55,17 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
                             command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
+
+                /* handle RetrieveThings in a special way */
+                .match(RetrieveThings.class, rt -> aggregatorProxyActor.forward(rt, getContext()))
+                .match(SudoRetrieveThings.class, srt -> aggregatorProxyActor.forward(srt, getContext()))
+
+                .match(QueryThings.class, qt -> {
+                            final ActorRef responseActor = getContext()
+                                    .actorOf(QueryThingsPerRequestActor.props(qt, aggregatorProxyActor, getSender()));
+                            conciergeForwarder.tell(qt, responseActor);
+                        }
+                )
 
                 /* send all other Commands to Concierge Service */
                 .match(Command.class, this::forwardToConciergeService)

@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies a single Property of a {@link org.eclipse.ditto.model.things.Feature}'s properties.
@@ -78,6 +79,9 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkNotNull(propertyPointer, "Property JsonPointer");
         this.propertyValue = checkNotNull(propertyValue, "Property Value");
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> propertyValue.toString().length(), () ->
+                dittoHeaders);
     }
 
     /**

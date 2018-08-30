@@ -205,6 +205,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <systemPropertyVariables>
+                        <ditto.limits.things.max-size.bytes>102400</ditto.limits.things.max-size.bytes> <!--  100 KiB -->
+                    </systemPropertyVariables>
                     <systemProperties>
                         <kamon.auto-start>true</kamon.auto-start>
                         <RANDOM_TEST_PORT>${random-akka-tcp-port}</RANDOM_TEST_PORT>

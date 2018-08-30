@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
+import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
@@ -51,6 +52,7 @@ public final class MessageErrorRegistry extends AbstractErrorRegistry<DittoRunti
         parseStrategies.put(MessageTimeoutException.ERROR_CODE, MessageTimeoutException::fromJson);
         parseStrategies.put(SubjectInvalidException.ERROR_CODE, SubjectInvalidException::fromJson);
         parseStrategies.put(TimeoutInvalidException.ERROR_CODE, TimeoutInvalidException::fromJson);
+        parseStrategies.put(MessagePayloadSizeTooLargeException.ERROR_CODE, MessagePayloadSizeTooLargeException::fromJson);
 
         return new MessageErrorRegistry(parseStrategies);
     }

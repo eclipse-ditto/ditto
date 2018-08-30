@@ -25,11 +25,14 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
@@ -38,6 +41,7 @@ import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.PersistenceActorTestBase;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -86,6 +90,9 @@ import scala.runtime.BoxedUnit;
  * Unit test for the {@link PolicyPersistenceActor}.
  */
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
+
+    private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
+            System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
 
     @Before
     public void setup() {
@@ -346,6 +353,51 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         ModifyPolicyEntry.of(policyId, policyEntryToModify, headersMockWithOtherAuth);
                 underTest.tell(modifyPolicyEntry, getRef());
                 expectMsgClass(PolicyEntryModificationInvalidException.class);
+            }
+        };
+    }
+
+    @Test
+    public void modifyPolicyEntrySoThatPolicyGetsTooLarge() {
+        new TestKit(actorSystem) {
+            {
+                final PolicyBuilder policyBuilder = Policy.newBuilder("new:policy");
+                int i = 0;
+                Policy policy;
+                do {
+                    policyBuilder.forLabel("ENTRY-NO" + i)
+                            .setSubject("nginx:ditto", SubjectType.UNKNOWN)
+                            .setGrantedPermissions("policy", "/", "READ", "WRITE")
+                            .setGrantedPermissions("thing", "/", "READ", "WRITE");
+                    policy = policyBuilder.build();
+                    i++;
+                } while(policy.toJsonString().length() < POLICY_SIZE_LIMIT_BYTES);
+
+                policy = policy.removeEntry("ENTRY-NO" + (i-1));
+
+                final ActorRef underTest = createPersistenceActorFor(policy);
+
+                // creating the Policy should be possible as we are below the limit:
+                final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersMockV2);
+                underTest.tell(createPolicyCommand, getRef());
+                final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+                DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                        .isEqualEqualToButModified(policy);
+
+                final PolicyEntry policyEntry = Policy.newBuilder("new:policy")
+                        .forLabel("TEST")
+                        .setSubject("nginx:ditto", SubjectType.UNKNOWN)
+                        .setGrantedPermissions("policy", "/", "READ", "WRITE")
+                        .build()
+                        .getEntryFor("TEST")
+                        .get();
+
+                final ModifyPolicyEntry command =
+                        ModifyPolicyEntry.of(policy.getId().get(), policyEntry, DittoHeaders.empty());
+
+                // but modifying the policy entry which would cause the Policy to exceed the limit should not be allowed:
+                underTest.tell(command, getRef());
+                expectMsgClass(PolicyTooLargeException.class);
             }
         };
     }

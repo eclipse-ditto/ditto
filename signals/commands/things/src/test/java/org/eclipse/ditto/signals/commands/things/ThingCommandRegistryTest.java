@@ -12,8 +12,6 @@
 package org.eclipse.ditto.signals.commands.things;
 
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -25,15 +23,9 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandRegistry
 import org.junit.Test;
 
 /**
- * Unit test for {@link ThingCommandRegistryTest}.
+ * Unit test for {@link ThingCommandRegistry}.
  */
 public final class ThingCommandRegistryTest {
-
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ThingCommandRegistry.class, areImmutable());
-    }
 
 
     @Test

@@ -25,6 +25,7 @@
     <name>Eclipse Ditto :: Services :: Utils</name>
 
     <modules>
+        <module>aggregator</module>
         <module>akka</module>
         <module>cache</module>
         <module>cluster</module>

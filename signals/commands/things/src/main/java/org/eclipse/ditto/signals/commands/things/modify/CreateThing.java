@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command creates a new Thing. It contains the full {@link Thing} including the Thing ID which should be used for
@@ -78,6 +79,9 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
         super(TYPE, dittoHeaders);
         this.thing = thing;
         this.initialPolicy = initialPolicy;
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

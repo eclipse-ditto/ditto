@@ -14,15 +14,12 @@ package org.eclipse.ditto.signals.commands.messages;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.concurrent.Immutable;
-
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandRegistry;
 
 /**
  * A {@link org.eclipse.ditto.signals.commands.base.CommandRegistry} aware of all {@link MessageCommand}s.
  */
-@Immutable
 public final class MessageCommandRegistry extends AbstractCommandRegistry<MessageCommand> {
 
     private MessageCommandRegistry(final Map<String, JsonParsable<MessageCommand>> parseStrategies) {

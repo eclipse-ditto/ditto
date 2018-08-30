@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
@@ -78,6 +79,9 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         this.thingId = thingId;
         this.thing = thing;
         this.initialPolicy = initialPolicy;
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

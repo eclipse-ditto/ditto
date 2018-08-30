@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.model.query.Query;
 import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
@@ -72,8 +73,10 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
-    protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory();
-    protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory();
+    protected static final QueryBuilderFactory qbf = new MongoQueryBuilderFactory
+            (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
+    protected static final AggregationBuilderFactory abf = new MongoAggregationBuilderFactory
+            (DittoLimitsConfigReader.fromRawConfig(ConfigFactory.load("test")));
     private static MongoDbResource mongoResource;
     private static MongoClientWrapper mongoClient;
     /** */

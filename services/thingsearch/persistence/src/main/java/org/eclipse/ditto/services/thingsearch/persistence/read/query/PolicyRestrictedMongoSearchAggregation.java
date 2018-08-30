@@ -84,6 +84,7 @@ import org.eclipse.ditto.model.query.model.query.SortDirection;
 import org.eclipse.ditto.model.query.model.query.SortOption;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreatePolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateUnwoundBsonVisitor;
@@ -410,11 +411,17 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         private Criteria filterCriteria = AnyCriteriaImpl.getInstance();
         private List<Object> authorizationSubjects = Collections.emptyList();
         private List<SortOption> sortOptions = Collections.emptyList();
-        private int limit = QueryConstants.DEFAULT_LIMIT;
+        private int limit;
         private int skip = 0;
         private boolean count = false;
         private boolean withDeletedThings = false;
         private boolean sudo = false;
+        private final LimitsConfigReader limitsConfigReader;
+
+        Builder(final LimitsConfigReader limitsConfigReader) {
+            this.limitsConfigReader = limitsConfigReader;
+            limit = limitsConfigReader.thingsSearchDefaultPageSize();
+        }
 
         @Override
         public Builder filterCriteria(final Criteria filterCriteria) {
@@ -442,7 +449,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         @Override
         public Builder limit(final long limit) {
-            this.limit = Validator.checkLimit(limit, QueryConstants.MAX_LIMIT);
+            this.limit = Validator.checkLimit(limit, limitsConfigReader.thingsSearchMaxPageSize());
             return this;
         }
 
