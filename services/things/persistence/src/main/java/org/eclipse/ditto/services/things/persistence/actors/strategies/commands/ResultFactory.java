@@ -21,8 +21,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
@@ -39,29 +39,30 @@ final class ResultFactory {
         throw new AssertionError();
     }
 
-    static CommandStrategy.Result newMutationResult(final ThingModifyCommand command,
+    static <C extends ThingModifyCommand, E> CommandStrategy.Result newMutationResult(final C command,
             final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response, final ETagEntityProvider eTagEntityProvider) {
+            final ThingCommandResponse response, final ETagEntityProvider<C, E> eTagEntityProvider) {
 
-        return new MutationResult(command, eventToPersist, response, false, false, eTagEntityProvider);
+        return new MutationResult<>(command, eventToPersist, response, false, false, eTagEntityProvider);
     }
 
-    static CommandStrategy.Result newMutationResult(final ThingModifyCommand command,
+    static <C extends ThingModifyCommand, E> CommandStrategy.Result newMutationResult(final C command,
             final ThingModifiedEvent eventToPersist,
             final ThingCommandResponse response, final boolean becomeCreated, final boolean becomeDeleted,
-            final ETagEntityProvider eTagProvider) {
+            final ETagEntityProvider<C, E> eTagProvider) {
 
-        return new MutationResult(command, eventToPersist, response, becomeCreated, becomeDeleted, eTagProvider);
+        return new MutationResult<>(command, eventToPersist, response, becomeCreated, becomeDeleted, eTagProvider);
     }
 
     static CommandStrategy.Result newErrorResult(final DittoRuntimeException dittoRuntimeException) {
         return new DittoRuntimeExceptionResult(dittoRuntimeException);
     }
 
-    static CommandStrategy.Result newQueryResult(final Command command, @Nullable final Thing completeThing,
-            final WithDittoHeaders response, @Nullable final ETagEntityProvider eTagEntityProvider) {
+    static <C extends Command, E> CommandStrategy.Result newQueryResult(final C command,
+            @Nullable final Thing completeThing, final WithDittoHeaders response,
+            @Nullable final ETagEntityProvider<C, E> eTagEntityProvider) {
 
-        return new InfoResult(command, completeThing, response, eTagEntityProvider);
+        return new InfoResult<>(command, completeThing, response, eTagEntityProvider);
     }
 
     static CommandStrategy.Result emptyResult() {
@@ -73,18 +74,17 @@ final class ResultFactory {
     }
 
 
-    private static WithDittoHeaders appendETagHeaderIfProvided(final Command command,
+    private static <C extends Command, E> WithDittoHeaders appendETagHeaderIfProvided(final C command,
             final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing,
-            @Nullable final ETagEntityProvider eTagProvider) {
+            @Nullable final ETagEntityProvider<C, E> eTagProvider) {
         if (eTagProvider == null) {
             return withDittoHeaders;
         }
 
-        @SuppressWarnings("unchecked")
-        final Optional<Object> eTagEntityOpt = eTagProvider.determineETagEntity(command, thing);
+        final Optional<E> eTagEntityOpt = eTagProvider.determineETagEntity(command, thing);
         if (eTagEntityOpt.isPresent()) {
             final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
-            if (entityTagOpt.isPresent())  {
+            if (entityTagOpt.isPresent()) {
                 final EntityTag entityTag = entityTagOpt.get();
                 final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
                         .eTag(entityTag)
@@ -97,6 +97,7 @@ final class ResultFactory {
 
 
     private static final class EmptyResult implements CommandStrategy.Result {
+
         private static final EmptyResult INSTANCE = new EmptyResult();
 
         @Override
@@ -112,18 +113,19 @@ final class ResultFactory {
         }
     }
 
-    private static final class MutationResult implements CommandStrategy.Result {
-        private final ThingModifyCommand command;
+    private static final class MutationResult<C extends ThingModifyCommand, E> implements CommandStrategy.Result {
+
+        private final C command;
         private final ThingModifiedEvent eventToPersist;
         private final WithDittoHeaders response;
         private final boolean becomeCreated;
         private final boolean becomeDeleted;
         @Nullable
-        private final ETagEntityProvider eTagProvider;
+        private final ETagEntityProvider<C, E> eTagProvider;
 
-        private MutationResult(final ThingModifyCommand command, final ThingModifiedEvent eventToPersist,
+        private MutationResult(final C command, final ThingModifiedEvent eventToPersist,
                 final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted,
-                @Nullable final ETagEntityProvider eTagProvider) {
+                @Nullable final ETagEntityProvider<C, E> eTagProvider) {
             this.command = command;
             this.eventToPersist = eventToPersist;
             this.response = response;
@@ -162,17 +164,18 @@ final class ResultFactory {
         }
     }
 
-    private static final class InfoResult implements CommandStrategy.Result {
-        private final Command command;
+    private static final class InfoResult<C extends Command, E> implements CommandStrategy.Result {
+
+        private final C command;
         private final WithDittoHeaders response;
         @Nullable
         private final Thing completeThing;
         @Nullable
-        private final ETagEntityProvider eTagEntityProvider;
+        private final ETagEntityProvider<C, E> eTagEntityProvider;
 
-        private InfoResult(final Command command, @Nullable final Thing completeThing,
+        private InfoResult(final C command, @Nullable final Thing completeThing,
                 final WithDittoHeaders response,
-                @Nullable final ETagEntityProvider eTagEntityProvider) {
+                @Nullable final ETagEntityProvider<C, E> eTagEntityProvider) {
 
             this.command = command;
             this.completeThing = completeThing;
@@ -202,6 +205,7 @@ final class ResultFactory {
     }
 
     private static final class DittoRuntimeExceptionResult implements CommandStrategy.Result {
+
         private final DittoRuntimeException dittoRuntimeException;
 
         private DittoRuntimeExceptionResult(final DittoRuntimeException dittoRuntimeException) {
