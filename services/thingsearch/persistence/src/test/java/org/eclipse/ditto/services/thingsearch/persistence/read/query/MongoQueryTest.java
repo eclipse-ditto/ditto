@@ -28,9 +28,10 @@ import org.eclipse.ditto.model.query.model.expression.SimpleFieldExpressionImpl;
 import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.query.model.query.QueryConstants;
 import org.eclipse.ditto.model.query.model.query.SortDirection;
 import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.junit.Before;
 import org.junit.Test;
 

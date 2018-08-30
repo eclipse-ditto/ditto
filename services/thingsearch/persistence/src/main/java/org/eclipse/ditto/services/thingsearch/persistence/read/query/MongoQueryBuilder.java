@@ -21,7 +21,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.model.query.model.criteria.Criteria;
 import org.eclipse.ditto.model.query.model.query.Query;
 import org.eclipse.ditto.model.query.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.model.query.QueryConstants;
 import org.eclipse.ditto.model.query.model.query.SortOption;
 
 /**
