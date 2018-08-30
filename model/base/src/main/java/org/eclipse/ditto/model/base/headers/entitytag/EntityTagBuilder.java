@@ -61,7 +61,8 @@ final class EntityTagBuilder {
     }
 
     private static Optional<EntityTag> buildForSubEntity(final Object object) {
-        return Optional.of(Integer.toString(object.hashCode()))
+        return Optional.of(object.hashCode())
+                .map(Integer::toHexString)
                 .map(value -> SUB_RESOURCE_PREFIX + value)
                 .map(EntityTagBuilder::enquote)
                 .map(EntityTag::strong);

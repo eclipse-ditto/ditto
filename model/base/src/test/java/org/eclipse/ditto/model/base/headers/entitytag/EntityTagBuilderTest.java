@@ -45,7 +45,7 @@ public class EntityTagBuilderTest {
     @Test
     public void buildForNonEntityObject() {
         final String arbitraryObject = "1234";
-        final String expectedETagValue = "\"hash:" + String.valueOf(arbitraryObject.hashCode()) + "\"";
+        final String expectedETagValue = "\"hash:" + Integer.toHexString(arbitraryObject.hashCode()) + "\"";
 
         assertEntityTagGeneration(arbitraryObject, EntityTag.fromString(expectedETagValue));
     }
