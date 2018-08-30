@@ -164,7 +164,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     private static Policy createPolicy() {
         final Collection<Subject> subjects =
                 KNOWN_SUBJECTS.stream()
-                        .map(subjectId -> Subject.newInstance(subjectId, SubjectType.UNKNOWN))
+                        .map(subjectId -> Subject.newInstance(subjectId, SubjectType.GENERATED))
                         .collect(Collectors.toList());
         final Collection<Resource> resources = Collections.singletonList(Resource.newInstance(
                 ResourceKey.newInstance("thing:/"),

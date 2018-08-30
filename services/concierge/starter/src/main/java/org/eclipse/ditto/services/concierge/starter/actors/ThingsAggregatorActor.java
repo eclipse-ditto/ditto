@@ -11,54 +11,40 @@
  */
 package org.eclipse.ditto.services.concierge.starter.actors;
 
-import static java.util.stream.Collectors.toList;
-
-import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommand;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.base.WithEntity;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.Futures;
-import akka.dispatch.Mapper;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
+import akka.pattern.PatternsCS;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
 import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -70,19 +56,23 @@ public final class ThingsAggregatorActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "aggregator";
 
-    private static final String TRACE_AGGREGATOR_RETRIEVE_THINGS = "aggregator_retrievethings";
+    private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
+
+    private static final int MAX_PARALLELISM = 20;
+
+    private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
     private final ExecutionContext aggregatorDispatcher;
-    private final Matcher thingIdMatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
+    private final ActorMaterializer actorMaterializer;
 
     private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
         this.targetActor = targetActor;
-        aggregatorDispatcher = getContext().system().dispatchers().lookup("aggregator-internal-dispatcher");
-        thingIdMatcher = Pattern.compile(Thing.ID_REGEX).matcher("");
+        aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
+        actorMaterializer = ActorMaterializer.create(getContext());
     }
 
     /**
@@ -100,7 +90,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
             public ThingsAggregatorActor create() {
                 return new ThingsAggregatorActor(configReader, targetActor);
             }
-        }).withDispatcher("aggregator-internal-dispatcher");
+        }).withDispatcher(AGGREGATOR_INTERNAL_DISPATCHER);
     }
 
     @Override
@@ -147,85 +137,48 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private void retrieveThingsAndSendResult(final List<String> thingIds,
             @Nullable final JsonFieldSelector selectedFields,
-            final Command command, final ActorRef resultReceiver) {
+            final Command<?> command, final ActorRef resultReceiver) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS).build();
-
-        final List<Future<Object>> futures = thingIds.stream()
-                .filter(thingId -> thingIdMatcher.reset(thingId).matches())
+        final CompletionStage<?> commandResponseSource = Source.from(thingIds)
+                .filter(Objects::nonNull)
+                .filterNot(String::isEmpty)
+                .filter(thingId -> THING_ID_PATTERN.matcher(thingId).matches())
                 .map(thingId -> {
-                    final Command retrieve;
+                    final Command<?> toBeWrapped;
                     if (command instanceof RetrieveThings) {
-                        retrieve = Optional.ofNullable(selectedFields)
+                        toBeWrapped = Optional.ofNullable(selectedFields)
                                 .map(sf -> RetrieveThing.getBuilder(thingId, dittoHeaders)
                                         .withSelectedFields(sf)
                                         .build())
                                 .orElse(RetrieveThing.of(thingId, dittoHeaders));
                     } else {
-                        retrieve = Optional.ofNullable(selectedFields)
+                        toBeWrapped = Optional.ofNullable(selectedFields)
                                 .map(sf -> SudoRetrieveThing.of(thingId, sf, dittoHeaders))
                                 .orElse(SudoRetrieveThing.of(thingId, dittoHeaders));
                     }
-                    return askTargetActor(retrieve);
+                    return ConciergeWrapper.wrapForEnforcer(toBeWrapped);
                 })
-                .collect(toList());
+                .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
+                        Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
+                .log("command-response", log)
+                .runWith(StreamRefs.sourceRef(), actorMaterializer);
 
-        final Future<Iterable<Object>> iterableFuture = Futures.<Object>sequence(futures, aggregatorDispatcher);
+        // due to https://github.com/akka/akka/issues/25469 not yet usable with Akka Artery remoting!
 
-        final Comparator<WithEntity> comparator;
+        PatternsCS.pipe(commandResponseSource, aggregatorDispatcher)
+                .to(resultReceiver);
+    }
 
-        if (command instanceof SudoRetrieveThings) {
-            comparator = (r1, r2) -> {
-                final String r1ThingId = ((SudoRetrieveThingResponse) r1).getThing().getId().orElse(null);
-                final String r2ThingId = ((SudoRetrieveThingResponse) r2).getThing().getId().orElse(null);
-                return Integer.compare(thingIds.indexOf(r1ThingId), thingIds.indexOf(r2ThingId));
-            };
+    private int calculateParallelism(final List<String> thingIds) {
+        final int size = thingIds.size();
+        if (size < (MAX_PARALLELISM / 2)) {
+            return size;
+        } else if (size < MAX_PARALLELISM) {
+            return size / 2;
         } else {
-            comparator = (r1, r2) -> {
-                final String r1ThingId = ((RetrieveThingResponse) r1).getThing().getId().orElse(null);
-                final String r2ThingId = ((RetrieveThingResponse) r2).getThing().getId().orElse(null);
-                return Integer.compare(thingIds.indexOf(r1ThingId), thingIds.indexOf(r2ThingId));
-            };
+            return MAX_PARALLELISM;
         }
-
-        final Future<CommandResponse> transformed =
-                mapToReadCommandResponsesFuture(iterableFuture, comparator, command, timer);
-
-        Patterns.pipe(transformed, aggregatorDispatcher).to(resultReceiver);
-    }
-
-    private Future<CommandResponse> mapToReadCommandResponsesFuture(
-            final Future<Iterable<Object>> iterableFuture, final Comparator<WithEntity> comparator,
-            final Command retrieveThings, final StartedTimer timer) {
-        return iterableFuture.map(new Mapper<Iterable<Object>, CommandResponse>() {
-            @Override
-            public CommandResponse apply(final Iterable<Object> p) {
-                final List<JsonValue> things = StreamSupport.stream(p.spliterator(), false)
-                        .filter(obj -> obj instanceof WithEntity)
-                        .map(obj -> (WithEntity) obj)
-                        .sorted(comparator)
-                        .map(WithEntity::getEntity)
-                        .collect(toList());
-
-                timer.stop();
-
-                if (retrieveThings instanceof SudoCommand) {
-                    return SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                            retrieveThings.getDittoHeaders());
-                } else {
-                    final Optional<String> namespace = ((RetrieveThings) retrieveThings).getNamespace();
-                    return RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                            namespace.orElse(null), retrieveThings.getDittoHeaders());
-                }
-            }
-        }, aggregatorDispatcher);
-    }
-
-    private Future<Object> askTargetActor(final Command command) {
-        final ShardedMessageEnvelope envelope = ConciergeWrapper.wrapForEnforcer(command);
-        return Patterns.ask(targetActor, envelope,
-                Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
 }

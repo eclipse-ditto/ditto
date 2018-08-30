@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies an attribute.
@@ -71,6 +72,9 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         this.thingId = thingId;
         this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
+                dittoHeaders);
     }
 
     /**
@@ -156,7 +160,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(attributeValue);
+        return Optional.of(attributeValue);
     }
 
     @Override

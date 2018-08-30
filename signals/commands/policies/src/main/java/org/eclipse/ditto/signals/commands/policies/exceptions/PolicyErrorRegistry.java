@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -44,6 +45,7 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         parseStrategies.put(PolicyConflictException.ERROR_CODE, PolicyConflictException::fromJson);
         parseStrategies.put(PolicyIdInvalidException.ERROR_CODE, PolicyIdInvalidException::fromJson);
+        parseStrategies.put(PolicyTooLargeException.ERROR_CODE, PolicyTooLargeException::fromJson);
         parseStrategies.put(PolicyEntryInvalidException.ERROR_CODE, PolicyEntryInvalidException::fromJson);
         parseStrategies.put(SubjectIdInvalidException.ERROR_CODE, SubjectIdInvalidException::fromJson);
         parseStrategies.put(PolicyNotAccessibleException.ERROR_CODE, PolicyNotAccessibleException::fromJson);
@@ -66,7 +68,6 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(SubjectsNotModifiableException.ERROR_CODE, SubjectsNotModifiableException::fromJson);
         parseStrategies.put(SubjectNotAccessibleException.ERROR_CODE, SubjectNotAccessibleException::fromJson);
         parseStrategies.put(SubjectNotModifiableException.ERROR_CODE, SubjectNotModifiableException::fromJson);
-        parseStrategies.put(SubjectsNotModifiableException.ERROR_CODE, SubjectsNotModifiableException::fromJson);
 
         return new PolicyErrorRegistry(parseStrategies);
     }

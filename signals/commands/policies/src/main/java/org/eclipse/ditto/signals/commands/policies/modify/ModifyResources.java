@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link Resources} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
@@ -71,6 +72,9 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
         this.policyId = policyId;
         this.label = label;
         this.resources = resources;
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> resources.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**
@@ -160,7 +164,7 @@ public final class ModifyResources extends AbstractCommand<ModifyResources>
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resources.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(resources.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

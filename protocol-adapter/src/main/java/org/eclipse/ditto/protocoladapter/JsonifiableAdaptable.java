@@ -33,6 +33,9 @@ public interface JsonifiableAdaptable extends Adaptable, Jsonifiable<JsonObject>
      */
     JsonObject toJson(DittoHeaders specificHeaders);
 
+    @Override
+    JsonifiableAdaptable setDittoHeaders(DittoHeaders dittoHeaders);
+
     /**
      * Json Fields of the Jsonifiable PlainJsonAdaptable.
      */

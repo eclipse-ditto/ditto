@@ -22,11 +22,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 
 /**
  * (De-)Serializes message payloads of {@code MessageCommand}s and {@code MessageCommandResponse}s.
  */
-public class MessagePayloadSerializer {
+class MessagePayloadSerializer {
 
     private static final String TEXT_PLAIN = "text/plain";
     private static final String APPLICATION_JSON = "application/json";
@@ -52,20 +53,30 @@ public class MessagePayloadSerializer {
                 encodedString = new String(base64Encoded.array(), StandardCharsets.UTF_8);
             }
 
-            messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
+            injectMessagePayload(messageBuilder, predicate, encodedString, message.getHeaders());
         } else if (payloadOptional.isPresent()) {
             final T payload = payloadOptional.get();
             if (payload instanceof JsonValue) {
+                MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
+                                ((JsonValue) payload).toString().length(), message::getHeaders);
+
                 messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, (JsonValue) payload, predicate);
             } else {
-                messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(payload.toString()),
-                        predicate);
+                injectMessagePayload(messageBuilder, predicate, payload.toString(), message.getHeaders());
             }
         }
     }
 
+    private static void injectMessagePayload(final JsonObjectBuilder messageBuilder,
+            final Predicate<JsonField> predicate, final String encodedString, final MessageHeaders messageHeaders) {
+        MessageCommandSizeValidator.getInstance().ensureValidSize(encodedString::length, () -> messageHeaders);
+        messageBuilder.set(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD, JsonValue.of(encodedString), predicate);
+    }
+
     static void deserialize(final Optional<JsonValue> messagePayloadOptional,
-            final MessageBuilder messageBuilder, final String contentType) {
+            final MessageBuilder messageBuilder, final MessageHeaders messageHeaders) {
+
+        final String contentType = messageHeaders.getContentType().orElse("");
         if (messagePayloadOptional.isPresent()) {
             final JsonValue payload = messagePayloadOptional.get();
             if (shouldBeInterpretedAsText(contentType)) {
@@ -75,6 +86,8 @@ public class MessagePayloadSerializer {
                         ? payload.asString()
                         : payload.toString();
                 final byte[] payloadBytes = payloadStr.getBytes(StandardCharsets.UTF_8);
+
+                MessageCommandSizeValidator.getInstance().ensureValidSize(() -> payloadBytes.length, () -> messageHeaders);
                 messageBuilder.rawPayload(ByteBuffer.wrap(BASE64_DECODER.decode(payloadBytes)));
             }
         }

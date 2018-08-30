@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
@@ -41,8 +42,18 @@ final class ModifyFeaturePropertyStrategy extends AbstractCommandStrategy<Modify
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
+        final Thing nonNullThing = getThingOrThrow(thing);
 
-        return getThingOrThrow(thing).getFeatures()
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutProperty = nonNullThing.removeFeatureProperty(featureId, command.getPropertyPointer())
+                    .toJsonString()
+                    .length();
+            final long propertyLength = command.getPropertyValue().toString().length()
+                    + command.getPropertyPointer().length() + 5L;
+            return lengthWithOutProperty + propertyLength;
+        }, command::getDittoHeaders);
+
+        return nonNullThing.getFeatures()
                 .flatMap(features -> features.getFeature(featureId))
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newResult(

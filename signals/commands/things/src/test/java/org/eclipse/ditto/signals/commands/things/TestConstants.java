@@ -69,6 +69,9 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableExce
  */
 public final class TestConstants {
 
+    public static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
+            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
+
     /**
      * A known correlation id for testing.
      */

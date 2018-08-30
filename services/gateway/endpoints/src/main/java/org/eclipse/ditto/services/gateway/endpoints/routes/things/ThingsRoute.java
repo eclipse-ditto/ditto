@@ -182,7 +182,7 @@ public final class ThingsRoute extends AbstractRoute {
         outputJsonBuilder.set(Thing.JsonFields.ID.getPointer(), thingId);
 
         return ThingsModelFactory.newThingBuilder(outputJsonBuilder.build())
-                .setId(ThingBuilder.generateRandomThingId())
+                .setId(thingId)
                 .build();
     }
 

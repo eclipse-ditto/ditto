@@ -63,6 +63,13 @@ public interface ServiceConfigReader {
     SuffixBuilderConfigReader mongoCollectionNameSuffix();
 
     /**
+     * Retrieve a limits configuration reader.
+     *
+     * @return the limits configuration of the service.
+     */
+    LimitsConfigReader limits();
+
+    /**
      * Retrieve the underlying {@code Config} object for backward compatibility.
      *
      * @return the underlying {@code Config} object.

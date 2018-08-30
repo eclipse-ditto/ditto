@@ -13,10 +13,14 @@ package org.eclipse.ditto.protocoladapter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -30,6 +34,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
@@ -329,23 +334,39 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         }
     }
 
+    @Nullable
     private Signal<?> signalFromAdaptable(final Adaptable adaptable, final TopicPath topicPath) {
         if (TopicPath.Criterion.COMMANDS.equals(topicPath.getCriterion())) {
-            final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
 
-            if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
-                return isResponse ? thingQueryCommandResponseAdapter.fromAdaptable(adaptable) :
-                        thingQueryCommandAdapter.fromAdaptable(adaptable);
+            if (adaptable.getPayload().getStatus().isPresent()) {
+                // this was a command response:
+                return processCommandResponseSignalFromAdaptable(adaptable, topicPath);
+            } else if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
+                return thingQueryCommandAdapter.fromAdaptable(adaptable);
             } else {
-                return isResponse ? thingModifyCommandResponseAdapter.fromAdaptable(adaptable) :
-                        thingModifyCommandAdapter.fromAdaptable(adaptable);
+                return thingModifyCommandAdapter.fromAdaptable(adaptable);
             }
+
         } else if (TopicPath.Criterion.EVENTS.equals(topicPath.getCriterion())) {
             return thingEventAdapter.fromAdaptable(adaptable);
         } else if (TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion())) {
             return thingErrorResponseFromAdaptable(adaptable);
         }
         return null;
+    }
+
+    private Signal<?> processCommandResponseSignalFromAdaptable(final Adaptable adaptable, final TopicPath topicPath) {
+        final Optional<HttpStatusCode> status = adaptable.getPayload().getStatus();
+        final boolean isErrorResponse =
+                status.isPresent() && status.get().toInt() >= HttpStatusCode.BAD_REQUEST.toInt();
+
+        if (TopicPath.Action.RETRIEVE.equals(topicPath.getAction().orElse(null))) {
+            return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
+                    thingQueryCommandResponseAdapter.fromAdaptable(adaptable);
+        } else {
+            return isErrorResponse ? thingErrorResponseFromAdaptable(adaptable) :
+                    thingModifyCommandResponseAdapter.fromAdaptable(adaptable);
+        }
     }
 
     /**
@@ -396,6 +417,9 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
             final ThingErrorRegistry thingErrorRegistry = ThingErrorRegistry.newInstance();
             thingErrorRegistry.getTypes()
                     .forEach(type -> parseStrategies.put(type, thingErrorRegistry));
+            final MessageErrorRegistry messageErrorRegistry = MessageErrorRegistry.newInstance();
+            messageErrorRegistry.getTypes()
+                    .forEach(type -> parseStrategies.put(type, messageErrorRegistry));
 
             // Protocol Adapter exceptions:
             parseStrategies.put(UnknownSignalException.ERROR_CODE, UnknownSignalException::fromJson);

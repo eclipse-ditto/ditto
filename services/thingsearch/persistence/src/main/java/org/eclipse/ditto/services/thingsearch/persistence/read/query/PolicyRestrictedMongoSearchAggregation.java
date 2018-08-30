@@ -69,6 +69,7 @@ import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreatePolicyRestrictionBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateUnwoundBsonVisitor;
@@ -85,7 +86,6 @@ import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldE
 import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.QueryConstants;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.SortOption;
 import org.eclipse.ditto.services.utils.persistence.mongo.BsonUtil;
@@ -410,11 +410,17 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
         private Criteria filterCriteria = AnyCriteriaImpl.getInstance();
         private List<Object> authorizationSubjects = Collections.emptyList();
         private List<SortOption> sortOptions = Collections.emptyList();
-        private int limit = QueryConstants.DEFAULT_LIMIT;
+        private int limit;
         private int skip = 0;
         private boolean count = false;
         private boolean withDeletedThings = false;
         private boolean sudo = false;
+        private final LimitsConfigReader limitsConfigReader;
+
+        Builder(final LimitsConfigReader limitsConfigReader) {
+            this.limitsConfigReader = limitsConfigReader;
+            limit = limitsConfigReader.thingsSearchDefaultPageSize();
+        }
 
         @Override
         public Builder filterCriteria(final Criteria filterCriteria) {
@@ -442,7 +448,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
 
         @Override
         public Builder limit(final long limit) {
-            this.limit = Validator.checkLimit(limit, QueryConstants.MAX_LIMIT);
+            this.limit = Validator.checkLimit(limit, limitsConfigReader.thingsSearchMaxPageSize());
             return this;
         }
 

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -267,7 +268,12 @@ public final class WebsocketRoute {
                     DittoHeaders.empty(), // unused
                     (s, unused) -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s)));
 
-            final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            final Signal<? extends Signal> signal;
+            try {
+                signal = adapter.fromAdaptable(jsonifiableAdaptable);
+            } catch (final DittoRuntimeException e) {
+                throw e.setDittoHeaders(e.getDittoHeaders().toBuilder().origin(connectionCorrelationId).build());
+            }
             final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
             // add headers given by parent route first so that protocol message may override them
@@ -291,7 +297,14 @@ public final class WebsocketRoute {
             }
 
             final Adaptable adaptable;
-            if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
+            if (jsonifiable instanceof WithDittoHeaders
+                    && ((WithDittoHeaders) jsonifiable).getDittoHeaders().getChannel().isPresent()) {
+                // if channel was present in headers, use that one:
+                final TopicPath.Channel channel =
+                        TopicPath.Channel.forName(((WithDittoHeaders) jsonifiable).getDittoHeaders().getChannel().get())
+                                .orElse(TopicPath.Channel.TWIN);
+                adaptable = jsonifiableToAdaptable(jsonifiable, channel, adapter);
+            } else if (jsonifiable instanceof Signal && isLiveSignal((Signal<?>) jsonifiable)) {
                 adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.LIVE, adapter);
             } else {
                 adaptable = jsonifiableToAdaptable(jsonifiable, TopicPath.Channel.TWIN, adapter);
@@ -342,8 +355,14 @@ public final class WebsocketRoute {
             final DittoHeaders enhancedHeaders = ((DittoRuntimeException) jsonifiable).getDittoHeaders().toBuilder()
                     .channel(channel.getName())
                     .build();
-            final ThingErrorResponse errorResponse =
-                    ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
+            ThingErrorResponse errorResponse;
+            try {
+                errorResponse = ThingErrorResponse.of(MessageHeaders.of(enhancedHeaders).getThingId(),
+                        (DittoRuntimeException) jsonifiable, enhancedHeaders);
+            } catch (final IllegalStateException | IllegalArgumentException | DittoRuntimeException e) {
+                // thrown if headers did not contain the thing ID:
+                errorResponse = ThingErrorResponse.of((DittoRuntimeException) jsonifiable, enhancedHeaders);
+            }
             adaptable = adapter.toAdaptable(errorResponse, channel);
         } else {
             throw new IllegalArgumentException("Jsonifiable was neither Command nor CommandResponse nor"

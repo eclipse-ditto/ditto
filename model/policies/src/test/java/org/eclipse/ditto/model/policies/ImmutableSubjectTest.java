@@ -93,7 +93,7 @@ public final class ImmutableSubjectTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(SUBJECT_ID);
-        assertThat(underTest.getType()).isEqualTo(SubjectType.UNKNOWN);
+        assertThat(underTest.getType()).isEqualTo(SubjectType.GENERATED);
     }
 
     @Test

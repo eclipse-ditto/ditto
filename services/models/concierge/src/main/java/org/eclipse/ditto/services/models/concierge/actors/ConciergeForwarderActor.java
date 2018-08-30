@@ -15,6 +15,7 @@ import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingCons
 
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
@@ -117,7 +118,15 @@ public class ConciergeForwarderActor extends AbstractActor {
         } else {
             log.debug("Signal has ID <{}>, forwarding to concierge-shard-region: <{}>.",
                     transformedSignal.getId(), transformedSignal);
-            final ShardedMessageEnvelope msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
+            final ShardedMessageEnvelope msg;
+            try {
+                msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
+            } catch (final DittoRuntimeException e) {
+                log.warning("Got DittoRuntimeException when wrapping signal for enforcer: {}: <{}>",
+                        e.getClass().getSimpleName(), e.getMessage());
+                sender.tell(e, getSelf());
+                return;
+            }
             log.debug("Sending message to concierge-shard-region: <{}>.", msg);
             conciergeShardRegion.tell(msg, sender);
         }

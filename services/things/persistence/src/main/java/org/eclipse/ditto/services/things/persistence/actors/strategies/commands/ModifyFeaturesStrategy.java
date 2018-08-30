@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
@@ -39,7 +40,17 @@ final class ModifyFeaturesStrategy extends AbstractCommandStrategy<ModifyFeature
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatures command) {
 
-        return getThingOrThrow(thing).getFeatures()
+        final Thing nonNullThing = getThingOrThrow(thing);
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutFeatures = nonNullThing.removeFeatures()
+                    .toJsonString()
+                    .length();
+            final long featuresLength = command.getFeatures().toJsonString().length() + "features".length() + 5L;
+            return lengthWithOutFeatures + featuresLength;
+        }, command::getDittoHeaders);
+
+        return nonNullThing.getFeatures()
                 .map(features -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }

@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -20,9 +21,11 @@ import java.lang.ref.SoftReference;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -40,7 +43,6 @@ public final class CreateThingTest {
             .set(ThingCommand.JsonFields.TYPE, CreateThing.TYPE)
             .set(CreateThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -111,6 +113,24 @@ public final class CreateThingTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
+    }
+
+    @Test
+    public void createTooLargeThing() {
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        final JsonObject largeAttributes = JsonObject.newBuilder()
+                .set("a", sb.toString())
+                .build();
+        final Thing thing = Thing.newBuilder()
+                .setId("foo:bar")
+                .setAttributes(largeAttributes)
+                .build();
+
+        assertThatThrownBy(() -> CreateThing.of(thing, null, DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
     }
 
 }

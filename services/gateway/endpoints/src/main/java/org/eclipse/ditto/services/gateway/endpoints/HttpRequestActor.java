@@ -19,7 +19,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -57,6 +56,7 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.Location;
 import akka.http.scaladsl.model.ContentType$;
+import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -357,6 +357,12 @@ public final class HttpRequestActor extends AbstractActor {
                         logDittoRuntimeException(cre);
                         completeWithResult(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
                                 .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(cre.toJsonString()))
+                        );
+                    } else if (cause instanceof EntityStreamSizeException) {
+                        logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that " +
+                                "the max. allowed http payload size configured in Akka was overstepped in this request.");
+                        completeWithResult(
+                                HttpResponse.create().withStatus(HttpStatusCode.REQUEST_ENTITY_TOO_LARGE.toInt())
                         );
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected");

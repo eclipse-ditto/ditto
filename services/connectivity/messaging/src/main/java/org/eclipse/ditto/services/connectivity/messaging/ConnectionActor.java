@@ -362,6 +362,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void handleSignal(final Signal<?> signal) {
+        // Do not flush pending responses - pub/sub may not be ready on all nodes
+
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             log.debug("Signal dropped: Client actor not ready.");

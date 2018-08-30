@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
+import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
@@ -22,6 +26,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -113,7 +118,6 @@ public interface MessageCommand<T, C extends MessageCommand> extends Command<C>,
                 .orElse(JsonPointer.empty());
         return path.append(pathSuffix);
     }
-
 
     /**
      * This class contains definitions for all specific fields of a {@code MessageCommand}'s JSON representation.

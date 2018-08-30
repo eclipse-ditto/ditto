@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
@@ -42,7 +44,6 @@ public final class ModifyThingTest {
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
             .set(ModifyThing.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -119,4 +120,21 @@ public final class ModifyThingTest {
 
     }
 
+    @Test
+    public void modifyTooLargeThing() {
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        final JsonObject largeAttributes = JsonObject.newBuilder()
+                .set("a", sb.toString())
+                .build();
+        final Thing thing = Thing.newBuilder()
+                .setId("foo:bar")
+                .setAttributes(largeAttributes)
+                .build();
+
+        assertThatThrownBy(() -> ModifyThing.of(thing.getId().get(), thing, null, DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
+    }
 }
