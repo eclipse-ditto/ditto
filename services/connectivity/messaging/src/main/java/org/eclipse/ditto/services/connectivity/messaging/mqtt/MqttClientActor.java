@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -50,7 +48,6 @@ import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.japi.Creator;
 import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.ActorMaterializer;
@@ -64,7 +61,6 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Balance;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Keep;
-import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import scala.util.Either;
 
@@ -279,10 +275,9 @@ public class MqttClientActor extends BaseClientActor {
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);
         }
 
+        // failover implemented by factory
         final akka.stream.javadsl.Source<MqttMessage, CompletionStage<Done>> mqttStreamSource =
-                connection().isFailoverEnabled()
-                        ? wrapWithAsRestartSource(() -> factory.newSource(mqttSource, sourceBufferSize))
-                        : factory.newSource(mqttSource, sourceBufferSize);
+                factory.newSource(mqttSource, sourceBufferSize);
 
         final Graph<SinkShape<MqttMessage>, NotUsed> consumerLoadBalancer =
                 createConsumerLoadBalancer(consumerByActorNameWithIndex.values());
@@ -400,43 +395,6 @@ public class MqttClientActor extends BaseClientActor {
 
     /*
      */
-
-    /**
-     * Wrap an Akka stream source in a RestartSource whose materialized value is equal to the first materialized value
-     * of the source.
-     * <p>
-     * WARNING: Only the first materialized value is meaningful.
-     * </p><p>
-     * TODO: make safe once  https://github.com/akka/akka/issues/24771  is fixed
-     * </p>
-     *
-     * @param source creator of the source that will be restarted when it fails.
-     * @param <E> type of stream elements.
-     * @param <M> type of materialized future values.
-     * @return the RestartSource.
-     */
-    private static <E, M> akka.stream.javadsl.Source<E, CompletionStage<M>> wrapWithAsRestartSource(
-            final Creator<akka.stream.javadsl.Source<E, CompletionStage<M>>> source) {
-
-        final CompletableFuture<M> future = new CompletableFuture<>();
-        final AtomicBoolean isFutureIncomplete = new AtomicBoolean(true);
-        return RestartSource.withBackoff(
-                Duration.ofMillis(128),
-                Duration.ofMinutes(15),
-                1.0, // random delay added up to 100% of the next delay
-                -1, // unbounded restarts
-                () -> source.create().mapMaterializedValue(mat -> {
-                    if (isFutureIncomplete.getAndSet(false)) {
-                        mat.thenAccept(future::complete)
-                                .exceptionally(e -> {
-                                    future.completeExceptionally(e);
-                                    return null;
-                                });
-                    }
-                    return mat;
-                }))
-                .mapMaterializedValue(ignore -> future);
-    }
 
     /**
      * Self message to increment published message counter.

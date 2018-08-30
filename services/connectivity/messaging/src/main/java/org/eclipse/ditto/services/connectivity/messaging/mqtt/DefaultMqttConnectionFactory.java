@@ -75,5 +75,4 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
                         .collect(Collectors.toList());
         return JavaConverters.asScalaBuffer(subscriptions);
     }
-
 }
