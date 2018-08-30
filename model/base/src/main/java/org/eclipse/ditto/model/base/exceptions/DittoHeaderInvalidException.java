@@ -17,12 +17,18 @@ import static java.util.Objects.requireNonNull;
 import java.net.URI;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
-public class DittoHeaderInvalidException extends DittoRuntimeException {
+/**
+ * Thrown when an (external) header value can not be converted to a Ditto header.
+ */
+@Immutable
+public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.
@@ -33,7 +39,7 @@ public class DittoHeaderInvalidException extends DittoRuntimeException {
 
     private static final String MESSAGE_TEMPLATE = "The value ''{0}'' of the header ''{1}'' is not a valid {2}.";
 
-    private static final String DEFAULT_DESCRIPTION = "Verify that the header has the correct syntax and try again.";
+    static final String DEFAULT_DESCRIPTION = "Verify that the header has the correct syntax and try again.";
 
     private static final String DESCRIPTION_TEMPLATE =
             "Verify that the value of the header ''{0}'' is a valid ''{1}'' and try again.";
@@ -57,31 +63,50 @@ public class DittoHeaderInvalidException extends DittoRuntimeException {
     }
 
     /**
-     * A mutable builder for a {@link DittoHeaderInvalidException}.
+     * A mutable builder for a {@link DittoHeaderInvalidException} in case of an invalid type.
      *
      * @param headerName the key of the header.
      * @param headerValue the value of the header.
      * @param headerType the type of the header. (int, String, entity-tag...)
      * @return the builder.
      */
-    public static DittoHeaderInvalidException.Builder newBuilder(final String headerName, final String headerValue,
-            final String headerType) {
+    public static DittoHeaderInvalidException.Builder newInvalidTypeBuilder(final String headerName,
+            final String headerValue, final String headerType) {
+
         return new DittoHeaderInvalidException.Builder(headerName, headerValue, headerType);
     }
 
     /**
-     * Constructs a new {@link DittoHeaderInvalidException} object with given message.
+     *  A mutable builder for a {@link DittoHeaderInvalidException} with a custom message.
      *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
-     * @return the new {@link DittoHeaderInvalidException}.
+     * @param customMessage the custom message
+     * @return the builder.
      */
-    public static DittoHeaderInvalidException fromMessage(final String message) {
-        return new DittoHeaderInvalidException.Builder()
-                .message(message)
-                .description(DEFAULT_DESCRIPTION)
-                .build();
+    public static DittoHeaderInvalidException.Builder newCustomMessageBuilder(final String customMessage) {
+        return new DittoHeaderInvalidException.Builder(customMessage);
     }
 
+    /**
+     * Constructs a new {@link DittoHeaderInvalidException} object with the exception message extracted from the
+     * given JSON object.
+     *
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new {@link DittoHeaderInvalidException}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
+     */
+    public static DittoHeaderInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return fromMessage(readMessage(jsonObject), dittoHeaders);
+    }
+
+    private static DittoHeaderInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
+    }
     /**
      * A mutable builder with a fluent API for a {@link DittoHeaderInvalidException}.
      */
@@ -97,6 +122,11 @@ public class DittoHeaderInvalidException extends DittoRuntimeException {
             message(format(MESSAGE_TEMPLATE, requireNonNull(headerValue), requireNonNull(headerName),
                     requireNonNull(headerType)));
             description(format(DESCRIPTION_TEMPLATE, requireNonNull(headerName), requireNonNull(headerType)));
+        }
+
+        private Builder(final String customMessage) {
+            this();
+            message(customMessage);
         }
 
         protected DittoHeaderInvalidException doBuild(DittoHeaders dittoHeaders, @Nullable String message,

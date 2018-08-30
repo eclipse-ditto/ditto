@@ -84,7 +84,7 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         try {
             Integer.parseInt(headerValue);
         } catch (final NumberFormatException e) {
-            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "int").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "int").build();
         }
     }
 
@@ -98,7 +98,7 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         try {
             Long.parseLong(headerValue);
         } catch (final NumberFormatException e) {
-            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "long").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "long").build();
         }
     }
 
@@ -109,7 +109,7 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
     private static void validateBooleanValue(final String key, @Nullable final CharSequence value) {
         final String headerValue = String.valueOf(value);
         if (!"true".equals(headerValue) && !"false".equals(headerValue)) {
-            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "boolean").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "boolean").build();
         }
     }
 
@@ -129,10 +129,11 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
                     .collect(Collectors.toList());
             if (!nonStringArrayValues.isEmpty()) {
                 final String msgTemplate = "JSON array for ''{0}'' contained non-String values.";
-                throw DittoHeaderInvalidException.fromMessage(MessageFormat.format(msgTemplate, key));
+                throw DittoHeaderInvalidException.newCustomMessageBuilder(MessageFormat.format(msgTemplate, key))
+                        .build();
             }
         } catch (final JsonParseException e) {
-            throw DittoHeaderInvalidException.newBuilder(key, headerValue, "JSON array").build();
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "JSON array").build();
         }
     }
 
@@ -160,7 +161,7 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         if (!EntityTag.validate(headerValue)) {
 
             final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
-                    DittoHeaderInvalidException.newBuilder(key, headerValue, "entity-tag");
+                    DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag");
 
             try {
                 exceptionBuilder.href(new URI("https://tools.ietf.org/html/rfc7232#section-2.3"));
