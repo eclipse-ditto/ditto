@@ -54,14 +54,14 @@ public class IfMatchPreconditionHeaderTest {
     @Test
     public void asteriskDoesNotMeetConditionForNull() {
         final IfMatchPreconditionHeader ifMatchPreconditionHeader =
-                createIfMatchPreconditionHeader(fromCommaSeparatedString("\"*\""));
+                createIfMatchPreconditionHeader(fromCommaSeparatedString("*"));
         assertThat(ifMatchPreconditionHeader.meetsConditionFor(null)).isFalse();
     }
 
     @Test
     public void asteriskMeetsConditionForNonNull() {
         final IfMatchPreconditionHeader ifMatchPreconditionHeader =
-                createIfMatchPreconditionHeader(fromCommaSeparatedString("\"*\""));
+                createIfMatchPreconditionHeader(fromCommaSeparatedString("*"));
         assertThat(ifMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"4711\""))).isTrue();
         assertThat(ifMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"foo\""))).isTrue();
     }
@@ -83,14 +83,14 @@ public class IfMatchPreconditionHeaderTest {
     @Test
     public void fromDittoHeaders() {
         final DittoHeaders dittoHeaders =
-                DittoHeaders.newBuilder().ifMatch(fromCommaSeparatedString("\"*\"")).build();
+                DittoHeaders.newBuilder().ifMatch(fromCommaSeparatedString("*")).build();
 
         final Optional<IfMatchPreconditionHeader> ifMatchPreconditionHeader =
                 IfMatchPreconditionHeader.fromDittoHeaders(dittoHeaders);
 
         assertThat(ifMatchPreconditionHeader).isPresent();
         assertThat(ifMatchPreconditionHeader.get().getKey()).isEqualTo("if-match");
-        assertThat(ifMatchPreconditionHeader.get().getValue()).isEqualTo("\"*\"");
+        assertThat(ifMatchPreconditionHeader.get().getValue()).isEqualTo("*");
     }
 
     private IfMatchPreconditionHeader createIfMatchPreconditionHeader(final EntityTags entityTags) {

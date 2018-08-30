@@ -16,7 +16,6 @@ package org.eclipse.ditto.model.base.headers.entitytag;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.junit.Test;
 
 public class EntityTagTest {
@@ -27,30 +26,56 @@ public class EntityTagTest {
     private static final EntityTag STRONG_2 = EntityTag.fromString("\"2\"");
 
     @Test
-    public void weakEntityTag() {
-        final String validWeakEntityTag = "W/\"hallo\"";
+    public void weakEntityTagFromString() {
+        final String validOpaqueTag = "\"hallo\"";
+        final String validWeakEntityTag = "W/" + validOpaqueTag;
 
         assertThat(EntityTag.validate(validWeakEntityTag)).isTrue();
 
-        final EntityTag entityTag = EntityTag.fromString(validWeakEntityTag);
-        assertThat(entityTag.isWeak()).isTrue();
-        assertThat(entityTag.getOpaqueTag()).isEqualTo("\"hallo\"");
+        final EntityTag entityTagFromString = EntityTag.fromString(validWeakEntityTag);
+        assertThat(entityTagFromString.isWeak()).isTrue();
+        assertThat(entityTagFromString.getOpaqueTag()).isEqualTo(validOpaqueTag);
+
+        final EntityTag entityTagWeak = EntityTag.weak(validOpaqueTag);
+        assertThat(entityTagWeak.isWeak()).isTrue();
+        assertThat(entityTagWeak.getOpaqueTag()).isEqualTo(validOpaqueTag);
     }
 
     @Test
-    public void strongEntityTag() {
+    public void strongEntityTagFromString() {
         final String validStrongEntityTag = "\"hallo\"";
 
         assertThat(EntityTag.validate(validStrongEntityTag)).isTrue();
 
         final EntityTag entityTag = EntityTag.fromString(validStrongEntityTag);
         assertThat(entityTag.isWeak()).isFalse();
-        assertThat(entityTag.getOpaqueTag()).isEqualTo("\"hallo\"");
+        assertThat(entityTag.getOpaqueTag()).isEqualTo(validStrongEntityTag);
+
+        final EntityTag entityTagWeak = EntityTag.strong(validStrongEntityTag);
+        assertThat(entityTagWeak.isWeak()).isFalse();
+        assertThat(entityTagWeak.getOpaqueTag()).isEqualTo(validStrongEntityTag);
     }
 
     @Test
     public void weakPrefixIsCaseSensitive() {
         final String invalidEntityTag = "w/\"hallo\"";
+
+        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+    }
+
+    @Test
+    public void weakEntityTagMustNotContainAsteriskInOpaqueTag() {
+        final String invalidEntityTag = "w/\"*\"";
+
+        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+    }
+
+
+    @Test
+    public void strongEntityTagMustNotContainAsteriskInOpaqueTag() {
+        final String invalidEntityTag = "\"*\"";
 
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
         assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);

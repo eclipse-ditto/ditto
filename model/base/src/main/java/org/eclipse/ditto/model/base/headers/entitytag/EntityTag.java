@@ -24,8 +24,8 @@ import java.util.Optional;
 public class EntityTag {
 
     private static final String VALIDATION_ERROR_MESSAGE_TEMPLATE = "The opaque tag <%s> is not a valid entity-tag.";
-    private static final String ENTITY_TAG_MATCHER = "(W\\/)?\"[^\"]*\"";
-    private static final String ASTERISK = "\"*\"";
+
+    private static final String ASTERISK = "*";
     private static final String WEAK_PREFIX = "W/";
 
     private static final EntityTag ASTERISK_INSTANCE = new EntityTag(false, ASTERISK);
@@ -56,7 +56,7 @@ public class EntityTag {
      * @return True if the given String is valid. False if not.
      */
     public static boolean validate(final String entityTag) {
-        return entityTag.matches(ENTITY_TAG_MATCHER);
+        return entityTag.matches(Regex.ASTERISK_OR_ENTITY_TAG);
     }
 
     /**
@@ -191,5 +191,14 @@ public class EntityTag {
     public int hashCode() {
 
         return Objects.hash(weak, opaqueTag);
+    }
+
+    private static class Regex {
+
+        private static final String WEAK_PREFIX = "(W/)";
+        private static final String OPAQUE_TAG = "(\"[^\"*]*\")";
+        private static final String ENTITY_TAG = WEAK_PREFIX + "?" + OPAQUE_TAG;
+        private static final String ASTERISK = "(\\*)";
+        private static final String ASTERISK_OR_ENTITY_TAG = ASTERISK + "|" + ENTITY_TAG;
     }
 }

@@ -56,17 +56,17 @@ public class IfNoneMatchPreconditionHeaderTest {
     @Test
     public void asteriskMeetsConditionForNull() {
         final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
-                createIfNoneMatchPreconditionHeader(EntityTags.fromCommaSeparatedString("\"*\""));
+                createIfNoneMatchPreconditionHeader(EntityTags.fromCommaSeparatedString("*"));
         assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(null)).isTrue();
     }
 
     @Test
     public void asteriskDoesNotMeetConditionForNonNull() {
         final IfNoneMatchPreconditionHeader ifNoneMatchPreconditionHeader =
-                createIfNoneMatchPreconditionHeader(EntityTags.fromCommaSeparatedString("\"*\""));
+                createIfNoneMatchPreconditionHeader(EntityTags.fromCommaSeparatedString("*"));
         assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"4711\""))).isFalse();
         assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"foo\""))).isFalse();
-        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("\"*\""))).isFalse();
+        assertThat(ifNoneMatchPreconditionHeader.meetsConditionFor(EntityTag.fromString("*"))).isFalse();
     }
 
     @Test
@@ -86,14 +86,14 @@ public class IfNoneMatchPreconditionHeaderTest {
     @Test
     public void fromDittoHeaders() {
         final DittoHeaders dittoHeaders =
-                DittoHeaders.newBuilder().ifNoneMatch(EntityTags.fromCommaSeparatedString("\"*\"")).build();
+                DittoHeaders.newBuilder().ifNoneMatch(EntityTags.fromCommaSeparatedString("*")).build();
 
         final Optional<IfNoneMatchPreconditionHeader> ifNoneMatchPreconditionHeader =
                 IfNoneMatchPreconditionHeader.fromDittoHeaders(dittoHeaders);
 
         Assertions.assertThat(ifNoneMatchPreconditionHeader).isPresent();
         assertThat(ifNoneMatchPreconditionHeader.get().getKey()).isEqualTo("if-none-match");
-        assertThat(ifNoneMatchPreconditionHeader.get().getValue()).isEqualTo("\"*\"");
+        assertThat(ifNoneMatchPreconditionHeader.get().getValue()).isEqualTo("*");
     }
 
     private IfNoneMatchPreconditionHeader createIfNoneMatchPreconditionHeader(final EntityTags entityTags) {
