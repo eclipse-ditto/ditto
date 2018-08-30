@@ -16,7 +16,10 @@ import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -92,6 +95,7 @@ public final class WebsocketRoute {
     private static final String STREAMING_TYPE_WS = "WS";
 
     private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_NAMESPACES = "namespaces";
 
     private final ActorRef streamingActor;
     private final int subscriberBackpressureQueueSize;
@@ -187,28 +191,31 @@ public final class WebsocketRoute {
         switch (protocolMessage) {
             case START_SEND_EVENTS:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext, null);
+                        new StartStreaming(StreamingType.EVENTS, connectionCorrelationId, authContext,
+                                Collections.emptyList(), null);
                 break;
             case STOP_SEND_EVENTS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.EVENTS, connectionCorrelationId);
                 break;
             case START_SEND_MESSAGES:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext, null);
+                        new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext,
+                                Collections.emptyList(),null);
                 break;
             case STOP_SEND_MESSAGES:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId);
                 break;
             case START_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
-                        authContext, null);
+                        authContext, Collections.emptyList(),null);
                 break;
             case STOP_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId);
                 break;
             case START_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor =
-                        new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext, null);
+                        new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext,
+                                Collections.emptyList(),null);
                 break;
             case STOP_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId);
@@ -217,14 +224,25 @@ public final class WebsocketRoute {
                 messageToTellStreamingActor = null;
         }
 
+        final Map<String, String> params = determineParams(protocolMessage);
+        final List<String> namespaces = Optional.ofNullable(params.get(PARAM_NAMESPACES))
+                .map(ids -> ids.split(","))
+                .map(Arrays::asList)
+                .orElse(Collections.emptyList());
+        final String filter = params.get(PARAM_FILTER);
+
         if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + "?")) {
-            final Map<String, String> params = determineParams(protocolMessage);
             messageToTellStreamingActor = new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                            authContext, params.get(PARAM_FILTER));
+                            authContext, namespaces, filter);
         } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + "?")) {
-            final Map<String, String> params = determineParams(protocolMessage);
             messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId,
-                    authContext, params.get(PARAM_FILTER));
+                    authContext, namespaces, filter);
+        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_COMMANDS + "?")) {
+            messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
+                    authContext, namespaces, null);
+        } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_MESSAGES + "?")) {
+            messageToTellStreamingActor = new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId,
+                    authContext, namespaces, null);
         }
 
         if (messageToTellStreamingActor != null) {

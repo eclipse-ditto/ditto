@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.base.WithThingId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -69,13 +71,23 @@ public class SignalFilter {
                 .filter(filteredTopic -> filteredTopic.getTopic().equals(topicFromSignal))
                 .anyMatch(filteredTopic -> {
                     if (!filteredTopic.hasFilter()) {
-                        return true;
+                        return checkNamespace(signal, filteredTopic);
                     } else {
-                        return filteredTopic.getFilter()
-                                .filter(filter -> SignalFilter.matchesFilter(filter, signal))
-                                .isPresent();
+                        return checkNamespace(signal, filteredTopic) &&
+                                filteredTopic.getFilter()
+                                        .filter(filter -> SignalFilter.matchesFilter(filter, signal))
+                                        .isPresent();
                     }
                 });
+    }
+
+    private static boolean checkNamespace(final WithId signal, final FilteredTopic filteredTopic) {
+        return filteredTopic.getNamespaces().isEmpty() ||
+                filteredTopic.getNamespaces().contains(namespaceFromId(signal));
+    }
+
+    private static String namespaceFromId(final WithId withId) {
+        return withId.getId().split(":", 2)[0];
     }
 
     private static boolean matchesFilter(final String filter, final Signal<?> signal) {

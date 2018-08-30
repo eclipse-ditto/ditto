@@ -20,6 +20,7 @@ import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -69,6 +71,9 @@ public class SseThingsRoute extends AbstractRoute {
 
     private static final String STREAMING_TYPE_SSE = "SSE";
 
+    private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_NAMESPACES = "namespaces";
+
     private ActorRef streamingActor;
 
     /**
@@ -95,21 +100,33 @@ public class SseThingsRoute extends AbstractRoute {
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        inner.apply(parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                                parameterOptional(ThingsParameter.IDS.toString(),
-                                                        idsString -> // "ids" is optional for SSE
-                                                                parameterOptional("filter", filterString ->
-                                                                        createSseRoute(dittoHeaders,
-                                                                                calculateSelectedFields(
-                                                                                        fieldsString).orElse(null),
-                                                                                idsString.map(ids -> ids.split(",")),
-                                                                                filterString.orElse(null))
-                                                                )
-                                                        )
-                                                )
+                                        inner.apply(
+                                                doBuildThingsSseRoute(dittoHeaders)
                                         )
                                 )
                         )
+                )
+        );
+    }
+
+    private Route doBuildThingsSseRoute(final DittoHeaders dittoHeaders) {
+        return parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                parameterOptional(ThingsParameter.IDS.toString(),
+                        idsString -> // "ids" is optional for SSE
+                                parameterOptional(PARAM_NAMESPACES, namespacesString ->
+                                        parameterOptional(PARAM_FILTER, filterString ->
+                                                createSseRoute(dittoHeaders,
+                                                        calculateSelectedFields(
+                                                                fieldsString).orElse(null),
+                                                        idsString.map(ids -> ids.split(","))
+                                                                .map(Arrays::asList)
+                                                                .orElse(Collections.emptyList()),
+                                                        namespacesString.map(str -> str.split(","))
+                                                                .map(Arrays::asList)
+                                                                .orElse(Collections.emptyList()),
+                                                        filterString.orElse(null))
+                                        )
+                                )
                 )
         );
     }
@@ -123,8 +140,7 @@ public class SseThingsRoute extends AbstractRoute {
          }, false);
        */
     private Route createSseRoute(final DittoHeaders dittoHeaders, final JsonFieldSelector fieldSelector,
-            final Optional<String[]> thingIds, @Nullable final String filterString) {
-        final Optional<List<String>> targetThingIds = thingIds.map(Arrays::asList);
+            final List<String> targetThingIds, final List<String> namespaces, @Nullable final String filterString) {
 
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                 .orElseGet(() -> UUID.randomUUID().toString());
@@ -139,14 +155,16 @@ public class SseThingsRoute extends AbstractRoute {
                                     null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                                            dittoHeaders.getAuthorizationContext(), filterString),
+                                            dittoHeaders.getAuthorizationContext(), namespaces, filterString),
                                     null);
                             return NotUsed.getInstance();
                         })
                         .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
                         .map(jsonifiable -> ((ThingEvent) jsonifiable))
-                        .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
-                                thingEvent.getThingId())) // only Events of the target thingIds
+                        .filter(thingEvent -> targetThingIds.isEmpty() ||
+                                targetThingIds.contains(thingEvent.getThingId()) // only Events of the target thingIds
+                        )
+                        .filter(thingEvent -> namespaces.isEmpty() || namespaces.contains(namespaceFromId(thingEvent)))
                         .map(ThingEventToThingConverter::thingEventToThing)
                         .filter(Optional::isPresent)
                         .map(Optional::get)
@@ -162,6 +180,10 @@ public class SseThingsRoute extends AbstractRoute {
                                 ServerSentEvent$.MODULE$::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
+    }
+
+    private static String namespaceFromId(final WithId withId) {
+        return withId.getId().split(":", 2)[0];
     }
 
     private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {

@@ -30,18 +30,15 @@ import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
-import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -134,7 +131,7 @@ final class StreamingSessionActor extends AbstractActor {
                 })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
-                    eventFilterCriteria = startStreaming.getEventFilter()
+                    eventFilterCriteria = startStreaming.getFilter()
                             .map(this::parseCriteria)
                             .orElse(null);
 

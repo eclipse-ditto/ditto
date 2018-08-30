@@ -377,7 +377,7 @@ public final class ConnectivityModelFactory {
      * @return the created FilteredTopic
      */
     public static FilteredTopic newFilteredTopic(final Topic topic) {
-        return ImmutableFilteredTopic.of(topic, null);
+        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), null);
     }
 
     /**
@@ -388,7 +388,31 @@ public final class ConnectivityModelFactory {
      * @return the created FilteredTopic
      */
     public static FilteredTopic newFilteredTopic(final Topic topic, @Nullable final String filter) {
-        return ImmutableFilteredTopic.of(topic, filter);
+        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), filter);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} with the passed {@code namespaces}.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
+        return ImmutableFilteredTopic.of(topic, namespaces, null);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} with the passed {@code namespaces} and the optional {@code filter} String.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param filter the filter String to apply for the FilteredTopic
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces,
+            @Nullable final String filter) {
+        return ImmutableFilteredTopic.of(topic, namespaces, filter);
     }
 
     /**

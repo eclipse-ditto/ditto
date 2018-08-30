@@ -11,8 +11,15 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -23,13 +30,21 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ImmutableFilteredTopic implements FilteredTopic {
 
-    private static final String FILTER = "?filter=";
+    private static final String QUERY_DELIMITER = "?";
+    private static final String QUERY_ARG_DELIMITER = "&";
+    private static final String QUERY_ARG_VALUE_DELIMITER = "=";
+
+    private static final String FILTER_ARG = "filter";
+    private static final String NAMESPACES_ARG = "namespaces";
 
     private final Topic topic;
+    private final List<String> namespaces;
     @Nullable private final String filterString;
 
-    private ImmutableFilteredTopic(final Topic topic, @Nullable final String filterString) {
+    private ImmutableFilteredTopic(final Topic topic, final List<String> namespaces,
+            @Nullable final String filterString) {
         this.topic = topic;
+        this.namespaces = Collections.unmodifiableList(new ArrayList<>(namespaces));
         this.filterString = filterString;
     }
 
@@ -37,33 +52,64 @@ public final class ImmutableFilteredTopic implements FilteredTopic {
      * Creates a new {@code ImmutableFilteredTopic} instance.
      *
      * @param topic the topic of this filtered topic
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
+     * considered
      * @param filterString the optional RQL filter string of this topic
      * @return a new instance of ImmutableFilteredTopic
      */
-    public static FilteredTopic of(final Topic topic, @Nullable final String filterString) {
-        return new ImmutableFilteredTopic(topic, filterString);
+    public static FilteredTopic of(final Topic topic, final List<String> namespaces,
+            @Nullable final String filterString) {
+        return new ImmutableFilteredTopic(topic, namespaces, filterString);
     }
 
     /**
      * Creates a new {@code ImmutableFilteredTopic} instance.
      *
-     * @param topicString the string representation of a topic
+     * @param filteredTopicString the string representation of a FilteredTopic
      * @return a new instance of ImmutableFilteredTopic
      */
-    public static FilteredTopic fromString(final String topicString) {
-        if (topicString.contains(FILTER)) {
-            final String[] split = topicString.split("\\" + FILTER, 2);
-            return new ImmutableFilteredTopic(Topic.forName(split[0])
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid topic: " + split[0])), split[1]);
+    public static FilteredTopic fromString(final String filteredTopicString) {
+
+        if (filteredTopicString.contains(QUERY_DELIMITER)) {
+            final String[] splitString = filteredTopicString.split("\\" + QUERY_DELIMITER, 2);
+
+            final String topicString = splitString[0];
+            final String queryParamsString = splitString[1];
+            final Map<String, String> paramValues = Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
+                    .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
+                    .filter(av -> av.length == 2)
+                    .collect(Collectors.toMap(av -> av[0], av -> av[1]));
+
+            final List<String> namespaces = Optional.ofNullable(paramValues.get(NAMESPACES_ARG))
+                    .map(namespacesStr -> namespacesStr.split(","))
+                    .map(Arrays::stream)
+                    .orElse(Stream.empty())
+                    .collect(Collectors.toList());
+
+            final String filter = paramValues.get(FILTER_ARG);
+
+            return new ImmutableFilteredTopic(Topic.forName(topicString).orElseThrow(() ->
+                    TopicParseException.newBuilder(filteredTopicString,
+                            "Unknown topic: " + topicString)
+                            .build()
+            ), namespaces, filter);
         } else {
-            return new ImmutableFilteredTopic(Topic.forName(topicString)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid topic: " + topicString)), null);
+            return new ImmutableFilteredTopic(Topic.forName(filteredTopicString).orElseThrow(() ->
+                    TopicParseException.newBuilder(filteredTopicString,
+                            "Unknown topic: " + filteredTopicString)
+                        .build()
+            ), Collections.emptyList(), null);
         }
     }
 
     @Override
     public Topic getTopic() {
         return topic;
+    }
+
+    @Override
+    public List<String> getNamespaces() {
+        return namespaces;
     }
 
     @Override
@@ -88,8 +134,17 @@ public final class ImmutableFilteredTopic implements FilteredTopic {
 
     @Override
     public String toString() {
-        if (filterString != null) {
-            return topic.getName() + FILTER + filterString;
+        final String commaDelimitedNamespaces = String.join(",", namespaces);
+        if (filterString != null && namespaces.isEmpty()) {
+            return topic.getName() +
+                    QUERY_DELIMITER + FILTER_ARG + QUERY_ARG_VALUE_DELIMITER + filterString;
+        } else if (filterString != null) {
+            return topic.getName() +
+                    QUERY_DELIMITER + NAMESPACES_ARG + QUERY_ARG_VALUE_DELIMITER + commaDelimitedNamespaces +
+                    QUERY_ARG_DELIMITER + FILTER_ARG + QUERY_ARG_VALUE_DELIMITER + filterString;
+        } else if (!namespaces.isEmpty()) {
+            return topic.getName() +
+                    QUERY_DELIMITER + NAMESPACES_ARG + QUERY_ARG_VALUE_DELIMITER + commaDelimitedNamespaces;
         } else {
             return topic.getName();
         }
@@ -105,12 +160,13 @@ public final class ImmutableFilteredTopic implements FilteredTopic {
         }
         final ImmutableFilteredTopic that = (ImmutableFilteredTopic) o;
         return Objects.equals(topic, that.topic) &&
+                Objects.equals(namespaces, that.namespaces) &&
                 Objects.equals(filterString, that.filterString);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(topic, filterString);
+        return Objects.hash(topic, namespaces, filterString);
     }
 }
