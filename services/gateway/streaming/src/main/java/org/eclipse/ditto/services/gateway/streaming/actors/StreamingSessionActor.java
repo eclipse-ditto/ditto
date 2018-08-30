@@ -13,12 +13,13 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -30,13 +31,17 @@ import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFacto
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
@@ -57,9 +62,9 @@ import scala.concurrent.duration.FiniteDuration;
 final class StreamingSessionActor extends AbstractActor {
 
     /**
-     * The max. timeout in milliseconds how long to wait until sending an "acknowledge" message back to the client.
-     * If too small, we might miss some events which the client expects once the "ack" message is received as the
-     * messages via distributed pub/sub are not yet received.
+     * The max. timeout in milliseconds how long to wait until sending an "acknowledge" message back to the client. If
+     * too small, we might miss some events which the client expects once the "ack" message is received as the messages
+     * via distributed pub/sub are not yet received.
      */
     private static final int MAX_SUBSCRIBE_TIMEOUT_MS = 5000;
 
@@ -72,7 +77,8 @@ final class StreamingSessionActor extends AbstractActor {
     private final Set<StreamingType> outstandingSubscriptionAcks;
 
     private List<String> authorizationSubjects;
-    @Nullable private Criteria eventFilterCriteria;
+    private Map<StreamingType, List<String>> namespacesForStreamingTypes;
+    private Map<StreamingType, Criteria> eventFilterCriteriaForStreamingTypes;
 
     private StreamingSessionActor(final String connectionCorrelationId, final String type,
             final ActorRef pubSubMediator, final ActorRef eventAndResponsePublisher) {
@@ -81,6 +87,8 @@ final class StreamingSessionActor extends AbstractActor {
         this.pubSubMediator = pubSubMediator;
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         outstandingSubscriptionAcks = new HashSet<>();
+        namespacesForStreamingTypes = new HashMap<>();
+        eventFilterCriteriaForStreamingTypes = new HashMap<>();
 
         getContext().watch(eventAndResponsePublisher);
     }
@@ -131,9 +139,12 @@ final class StreamingSessionActor extends AbstractActor {
                 })
                 .match(StartStreaming.class, startStreaming -> {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
-                    eventFilterCriteria = startStreaming.getFilter()
-                            .map(this::parseCriteria)
-                            .orElse(null);
+                    namespacesForStreamingTypes
+                            .put(startStreaming.getStreamingType(), startStreaming.getNamespaces());
+                    eventFilterCriteriaForStreamingTypes
+                            .put(startStreaming.getStreamingType(), startStreaming.getFilter()
+                                    .map(this::parseCriteria)
+                                    .orElse(null));
 
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster..",
@@ -150,6 +161,9 @@ final class StreamingSessionActor extends AbstractActor {
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
                     logger.debug("Got 'StopStreaming' message in <{}> session, unsubscribing from <{}> in Cluster..",
                             type, stopStreaming.getStreamingType().name());
+
+                    namespacesForStreamingTypes.remove(stopStreaming.getStreamingType());
+                    eventFilterCriteriaForStreamingTypes.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
                     pubSubMediator.tell(new DistributedPubSubMediator.Unsubscribe(
@@ -230,17 +244,47 @@ final class StreamingSessionActor extends AbstractActor {
             if (authorizationSubjects != null &&
                     !Collections.disjoint(dittoHeaders.getReadSubjects(), authorizationSubjects)) {
 
-                if (matchesFilter(signal)) {
-                    logger.debug("Got Signal <{}> in <{}> session, " +
-                                    "telling eventAndResponsePublisher about it: {}",
-                            signal.getType(), type, signal);
+                if (matchesNamespaces(signal)) {
+                    if (matchesFilter(signal)) {
+                        logger.debug("Got Signal <{}> in <{}> session, " +
+                                        "telling eventAndResponsePublisher about it: {}",
+                                signal.getType(), type, signal);
 
-                    eventAndResponsePublisher.tell(signal, getSelf());
+                        eventAndResponsePublisher.tell(signal, getSelf());
+                    } else {
+                        logger.debug("Signal does not match filter");
+                    }
                 } else {
-                    logger.debug("Signal does not match filter");
+                    logger.debug("Signal does not match namespaces");
                 }
             }
         }
+    }
+
+    private boolean matchesNamespaces(final Signal<?> signal) {
+        final StreamingType streamingType = determineStreamingType(signal);
+
+        final List<String> namespaces = Optional.ofNullable(namespacesForStreamingTypes.get(streamingType))
+                .orElse(Collections.emptyList());
+        return namespaces.isEmpty() || namespaces.contains(namespaceFromId(signal));
+    }
+
+    private static StreamingType determineStreamingType(final Signal<?> signal) {
+        final String channel = signal.getDittoHeaders().getChannel().orElse(TopicPath.Channel.TWIN.getName());
+        final StreamingType streamingType;
+        if (signal instanceof Event) {
+            streamingType = channel.equals(TopicPath.Channel.TWIN.getName()) ?
+                    StreamingType.EVENTS : StreamingType.LIVE_EVENTS;
+        } else if (signal instanceof MessageCommand) {
+            streamingType = StreamingType.MESSAGES;
+        } else {
+            streamingType = StreamingType.LIVE_COMMANDS;
+        }
+        return streamingType;
+    }
+
+    private static String namespaceFromId(final WithId withId) {
+        return withId.getId().split(":", 2)[0];
     }
 
     private Criteria parseCriteria(final String filter) {
@@ -255,25 +299,27 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     private boolean matchesFilter(final Signal<?> signal) {
+
         if (signal instanceof ThingEvent) {
-            // currently only ThingEvents may be filtered
+            final StreamingType streamingType = determineStreamingType(signal);
+
+            // currently only ThingEvents may be filtered with RQL
             return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
-                    .filter(this::doMatchFilter)
+                    .filter(thing -> doMatchFilter(streamingType, thing))
                     .isPresent();
         } else {
             return true;
         }
     }
 
-    private boolean doMatchFilter(final Thing thing) {
+    private boolean doMatchFilter(final StreamingType streamingType, final Thing thing) {
 
-        if (eventFilterCriteria != null) {
-            return ThingPredicateVisitor.apply(eventFilterCriteria)
-                    .test(thing);
-        } else {
-            // let all events through if there was no criteria/filter set
-            return true;
-        }
+        final Optional<Criteria> criteria =
+                Optional.ofNullable(eventFilterCriteriaForStreamingTypes.get(streamingType));
+
+        return criteria
+                .map(c -> ThingPredicateVisitor.apply(c).test(thing))
+                .orElse(true); // let all events through if there was no criteria/filter set
     }
 
     private void acknowledgeSubscription(final StreamingType streamingType, final ActorRef self) {

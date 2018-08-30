@@ -261,10 +261,14 @@ public final class WebsocketRoute {
      * @return the map containing the resolved params
      */
     private Map<String, String> determineParams(final String protocolMessage) {
-        final String parametersString = protocolMessage.split("\\?", 2)[1];
-        return Arrays.stream(parametersString.split("&"))
-                .map(paramWithValue -> paramWithValue.split("=", 2))
-                .collect(Collectors.toMap(pv -> pv[0], pv -> pv[1]));
+        if (protocolMessage.contains("?")) {
+            final String parametersString = protocolMessage.split("\\?", 2)[1];
+            return Arrays.stream(parametersString.split("&"))
+                    .map(paramWithValue -> paramWithValue.split("=", 2))
+                    .collect(Collectors.toMap(pv -> pv[0], pv -> pv[1]));
+        } else {
+            return Collections.emptyMap();
+        }
     }
 
     private Source<Message, NotUsed> createSource(final String connectionCorrelationId, final ProtocolAdapter adapter) {
