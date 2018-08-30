@@ -16,13 +16,15 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
-public class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
+@Immutable
+public final class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
 
     private static final String IF_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_MATCH.getKey();
 
@@ -40,10 +42,8 @@ public class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> 
 
     @Override
     public String getValue() {
-
         return entityTagsToMatch.toString();
     }
-
 
     /**
      * Indicates whether this {@link IfMatchPreconditionHeader} meets the condition for the given {@code entityTag}
@@ -62,13 +62,7 @@ public class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> 
     }
 
     private boolean checkEntityTag(final EntityTag entityTag, final EntityTag currentEntityTag) {
-        if (entityTag.isAsterisk()) {
-            // True because we checked that eTagValueOfEntity is not null before => there is a representation for
-            // the entity.
-            return true;
-        }
-
-        return currentEntityTag.strongCompareTo(entityTag);
+        return entityTag.strongCompareTo(currentEntityTag);
     }
 
     /**

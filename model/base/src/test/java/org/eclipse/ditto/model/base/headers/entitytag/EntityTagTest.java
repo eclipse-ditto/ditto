@@ -15,18 +15,35 @@ package org.eclipse.ditto.model.base.headers.entitytag;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.junit.Test;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Tests {@link EntityTag}.
  */
 public class EntityTagTest {
 
+    private static final EntityTag ASTERISK = EntityTag.asterisk();
     private static final EntityTag WEAK_1 = EntityTag.fromString("W/\"1\"");
     private static final EntityTag WEAK_2 = EntityTag.fromString("W/\"2\"");
     private static final EntityTag STRONG_1 = EntityTag.fromString("\"1\"");
     private static final EntityTag STRONG_2 = EntityTag.fromString("\"2\"");
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(EntityTag.class)
+                .verify();
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(EntityTag.class, areImmutable());
+    }
 
     @Test
     public void weakEntityTagFromString() {
@@ -60,11 +77,25 @@ public class EntityTagTest {
     }
 
     @Test
+    public void asteriskFromString() {
+        final String asteriskStr = "*";
+        assertThat(EntityTag.validate(asteriskStr)).isTrue();
+
+        final EntityTag entityTagFromString = EntityTag.fromString(asteriskStr);
+        assertThat(entityTagFromString.isWeak()).isFalse();
+        assertThat(entityTagFromString.isAsterisk()).isTrue();
+        assertThat(entityTagFromString.getOpaqueTag()).isEqualTo(asteriskStr);
+        assertThat(entityTagFromString).isEqualTo(ASTERISK);
+        // there should be only one instance of ASTERISK
+        assertThat(entityTagFromString).isSameAs(ASTERISK);
+    }
+
+    @Test
     public void weakPrefixIsCaseSensitive() {
         final String invalidEntityTag = "w/\"hallo\"";
 
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
@@ -72,58 +103,57 @@ public class EntityTagTest {
         final String invalidEntityTag = "w/\"*\"";
 
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
-
 
     @Test
     public void strongEntityTagMustNotContainAsteriskInOpaqueTag() {
         final String invalidEntityTag = "\"*\"";
 
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustStartWithDoubleQuotes() {
         final String invalidEntityTag = "W/hallo\"";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag, "hallo\"");
+        assertExceptionWhenCreatingFromString(invalidEntityTag, "hallo\"");
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustStartWithDoubleQuotes() {
         final String invalidEntityTag = "hallo\"";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustEndWithDoubleQuotes() {
         final String invalidEntityTag = "W/\"hallo";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag, "\"hallo");
+        assertExceptionWhenCreatingFromString(invalidEntityTag, "\"hallo");
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustEndWithDoubleQuotes() {
         final String invalidEntityTag = "\"hallo";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustNotContainMoreThanTwoDoubleQuotes() {
         final String invalidEntityTag = "\"\"W/\\\"hal\\\"l\\\"o\\\"\"";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustNotContainMoreThanTwoDoubleQuotes() {
         final String invalidEntityTag = "\"hal\"l\"o\"";
         assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTag);
+        assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
@@ -152,6 +182,17 @@ public class EntityTagTest {
     }
 
     @Test
+    public void strongComparisonEvaluatesAlwaysToTrueWithAtLeastOneAsterisk() {
+        assertThat(ASTERISK.strongCompareTo(ASTERISK)).isTrue();
+
+        assertThat(ASTERISK.strongCompareTo(STRONG_1)).isTrue();
+        assertThat(ASTERISK.strongCompareTo(WEAK_1)).isTrue();
+
+        assertThat(STRONG_1.strongCompareTo(ASTERISK)).isTrue();
+        assertThat(WEAK_1.strongCompareTo(ASTERISK)).isTrue();
+    }
+
+    @Test
     public void weakComparisonEvaluatesToTrueForEqualWeakTags() {
         assertThat(WEAK_1.weakCompareTo(WEAK_1)).isTrue();
     }
@@ -176,15 +217,25 @@ public class EntityTagTest {
         assertThat(STRONG_1.weakCompareTo(STRONG_1)).isTrue();
     }
 
-    private void assertIllegalArgumentExceptionWhenCreatingFromString(final String invalidEntityTagValue) {
-        assertIllegalArgumentExceptionWhenCreatingFromString(invalidEntityTagValue, invalidEntityTagValue);
+    @Test
+    public void weakComparisonEvaluatesAlwaysToTrueWithAtLeastOneAsterisk() {
+        assertThat(ASTERISK.weakCompareTo(ASTERISK)).isTrue();
+
+        assertThat(ASTERISK.weakCompareTo(STRONG_1)).isTrue();
+        assertThat(ASTERISK.weakCompareTo(WEAK_1)).isTrue();
+
+        assertThat(STRONG_1.weakCompareTo(ASTERISK)).isTrue();
+        assertThat(WEAK_1.weakCompareTo(ASTERISK)).isTrue();
     }
 
-    private void assertIllegalArgumentExceptionWhenCreatingFromString(final String invalidEntityTagValue,
+    private void assertExceptionWhenCreatingFromString(final String invalidEntityTagValue) {
+        assertExceptionWhenCreatingFromString(invalidEntityTagValue, invalidEntityTagValue);
+    }
+
+    private void assertExceptionWhenCreatingFromString(final String invalidEntityTagValue,
             final String expectedOpaqueTagInMessage) {
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> EntityTag.fromString(invalidEntityTagValue))
-                .withMessage("The opaque tag <%s> is not a valid entity-tag.", expectedOpaqueTagInMessage)
-                .withNoCause();
+                .withMessage("The opaque tag <%s> is not a valid entity-tag.", expectedOpaqueTagInMessage);
     }
 }

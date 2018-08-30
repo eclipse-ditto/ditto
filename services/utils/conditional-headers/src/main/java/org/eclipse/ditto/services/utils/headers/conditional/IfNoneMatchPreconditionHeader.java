@@ -14,13 +14,15 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
-public class IfNoneMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
+@Immutable
+public final class IfNoneMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
 
     private static final String IF_NONE_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_NONE_MATCH.getKey();
     private final EntityTags entityTagsToMatch;
@@ -57,13 +59,7 @@ public class IfNoneMatchPreconditionHeader implements PreconditionHeader<EntityT
     }
 
     private boolean checkEntityTag(final EntityTag entityTagToMatch, final EntityTag currentEntityTag) {
-        if (entityTagToMatch.isAsterisk()) {
-            // False because we checked that eTagValueOfEntity is null before => there is a representation for
-            // the entity.
-            return false;
-        }
-
-        return !currentEntityTag.weakCompareTo(entityTagToMatch);
+        return !entityTagToMatch.weakCompareTo(currentEntityTag);
     }
 
     /**

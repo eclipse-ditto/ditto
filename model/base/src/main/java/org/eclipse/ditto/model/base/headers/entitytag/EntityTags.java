@@ -13,24 +13,30 @@ package org.eclipse.ditto.model.base.headers.entitytag;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Java representation for a List of {@link EntityTag}.
  */
-public class EntityTags implements Iterable<EntityTag> {
+@Immutable
+public final class EntityTags implements Iterable<EntityTag> {
 
     private final List<EntityTag> entityTagList;
 
     private EntityTags(final List<EntityTag> entityTagList) {
         checkNotNull(entityTagList, "entityTagList");
-        this.entityTagList = entityTagList;
+        this.entityTagList = Collections.unmodifiableList(new ArrayList<>(entityTagList));
     }
 
     /**
@@ -96,4 +102,22 @@ public class EntityTags implements Iterable<EntityTag> {
     public Spliterator<EntityTag> spliterator() {
         return this.entityTagList.spliterator();
     }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final EntityTags that = (EntityTags) o;
+        return Objects.equals(entityTagList, that.entityTagList);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(entityTagList);
+    }
+
 }

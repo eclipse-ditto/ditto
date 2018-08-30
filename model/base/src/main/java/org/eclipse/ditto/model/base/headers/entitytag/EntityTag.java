@@ -17,11 +17,16 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+
 /**
  * Implements an entity-tag according to
  * <a href="https://tools.ietf.org/html/rfc7232#section-2.3">rfc7232 - Section 2.3</a>
  */
-public class EntityTag {
+@Immutable
+public final class EntityTag {
 
     private static final String VALIDATION_ERROR_MESSAGE_TEMPLATE = "The opaque tag <%s> is not a valid entity-tag.";
 
@@ -36,7 +41,8 @@ public class EntityTag {
 
     private EntityTag(final boolean weak, final String opaqueTag) {
         if (!validate(opaqueTag)) {
-            throw new IllegalArgumentException(String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag));
+            final String errorMessage = String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag);
+            throw DittoHeaderInvalidException.newCustomMessageBuilder(errorMessage).build();
         }
         this.weak = weak;
         this.opaqueTag = opaqueTag;
@@ -93,6 +99,9 @@ public class EntityTag {
      * @return True if this {@link EntityTag} matches the given other entity tag based on strong comparison.
      */
     public boolean strongCompareTo(final EntityTag otherEntityTag) {
+        if (eitherThisOrOtherIsAsterisk(otherEntityTag)) {
+            return true;
+        }
 
         if (this.isWeak()) {
             return false;
@@ -112,7 +121,15 @@ public class EntityTag {
      * @return True if this {@link EntityTag} matches the given other entity tag based on weak comparison.
      */
     public boolean weakCompareTo(final EntityTag otherEntityTag) {
+        if (eitherThisOrOtherIsAsterisk(otherEntityTag)) {
+            return true;
+        }
+
         return this.getOpaqueTag().equals(otherEntityTag.getOpaqueTag());
+    }
+
+    private boolean eitherThisOrOtherIsAsterisk(final EntityTag otherEntityTag) {
+        return isAsterisk() || otherEntityTag.isAsterisk();
     }
 
     /**
@@ -125,6 +142,11 @@ public class EntityTag {
      */
     public static EntityTag fromString(final String entityTag) {
         checkNotNull(entityTag);
+
+        // use only one instance of asterisk in the JVM
+        if (ASTERISK.equals(entityTag)) {
+            return ASTERISK_INSTANCE;
+        }
 
         final boolean weak = entityTag.startsWith(WEAK_PREFIX);
 
