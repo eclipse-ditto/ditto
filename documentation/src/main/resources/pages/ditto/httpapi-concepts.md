@@ -464,7 +464,7 @@ exists.
 #### Update: Write only if the resource already exists
 
 The following example request shows how you can make sure that a `PUT` request does not create the resource, i.e. how
- you can enforce that the Thing can only be updated by the request, but you do not generated a duplicate by mistake.
+ you can enforce that the Thing can only be updated by the request, but you do not generate a duplicate by mistake.
  
 ```
 PUT .../things/{thingId}
