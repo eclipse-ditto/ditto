@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
+import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailed;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModified;
@@ -83,19 +84,13 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
     }
 
     private Optional<Result> checkIfMatch(final C command, @Nullable final EntityTag currentETagValue) {
-        final Optional<IfMatchPreconditionHeader> ifMatchOpt =
-                IfMatchPreconditionHeader.fromDittoHeaders(command.getDittoHeaders());
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final Optional<IfMatchPreconditionHeader> ifMatchOpt = IfMatchPreconditionHeader.fromDittoHeaders(dittoHeaders);
 
         return ifMatchOpt.flatMap(ifMatch -> {
             if (!ifMatch.meetsConditionFor(currentETagValue)) {
-                final String headerKey = ifMatch.getKey();
-                final String headerValue = ifMatch.getValue();
-
-                final ThingPreconditionFailed exception = ThingPreconditionFailed
-                        .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
-                        .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
-                        .build();
-
+                final ThingPreconditionFailed exception =
+                        buildPreconditionFailedException(ifMatch, dittoHeaders, currentETagValue);
                 return Optional.of(ResultFactory.newErrorResult(exception));
             }
             return Optional.empty();
@@ -103,32 +98,45 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
     }
 
     private Optional<Result> checkIfNoneMatch(final C command, @Nullable final EntityTag currentETagValue) {
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Optional<IfNoneMatchPreconditionHeader> ifNoneMatchOpt =
-                IfNoneMatchPreconditionHeader.fromDittoHeaders(command.getDittoHeaders());
+                IfNoneMatchPreconditionHeader.fromDittoHeaders(dittoHeaders);
 
         return ifNoneMatchOpt.flatMap(ifNoneMatch -> {
             if (!ifNoneMatch.meetsConditionFor(currentETagValue)) {
 
-                final String headerKey = ifNoneMatch.getKey();
-                final String headerValue = ifNoneMatch.getValue();
-
                 if (command.getCategory().equals(QUERY)) {
-                    final ThingPreconditionNotModified exception = ThingPreconditionNotModified
-                            .newBuilder(headerValue, String.valueOf(currentETagValue))
-                            .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
-                            .build();
 
+                    final ThingPreconditionNotModified exception =
+                            buildNotModifiedException(ifNoneMatch, dittoHeaders, currentETagValue);
                     return Optional.of(ResultFactory.newErrorResult(exception));
                 } else {
-                    final ThingPreconditionFailed exception = ThingPreconditionFailed
-                            .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
-                            .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
-                            .build();
+                    final ThingPreconditionFailed exception =
+                            buildPreconditionFailedException(ifNoneMatch, dittoHeaders, currentETagValue);
                     return Optional.of(ResultFactory.newErrorResult(exception));
                 }
             }
             return Optional.empty();
         });
+    }
+
+    private ThingPreconditionFailed buildPreconditionFailedException(final PreconditionHeader preconditionHeader,
+            final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
+        final String headerKey = preconditionHeader.getKey();
+        final String headerValue = preconditionHeader.getValue();
+
+        return ThingPreconditionFailed
+                .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
+                .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
+                .build();
+    }
+
+    private ThingPreconditionNotModified buildNotModifiedException(final PreconditionHeader preconditionHeader,
+            final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
+        return ThingPreconditionNotModified
+                .newBuilder(preconditionHeader.getValue(), String.valueOf(currentETagValue))
+                .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
+                .build();
     }
 
     private DittoHeaders appendETagIfNotNull(final DittoHeaders dittoHeaders, @Nullable final EntityTag entityTag) {
