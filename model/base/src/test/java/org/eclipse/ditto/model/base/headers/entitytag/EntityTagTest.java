@@ -18,6 +18,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import org.junit.Test;
 
+/**
+ * Tests {@link EntityTag}.
+ */
 public class EntityTagTest {
 
     private static final EntityTag WEAK_1 = EntityTag.fromString("W/\"1\"");

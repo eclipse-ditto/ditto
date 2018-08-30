@@ -24,6 +24,9 @@ import org.eclipse.ditto.model.base.entity.Entity;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.junit.Test;
 
+/**
+ * Tests {@link EntityTagBuilder}.
+ */
 public class EntityTagBuilderTest {
 
     @Test
