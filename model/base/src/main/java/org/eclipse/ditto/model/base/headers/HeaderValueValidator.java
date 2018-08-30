@@ -35,14 +35,8 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
 /**
  * Checks if a specified CharSequence is a valid representation of a {@link HeaderDefinition}'s Java type. If a checked
- * value is invalid an {@link DittoHeaderInvalidException} is thrown. The following types are recognised:
- * <ul>
- *     <li>{@code boolean}/{@code Boolean},</li>
- *     <li>{@code int}/{@code Integer},</li>
- *     <li>{@code long}/{@code Long} and</li>
- *     <li>{@link JsonArray}.</li>
- * </ul>
- * For all other types the validation always succeeds.
+ * value is invalid a {@link DittoHeaderInvalidException} is thrown. This class recognises a defined set of types
+ * and provides validation for these. For all other types, the validation succeeds.
  */
 @Immutable
 public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, CharSequence> {
