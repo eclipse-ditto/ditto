@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import static org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader.fromDittoHeaders;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -54,8 +56,9 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
     @Override
     public Result apply(final Context context, @Nullable final Thing thing, final long nextRevision, final C command) {
 
-        if (headersContainConditionalHeaders(command.getDittoHeaders())) {
-            final Optional<Result> result = checkConditionalHeaders(command, thing);
+        final List<PreconditionHeader> preconditionHeaders = fromDittoHeaders(command.getDittoHeaders());
+        if (!preconditionHeaders.isEmpty()) {
+            final Optional<Result> result = checkConditionalHeaders(command, thing, preconditionHeaders);
             if (result.isPresent()) {
                 return result.get();
             }
@@ -70,15 +73,15 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
      *
      * @param command the command which addresses either the whole thing or a sub-entity
      * @param thing the thing, may be {@code null}.
+     * @param preconditionHeaders the precondition headers to check.
      * @return {@code empty} in case of success, an (error) {@link Result} otherwise.
      */
-    private Optional<Result> checkConditionalHeaders(final C command, @Nullable final Thing thing) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+    private Optional<Result> checkConditionalHeaders(final C command, @Nullable final Thing thing,
+            List<PreconditionHeader> preconditionHeaders) {
         final EntityTag currentETagValue = determineETagEntity(command, thing)
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
-        final List<PreconditionHeader> preconditionHeaders = PreconditionHeader.fromDittoHeaders(dittoHeaders);
         for (PreconditionHeader preconditionHeader : preconditionHeaders) {
             if (!preconditionHeader.meetsConditionFor(currentETagValue)) {
                 final DittoRuntimeException exception = buildException(preconditionHeader, currentETagValue, command);
@@ -113,9 +116,5 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
             return dittoHeaders;
         }
         return dittoHeaders.toBuilder().eTag(entityTag).build();
-    }
-
-    private boolean headersContainConditionalHeaders(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.containsKey(IF_MATCH_HEADER_KEY) || dittoHeaders.containsKey(IF_NONE_MATCH_HEADER_KEY);
     }
 }
