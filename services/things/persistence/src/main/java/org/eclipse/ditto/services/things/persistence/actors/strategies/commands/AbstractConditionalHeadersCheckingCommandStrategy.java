@@ -26,8 +26,8 @@ import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionH
 import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailed;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModified;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModifiedException;
 
 /**
  * Responsible to check conditional (http) headers based on the thing's current eTag value.
@@ -97,7 +97,7 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
 
         return ifMatchOpt.flatMap(ifMatch -> {
             if (!ifMatch.meetsConditionFor(currentETagValue)) {
-                final ThingPreconditionFailed exception =
+                final ThingPreconditionFailedException exception =
                         buildPreconditionFailedException(ifMatch, dittoHeaders, currentETagValue);
                 return Optional.of(ResultFactory.newErrorResult(exception));
             }
@@ -115,11 +115,11 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
 
                 if (command.getCategory().equals(QUERY)) {
 
-                    final ThingPreconditionNotModified exception =
+                    final ThingPreconditionNotModifiedException exception =
                             buildNotModifiedException(ifNoneMatch, dittoHeaders, currentETagValue);
                     return Optional.of(ResultFactory.newErrorResult(exception));
                 } else {
-                    final ThingPreconditionFailed exception =
+                    final ThingPreconditionFailedException exception =
                             buildPreconditionFailedException(ifNoneMatch, dittoHeaders, currentETagValue);
                     return Optional.of(ResultFactory.newErrorResult(exception));
                 }
@@ -128,20 +128,20 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
         });
     }
 
-    private ThingPreconditionFailed buildPreconditionFailedException(final PreconditionHeader preconditionHeader,
+    private ThingPreconditionFailedException buildPreconditionFailedException(final PreconditionHeader preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
         final String headerKey = preconditionHeader.getKey();
         final String headerValue = preconditionHeader.getValue();
 
-        return ThingPreconditionFailed
+        return ThingPreconditionFailedException
                 .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
                 .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
                 .build();
     }
 
-    private ThingPreconditionNotModified buildNotModifiedException(final PreconditionHeader preconditionHeader,
+    private ThingPreconditionNotModifiedException buildNotModifiedException(final PreconditionHeader preconditionHeader,
             final DittoHeaders dittoHeaders, @Nullable final EntityTag currentETagValue) {
-        return ThingPreconditionNotModified
+        return ThingPreconditionNotModifiedException
                 .newBuilder(preconditionHeader.getValue(), String.valueOf(currentETagValue))
                 .dittoHeaders(appendETagIfNotNull(dittoHeaders, currentETagValue))
                 .build();

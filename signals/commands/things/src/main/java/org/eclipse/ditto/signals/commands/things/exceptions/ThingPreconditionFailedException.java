@@ -15,6 +15,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -24,7 +25,11 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingException;
 
-public class ThingPreconditionFailed extends DittoRuntimeException implements ThingException {
+/**
+ * Thrown when validating a precondition header fails on a Thing or one of its sub-entities.
+ */
+@Immutable
+public final class ThingPreconditionFailedException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
@@ -39,7 +44,7 @@ public class ThingPreconditionFailed extends DittoRuntimeException implements Th
             "current ETag value of this thing resource evaluated to false. Check the value of your conditional header" +
             " value.";
 
-    private ThingPreconditionFailed(final DittoHeaders dittoHeaders,
+    private ThingPreconditionFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -49,16 +54,7 @@ public class ThingPreconditionFailed extends DittoRuntimeException implements Th
     }
 
     /**
-     * A mutable builder for a {@code {@link ThingPreconditionFailed }}.
-     *
-     * @return the builder.
-     */
-    public static Builder newBuilder() {
-        return new Builder();
-    }
-
-    /**
-     * A mutable builder for a {@code {@link ThingPreconditionFailed }}.
+     * A mutable builder for a {@link ThingPreconditionFailedException}.
      *
      * @param conditionalHeaderName the name of the conditional header.
      * @param expected the expected value.
@@ -70,13 +66,22 @@ public class ThingPreconditionFailed extends DittoRuntimeException implements Th
     }
 
     /**
-     * Constructs a new {@code ConditionalHeadersPreconditionFailedException} object with given message.
+     * Constructs a new {@link ThingPreconditionFailedException} object with the exception message extracted from
+     * the given JSON object.
      *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersPreconditionFailedException.
+     * @return the new {@link ThingPreconditionFailedException}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
      */
-    public static ThingPreconditionFailed fromMessage(final String message,
+    public static ThingPreconditionFailedException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        return fromMessage(readMessage(jsonObject), dittoHeaders);
+    }
+
+    private static ThingPreconditionFailedException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
 
         return new Builder()
@@ -86,28 +91,11 @@ public class ThingPreconditionFailed extends DittoRuntimeException implements Th
     }
 
     /**
-     * Constructs a new {@code ConditionalHeadersPreconditionFailedException} object with the exception message extracted from
-     * the given
-     * JSON object.
-     *
-     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
-     * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new ConditionalHeadersPreconditionFailedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
-     */
-    public static ThingPreconditionFailed fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    /**
-     * A mutable builder with a fluent API for a {@link ThingPreconditionFailed}.
+     * A mutable builder with a fluent API for a {@link ThingPreconditionFailedException}.
      */
     @NotThreadSafe
     public static final class Builder
-            extends DittoRuntimeExceptionBuilder<ThingPreconditionFailed> {
+            extends DittoRuntimeExceptionBuilder<ThingPreconditionFailedException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -119,13 +107,13 @@ public class ThingPreconditionFailed extends DittoRuntimeException implements Th
         }
 
         @Override
-        protected ThingPreconditionFailed doBuild(final DittoHeaders dittoHeaders,
+        protected ThingPreconditionFailedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new ThingPreconditionFailed(dittoHeaders, message, description, cause, href);
+            return new ThingPreconditionFailedException(dittoHeaders, message, description, cause, href);
         }
 
     }
