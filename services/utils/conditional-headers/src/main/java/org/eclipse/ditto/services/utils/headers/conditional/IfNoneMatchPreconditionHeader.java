@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
-class IfNoneMatchPreconditionHeader implements PreconditionHeader {
+public class IfNoneMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
 
     private static final String IF_NONE_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_NONE_MATCH.getKey();
     private final EntityTags entityTagsToMatch;
@@ -73,7 +73,7 @@ class IfNoneMatchPreconditionHeader implements PreconditionHeader {
      * @return Optional of {@link IfNoneMatchPreconditionHeader}. Empty if the given {@code dittoHeaders} don't contain
      * an {@link IfNoneMatchPreconditionHeader}.
      */
-    static Optional<IfNoneMatchPreconditionHeader> fromDittoHeaders(final DittoHeaders dittoHeaders) {
+    public static Optional<IfNoneMatchPreconditionHeader> fromDittoHeaders(final DittoHeaders dittoHeaders) {
         return dittoHeaders.getIfNoneMatch().map(IfNoneMatchPreconditionHeader::new);
     }
 }

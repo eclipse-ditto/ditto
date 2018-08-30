@@ -17,13 +17,13 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 
 /**
  * Interface for all precondition headers according to
  * <a href="https://tools.ietf.org/html/rfc7232#section-3">RFC7232 - Section 3</a>.
+ * @param <T> Type of the object for which a condition should be checked.
  */
-public interface PreconditionHeader {
+public interface PreconditionHeader<T> {
 
     /**
      * Gets the key of this header.
@@ -40,26 +40,10 @@ public interface PreconditionHeader {
     String getValue();
 
     /**
-     * Indicates whether this {@link PreconditionHeader} meets the condition for the given {@code entityTag}
+     * Indicates whether this {@link PreconditionHeader} meets the condition for the given {@code objectToCheck}
      *
-     * @param entityTag The entity tag for which this {@link PreconditionHeader} should meet the condition.
+     * @param objectToCheck The object for which this {@link PreconditionHeader} should meet the condition.
      * @return True if this {@link PreconditionHeader} meets the condition. False if not.
      */
-    boolean meetsConditionFor(@Nullable final EntityTag entityTag);
-
-    /**
-     * Extracts all supported {@link PreconditionHeader precondition headers} out of the given ditto headers.
-     *
-     * @param dittoHeaders The ditto headers where precondition headers should be extracted from.
-     * @return A list of {@link PreconditionHeader precondition headers} contained in the given ditto headers. List is
-     * empty if the given ditto headers don't contain any supported precondition headers.
-     */
-    static List<PreconditionHeader> fromDittoHeaders(final DittoHeaders dittoHeaders) {
-        final List<PreconditionHeader> preconditionHeaders = new ArrayList<>();
-
-        IfNoneMatchPreconditionHeader.fromDittoHeaders(dittoHeaders).ifPresent(preconditionHeaders::add);
-        IfMatchPreconditionHeader.fromDittoHeaders(dittoHeaders).ifPresent(preconditionHeaders::add);
-
-        return preconditionHeaders;
-    }
+    boolean meetsConditionFor(@Nullable final T objectToCheck);
 }

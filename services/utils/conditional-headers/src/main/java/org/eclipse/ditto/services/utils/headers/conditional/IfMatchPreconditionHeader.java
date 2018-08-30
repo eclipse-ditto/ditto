@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 
-class IfMatchPreconditionHeader implements PreconditionHeader {
+public class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
 
     private static final String IF_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_MATCH.getKey();
 
@@ -78,7 +78,7 @@ class IfMatchPreconditionHeader implements PreconditionHeader {
      * @return Optional of {@link IfMatchPreconditionHeader}. Empty if the given {@code dittoHeaders} don't contain an
      * {@link IfMatchPreconditionHeader}.
      */
-    static Optional<IfMatchPreconditionHeader> fromDittoHeaders(final DittoHeaders dittoHeaders) {
+    public static Optional<IfMatchPreconditionHeader> fromDittoHeaders(final DittoHeaders dittoHeaders) {
         return dittoHeaders.getIfMatch().map(IfMatchPreconditionHeader::new);
     }
 }

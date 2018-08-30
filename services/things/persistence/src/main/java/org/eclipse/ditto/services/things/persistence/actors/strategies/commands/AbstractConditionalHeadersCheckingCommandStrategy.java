@@ -11,19 +11,17 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader.fromDittoHeaders;
-
-import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
+import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.PreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailed;
@@ -40,9 +38,6 @@ import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E> extends
         AbstractCommandStrategy<C> implements ETagEntityProvider<C, E> {
 
-    private static final String IF_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_MATCH.getKey();
-    private static final String IF_NONE_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_NONE_MATCH.getKey();
-
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
      *
@@ -53,43 +48,58 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
         super(theMatchingClass);
     }
 
+    /**
+     * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
+     * Currently supports only {@link IfMatchPreconditionHeader} and {@link IfNoneMatchPreconditionHeader}
+     *
+     * @param context the context.
+     * @param thing the thing, may be {@code null}.
+     * @param nextRevision the next revision number of the ThingPersistenceActor.
+     * @param command the command which addresses either the whole thing or a sub-entity
+     * @return Either and error result if a precondition header does not meet the condition or the result of the
+     * extending strategy.
+     */
     @Override
     public Result apply(final Context context, @Nullable final Thing thing, final long nextRevision, final C command) {
 
-        final List<PreconditionHeader> preconditionHeaders = fromDittoHeaders(command.getDittoHeaders());
-        if (!preconditionHeaders.isEmpty()) {
-            final Optional<Result> result = checkConditionalHeaders(command, thing, preconditionHeaders);
-            if (result.isPresent()) {
-                return result.get();
-            }
-        }
-
-        return super.apply(context, thing, nextRevision, command);
-    }
-
-    /**
-     * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
-     * Currently supports only {@link DittoHeaderDefinition#IF_MATCH} and {@link DittoHeaderDefinition#IF_NONE_MATCH}
-     *
-     * @param command the command which addresses either the whole thing or a sub-entity
-     * @param thing the thing, may be {@code null}.
-     * @param preconditionHeaders the precondition headers to check.
-     * @return {@code empty} in case of success, an (error) {@link Result} otherwise.
-     */
-    private Optional<Result> checkConditionalHeaders(final C command, @Nullable final Thing thing,
-            List<PreconditionHeader> preconditionHeaders) {
         final EntityTag currentETagValue = determineETagEntity(command, thing)
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
-        for (PreconditionHeader preconditionHeader : preconditionHeaders) {
-            if (!preconditionHeader.meetsConditionFor(currentETagValue)) {
-                final DittoRuntimeException exception = buildException(preconditionHeader, currentETagValue, command);
-                return Optional.of(ResultFactory.newErrorResult(exception));
-            }
-        }
+        return Optional
+                .of(checkIfMatch(command, currentETagValue))
+                .orElseGet(() -> checkIfNoneMatch(command, currentETagValue))
+                .orElseGet(() -> super.apply(context, thing, nextRevision, command));
+    }
 
-        return Optional.empty();
+    private Optional<Result> checkIfMatch(final C command, @Nullable final EntityTag currentETagValue) {
+        final Optional<IfMatchPreconditionHeader> ifMatchOpt =
+                IfMatchPreconditionHeader.fromDittoHeaders(command.getDittoHeaders());
+
+        return ifMatchOpt.flatMap(ifMatch -> {
+            if (!ifMatch.meetsConditionFor(currentETagValue)) {
+                return Optional.of(buildPreconditionErrorResult(ifMatch, currentETagValue, command));
+            }
+            return Optional.empty();
+        });
+    }
+
+    private Optional<Result> checkIfNoneMatch(final C command, @Nullable final EntityTag currentETagValue) {
+        final Optional<IfNoneMatchPreconditionHeader> ifNoneMatchOpt =
+                IfNoneMatchPreconditionHeader.fromDittoHeaders(command.getDittoHeaders());
+
+        return ifNoneMatchOpt.flatMap(ifNoneMatch -> {
+            if (!ifNoneMatch.meetsConditionFor(currentETagValue)) {
+                return Optional.of(buildPreconditionErrorResult(ifNoneMatch, currentETagValue, command));
+            }
+            return Optional.empty();
+        });
+    }
+
+    private Result buildPreconditionErrorResult(final PreconditionHeader preconditionHeader,
+            @Nullable final EntityTag currentETagValue, final C command) {
+        final DittoRuntimeException exception = buildException(preconditionHeader, currentETagValue, command);
+        return ResultFactory.newErrorResult(exception);
     }
 
     private DittoRuntimeException buildException(final PreconditionHeader preconditionHeader,
@@ -98,7 +108,7 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
         final String headerKey = preconditionHeader.getKey();
         final String headerValue = preconditionHeader.getValue();
 
-        if (IF_MATCH_HEADER_KEY.equals(headerKey) || command instanceof ThingModifyCommand) {
+        if (preconditionHeader instanceof IfMatchPreconditionHeader || command instanceof ThingModifyCommand) {
             return ThingPreconditionFailed
                     .newBuilder(headerKey, headerValue, String.valueOf(currentETagValue))
                     .dittoHeaders(appendETagIfNotNull(command.getDittoHeaders(), currentETagValue))
