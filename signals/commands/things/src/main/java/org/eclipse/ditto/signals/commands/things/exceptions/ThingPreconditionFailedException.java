@@ -37,12 +37,12 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.failed";
 
     private static final String MESSAGE_TEMPLATE =
-            "The comparison of precondition header ''{0}'' for this thing resource evaluated to false." +
-                    " Expected: ''{1}'', Actual: ''{2}''.";
+            "The comparison of precondition header ''{0}'' for the requested thing resource evaluated to false." +
+                    " Header value: ''{1}'', actual entity-tag: ''{2}''.";
 
     private static final String DEFAULT_DESCRIPTION = "The comparison of the provided precondition header with the " +
-            "current ETag value of this thing resource evaluated to false. Check the value of your conditional header" +
-            " value.";
+            "current ETag value of the requested thing resource evaluated to false. Check the value of your " +
+            "conditional header value.";
 
     private ThingPreconditionFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
