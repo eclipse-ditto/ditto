@@ -8,8 +8,9 @@ permalink: basic-connections.html
 ## Connection model
 
   {%
-    include note.html content="To get started with connections right away, consult the [Manage connections]
-    (connectivity-manage-connections.html) page. "
+    include note.html content="To get started with connections right away, consult the
+    [Manage connections](connectivity-manage-connections.html)
+    page. "
   %}
 
 You can integrate your Ditto instance with external messaging services such as 
@@ -33,6 +34,7 @@ for custom payload formats. Currently the following connection types are support
 
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
+* [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
  
  
 The `sources` and `targets` identifier format depends on the `connectionType` and has therefore `connectionType` 

@@ -41,8 +41,9 @@ Create a new connection by sending the following DevOps command:
 ```
 
 The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
-For protocol specific examples consolidate the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html) and
-the [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) respectively.
+For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
+[AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
+[MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
 ### Modify connection
 

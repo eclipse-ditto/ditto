@@ -194,6 +194,9 @@ entries:
     - title: AMQP 1.0 protocol binding
       url: /connectivity-protocol-bindings-amqp10.html
       output: web
+    - title: MQTT 3.1.1 protocol binding
+      url: /connectivity-protocol-bindings-mqtt.html
+      output: web
     - title: Payload mapping
       url: /connectivity-mapping.html
       output: web
