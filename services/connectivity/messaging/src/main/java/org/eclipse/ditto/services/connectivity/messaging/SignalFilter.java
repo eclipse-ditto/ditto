@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -58,32 +59,29 @@ public class SignalFilter {
 
 
     public static Set<Target> filter(final Connection connection, final Signal<?> signal) {
-        final Topic topic = topicFromSignal(signal).orElse(null);
         return connection.getTargets().stream()
-                .filter(t -> isTargetSubscribedForTopic(t, signal, topic))
+                .filter(t -> isTargetSubscribedForTopic(t, signal))
                 .filter(t -> isTargetAuthorized(t, signal))
                 .collect(Collectors.toSet());
     }
 
-    private static boolean isTargetSubscribedForTopic(final Target t, final Signal<?> signal,
-            @Nullable final Topic topicFromSignal) {
+    private static boolean isTargetSubscribedForTopic(final Target t, final Signal<?> signal) {
         return t.getTopics().stream()
-                .filter(filteredTopic -> filteredTopic.getTopic().equals(topicFromSignal))
-                .anyMatch(filteredTopic -> {
-                    if (!filteredTopic.hasFilter()) {
-                        return checkNamespace(signal, filteredTopic);
-                    } else {
-                        return checkNamespace(signal, filteredTopic) &&
-                                filteredTopic.getFilter()
-                                        .filter(filter -> SignalFilter.matchesFilter(filter, signal))
-                                        .isPresent();
-                    }
-                });
+                .filter(applyTopicFilter(signal))
+                .filter(applyRqlFilter(signal))
+                .anyMatch(applyNamespaceFilter(signal));
     }
 
-    private static boolean checkNamespace(final WithId signal, final FilteredTopic filteredTopic) {
-        return filteredTopic.getNamespaces().isEmpty() ||
-                filteredTopic.getNamespaces().contains(namespaceFromId(signal));
+    private static Predicate<FilteredTopic> applyTopicFilter(final Signal<?> signal) {
+        return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
+    }
+
+    private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
+        return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
+    }
+
+    private static Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
+        return t -> !t.hasFilter() || t.getFilter().filter(f -> matchesFilter(f, signal)).isPresent();
     }
 
     private static String namespaceFromId(final WithId withId) {
