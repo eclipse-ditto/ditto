@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
 /**
  * Enumeration of definitions of well known Ditto Headers including their key and Java type.
@@ -122,7 +122,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_MATCH("If-Match", EntityTags.class, String.class, true, false),
+    IF_MATCH("If-Match", EntityTagMatchers.class, String.class, true, false),
 
     /**
      * Header definition for "If-None-Match".
@@ -130,7 +130,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("If-None-Match", EntityTags.class, String.class, true, false);
+    IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false);
 
     /**
      * Map to speed up lookup of header definition by key.

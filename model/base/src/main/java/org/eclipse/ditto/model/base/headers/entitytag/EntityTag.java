@@ -30,17 +30,15 @@ public final class EntityTag {
 
     private static final String VALIDATION_ERROR_MESSAGE_TEMPLATE = "The opaque tag <%s> is not a valid entity-tag.";
 
-    private static final String ASTERISK = "*";
-    private static final String WEAK_PREFIX = "W/";
 
-    private static final EntityTag ASTERISK_INSTANCE = new EntityTag(false, ASTERISK);
+    private static final String WEAK_PREFIX = "W/";
 
     private final boolean weak;
 
     private final String opaqueTag;
 
     private EntityTag(final boolean weak, final String opaqueTag) {
-        if (!validate(opaqueTag)) {
+        if (!isValid(opaqueTag)) {
             final String errorMessage = String.format(VALIDATION_ERROR_MESSAGE_TEMPLATE, opaqueTag);
             throw DittoHeaderInvalidException.newCustomMessageBuilder(errorMessage).build();
         }
@@ -49,20 +47,13 @@ public final class EntityTag {
     }
 
     /**
-     * @return the {@code *} entity-tag value.
-     */
-    public static EntityTag asterisk() {
-        return ASTERISK_INSTANCE;
-    }
-
-    /**
      * Validates that the given String is a quoted String with an optional weak prefix.
      *
      * @param entityTag The String that should get validated.
      * @return True if the given String is valid. False if not.
      */
-    public static boolean validate(final String entityTag) {
-        return entityTag.matches(Regex.ASTERISK_OR_ENTITY_TAG);
+    public static boolean isValid(final String entityTag) {
+        return entityTag.matches(Regex.ENTITY_TAG);
     }
 
     /**
@@ -84,25 +75,12 @@ public final class EntityTag {
     }
 
     /**
-     * Indicates whether this entity-tag equals {@link #ASTERISK}.
-     *
-     * @return True if entity-tag equal {@link #ASTERISK}. False if not.
-     */
-    public boolean isAsterisk() {
-        return ASTERISK.equals(opaqueTag);
-    }
-
-    /**
      * Implements strong comparison based on <a href="https://tools.ietf.org/html/rfc7232#section-2.3.2">RFC 7232</a>
      *
      * @param otherEntityTag The {@link EntityTag} to compare to.
      * @return True if this {@link EntityTag} matches the given other entity tag based on strong comparison.
      */
     public boolean strongCompareTo(final EntityTag otherEntityTag) {
-        if (eitherThisOrOtherIsAsterisk(otherEntityTag)) {
-            return true;
-        }
-
         if (this.isWeak()) {
             return false;
         }
@@ -121,15 +99,7 @@ public final class EntityTag {
      * @return True if this {@link EntityTag} matches the given other entity tag based on weak comparison.
      */
     public boolean weakCompareTo(final EntityTag otherEntityTag) {
-        if (eitherThisOrOtherIsAsterisk(otherEntityTag)) {
-            return true;
-        }
-
         return this.getOpaqueTag().equals(otherEntityTag.getOpaqueTag());
-    }
-
-    private boolean eitherThisOrOtherIsAsterisk(final EntityTag otherEntityTag) {
-        return isAsterisk() || otherEntityTag.isAsterisk();
     }
 
     /**
@@ -137,16 +107,11 @@ public final class EntityTag {
      *
      * @param entityTag the string representation of the entity-tag.
      * @return The {@link EntityTag} built from the given string value.
-     * @throws java.lang.IllegalArgumentException if the given {@code entityTag} is not valid according to
-     * {@link #validate(String)}.
+     * @throws DittoHeaderInvalidException if the given {@code entityTag} is not valid according to
+     * {@link #isValid(String)}.
      */
     public static EntityTag fromString(final String entityTag) {
         checkNotNull(entityTag);
-
-        // use only one instance of asterisk in the JVM
-        if (ASTERISK.equals(entityTag)) {
-            return ASTERISK_INSTANCE;
-        }
 
         final boolean weak = entityTag.startsWith(WEAK_PREFIX);
 
@@ -219,7 +184,5 @@ public final class EntityTag {
         private static final String WEAK_PREFIX = "(W/)";
         private static final String OPAQUE_TAG = "(\"[^\"*]*\")";
         private static final String ENTITY_TAG = WEAK_PREFIX + "?" + OPAQUE_TAG;
-        private static final String ASTERISK = "(\\*)";
-        private static final String ASTERISK_OR_ENTITY_TAG = ASTERISK + "|" + ENTITY_TAG;
     }
 }

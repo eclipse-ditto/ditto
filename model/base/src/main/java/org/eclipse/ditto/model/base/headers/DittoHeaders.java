@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -215,12 +215,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return the entity-tags contained in the If-Match header.
      */
-    Optional<EntityTags> getIfMatch();
+    Optional<EntityTagMatchers> getIfMatch();
 
     /**
      * Returns the entity-tags contained in the If-None-Match header.
      *
      * @return the entity-tags contained in the If-None-Match header.
      */
-    Optional<EntityTags> getIfNoneMatch();
+    Optional<EntityTagMatchers> getIfNoneMatch();
 }

@@ -19,18 +19,18 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link EntityTags}.
+ * Tests {@link EntityTagMatchers}.
  */
-public class EntityTagsTest {
+public class EntityTagMatchersTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(EntityTags.class)
+        EqualsVerifier.forClass(EntityTagMatchers.class)
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(EntityTags.class, areImmutable());
+        assertInstancesOf(EntityTagMatchers.class, areImmutable());
     }
 }

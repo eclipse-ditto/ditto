@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.utils.headers.conditional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.base.headers.entitytag.EntityTags.fromCommaSeparatedString;
+import static org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers.fromCommaSeparatedString;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.junit.Test;
 
 /**
@@ -103,7 +103,7 @@ public class IfMatchPreconditionHeaderTest {
         assertThat(ifMatchPreconditionHeader.get().getValue()).isEqualTo("*");
     }
 
-    private IfMatchPreconditionHeader createIfMatchPreconditionHeader(final EntityTags entityTags) {
+    private IfMatchPreconditionHeader createIfMatchPreconditionHeader(final EntityTagMatchers entityTags) {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().ifMatch(entityTags).build();
         return IfMatchPreconditionHeader.fromDittoHeaders(dittoHeaders).get();
     }

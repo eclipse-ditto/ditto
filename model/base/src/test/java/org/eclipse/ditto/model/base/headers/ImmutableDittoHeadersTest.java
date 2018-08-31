@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
 
@@ -54,10 +54,10 @@ public final class ImmutableDittoHeadersTest {
     private static final String KNOWN_SOURCE = "knownSource";
     private static final String KNOWN_CHANNEL = "live";
     private static final boolean KNOWN_RESPONSE_REQUIRED = true;
-    private static final EntityTags KNOWN_IF_MATCH =
-            EntityTags.fromCommaSeparatedString("\"oneValue\",\"anotherValue\"");
-    private static final EntityTags KNOWN_IF_NONE_MATCH =
-            EntityTags.fromCommaSeparatedString("\"notOneValue\",\"notAnotherValue\"");
+    private static final EntityTagMatchers KNOWN_IF_MATCH =
+            EntityTagMatchers.fromCommaSeparatedString("\"oneValue\",\"anotherValue\"");
+    private static final EntityTagMatchers KNOWN_IF_NONE_MATCH =
+            EntityTagMatchers.fromCommaSeparatedString("\"notOneValue\",\"notAnotherValue\"");
     private static final EntityTag KNOWN_ETAG = EntityTag.fromString("\"-12124212\"");
     private static final Collection<String> KNOWN_READ_SUBJECTS = Collections.singleton(KNOWN_READ_SUBJECT);
     private static final String KNOWN_CONTENT_TYPE = "application/json";

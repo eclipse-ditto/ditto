@@ -37,7 +37,8 @@ public class DittoHeaderInvalidExceptionTest {
                         .build();
 
         assertThat(headerInvalidException.getMessage()).isEqualTo(customMessage);
-        assertThat(headerInvalidException.getDescription()).hasValue(DittoHeaderInvalidException.DEFAULT_DESCRIPTION);
+        assertThat(headerInvalidException.getDescription()).hasValue(
+                "Verify that the header has the correct syntax and try again.");
     }
 
     @Test

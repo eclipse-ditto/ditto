@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -167,7 +167,7 @@ public final class HeaderValueValidatorTest {
 
     @Test
     public void invalidEntityTagsValue() {
-        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTags.class);
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
         final String value = "\"foo\",invalid\"bar\"";
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
@@ -179,7 +179,7 @@ public final class HeaderValueValidatorTest {
 
     @Test
     public void validEntityTagsValue() {
-        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTags.class);
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
         final String value = "\"foo\",\"bar\"";
 
         try {
@@ -191,7 +191,7 @@ public final class HeaderValueValidatorTest {
 
     @Test
     public void validEntityTagsValueWitSpaces() {
-        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTags.class);
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
         final String value = "\"foo\", \"bar\"";
 
         try {

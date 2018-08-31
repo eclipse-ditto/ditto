@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -232,13 +232,13 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S ifMatch(final EntityTags entityTags) {
+    public S ifMatch(final EntityTagMatchers entityTags) {
         putCharSequence(DittoHeaderDefinition.IF_MATCH, entityTags.toString());
         return myself;
     }
 
     @Override
-    public S ifNoneMatch(final EntityTags entityTags) {
+    public S ifNoneMatch(final EntityTagMatchers entityTags) {
         putCharSequence(DittoHeaderDefinition.IF_NONE_MATCH, entityTags.toString());
         return myself;
     }

@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -157,15 +157,15 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
-    public Optional<EntityTags> getIfMatch() {
+    public Optional<EntityTagMatchers> getIfMatch() {
         return getStringForDefinition(DittoHeaderDefinition.IF_MATCH)
-                .map(EntityTags::fromCommaSeparatedString);
+                .map(EntityTagMatchers::fromCommaSeparatedString);
     }
 
     @Override
-    public Optional<EntityTags> getIfNoneMatch() {
+    public Optional<EntityTagMatchers> getIfNoneMatch() {
         return getStringForDefinition(DittoHeaderDefinition.IF_NONE_MATCH)
-                .map(EntityTags::fromCommaSeparatedString);
+                .map(EntityTagMatchers::fromCommaSeparatedString);
     }
 
     @Override

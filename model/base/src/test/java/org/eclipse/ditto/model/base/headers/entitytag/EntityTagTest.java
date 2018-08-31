@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class EntityTagTest {
 
-    private static final EntityTag ASTERISK = EntityTag.asterisk();
     private static final EntityTag WEAK_1 = EntityTag.fromString("W/\"1\"");
     private static final EntityTag WEAK_2 = EntityTag.fromString("W/\"2\"");
     private static final EntityTag STRONG_1 = EntityTag.fromString("\"1\"");
@@ -50,7 +49,7 @@ public class EntityTagTest {
         final String validOpaqueTag = "\"hallo\"";
         final String validWeakEntityTag = "W/" + validOpaqueTag;
 
-        assertThat(EntityTag.validate(validWeakEntityTag)).isTrue();
+        assertThat(EntityTag.isValid(validWeakEntityTag)).isTrue();
 
         final EntityTag entityTagFromString = EntityTag.fromString(validWeakEntityTag);
         assertThat(entityTagFromString.isWeak()).isTrue();
@@ -65,7 +64,7 @@ public class EntityTagTest {
     public void strongEntityTagFromString() {
         final String validStrongEntityTag = "\"hallo\"";
 
-        assertThat(EntityTag.validate(validStrongEntityTag)).isTrue();
+        assertThat(EntityTag.isValid(validStrongEntityTag)).isTrue();
 
         final EntityTag entityTag = EntityTag.fromString(validStrongEntityTag);
         assertThat(entityTag.isWeak()).isFalse();
@@ -77,24 +76,10 @@ public class EntityTagTest {
     }
 
     @Test
-    public void asteriskFromString() {
-        final String asteriskStr = "*";
-        assertThat(EntityTag.validate(asteriskStr)).isTrue();
-
-        final EntityTag entityTagFromString = EntityTag.fromString(asteriskStr);
-        assertThat(entityTagFromString.isWeak()).isFalse();
-        assertThat(entityTagFromString.isAsterisk()).isTrue();
-        assertThat(entityTagFromString.getOpaqueTag()).isEqualTo(asteriskStr);
-        assertThat(entityTagFromString).isEqualTo(ASTERISK);
-        // there should be only one instance of ASTERISK
-        assertThat(entityTagFromString).isSameAs(ASTERISK);
-    }
-
-    @Test
     public void weakPrefixIsCaseSensitive() {
         final String invalidEntityTag = "w/\"hallo\"";
 
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
@@ -102,7 +87,7 @@ public class EntityTagTest {
     public void weakEntityTagMustNotContainAsteriskInOpaqueTag() {
         final String invalidEntityTag = "w/\"*\"";
 
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
@@ -110,49 +95,49 @@ public class EntityTagTest {
     public void strongEntityTagMustNotContainAsteriskInOpaqueTag() {
         final String invalidEntityTag = "\"*\"";
 
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustStartWithDoubleQuotes() {
         final String invalidEntityTag = "W/hallo\"";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag, "hallo\"");
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustStartWithDoubleQuotes() {
         final String invalidEntityTag = "hallo\"";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustEndWithDoubleQuotes() {
         final String invalidEntityTag = "W/\"hallo";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag, "\"hallo");
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustEndWithDoubleQuotes() {
         final String invalidEntityTag = "\"hallo";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void weakEntityTagOpaqueTagMustNotContainMoreThanTwoDoubleQuotes() {
         final String invalidEntityTag = "\"\"W/\\\"hal\\\"l\\\"o\\\"\"";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
     @Test
     public void strongEntityTagOpaqueTagMustNotContainMoreThanTwoDoubleQuotes() {
         final String invalidEntityTag = "\"hal\"l\"o\"";
-        assertThat(EntityTag.validate(invalidEntityTag)).isFalse();
+        assertThat(EntityTag.isValid(invalidEntityTag)).isFalse();
         assertExceptionWhenCreatingFromString(invalidEntityTag);
     }
 
@@ -182,17 +167,6 @@ public class EntityTagTest {
     }
 
     @Test
-    public void strongComparisonEvaluatesAlwaysToTrueWithAtLeastOneAsterisk() {
-        assertThat(ASTERISK.strongCompareTo(ASTERISK)).isTrue();
-
-        assertThat(ASTERISK.strongCompareTo(STRONG_1)).isTrue();
-        assertThat(ASTERISK.strongCompareTo(WEAK_1)).isTrue();
-
-        assertThat(STRONG_1.strongCompareTo(ASTERISK)).isTrue();
-        assertThat(WEAK_1.strongCompareTo(ASTERISK)).isTrue();
-    }
-
-    @Test
     public void weakComparisonEvaluatesToTrueForEqualWeakTags() {
         assertThat(WEAK_1.weakCompareTo(WEAK_1)).isTrue();
     }
@@ -215,17 +189,6 @@ public class EntityTagTest {
     @Test
     public void weakComparisonEvaluatesToTrueForEqualStrongTags() {
         assertThat(STRONG_1.weakCompareTo(STRONG_1)).isTrue();
-    }
-
-    @Test
-    public void weakComparisonEvaluatesAlwaysToTrueWithAtLeastOneAsterisk() {
-        assertThat(ASTERISK.weakCompareTo(ASTERISK)).isTrue();
-
-        assertThat(ASTERISK.weakCompareTo(STRONG_1)).isTrue();
-        assertThat(ASTERISK.weakCompareTo(WEAK_1)).isTrue();
-
-        assertThat(STRONG_1.weakCompareTo(ASTERISK)).isTrue();
-        assertThat(WEAK_1.weakCompareTo(ASTERISK)).isTrue();
     }
 
     private void assertExceptionWhenCreatingFromString(final String invalidEntityTagValue) {

@@ -39,7 +39,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     private static final String MESSAGE_TEMPLATE = "The value ''{0}'' of the header ''{1}'' is not a valid {2}.";
 
-    static final String DEFAULT_DESCRIPTION = "Verify that the header has the correct syntax and try again.";
+    private static final String DEFAULT_DESCRIPTION = "Verify that the header has the correct syntax and try again.";
 
     private static final String DESCRIPTION_TEMPLATE =
             "Verify that the value of the header ''{0}'' is a valid ''{1}'' and try again.";

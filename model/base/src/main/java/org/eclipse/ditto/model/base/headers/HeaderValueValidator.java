@@ -31,7 +31,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
 /**
  * Checks if a specified CharSequence is a valid representation of a {@link HeaderDefinition}'s Java type. If a checked
@@ -41,6 +42,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
 @Immutable
 public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, CharSequence> {
 
+    private static final String RFC_7232_SECTION_2_3 = "https://tools.ietf.org/html/rfc7232#section-2.3";
     private static final HeaderValueValidator INSTANCE = new HeaderValueValidator();
 
     private HeaderValueValidator() {
@@ -69,8 +71,8 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
             validateJsonArrayValue(definition.getKey(), charSequence);
         } else if (isEntityTag(definitionJavaType)) {
             validateEntityTag(definition.getKey(), charSequence);
-        } else if (isEntityTags(definitionJavaType)) {
-            validateEntityTags(definition.getKey(), charSequence);
+        } else if (isEntityTagMatchers(definitionJavaType)) {
+            validateEntityTagMatchers(definition.getKey(), charSequence);
         }
     }
 
@@ -137,16 +139,33 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         }
     }
 
-    private static boolean isEntityTags(final Class<?> type) {
-        return EntityTags.class.equals(type);
+    private static boolean isEntityTagMatchers(final Class<?> type) {
+        return EntityTagMatchers.class.equals(type);
     }
 
-    private void validateEntityTags(final String key, @Nullable final CharSequence charSequence) {
+    private void validateEntityTagMatchers(final String key, @Nullable final CharSequence charSequence) {
         final String headerValue = String.valueOf(charSequence);
-        final String[] entityTags = headerValue.split("\\s*,\\s*");
+        final String[] entityTagMatchers = headerValue.split("\\s*,\\s*");
 
-        for (String entityTag : entityTags) {
-            validateEntityTag(key, entityTag);
+        for (String entityTagMatcher : entityTagMatchers) {
+            validateEntityTagMatcher(key, entityTagMatcher);
+        }
+    }
+
+    private void validateEntityTagMatcher(final String key, @Nullable final CharSequence charSequence) {
+        final String headerValue = String.valueOf(charSequence);
+        if (!EntityTagMatcher.isValid(headerValue)) {
+
+            final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
+                    DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag");
+
+            try {
+                exceptionBuilder.href(new URI(RFC_7232_SECTION_2_3));
+            } catch (final URISyntaxException e) {
+                // Do nothing. If this happens, there is no href appended to the exception builder.
+            }
+
+            throw exceptionBuilder.build();
         }
     }
 
@@ -154,17 +173,15 @@ public final class HeaderValueValidator implements BiConsumer<HeaderDefinition, 
         return EntityTag.class.equals(type);
     }
 
-    // Warning suppressed since this is a fixed external URI.
-    @SuppressWarnings({"squid:S1075"})
     private void validateEntityTag(final String key, @Nullable final CharSequence charSequence) {
         final String headerValue = String.valueOf(charSequence);
-        if (!EntityTag.validate(headerValue)) {
+        if (!EntityTag.isValid(headerValue)) {
 
             final DittoRuntimeExceptionBuilder<DittoHeaderInvalidException> exceptionBuilder =
                     DittoHeaderInvalidException.newInvalidTypeBuilder(key, headerValue, "entity-tag");
 
             try {
-                exceptionBuilder.href(new URI("https://tools.ietf.org/html/rfc7232#section-2.3"));
+                exceptionBuilder.href(new URI(RFC_7232_SECTION_2_3));
             } catch (final URISyntaxException e) {
                 // Do nothing. If this happens, there is no href appended to the exception builder.
             }

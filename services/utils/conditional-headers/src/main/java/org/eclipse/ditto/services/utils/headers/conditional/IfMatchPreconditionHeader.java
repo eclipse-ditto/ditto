@@ -21,16 +21,16 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
 @Immutable
 public final class IfMatchPreconditionHeader implements PreconditionHeader<EntityTag> {
 
     private static final String IF_MATCH_HEADER_KEY = DittoHeaderDefinition.IF_MATCH.getKey();
 
-    private final EntityTags entityTagsToMatch;
+    private final EntityTagMatchers entityTagsToMatch;
 
-    private IfMatchPreconditionHeader(final EntityTags entityTagsToMatch) {
+    private IfMatchPreconditionHeader(final EntityTagMatchers entityTagsToMatch) {
         checkNotNull(entityTagsToMatch, "entityTagsToMatch");
         this.entityTagsToMatch = entityTagsToMatch;
     }
@@ -58,11 +58,7 @@ public final class IfMatchPreconditionHeader implements PreconditionHeader<Entit
             return false;
         }
 
-        return entityTagsToMatch.stream().anyMatch(entityTagToMatch -> checkEntityTag(entityTagToMatch, entityTag));
-    }
-
-    private boolean checkEntityTag(final EntityTag entityTag, final EntityTag currentEntityTag) {
-        return entityTag.strongCompareTo(currentEntityTag);
+        return entityTagsToMatch.stream().anyMatch(entityTagToMatch -> entityTagToMatch.strongMatch(entityTag));
     }
 
     /**

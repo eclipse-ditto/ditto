@@ -19,7 +19,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
-import org.eclipse.ditto.model.base.headers.entitytag.EntityTags;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -150,7 +150,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param entityTags The entity tags where one should match.
      * @return this builder for Method Chaining
      */
-    B ifMatch(EntityTags entityTags);
+    B ifMatch(EntityTagMatchers entityTags);
 
     /**
      * Sets the If-None-Match value.
@@ -158,7 +158,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param entityTags The entity tags that must not match.
      * @return this builder for Method Chaining
      */
-    B ifNoneMatch(EntityTags entityTags);
+    B ifNoneMatch(EntityTagMatchers entityTags);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
