@@ -108,8 +108,6 @@ paths:
           required: false
           schema:
             $ref: '#/definitions/NewThing'
-        - $ref: '#/parameters/ifMatchHeaderParam'
-        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Thing was successfully created.
