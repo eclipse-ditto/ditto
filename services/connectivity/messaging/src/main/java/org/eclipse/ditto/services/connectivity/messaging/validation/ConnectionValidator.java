@@ -19,8 +19,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 
 /**
@@ -57,11 +59,38 @@ public final class ConnectionValidator {
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
+        validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
             spec.validate(connection, dittoHeaders);
         } else {
             throw new IllegalStateException("Unknown connection type: " + connection);
         }
+    }
+
+    private static void validateSourceAndTargetAddressesAreNonempty(final Connection connection,
+            final DittoHeaders dittoHeaders) {
+
+        connection.getSources().forEach(source -> {
+            if (source.getAddresses().isEmpty() || source.getAddresses().contains("")) {
+                final String location =
+                        String.format("Source %d of connection <%s>", source.getIndex(), connection.getId());
+                throw emptyAddressesError(location, dittoHeaders);
+            }
+        });
+
+        connection.getTargets().forEach(target -> {
+            if (target.getAddress().isEmpty()) {
+                final String location = String.format("Targets of connection <%s>", connection.getId());
+                throw emptyAddressesError(location, dittoHeaders);
+            }
+        });
+    }
+
+    private static DittoRuntimeException emptyAddressesError(final String location, final DittoHeaders dittoHeaders) {
+        final String message = location + ": addresses may not be empty.";
+        return ConnectionConfigurationInvalidException.newBuilder(message)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 }

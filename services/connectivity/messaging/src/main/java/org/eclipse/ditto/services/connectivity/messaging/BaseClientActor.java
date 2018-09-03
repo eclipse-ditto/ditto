@@ -735,9 +735,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .source(org.eclipse.ditto.services.utils.config.ConfigUtil.instanceIdentifier())
                 .build();
 
+        final CompletionStage<List<SourceMetrics>> sourceMetricsFuture = getCurrentSourcesMetrics();
+        final CompletionStage<List<TargetMetrics>> targetMetricsFuture = getCurrentTargetsMetrics();
+
         final CompletionStage<ConnectionMetrics> metricsFuture =
-                getCurrentSourcesMetrics().thenCompose(sourceMetrics ->
-                        getCurrentTargetsMetrics().thenApply(targetMetrics ->
+                sourceMetricsFuture.thenCompose(sourceMetrics ->
+                        targetMetricsFuture.thenApply(targetMetrics ->
                                 ConnectivityModelFactory.newConnectionMetrics(
                                         getCurrentConnectionStatus(),
                                         getCurrentConnectionStatusDetails().orElse(null),
@@ -844,21 +847,23 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private CompletionStage<List<SourceMetrics>> getCurrentSourcesMetrics() {
+        final long consumedMessages = consumedMessageCounter;
         return collectAsList(getSourcesOrEmptySet()
                 .stream()
                 .map(this::getSourceConnectionStatus)
                 .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessageCounter)
+                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessages)
                 ))
         );
     }
 
     private CompletionStage<List<TargetMetrics>> getCurrentTargetsMetrics() {
+        final long publishedMessages = publishedMessageCounter;
         return collectAsList(getTargetsOrEmptySet()
                 .stream()
                 .map(this::getTargetConnectionStatus)
                 .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessageCounter)
+                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessages)
                 )));
     }
 
