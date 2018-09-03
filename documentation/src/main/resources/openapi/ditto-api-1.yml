@@ -1120,7 +1120,7 @@ paths:
           schema:
             $ref: '#/definitions/AdvancedError'
         '412':
-                  $ref: '#/responses/preconditionFailed'
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Feature of a specific Thing
       description: >-
