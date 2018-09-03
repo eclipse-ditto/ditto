@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader;
 import org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -31,7 +32,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extends Command<C>, E> extends
         AbstractCommandStrategy<C> implements ETagEntityProvider<C, E> {
 
-    private final ThingsConditionalHeaderInterceptor<C> thingsConditionalHeaderInterceptor;
+    private static final ConditionalHeadersValidator VALIDATOR = ThingsConditionalHeadersValidatorProvider.getInstance();
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -41,7 +42,6 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
      */
     protected AbstractConditionalHeadersCheckingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
-        this.thingsConditionalHeaderInterceptor = new ThingsConditionalHeaderInterceptor<>();
     }
 
     /**
@@ -62,9 +62,12 @@ public abstract class AbstractConditionalHeadersCheckingCommandStrategy<C extend
                 .flatMap(EntityTag::fromEntity)
                 .orElse(null);
 
+        context.getLog().debug("Validating conditional headers with currentETagValue <{}> on command <{}>.");
         try {
-            thingsConditionalHeaderInterceptor.checkConditionalHeaders(command, currentETagValue);
-        } catch (DittoRuntimeException dre) {
+            VALIDATOR.checkConditionalHeaders(command, currentETagValue);
+            context.getLog().debug("Validating conditional headers succeeded.");
+        } catch (final DittoRuntimeException dre) {
+            context.getLog().debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
             return ResultFactory.newErrorResult(dre);
         }
 
