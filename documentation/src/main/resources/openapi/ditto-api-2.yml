@@ -2968,13 +2968,13 @@ responses:
       schema:
         type: string
   notModified:
-    description: |-
+    description: >-
       The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
       matches the current ETag of the (sub-)resource.
     headers:
       $ref: '#/responses/eTagResponseHeader'
   preconditionFailed:
-    description: |-
+    description: >-
       A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, when you
       specified an If-Match or If-None-Match header which fails the precondition check against the current ETag of
       the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
@@ -2987,7 +2987,7 @@ parameters:
   ifMatchHeaderParam:
     name: If-Match
     in: header
-    description:  |-
+    description:  >-
       The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
         * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
         * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
@@ -2996,7 +2996,7 @@ parameters:
   ifNoneMatchHeaderParam:
     name: If-None-Match
     in: header
-    description:  |-
+    description:  >-
       The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
       modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
     type: string
