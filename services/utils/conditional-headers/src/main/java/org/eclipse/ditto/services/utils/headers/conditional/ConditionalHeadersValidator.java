@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.headers.conditional;
 import static java.util.Objects.requireNonNull;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 /**
  * Checks conditional (http) headers based on a given ETag. Has to be configured with {@link ValidationSettings}.
  */
+@Immutable
 public final class ConditionalHeadersValidator {
 
     /**
