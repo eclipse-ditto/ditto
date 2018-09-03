@@ -287,6 +287,8 @@ paths:
             $ref: '#/definitions/Thing'
         '204':
           description: The Thing was successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -424,6 +426,8 @@ paths:
             $ref: '#/responses/eTagResponseHeader'
         '204':
           description: The Policy ID was successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -518,6 +522,8 @@ paths:
               type: string
         '204':
           description: The Attributes were successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -800,6 +806,8 @@ paths:
               type: string
         '204':
           description: The Features were successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -944,6 +952,8 @@ paths:
               type: string
         '204':
           description: The Feature was successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1090,6 +1100,8 @@ paths:
               type: string
         '204':
           description: The Definition was successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
