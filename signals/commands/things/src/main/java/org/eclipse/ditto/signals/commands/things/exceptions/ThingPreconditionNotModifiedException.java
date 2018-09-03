@@ -39,12 +39,12 @@ public final class ThingPreconditionNotModifiedException extends DittoRuntimeExc
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "precondition.notmodified";
 
     private static final String MESSAGE_TEMPLATE =
-            "The comparison of precondition header ''if-none-match'' for the requested thing resource evaluated to " +
+            "The comparison of precondition header ''if-none-match'' for the requested Thing resource evaluated to " +
                     "false. Expected: ''{0}'' not to match actual: ''{1}''.";
 
     private static final String DEFAULT_DESCRIPTION =
             "The comparison of the provided precondition header ''if-none-match'' with the current ETag value of the " +
-                    "requested thing resource evaluated to false. Check the value of your conditional header value.";
+                    "requested Thing resource evaluated to false. Check the value of your conditional header value.";
 
     private ThingPreconditionNotModifiedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
