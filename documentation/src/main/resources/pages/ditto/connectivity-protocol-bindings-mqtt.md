@@ -15,7 +15,9 @@ be configured for the connection in order to transform the messages.
 
 MQTT 3.1.1 messages have no application headers. Transmission-relevant properties are set in the
 `"headers"` field as a part of [Ditto protocol messages](protocol-specification.html#dittoProtocolEnvelope) in the
-payload. These properties are supported:
+payload. 
+
+These properties are supported:
 
 * `correlation-id`: For correlating request messages and events. Twin events have the correlation IDs of
   [Twin commands](protocol-twinlive.html#twin) that produced them.
@@ -63,7 +65,7 @@ For an MQTT connection, the target address is the MQTT topic to publish events a
 The target address may contain placeholders; see
 [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more information.
 
-The list of Ditto topic strings `"topics"` represent subscriptions of
+Further, `"topics"` is a list of strings, each list entry representing a subscription of
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
@@ -88,7 +90,7 @@ The default value is `0` (at-most-once).
 ```
 
 
-## Establishing connecting to an MQTT 3.1.1 endpoint
+## Establishing a connection to an MQTT 3.1.1 endpoint
 
 Ditto's [Connectivity service](architecture-services-connectivity.html) is responsible for creating new and managing
 existing connections.
@@ -96,7 +98,9 @@ existing connections.
 This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto DevOps command](installation-operating.html#devops-commands).
 
-Example connection configuration to create a new MQTT connection:
+Example 
+
+Connection configuration to create a new MQTT connection:
 
 ```json
 {
@@ -131,7 +135,7 @@ Example connection configuration to create a new MQTT connection:
 ## Messages
 
 Messages consumed via the MQTT binding are treated similar to the
-[WebSocket binding](httpapi-protocol-bindings-websocket.html)
+[WebSocket binding](httpapi-protocol-bindings-websocket.html), 
 meaning that the messages are expected to be [Ditto Protocol](protocol-overview.html) messages serialized as
 UTF-8-coded JSON (as shown for example in the [protocol examples](protocol-examples.html)).
 If your payload does not conform to the [Ditto Protocol](protocol-overview.html) or uses any character set other

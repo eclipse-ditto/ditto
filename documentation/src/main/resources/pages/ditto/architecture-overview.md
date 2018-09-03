@@ -24,9 +24,9 @@ The components have the following tasks:
 * [Concierge](architecture-services-concierge.html): orchestrates and authorizes the backing persistence services
 * [Gateway](architecture-services-gateway.html): provides HTTP and WebSocket API
 * [Connectivity](architecture-services-connectivity.html):
-  sends [Ditto Protocol](protocol-overview.html) messages to external message brokers and receives messages from them.
-  Supported transport protocols are AMQP 1.0 (e. g., [Eclipse Hono](https://eclipse.org/hono/)),
-  AMQP 0.9.1 (e. g., RabbitMQ) or MQTT 3.1.1 (e. g., [Eclipse Mosquitto](https://www.eclipse.org/mosquitto/)).
+  sends [Ditto Protocol](protocol-overview.html) messages to external message brokers and receives messages from them. <br>
+  Supported transport protocols are AMQP 1.0 (e.g. [Eclipse Hono](https://eclipse.org/hono/)),
+  AMQP 0.9.1 (e.g. RabbitMQ) or MQTT 3.1.1 (e.g. [Eclipse Mosquitto](https://www.eclipse.org/mosquitto/)).
 
 ## Components
 

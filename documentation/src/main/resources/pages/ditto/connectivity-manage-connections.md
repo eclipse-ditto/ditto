@@ -60,12 +60,12 @@ Modify an existing connection by sending the following DevOps command:
 }
 ```
 
-The connection with the specified id has to be created before being able to modify it.
+The connection with the specified ID needs to be created before one can modify it.
 
 
 ### Retrieve connection
 
-The only parameter necessary for connection retrieval is the `connectionId`:
+The only parameter necessary for retrieving a connection is the `connectionId`:
 
 ```json
 {
@@ -110,7 +110,7 @@ The only parameter necessary for closing a connection is the `connectionId`:
 
 ### Delete connection
 
-The only parameter necessary for connection deletion is the `connectionId`:
+The only parameter necessary for deleting a connection is the `connectionId`:
 
 ```json
 {

@@ -48,7 +48,7 @@ An AMQP 0.9.1 connection requires the protocol configuration target object to ha
 value of the `exchange_name` and `routing_key`. The target address may contain placeholders; see
 [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more information.
 
-The list of Ditto topic strings `"topics"` represent subscriptions of
+Further, `"topics"` is a list of strings, each list entry representing a subscription of
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
