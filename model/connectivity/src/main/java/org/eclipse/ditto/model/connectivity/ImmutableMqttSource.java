@@ -31,8 +31,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 public final class ImmutableMqttSource extends DelegateSource implements MqttSource {
 
-    // user should set qos for sources. the default is qos=0 for convenience
-    private static final Integer DEFAULT_QOS = 0;
+    // user should set qos for sources. the default is qos=2 for convenience
+    private static final Integer DEFAULT_QOS = 2;
     private final int qos;
     private final Set<String> filters;
 

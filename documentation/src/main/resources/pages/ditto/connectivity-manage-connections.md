@@ -41,8 +41,9 @@ Create a new connection by sending the following DevOps command:
 ```
 
 The content of the connection configuration object is specified in the [Connections section](basic-connections.html).
-For protocol specific examples consolidate the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html) and
-the [AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) respectively.
+For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-protocol-bindings-amqp091.html),
+[AMQP-1.0 binding](connectivity-protocol-bindings-amqp10.html) or
+[MQTT-3.1.1 binding](connectivity-protocol-bindings-mqtt.html) respectively.
 
 ### Modify connection
 
@@ -59,12 +60,12 @@ Modify an existing connection by sending the following DevOps command:
 }
 ```
 
-The connection with the specified id has to be created before being able to modify it.
+The connection with the specified ID needs to be created before one can modify it.
 
 
 ### Retrieve connection
 
-The only parameter necessary for connection retrieval is the `connectionId`:
+The only parameter necessary for retrieving a connection is the `connectionId`:
 
 ```json
 {
@@ -109,7 +110,7 @@ The only parameter necessary for closing a connection is the `connectionId`:
 
 ### Delete connection
 
-The only parameter necessary for connection deletion is the `connectionId`:
+The only parameter necessary for deleting a connection is the `connectionId`:
 
 ```json
 {
