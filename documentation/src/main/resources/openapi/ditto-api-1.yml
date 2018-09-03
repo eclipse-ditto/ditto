@@ -358,6 +358,8 @@ paths:
           - Things
         parameters:
           - $ref: '#/parameters/thingIdPathParam'
+          - $ref: '#/parameters/ifMatchHeaderParam'
+          - $ref: '#/parameters/ifNoneMatchHeaderParam'
         responses:
           '200':
             description: The request successfully returned completed and returned is the Access Control List.
@@ -409,6 +411,8 @@ paths:
             required: true
             schema:
               $ref: '#/definitions/Acl'
+          - $ref: '#/parameters/ifMatchHeaderParam'
+          - $ref: '#/parameters/ifNoneMatchHeaderParam'
         responses:
           '204':
             description: The Access Control List was successfully updated.
@@ -452,6 +456,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/authorizationSubjectPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned completed and returned is the ACL entry.
@@ -499,6 +505,8 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/AclEntry'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The ACL entry was successfully created.
@@ -554,6 +562,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/authorizationSubjectPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The ACL entry was successfully deleted.
