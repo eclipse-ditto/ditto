@@ -346,6 +346,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   /things/{thingId}/acl:
       get:
         summary: Retrieve the complete ACL of a Thing
