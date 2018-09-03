@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -48,6 +47,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -1784,6 +1784,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     private abstract class AbstractConditionalHeadersCheckingReceiveStrategy<C extends Command<C>, E>
             extends WithIdReceiveStrategy<C> {
 
+        private final ConditionalHeadersValidator validator = PoliciesConditionalHeadersValidatorProvider.getInstance();
+
         /**
          * Constructs a new {@code AbstractReceiveStrategy} object.
          *
@@ -1798,7 +1800,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void apply(final C command) {
-            checkConditionalHeaders(command);
+            final EntityTag currentETagValue = determineETagEntity(command)
+                    .flatMap(EntityTag::fromEntity)
+                    .orElse(null);
+
+            log.debug("Validating conditional headers with currentETagValue <{}> on command <{}>.");
+            try {
+                validator.checkConditionalHeaders(command, currentETagValue);
+                log.debug("Validating conditional headers succeeded.");
+            } catch (final DittoRuntimeException dre) {
+                log.debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
+                notifySender(dre);
+            }
 
             super.apply(command);
         }
@@ -1826,25 +1839,6 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             }
 
             return response;
-        }
-
-        /**
-         * Checks conditional headers on the (sub-)entity determined by the given {@code command}.
-         *
-         * @param command the command which addresses either the whole policy or a sub-entity
-         * @return {@code null} in case of success, a {@link DittoRuntimeException} otherwise.
-         */
-        @Nullable
-        private DittoRuntimeException checkConditionalHeaders(final C command) {
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-            final EntityTag currentEntityTag = determineETagEntity(command)
-                    .flatMap(EntityTag::fromEntity)
-                    .orElse(null);
-
-            //TODO: check conditional headers and create DittoRuntimeException with appropriate headers
-
-            return null;
         }
 
         /**
