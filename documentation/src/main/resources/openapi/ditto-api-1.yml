@@ -107,6 +107,7 @@ paths:
         '201':
           description: The Thing was successfully created.
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Thing resource
               type: string
@@ -122,6 +123,8 @@ paths:
           description: The request could not be completed due to missing authentication.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}':
     get:
       summary: Retrieve a specific Thing
@@ -133,11 +136,17 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/thingFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned the specific Thing.
           schema:
             $ref: '#/definitions/Thing'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -157,6 +166,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a Thing
       description: >-
@@ -255,10 +266,13 @@ paths:
           required: false
           schema:
             $ref: '#/definitions/NewThing'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Thing was successfully created.
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Thing resource
               type: string
@@ -266,6 +280,8 @@ paths:
             $ref: '#/definitions/Thing'
         '204':
           description: The Thing was successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -291,6 +307,8 @@ paths:
                 The complete Thing without `acl` can however be updated with `WRITE` permission if the body does not contain an `acl` entry.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Thing
       description: >-
@@ -299,6 +317,8 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Thing was successfully deleted.
@@ -341,6 +361,10 @@ paths:
             description: The request successfully returned completed and returned is the Access Control List.
             schema:
               $ref: '#/definitions/Acl'
+            headers:
+              $ref: '#/responses/eTagResponseHeader'
+          '304':
+            $ref: '#/responses/notModified'
           '400':
             description: >-
               The request could not be completed. The `thingId` either
@@ -361,6 +385,8 @@ paths:
             description: The request could not be completed. The Thing with the given ID was not found in the context of the authenticated user.
             schema:
               $ref: '#/definitions/AdvancedError'
+          '412':
+            $ref: '#/responses/preconditionFailed'
       put:
         summary: Modify the complete ACL of a Thing
         description: >-
@@ -384,6 +410,8 @@ paths:
         responses:
           '204':
             description: The Access Control List was successfully updated.
+            headers:
+              $ref: '#/responses/eTagResponseHeader'
           '400':
             description: >-
               The request could not be completed. The `thingId` either
@@ -409,6 +437,8 @@ paths:
             description: The request could not be completed. The Thing with the given ID was not found in the context of the authenticated user.
             schema:
               $ref: '#/definitions/AdvancedError'
+          '412':
+            $ref: '#/responses/preconditionFailed'
   /things/{thingId}/acl/{authorizationSubject}:
     get:
       summary: Retrieve one ACL entry of a Thing for a specific subject
@@ -425,6 +455,10 @@ paths:
           description: The request successfully returned completed and returned is the ACL entry.
           schema:
             $ref: '#/definitions/AclEntry'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -441,6 +475,8 @@ paths:
           description: The request could not be completed. The Thing with the given ID or the ACL entry was not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify one ACL entry of a Thing for a specific subject
       description: >-
@@ -465,6 +501,7 @@ paths:
         '201':
           description: The ACL entry was successfully created.
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created ACL entry
               type: string
@@ -472,6 +509,8 @@ paths:
             $ref: '#/definitions/AclEntry'
         '204':
           description: The ACL entry was successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -499,6 +538,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete one ACL entry of a Thing for a specific subject
       description: >-
@@ -540,6 +581,8 @@ paths:
             of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/attributes':
     get:
       summary: List all Attributes of a specific Thing
@@ -550,11 +593,17 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributesFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Attributes of the specific Thing were successfully retrieved.
           schema:
             $ref: '#/definitions/Attributes'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -572,6 +621,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update all Attributes of a specific Thing at once
       description: >-
@@ -592,17 +643,22 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Attributes'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Attributes were successfully created.
           schema:
             $ref: '#/definitions/Attributes'
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Attributes resource
               type: string
         '204':
           description: The Attributes were successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -629,6 +685,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Attributes of a specific Thing at once
       description: >-
@@ -637,6 +695,8 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Attributes were successfully deleted.
@@ -665,6 +725,8 @@ paths:
             its Attributes were not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific Attribute of a specific Thing
@@ -677,9 +739,15 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Attribute was successfully retrieved.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -698,6 +766,8 @@ paths:
             the Attribute at the specified path was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a specific Attribute of a specific Thing
       description: >-
@@ -711,15 +781,20 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
         - $ref: '#/parameters/attributeAndPropertyBodyParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Attribute was successfully created.
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Attribute resource
               type: string
         '204':
           description: The Attribute was successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -744,6 +819,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Attribute of a specific Thing
       description: >-
@@ -755,6 +832,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Attribute was successfully deleted.
@@ -783,6 +862,8 @@ paths:
             was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
 ###
 ### Features
 ###
@@ -796,6 +877,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featuresFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
@@ -803,6 +886,10 @@ paths:
             retrieved.
           schema:
             $ref: '#/definitions/Features'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -823,6 +910,8 @@ paths:
             been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify all Features of a specific Thing at once
       description: >-
@@ -840,17 +929,22 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Features'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Features were successfully created.
           schema:
             $ref: '#/definitions/Features'
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Features resource
               type: string
         '204':
           description: The Features were successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -877,6 +971,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Features of a specific Thing
       description: >-
@@ -885,6 +981,8 @@ paths:
         - Features
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Features were successfully deleted.
@@ -913,6 +1011,8 @@ paths:
             been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific Feature of a specific Thing
@@ -925,11 +1025,17 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/featureFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Feature was successfully retrieved.
           schema:
             $ref: '#/definitions/Feature'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -950,6 +1056,8 @@ paths:
             `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify a specific Feature of a specific Thing
       description: >-
@@ -960,6 +1068,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
         - name: feature
           in: body
           description: >-
@@ -973,11 +1083,14 @@ paths:
           schema:
             $ref: '#/definitions/Feature'
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Feature resource
               type: string
         '204':
           description: The Feature was successfully modified.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1004,6 +1117,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+                  $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Feature of a specific Thing
       description: >-
@@ -1014,6 +1129,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Feature was successfully deleted.
@@ -1042,6 +1159,8 @@ paths:
             the Feature at the specified path was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the Definition of a Feature
@@ -1052,11 +1171,17 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Definition was successfully retrieved.
           schema:
             $ref: '#/definitions/FeatureDefinition'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1077,6 +1202,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update the Definition of a Feature
       description: >-
@@ -1095,17 +1222,22 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/FeatureDefinition'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Definition was successfully created.
           schema:
             $ref: '#/definitions/FeatureDefinition'
           headers:
+            $ref: '#/responses/eTagResponseHeader'
             Location:
               description: The location of the created Definition resource
               type: string
         '204':
           description: The Definition was successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1131,6 +1263,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete the Definition of a Feature
       description: >-
@@ -1140,6 +1274,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Definition was successfully deleted.
@@ -1167,6 +1303,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all Properties of a Feature
@@ -1178,11 +1316,15 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertiesFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Properties were successfully retrieved.
-          schema:
-            $ref: '#/definitions/Features'
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1203,6 +1345,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update all Properties of a Feature at once
       description: >-
@@ -1222,11 +1366,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/FeatureProperties'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Properties were successfully created.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '204':
           description: The Properties were successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1253,6 +1403,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Properties of a Feature
       description: >-
@@ -1262,6 +1414,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Properties were successfully deleted.
@@ -1290,6 +1444,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific Property of a Feature
@@ -1304,9 +1460,15 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Property was successfully retrieved.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1325,6 +1487,8 @@ paths:
             the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a specific Property of a Feature
       description: >-
@@ -1340,11 +1504,17 @@ paths:
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
         - $ref: '#/parameters/attributeAndPropertyBodyParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Property was successfully created.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '204':
           description: The Property was successfully updated.
+          headers:
+            $ref: '#/responses/eTagResponseHeader'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1371,6 +1541,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Property of a Feature
       description: >-
@@ -1384,6 +1556,8 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Property was successfully deleted.
@@ -1405,6 +1579,8 @@ paths:
             the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
 ###
 ### Messages
 ###
@@ -1985,7 +2161,48 @@ definitions:
         $ref: '#/definitions/Feature'
       featureIdN:
         $ref: '#/definitions/Feature'
+responses:
+  eTagResponseHeader:
+    ETag:
+      description: >-
+        The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+        "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+      schema:
+        type: string
+  notModified:
+    description: >-
+      The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
+      matches the current ETag of the (sub-)resource.
+    headers:
+      $ref: '#/responses/eTagResponseHeader'
+  preconditionFailed:
+    description: >-
+      A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, when you
+      specified an If-Match or If-None-Match header which fails the precondition check against the current ETag of
+      the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
+      failing If-None-Match header for a read request, status 304 will be returned instead.
+    headers:
+      $ref: '#/responses/eTagResponseHeader'
+    schema:
+      $ref: '#/definitions/AdvancedError'
 parameters:
+  ifMatchHeaderParam:
+    name: If-Match
+    in: header
+    description:  >-
+      The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+        * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
+        * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+    type: string
+    required: false
+  ifNoneMatchHeaderParam:
+    name: If-None-Match
+    in: header
+    description:  >-
+      The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
+      modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
+    type: string
+    required: false
   featureIdPathPathParam:
     name: featureId
     in: path
