@@ -362,9 +362,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 final String enforcementTarget = thingIdEnforcement.getTarget();
                 log.debug("Target '{}' must match one of {}", enforcementTarget, filtered);
                 if (!filtered.contains(enforcementTarget)) {
-                    throw IdEnforcementFailedException.newBuilder(enforcementTarget, filtered)
-                            .dittoHeaders(signal.getDittoHeaders())
-                            .build();
+                    throw thingIdEnforcement.getError(signal.getDittoHeaders());
                 }
             }
         }

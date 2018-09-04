@@ -124,7 +124,8 @@ public class MqttConsumerActor extends AbstractActor {
     @Nullable
     private ThingIdEnforcement getThingIdEnforcement(final MqttMessage message) {
         if (enforcementFilters != null && !enforcementFilters.isEmpty()) {
-            return ThingIdEnforcement.of(message.topic(), enforcementFilters);
+            return ThingIdEnforcement.of(message.topic(), enforcementFilters)
+                    .withErrorMessage(getIdEnforcementErrorMessage(message));
         } else {
             return null;
         }
@@ -155,5 +156,10 @@ public class MqttConsumerActor extends AbstractActor {
         if (!Objects.equals(sender, deadLetters)) {
             sender.tell(STREAM_ACK, getSelf());
         }
+    }
+
+    private static String getIdEnforcementErrorMessage(final MqttMessage message) {
+        return String.format("The MQTT topic ''%s'' of the Ditto protocol message does not match any message filter " +
+                "configured for the connection.", message.topic());
     }
 }

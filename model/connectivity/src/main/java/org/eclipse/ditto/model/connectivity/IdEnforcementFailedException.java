@@ -13,7 +13,6 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.Collection;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -37,10 +36,8 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.id.enforcement.failed";
 
-    private static final String MESSAGE_TEMPLATE = "The ID ''{0}'' did not match the filters ''{1}''.";
-
-    private static final String DEFAULT_DESCRIPTION =
-            "The configured filters could not be matched against the given target. "
+    private static final String MESSAGE_TEMPLATE =
+            "The configured filters could not be matched against the given target of the signal with ID ''{0}''. "
                     + "Either modify the configured filters or check if the message is sent under a wrong ID.";
 
     private static final long serialVersionUID = 6272495302389903822L;
@@ -67,11 +64,10 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
      * A mutable builder for a {@code {@link IdEnforcementFailedException }}.
      *
      * @param target the enforcement target.
-     * @param filters the configured filters.
      * @return the builder.
      */
-    public static Builder newBuilder(final String target, final Collection<String> filters) {
-        return new Builder(target, filters);
+    public static Builder newBuilder(final String target) {
+        return new Builder(target);
     }
 
     /**
@@ -114,12 +110,10 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
     public static final class Builder extends DittoRuntimeExceptionBuilder<IdEnforcementFailedException> {
 
         private Builder() {
-            description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String target, final Collection<String> filters) {
-            this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, target, filters));
+        private Builder(final String target) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, target));
         }
 
         @Override
