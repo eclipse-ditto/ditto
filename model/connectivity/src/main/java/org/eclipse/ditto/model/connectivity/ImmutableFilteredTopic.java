@@ -11,6 +11,9 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +81,7 @@ public final class ImmutableFilteredTopic implements FilteredTopic {
             final Map<String, String> paramValues = Arrays.stream(queryParamsString.split(QUERY_ARG_DELIMITER))
                     .map(paramString -> paramString.split(QUERY_ARG_VALUE_DELIMITER, 2))
                     .filter(av -> av.length == 2)
-                    .collect(Collectors.toMap(av -> av[0], av -> av[1]));
+                    .collect(Collectors.toMap(av -> urlDecode(av[0]), av -> urlDecode(av[1])));
 
             final List<String> namespaces = Optional.ofNullable(paramValues.get(NAMESPACES_ARG))
                     .map(namespacesStr -> namespacesStr.split(","))
@@ -99,6 +102,14 @@ public final class ImmutableFilteredTopic implements FilteredTopic {
                             "Unknown topic: " + filteredTopicString)
                         .build()
             ), Collections.emptyList(), null);
+        }
+    }
+
+    private static String urlDecode(final String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (final UnsupportedEncodingException e) {
+            return URLDecoder.decode(value);
         }
     }
 

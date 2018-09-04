@@ -15,6 +15,9 @@ import static akka.http.javadsl.server.Directives.complete;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -266,9 +269,17 @@ public final class WebsocketRoute {
             final String parametersString = protocolMessage.split("\\?", 2)[1];
             return Arrays.stream(parametersString.split("&"))
                     .map(paramWithValue -> paramWithValue.split("=", 2))
-                    .collect(Collectors.toMap(pv -> pv[0], pv -> pv[1]));
+                    .collect(Collectors.toMap(pv -> urlDecode(pv[0]), pv -> urlDecode(pv[1])));
         } else {
             return Collections.emptyMap();
+        }
+    }
+
+    private static String urlDecode(final String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (final UnsupportedEncodingException e) {
+            return URLDecoder.decode(value);
         }
     }
 
