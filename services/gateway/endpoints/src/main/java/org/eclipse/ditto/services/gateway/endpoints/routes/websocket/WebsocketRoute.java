@@ -266,7 +266,7 @@ public final class WebsocketRoute {
             final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
 
             LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger -> {
-                logger.debug("Got signal <{}>.", signal);
+                logger.debug("Command-String <{}> has been successfully converted to signal <{}>.", cmdString, signal);
                 final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
                 // add initial internal header values
