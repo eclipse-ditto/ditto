@@ -284,5 +284,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         return doBuild(dittoHeaders);
     }
 
+    @Override
+    public String toString() {
+        return headers.toString();
+    }
+
     protected abstract R doBuild(DittoHeaders dittoHeaders);
 }

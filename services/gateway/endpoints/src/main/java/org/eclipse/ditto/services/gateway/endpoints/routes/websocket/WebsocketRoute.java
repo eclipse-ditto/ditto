@@ -41,12 +41,15 @@ import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.gateway.streaming.actors.CommandSubscriber;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -87,6 +90,8 @@ public final class WebsocketRoute {
     private static final String PROTOCOL_CMD_ACK_SUFFIX = ":ACK";
 
     private static final String STREAMING_TYPE_WS = "WS";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketRoute.class);
 
     private final ActorRef streamingActor;
     private final int subscriberBackpressureQueueSize;
@@ -236,20 +241,20 @@ public final class WebsocketRoute {
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter) {
         return cmdString -> {
-
             final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.forInt(version)
                     .orElseThrow(() -> CommandNotSupportedException.newBuilder(version).build());
 
             // initial internal header values
-            final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder()
+            final DittoHeaders initialInternalHeaders = DittoHeaders.newBuilder()
                     .schemaVersion(jsonSchemaVersion)
                     .authorizationContext(connectionAuthContext)
                     .correlationId(connectionCorrelationId) // for logging
-                    .origin(connectionCorrelationId);
+                    .origin(connectionCorrelationId)
+                    .build();
 
             if (cmdString.isEmpty()) {
                 final RuntimeException cause = new IllegalArgumentException("Empty json.");
-                throw new DittoJsonException(cause, internalHeadersBuilder.build());
+                throw new DittoJsonException(cause, initialInternalHeaders);
             }
 
             final JsonifiableAdaptable jsonifiableAdaptable = wrapJsonRuntimeException(cmdString,
@@ -257,16 +262,30 @@ public final class WebsocketRoute {
                     (s, unused) -> ProtocolFactory.jsonifiableAdaptableFromJson(JsonFactory.newObject(s)));
 
             final Signal<? extends Signal> signal = adapter.fromAdaptable(jsonifiableAdaptable);
-            final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
-            // add headers given by parent route first so that protocol message may override them
-            internalHeadersBuilder.putHeaders(additionalHeaders);
-            // add any headers from protocol adapter to internal headers
-            internalHeadersBuilder.putHeaders(signalHeaders);
-            // generate correlation ID if it is not set in protocol message
-            if (!signalHeaders.getCorrelationId().isPresent()) {
-                internalHeadersBuilder.correlationId(UUID.randomUUID().toString());
-            }
+            final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
+
+            LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger -> {
+                logger.debug("Got signal <{}>.", signal);
+                final DittoHeaders signalHeaders = signal.getDittoHeaders();
+
+                // add initial internal header values
+                logger.debug("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
+                internalHeadersBuilder.putHeaders(initialInternalHeaders);
+                // add headers given by parent route first so that protocol message may override them
+                logger.debug("Adding additionalHeaders: <{}>.", additionalHeaders);
+                internalHeadersBuilder.putHeaders(additionalHeaders);
+                // add any headers from protocol adapter to internal headers
+                logger.debug("Adding signalHeaders: <{}>.", signalHeaders);
+                internalHeadersBuilder.putHeaders(signalHeaders);
+                // generate correlation ID if it is not set in protocol message
+                if (!signalHeaders.getCorrelationId().isPresent()) {
+                    final String correlationId = UUID.randomUUID().toString();
+                    logger.debug("Adding generated correlationId: <{}>.", correlationId);
+                    internalHeadersBuilder.correlationId(correlationId);
+                }
+                logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
+            });
 
             return signal.setDittoHeaders(internalHeadersBuilder.build());
         };
