@@ -79,7 +79,7 @@ The default value is `0` (at-most-once).
 
 ```json
 {
-  "address": "mqtt/topic/of/my/device/{{ thing:id }}",
+  "address": "mqtt/topic/of/my/device/{%raw%}{{ thing:id }}{%endraw%}",
   "topics": [
     "_/_/things/twin/events",
     "_/_/things/live/messages"
@@ -121,7 +121,7 @@ Connection configuration to create a new MQTT connection:
   ],
   "targets": [
     {
-      "address": "eclipse-ditto-sandbox/{{ thing:id }}",
+      "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
       "topics": [
         "_/_/things/twin/events"
       ],
