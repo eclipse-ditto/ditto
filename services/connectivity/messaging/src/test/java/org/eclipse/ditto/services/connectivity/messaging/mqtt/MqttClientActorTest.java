@@ -347,6 +347,10 @@ public class MqttClientActorTest {
                         MockMqttConnectionFactory.with(getRef(), mqttMessage(SOURCE_ADDRESS, modifyThing)));
                 final ActorRef underTest = actorSystem.actorOf(props);
 
+                final TestProbe controlProbe = TestProbe.apply(actorSystem);
+                underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), controlProbe.ref());
+                controlProbe.expectMsg(CONNECTED_SUCCESS);
+
                 expectMsgClass(ModifyThing.class);
 
                 underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
