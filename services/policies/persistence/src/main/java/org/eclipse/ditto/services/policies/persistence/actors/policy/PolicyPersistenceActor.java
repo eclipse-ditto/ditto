@@ -1811,6 +1811,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             } catch (final DittoRuntimeException dre) {
                 log.debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
                 notifySender(dre);
+                return;
             }
 
             super.apply(command);
