@@ -422,8 +422,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final Enforcer enforcer,
             final ActorRef sender) {
 
+        final DittoHeaders dittoHeadersWithoutPreconditionHeaders = retrieveThing.getDittoHeaders()
+                .toBuilder()
+                .removePreconditionHeaders()
+                .build();
+
         final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
-                RetrievePolicy.of(policyId, retrieveThing.getDittoHeaders()), enforcer);
+                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), enforcer);
 
         if (retrievePolicyOptional.isPresent()) {
             retrieveThingBeforePolicy(retrieveThing, sender).thenAccept(thingResponse ->
@@ -1011,7 +1016,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
             if (policy.isPresent()) {
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), createThing.getDittoHeaders());
+                final DittoHeaders dittoHeadersWithoutPreconditionHeaders = createThing.getDittoHeaders()
+                        .toBuilder()
+                        .removePreconditionHeaders()
+                        .build();
+
+                final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersWithoutPreconditionHeaders);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
                         PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
 

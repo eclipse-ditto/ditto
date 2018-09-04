@@ -195,6 +195,13 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B removeHeader(CharSequence key);
 
     /**
+     * Removes all precondition headers from this builder.
+     *
+     * @return The builder without preconditionHeaders
+     */
+    B removePreconditionHeaders();
+
+    /**
      * Creates a DittoHeaders object containing the key-value-pairs which were put to this builder.
      *
      * @return the headers.

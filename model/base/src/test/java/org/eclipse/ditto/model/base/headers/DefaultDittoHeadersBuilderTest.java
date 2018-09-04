@@ -27,9 +27,9 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Before;
 import org.junit.Test;
@@ -257,7 +257,8 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> of(headersJsonObject))
-                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidSchemaVersionValue, schemaVersionKey)
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidSchemaVersionValue,
+                        schemaVersionKey)
                 .withNoCause();
     }
 
@@ -272,6 +273,18 @@ public final class DefaultDittoHeadersBuilderTest {
                 .build();
 
         assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(sourceKey);
+    }
+
+    @Test
+    public void removePreconditionHeaders() {
+
+        final DittoHeaders dittoHeaders = underTest
+                .ifMatch(EntityTagMatchers.fromStrings("\"test\""))
+                .ifNoneMatch(EntityTagMatchers.fromStrings("\"test2\""))
+                .removePreconditionHeaders()
+                .build();
+
+        assertThat(dittoHeaders).hasSize(0);
     }
 
 }

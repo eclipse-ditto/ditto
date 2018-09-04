@@ -279,6 +279,13 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S removePreconditionHeaders() {
+        headers.remove(DittoHeaderDefinition.IF_MATCH.getKey());
+        headers.remove(DittoHeaderDefinition.IF_NONE_MATCH.getKey());
+        return myself;
+    }
+
+    @Override
     public R build() {
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
