@@ -107,7 +107,11 @@ paths:
         '201':
           description: The Thing was successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Thing resource
               type: string
@@ -144,7 +148,11 @@ paths:
           schema:
             $ref: '#/definitions/Thing'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -272,7 +280,11 @@ paths:
         '201':
           description: The Thing was successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Thing resource
               type: string
@@ -281,7 +293,11 @@ paths:
         '204':
           description: The Thing was successfully modified.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -366,7 +382,11 @@ paths:
             schema:
               $ref: '#/definitions/Acl'
             headers:
-              $ref: '#/responses/eTagResponseHeader'
+              ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
           '304':
             $ref: '#/responses/notModified'
           '400':
@@ -417,7 +437,11 @@ paths:
           '204':
             description: The Access Control List was successfully updated.
             headers:
-              $ref: '#/responses/eTagResponseHeader'
+              ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
           '400':
             description: >-
               The request could not be completed. The `thingId` either
@@ -464,7 +488,11 @@ paths:
           schema:
             $ref: '#/definitions/AclEntry'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -511,7 +539,11 @@ paths:
         '201':
           description: The ACL entry was successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created ACL entry
               type: string
@@ -520,7 +552,11 @@ paths:
         '204':
           description: The ACL entry was successfully updated.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -613,7 +649,11 @@ paths:
           schema:
             $ref: '#/definitions/Attributes'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -663,14 +703,22 @@ paths:
           schema:
             $ref: '#/definitions/Attributes'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Attributes resource
               type: string
         '204':
           description: The Attributes were successfully updated.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -757,7 +805,11 @@ paths:
         '200':
           description: The Attribute was successfully retrieved.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -799,14 +851,22 @@ paths:
         '201':
           description: The Attribute was successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Attribute resource
               type: string
         '204':
           description: The Attribute was successfully modified.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -899,7 +959,11 @@ paths:
           schema:
             $ref: '#/definitions/Features'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -949,14 +1013,22 @@ paths:
           schema:
             $ref: '#/definitions/Features'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Features resource
               type: string
         '204':
           description: The Features were successfully modified.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1045,7 +1117,11 @@ paths:
           schema:
             $ref: '#/definitions/Feature'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -1095,14 +1171,22 @@ paths:
           schema:
             $ref: '#/definitions/Feature'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Feature resource
               type: string
         '204':
           description: The Feature was successfully modified.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1191,7 +1275,11 @@ paths:
           schema:
             $ref: '#/definitions/FeatureDefinition'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -1242,14 +1330,22 @@ paths:
           schema:
             $ref: '#/definitions/FeatureDefinition'
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
             Location:
               description: The location of the created Definition resource
               type: string
         '204':
           description: The Definition was successfully updated.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1334,7 +1430,11 @@ paths:
         '200':
           description: The Properties were successfully retrieved.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -1384,11 +1484,19 @@ paths:
         '201':
           description: The Properties were successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '204':
           description: The Properties were successfully updated.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1478,7 +1586,11 @@ paths:
         '200':
           description: The Property was successfully retrieved.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '304':
           $ref: '#/responses/notModified'
         '400':
@@ -1522,11 +1634,19 @@ paths:
         '201':
           description: The Property was successfully created.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '204':
           description: The Property was successfully updated.
           headers:
-            $ref: '#/responses/eTagResponseHeader'
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -2174,19 +2294,16 @@ definitions:
       featureIdN:
         $ref: '#/definitions/Feature'
 responses:
-  eTagResponseHeader:
-    ETag:
-      description: >-
-        The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-        "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
-      schema:
-        type: string
   notModified:
     description: >-
       The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
       matches the current ETag of the (sub-)resource.
     headers:
-      $ref: '#/responses/eTagResponseHeader'
+      ETag:
+        description: >-
+          The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+          "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+        type: string'
   preconditionFailed:
     description: >-
       A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, when you
@@ -2194,7 +2311,11 @@ responses:
       the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
       failing If-None-Match header for a read request, status 304 will be returned instead.
     headers:
-      $ref: '#/responses/eTagResponseHeader'
+      ETag:
+        description: >-
+          The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+          "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+        type: string'
     schema:
       $ref: '#/definitions/AdvancedError'
 parameters:
