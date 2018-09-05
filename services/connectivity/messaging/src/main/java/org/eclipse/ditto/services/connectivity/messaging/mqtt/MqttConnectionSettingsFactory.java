@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -44,10 +45,10 @@ class MqttConnectionSettingsFactory {
 
         connectionSettings = connectionSettings.withAutomaticReconnect(connection.isFailoverEnabled());
 
-        if (connection.getUsername().isPresent() && connection.getPassword().isPresent()) {
-            final String username = connection.getUsername().get();
-            final String password = connection.getPassword().get();
-            connectionSettings = connectionSettings.withAuth(username, password);
+        final Optional<String> possibleUsername = connection.getUsername();
+        final Optional<String> possiblePassword = connection.getPassword();
+        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
+            connectionSettings = connectionSettings.withAuth(possibleUsername.get(), possiblePassword.get());
         }
 
         if (isSecureconnection(connection)) {

@@ -36,8 +36,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
-import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -353,8 +351,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         @Override
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
-            if (externalMessage.getThingIdEnforcement().isPresent()) {
-                final ThingIdEnforcement thingIdEnforcement = externalMessage.getThingIdEnforcement().get();
+            externalMessage.getThingIdEnforcement().ifPresent(thingIdEnforcement -> {
                 log.debug("Thing ID Enforcement enabled: {}", thingIdEnforcement);
                 final Collection<String> filtered =
                         placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId(),
@@ -364,7 +361,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 if (!filtered.contains(enforcementTarget)) {
                     throw thingIdEnforcement.getError(signal.getDittoHeaders());
                 }
-            }
+            });
         }
 
         private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {

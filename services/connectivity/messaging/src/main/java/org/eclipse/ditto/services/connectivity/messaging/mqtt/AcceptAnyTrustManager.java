@@ -26,10 +26,12 @@ public class AcceptAnyTrustManager implements X509TrustManager {
         return null;
     }
 
+    @SuppressWarnings("squid:S4424") // ignore SSL security on purpose
     public void checkClientTrusted(final X509Certificate[] chain, final String authType) {
         // do not check
     }
 
+    @SuppressWarnings("squid:S4424") // ignore SSL security on purpose
     public void checkServerTrusted(final X509Certificate[] chain, final String authType) {
         // do not check
     }
