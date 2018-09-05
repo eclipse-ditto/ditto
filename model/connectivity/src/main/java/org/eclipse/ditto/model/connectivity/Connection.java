@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * Represents a connection within the Connectivity service.
@@ -92,6 +93,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return {@code true} if failover is enabled, else {@code false}.
      */
     boolean isFailoverEnabled();
+
+    /**
+     * Return the persisted credentials if any exist.
+     *
+     * @return the credentials or an empty optional.
+     */
+    Optional<Credentials> getCredentials();
 
     /**
      * Returns the URI of this {@code Connection}.
@@ -242,6 +250,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
                 JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing credentials.
+         */
+        public static final JsonFieldDefinition<JsonObject> CREDENTIALS =
+                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
