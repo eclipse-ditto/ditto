@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -200,8 +202,15 @@ public class TestConstants {
         return SendThingMessage.of(Things.THING_ID, message, dittoHeaders);
     }
 
+    public static String signalToDittoProtocolJsonString(final Signal<?> signal) {
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(signal);
+        final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+        return jsonifiable.toJsonString();
+    }
+
     public static String modifyThing() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).putHeader(
+                ExternalMessage.REPLY_TO_HEADER, "replies").build();
         final ModifyThing modifyThing = ModifyThing.of(Things.THING_ID, Things.THING, null, dittoHeaders);
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
         final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);

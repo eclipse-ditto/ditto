@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.base.Signal;
 /**
  * Represent an outbound signal that was mapped to an external message.
  */
-public class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
+public final class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
 
     private final OutboundSignal delegate;
     private final ExternalMessage externalMessage;

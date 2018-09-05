@@ -5,44 +5,34 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
+ *
  */
+
 package org.eclipse.ditto.model.connectivity;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.nio.ByteBuffer;
-
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-/**
- * Unit test for {@link ImmutableExternalMessage}.
- */
-public final class ImmutableExternalMessageTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(ImmutableExternalMessage.class, areImmutable(),
-                assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                provided(ByteBuffer.class, AuthorizationContext.class).areAlsoImmutable());
-    }
+public class ImmutableConnectionMetricsTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableExternalMessage.class)
-                .withPrefabValues(ByteBuffer.class,
-                        ByteBuffer.wrap("red" .getBytes()),
-                        ByteBuffer.wrap("black" .getBytes()))
-                .usingGetClass()
+        EqualsVerifier.forClass(ImmutableConnectionMetrics.class)
                 .verify();
     }
 
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(ImmutableConnectionMetrics.class,
+                areImmutable(),
+                assumingFields("sourcesMetrics", "targetsMetrics")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+    }
 }

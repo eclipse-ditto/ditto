@@ -25,13 +25,14 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class ImmutableSourceTest {
+public final class ImmutableSourceTest {
 
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
-    private static final Source SOURCE_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
+    private static final Source SOURCE_WITH_AUTH_CONTEXT =
+            ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()

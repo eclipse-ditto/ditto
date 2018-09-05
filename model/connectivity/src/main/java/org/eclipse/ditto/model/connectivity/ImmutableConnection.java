@@ -14,6 +14,8 @@ package org.eclipse.ditto.model.connectivity;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,8 +29,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -141,12 +141,13 @@ final class ImmutableConnection implements Connection {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Connection fromJson(final JsonObject jsonObject) {
-        final ConnectionBuilder builder = new Builder(getConnectionTypeOrThrow(jsonObject))
+        final ConnectionType type = getConnectionTypeOrThrow(jsonObject);
+        final ConnectionBuilder builder = new Builder(type)
                 .id(jsonObject.getValueOrThrow(JsonFields.ID))
                 .connectionStatus(getConnectionStatusOrThrow(jsonObject))
                 .uri(jsonObject.getValueOrThrow(JsonFields.URI))
-                .sources(getSources(jsonObject))
-                .targets(getTargets(jsonObject))
+                .sources(getSources(jsonObject, type))
+                .targets(getTargets(jsonObject, type))
                 .name(jsonObject.getValue(JsonFields.NAME).orElse(null))
                 .mappingContext(jsonObject.getValue(JsonFields.MAPPING_CONTEXT)
                         .map(ConnectivityModelFactory::mappingContextFromJson)
@@ -178,7 +179,7 @@ final class ImmutableConnection implements Connection {
                         .build());
     }
 
-    private static List<Source> getSources(final JsonObject jsonObject) {
+    private static List<Source> getSources(final JsonObject jsonObject, final ConnectionType type) {
         final Optional<JsonArray> sourcesArray = jsonObject.getValue(JsonFields.SOURCES);
         if (sourcesArray.isPresent()) {
             final JsonArray values = sourcesArray.get();
@@ -186,7 +187,7 @@ final class ImmutableConnection implements Connection {
                     .mapToObj(index -> values.get(index)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .map(valueAsObject -> ImmutableSource.fromJson(valueAsObject, index)))
+                            .map(valueAsObject -> ConnectivityModelFactory.sourceFromJson(valueAsObject, index, type)))
                     .filter(Optional::isPresent)
                     .map(Optional::get)
                     .collect(Collectors.toList());
@@ -195,12 +196,12 @@ final class ImmutableConnection implements Connection {
         }
     }
 
-    private static Set<Target> getTargets(final JsonObject jsonObject) {
+    private static Set<Target> getTargets(final JsonObject jsonObject, final ConnectionType type) {
         return jsonObject.getValue(JsonFields.TARGETS)
                 .map(array -> array.stream()
                         .filter(JsonValue::isObject)
                         .map(JsonValue::asObject)
-                        .map(ImmutableTarget::fromJson)
+                        .map(valueAsObject -> ConnectivityModelFactory.targetFromJson(valueAsObject, type))
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
     }
@@ -578,29 +579,50 @@ final class ImmutableConnection implements Connection {
     }
 
     @Immutable
-    private static final class ConnectionUri {
+    static final class ConnectionUri {
 
-        private static final Pattern URI_REGEX_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
         private static final String MASKED_URI_PATTERN = "{0}://{1}{2}:{3,number,#}{4}";
+        private static final String USERNAME_PASSWORD_SEPARATOR = ":";
 
         private final String uriString;
         private final String protocol;
-        @Nullable private final String userName;
-        @Nullable private final String password;
         private final String hostname;
         private final int port;
-        @Nullable private final String path;
+        private final String path;
+        @Nullable private final String userName;
+        @Nullable private final String password;
         private final String uriStringWithMaskedPassword;
 
-        private ConnectionUri(final String theUriString, final Matcher matcher) {
-            uriString = theUriString;
-            protocol = matcher.group(Connection.UriRegex.PROTOCOL_REGEX_GROUP);
-            userName = matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP);
-            password = matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP);
-            hostname = matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP);
-            port = Integer.parseInt(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP));
-            path = matcher.group(UriRegex.PATH_REGEX_GROUP);
+        private ConnectionUri(final String theUriString) {
+            final URI uri;
+            try {
+                uri = new URI(theUriString).parseServerAuthority();
+            } catch (final URISyntaxException e) {
+                throw ConnectionUriInvalidException.newBuilder(theUriString).build();
+            }
+            // validate self
+            if (!isValid(uri)) {
+                throw ConnectionUriInvalidException.newBuilder(theUriString).build();
+            }
 
+            uriString = uri.toASCIIString();
+            protocol = uri.getScheme();
+            hostname = uri.getHost();
+            port = uri.getPort();
+            path = uri.getPath();
+
+            // initialize nullable fields
+            final String userInfo = uri.getUserInfo();
+            if (userInfo != null && userInfo.contains(USERNAME_PASSWORD_SEPARATOR)) {
+                final int separatorIndex = userInfo.indexOf(USERNAME_PASSWORD_SEPARATOR);
+                userName = userInfo.substring(0, separatorIndex);
+                password = userInfo.substring(separatorIndex + 1);
+            } else {
+                userName = null;
+                password = null;
+            }
+
+            // must be initialized after all else
             uriStringWithMaskedPassword = createUriStringWithMaskedPassword();
         }
 
@@ -617,7 +639,18 @@ final class ImmutableConnection implements Connection {
         }
 
         private String getPathOrEmptyString() {
-            return null != path ? "/" + path : "";
+            return getPath().orElse("");
+        }
+
+        /**
+         * Test validity of a connection URI. A connection URI is valid if it has an explicit port number ,has no query
+         * parameters, and has a nonempty password whenever it has a nonempty username.
+         *
+         * @param uri the URI object with which the connection URI is created.
+         * @return whether the connection URI is valid.
+         */
+        private static boolean isValid(final URI uri) {
+            return uri.getPort() > 0 && uri.getQuery() == null;
         }
 
         /**
@@ -626,16 +659,12 @@ final class ImmutableConnection implements Connection {
          * @param uriString the string representation of the Connection URI.
          * @return the instance.
          * @throws NullPointerException if {@code uriString} is {@code null}.
-         * @throws org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException if {@code uriString} did not match
-         * {@link org.eclipse.ditto.model.connectivity.Connection.UriRegex#REGEX}.
+         * @throws org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException if {@code uriString} is not a
+         * valid URI.
          * @see #toString()
          */
         static ConnectionUri of(final String uriString) {
-            final Matcher matcher = URI_REGEX_PATTERN.matcher(checkNotNull(uriString, "URI string"));
-            if (!matcher.matches()) {
-                throw ConnectionUriInvalidException.newBuilder(uriString).build();
-            }
-            return new ConnectionUri(uriString, matcher);
+            return new ConnectionUri(uriString);
         }
 
         String getProtocol() {
@@ -664,7 +693,7 @@ final class ImmutableConnection implements Connection {
          * @return the path or an empty string.
          */
         Optional<String> getPath() {
-            return Optional.ofNullable(path);
+            return path.isEmpty() ? Optional.empty() : Optional.of(path);
         }
 
         String getUriStringWithMaskedPassword() {

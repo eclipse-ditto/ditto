@@ -12,11 +12,15 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -32,6 +36,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -68,7 +74,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final MessageMappingProcessor processor;
     private final String connectionId;
     private final ActorRef conciergeForwarder;
-    private final PlaceholderFilter placeholderFilter;
+
+    private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
+    private final BiFunction<ExternalMessage, Signal<?>, Signal<?>> adjustHeaders;
+    private final BiConsumer<ExternalMessage, Signal<?>> thingIdEnforcer;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -78,8 +87,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         this.conciergeForwarder = conciergeForwarder;
         this.processor = processor;
         this.connectionId = connectionId;
-        this.placeholderFilter = new PlaceholderFilter();
         timers = new ConcurrentHashMap<>();
+        placeholderSubstitution = new PlaceholderSubstitution();
+        adjustHeaders = new AdjustHeaders(connectionId);
+        thingIdEnforcer = new ThingIdEnforcer(log);
     }
 
     /**
@@ -129,32 +140,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
-
         try {
-            final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
-            final AuthorizationContext filteredContext =
-                    placeholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
-            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
-            final ExternalMessage messageWithAuthSubject =
-                    externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
-                            authSubjectsArray);
-
+            final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
-
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
-                final DittoHeadersBuilder adjustedHeadersBuilder = signal.getDittoHeaders().toBuilder()
-                        .authorizationContext(filteredContext);
-
-                if (!signal.getDittoHeaders().getOrigin().isPresent()) {
-                    adjustedHeadersBuilder.origin(connectionId);
-                }
-                final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
-                // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping
-                // does not choose/change the auth-subjects itself:
-                final Signal<?> adjustedSignal = signal.setDittoHeaders(adjustedHeaders);
+                thingIdEnforcer.accept(messageWithAuthSubject, signal);
+                final Signal<?> adjustedSignal = adjustHeaders.apply(messageWithAuthSubject, signal);
                 startTrace(adjustedSignal);
-
                 // This message is important to check if a command is accepted for a specific connection, as this
                 // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
                 log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder", adjustedSignal
@@ -166,25 +159,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         } catch (final Exception e) {
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
-    }
-
-    private String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
-        return authorizationContext
-                .stream()
-                .map(AuthorizationSubject::getId)
-                .map(JsonFactory::newValue)
-                .collect(JsonCollectors.valuesToArray())
-                .toString();
-    }
-
-    private AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
-        final AuthorizationContext authorizationContext = externalMessage
-                .getAuthorizationContext()
-                .orElseThrow(() -> new IllegalArgumentException("No authorizationContext available."));
-        if (authorizationContext.isEmpty()) {
-            throw new IllegalArgumentException("Empty authorization context not allowed.");
-        }
-        return authorizationContext;
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -298,6 +272,103 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             timer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
         } else {
             timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
+        }
+    }
+
+    static class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
+
+        private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
+
+        @Override
+        public ExternalMessage apply(final ExternalMessage externalMessage) {
+            final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
+            final AuthorizationContext filteredContext =
+                    placeholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
+            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
+            return externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
+                    authSubjectsArray);
+        }
+
+        private AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
+            final AuthorizationContext authorizationContext = externalMessage
+                    .getAuthorizationContext()
+                    .orElseThrow(() -> new IllegalArgumentException("No authorizationContext available."));
+            if (authorizationContext.isEmpty()) {
+                throw new IllegalArgumentException("Empty authorization context not allowed.");
+            }
+            return authorizationContext;
+        }
+
+        private String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
+            return authorizationContext
+                    .stream()
+                    .map(AuthorizationSubject::getId)
+                    .map(JsonFactory::newValue)
+                    .collect(JsonCollectors.valuesToArray())
+                    .toString();
+        }
+    }
+
+    static class AdjustHeaders implements BiFunction<ExternalMessage, Signal<?>, Signal<?>> {
+
+        private final String connectionId;
+
+        private AdjustHeaders(final String connectionId) {
+            this.connectionId = connectionId;
+        }
+
+        @Override
+        public Signal<?> apply(final ExternalMessage externalMessage, final Signal<?> signal) {
+            final DittoHeadersBuilder dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
+
+            final String beforeMapping = externalMessage
+                    .findHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Missing header " + DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey()));
+            // do not use dittoHeadersBuilder.authorizationSubjects(beforeMapping);
+            // because beforeMapping is a JsonArray String, we need to set AUTHORIZATION_SUBJECTS header directly
+            dittoHeadersBuilder.putHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), beforeMapping);
+
+            if (!signal.getDittoHeaders().getOrigin().isPresent()) {
+                dittoHeadersBuilder.origin(connectionId);
+            }
+
+            final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
+            // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping
+            // does not choose/change the auth-subjects itself:
+            return signal.setDittoHeaders(adjustedHeaders);
+        }
+    }
+
+    static class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
+
+        private static final String UNRESOLVED_PLACEHOLDER_MESSAGE =
+                "The placeholder '{}' was not resolved, messages may be dropped.";
+        private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
+        private final DiagnosticLoggingAdapter log;
+
+        ThingIdEnforcer(final DiagnosticLoggingAdapter log) {
+            this.log = log;
+        }
+
+        @Override
+        public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
+            if (externalMessage.getThingIdEnforcement().isPresent()) {
+                final ThingIdEnforcement thingIdEnforcement = externalMessage.getThingIdEnforcement().get();
+                log.debug("Thing ID Enforcement enabled: {}", thingIdEnforcement);
+                final Collection<String> filtered =
+                        placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId(),
+                                this::logUnresolvedPlaceholder);
+                final String enforcementTarget = thingIdEnforcement.getTarget();
+                log.debug("Target '{}' must match one of {}", enforcementTarget, filtered);
+                if (!filtered.contains(enforcementTarget)) {
+                    throw thingIdEnforcement.getError(signal.getDittoHeaders());
+                }
+            }
+        }
+
+        private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {
+            log.info(UNRESOLVED_PLACEHOLDER_MESSAGE, unresolvedPlaceholder);
         }
     }
 }

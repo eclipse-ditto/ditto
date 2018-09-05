@@ -5,7 +5,7 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
@@ -71,7 +71,7 @@ final class ImmutableTargetMetrics implements TargetMetrics {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
-                .map(e -> JsonField.newInstance(e.getKey(), e.getValue().toJson()))
+                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
         jsonObjectBuilder.set(JsonFields.PUBLISHED_MESSAGES, publishedMessages, predicate);
         return jsonObjectBuilder.build();

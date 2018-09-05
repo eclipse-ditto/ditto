@@ -15,7 +15,7 @@
     "connectionType": {
       "$id": "/properties/connectionType",
       "type": "string",
-      "enum": [ "amqp-091", "amqp-10" ],
+      "enum": [ "amqp-091", "amqp-10", "mqtt" ],
       "title": "Connection type",
       "description": "The type determining the connection's underlying transport protocol",
       "examples": [
@@ -77,7 +77,7 @@
           "authorizationContext": {
             "$id": "/properties/sources/items/properties/authorizationContext",
             "type": "array",
-            "title": "The authorisation context",
+            "title": "The authorization context",
             "description": "The authorization context defines all authorization subjects associated for this source. ",
             "uniqueItems": true,
             "items": {
@@ -133,7 +133,7 @@
           "authorizationContext": {
             "$id": "/properties/targets/items/properties/authorizationContext",
             "type": "array",
-            "title": "The authorisation context",
+            "title": "The authorization context",
             "description": "The authorization context defines all authorization subjects associated for this target. ",
             "uniqueItems": true,
             "items": {

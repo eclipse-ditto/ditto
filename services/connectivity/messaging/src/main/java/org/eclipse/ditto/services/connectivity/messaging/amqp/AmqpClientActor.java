@@ -213,8 +213,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     final ActorRef child = consumerByNamePrefix.get(namePrefix);
                     return retrieveAddressMetric(consumerData.getAddressWithIndex(), namePrefix, child);
                 }))
-                .thenApply(entries ->
-                        entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
+                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                 .handle((result, error) -> {
                     if (error == null) {
                         return result;
