@@ -12,6 +12,8 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -204,10 +206,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         enhanceLogUtil(exception);
 
-        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}",
-                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""));
+        final String stackTrace = stackTraceAsString(exception);
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: ",
+                exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
 
         handleCommandResponse(errorResponse);
+    }
+
+    private static String stackTraceAsString(final DittoRuntimeException exception) {
+        final StringWriter stringWriter = new StringWriter();
+        exception.printStackTrace(new PrintWriter(stringWriter));
+        return stringWriter.toString();
     }
 
     private void handleCommandResponse(final CommandResponse<?> response) {
@@ -300,4 +309,5 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
         }
     }
+
 }
