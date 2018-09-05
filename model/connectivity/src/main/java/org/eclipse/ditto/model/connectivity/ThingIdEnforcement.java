@@ -103,12 +103,13 @@ public final class ThingIdEnforcement {
         if (o == null || getClass() != o.getClass()) return false;
         final ThingIdEnforcement that = (ThingIdEnforcement) o;
         return Objects.equals(target, that.target) &&
-                Objects.equals(filters, that.filters);
+                Objects.equals(filters, that.filters) &&
+                Objects.equals(errorMessage, that.errorMessage);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(target, filters);
+        return Objects.hash(target, filters, errorMessage);
     }
 
     @Override
@@ -116,6 +117,7 @@ public final class ThingIdEnforcement {
         return getClass().getSimpleName() + " [" +
                 "target=" + target +
                 ", filters=" + filters +
+                ", errorMessage=" + errorMessage +
                 "]";
     }
 }

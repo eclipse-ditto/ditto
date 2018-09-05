@@ -111,7 +111,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public ExternalMessageBuilder withThingIdEnforcement(final ThingIdEnforcement thingIdEnforcement) {
+    public ExternalMessageBuilder withThingIdEnforcement(@Nullable final ThingIdEnforcement thingIdEnforcement) {
         this.thingIdEnforcement = thingIdEnforcement;
         return this;
     }
