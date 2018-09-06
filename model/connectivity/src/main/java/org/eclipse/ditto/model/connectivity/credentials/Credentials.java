@@ -93,7 +93,7 @@ public interface Credentials {
 
         static {
             // load subclasses in this package.
-            registerDeserializer(X509Credentials.TYPE, X509Credentials::fromJson);
+            registerDeserializer(ClientCertificateCredentials.TYPE, ClientCertificateCredentials::fromJson);
         }
     }
 }

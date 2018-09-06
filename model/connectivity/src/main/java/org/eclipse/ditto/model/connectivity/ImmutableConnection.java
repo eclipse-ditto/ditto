@@ -59,6 +59,7 @@ final class ImmutableConnection implements Connection {
     private final ConnectionStatus connectionStatus;
     private final ConnectionUri uri;
     @Nullable private final Credentials credentials;
+    @Nullable private final String trustedCertificates;
 
     private final List<Source> sources;
     private final Set<Target> targets;
@@ -76,6 +77,7 @@ final class ImmutableConnection implements Connection {
         connectionType = builder.connectionType;
         connectionStatus = checkNotNull(builder.connectionStatus, "connectionStatus");
         credentials = builder.credentials;
+        trustedCertificates = builder.trustedCertificates;
         uri = ConnectionUri.of(checkNotNull(builder.uri, "uri"));
         sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
         targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
@@ -164,6 +166,7 @@ final class ImmutableConnection implements Connection {
         jsonObject.getValue(JsonFields.FAILOVER_ENABLED).ifPresent(builder::failoverEnabled);
         jsonObject.getValue(JsonFields.VALIDATE_CERTIFICATES).ifPresent(builder::validateCertificate);
         jsonObject.getValue(JsonFields.PROCESSOR_POOL_SIZE).ifPresent(builder::processorPoolSize);
+        jsonObject.getValue(JsonFields.TRUSTED_CERTIFICATES).ifPresent(builder::trustedCertificates);
 
         return builder.build();
     }
@@ -276,6 +279,11 @@ final class ImmutableConnection implements Connection {
     }
 
     @Override
+    public Optional<String> getTrustedCertificates() {
+        return Optional.ofNullable(trustedCertificates);
+    }
+
+    @Override
     public String getUri() {
         return uri.toString();
     }
@@ -370,6 +378,9 @@ final class ImmutableConnection implements Connection {
         if (credentials != null) {
             jsonObjectBuilder.set(JsonFields.CREDENTIALS, credentials.toJson());
         }
+        if (trustedCertificates != null) {
+            jsonObjectBuilder.set(JsonFields.TRUSTED_CERTIFICATES, trustedCertificates, predicate);
+        }
         jsonObjectBuilder.set(JsonFields.TAGS, tags.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate);
@@ -395,6 +406,7 @@ final class ImmutableConnection implements Connection {
                 Objects.equals(targets, that.targets) &&
                 Objects.equals(clientCount, that.clientCount) &&
                 Objects.equals(credentials, that.credentials) &&
+                Objects.equals(trustedCertificates, that.trustedCertificates) &&
                 Objects.equals(uri, that.uri) &&
                 Objects.equals(processorPoolSize, that.processorPoolSize) &&
                 Objects.equals(validateCertificate, that.validateCertificate) &&
@@ -405,8 +417,8 @@ final class ImmutableConnection implements Connection {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, connectionType, connectionStatus, sources, targets,
-                clientCount, failOverEnabled, credentials, uri, validateCertificate, processorPoolSize, specificConfig,
+        return Objects.hash(id, name, connectionType, connectionStatus, sources, targets, clientCount, failOverEnabled,
+                credentials, trustedCertificates, uri, validateCertificate, processorPoolSize, specificConfig,
                 mappingContext, tags);
     }
 
@@ -419,6 +431,7 @@ final class ImmutableConnection implements Connection {
                 ", connectionStatus=" + connectionStatus +
                 ", failoverEnabled=" + failOverEnabled +
                 ", credentials=" + credentials +
+                ", trustedCertificates=hash:" + Objects.hash(trustedCertificates) +
                 ", uri=" + uri.getUriStringWithMaskedPassword() +
                 ", sources=" + sources +
                 ", targets=" + targets +
@@ -448,6 +461,7 @@ final class ImmutableConnection implements Connection {
         @Nullable private String name = null;
         @Nullable private Credentials credentials;
         @Nullable private MappingContext mappingContext = null;
+        @Nullable private String trustedCertificates;
 
         // optional with default:
         private Set<String> tags = new HashSet<>();
@@ -478,6 +492,12 @@ final class ImmutableConnection implements Connection {
         @Override
         public ConnectionBuilder credentials(@Nullable Credentials credentials) {
             this.credentials = credentials;
+            return this;
+        }
+
+        @Override
+        public Builder trustedCertificates(@Nullable final String trustedCertificates) {
+            this.trustedCertificates = trustedCertificates;
             return this;
         }
 

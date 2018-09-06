@@ -24,5 +24,5 @@ public interface CredentialsVisitor<T> {
      * @param credentials the X.509 credentials.
      * @return evaluation result.
      */
-    T x509(X509Credentials credentials);
+    T x509(ClientCertificateCredentials credentials);
 }

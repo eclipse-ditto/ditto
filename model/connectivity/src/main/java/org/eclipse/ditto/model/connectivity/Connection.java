@@ -102,6 +102,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
     Optional<Credentials> getCredentials();
 
     /**
+     * Return trusted certificates in PEM format if configured.
+     *
+     * @return the trusted certificates or an empty optional.
+     */
+    Optional<String> getTrustedCertificates();
+
+    /**
      * Returns the URI of this {@code Connection}.
      *
      * @return the URI.
@@ -326,6 +333,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonArray> TAGS =
                 JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field definition of trusted certificates.
+         */
+        public static final JsonFieldDefinition<String> TRUSTED_CERTIFICATES =
+                JsonFieldDefinition.ofString("ca", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

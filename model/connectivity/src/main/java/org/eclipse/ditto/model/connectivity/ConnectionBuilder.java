@@ -62,6 +62,14 @@ public interface ConnectionBuilder {
     }
 
     /**
+     * Set the trusted certificates.
+     *
+     * @param trustedCertificates the trusted certificates
+     * @return this builder
+     */
+    ConnectionBuilder trustedCertificates(@Nullable final String trustedCertificates);
+
+    /**
      * Sets the URI to use in the {@code Connection}.
      *
      * @param uri the URI.

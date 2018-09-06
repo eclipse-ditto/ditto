@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.credentials.Credentials;
-import org.eclipse.ditto.model.connectivity.credentials.X509Credentials;
+import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -48,7 +48,7 @@ public final class ImmutableConnectionTest {
     private static final String NAME = "myConnection";
 
     private static final String URI = "amqps://foo:bar@example.com:443";
-    private static final Credentials CREDENTIALS = X509Credentials.newBuilder().build();
+    private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));

@@ -27,12 +27,12 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
  * (i. e., {@code -CAfile} of OpenSSL s_client) with which to authenticate the server certificate.
  */
 @Immutable
-public final class X509Credentials implements Credentials {
+public final class ClientCertificateCredentials implements Credentials {
 
     /**
      * Credential type name.
      */
-    public static final String TYPE = "x.509/pem";
+    public static final String TYPE = "client-cert";
 
     @Nullable
     private final String clientCertificate;
@@ -40,15 +40,11 @@ public final class X509Credentials implements Credentials {
     @Nullable
     private final String clientKey;
 
-    @Nullable
-    private final String trustedCertificates;
+    private ClientCertificateCredentials(@Nullable final String clientCertificate,
+            @Nullable final String clientKey) {
 
-    private X509Credentials(@Nullable final String clientCertificate,
-            @Nullable final String clientKey,
-            @Nullable final String trustedCertificates) {
         this.clientCertificate = clientCertificate;
         this.clientKey = clientKey;
-        this.trustedCertificates = trustedCertificates;
     }
 
     @Override
@@ -70,20 +66,12 @@ public final class X509Credentials implements Credentials {
         return Optional.ofNullable(clientKey);
     }
 
-    /**
-     * @return the CA certificate
-     */
-    public Optional<String> getTrustedCertificates() {
-        return Optional.ofNullable(trustedCertificates);
-    }
-
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof X509Credentials) {
-            final X509Credentials that = (X509Credentials) o;
+        if (o instanceof ClientCertificateCredentials) {
+            final ClientCertificateCredentials that = (ClientCertificateCredentials) o;
             return Objects.equals(clientCertificate, that.clientCertificate) &&
-                    Objects.equals(clientKey, that.clientKey) &&
-                    Objects.equals(trustedCertificates, that.trustedCertificates);
+                    Objects.equals(clientKey, that.clientKey);
         } else {
             return false;
         }
@@ -91,7 +79,7 @@ public final class X509Credentials implements Credentials {
 
     @Override
     public int hashCode() {
-        return Objects.hash(clientCertificate, clientKey, trustedCertificates);
+        return Objects.hash(clientCertificate, clientKey);
     }
 
     @Override
@@ -107,15 +95,13 @@ public final class X509Credentials implements Credentials {
         jsonObjectBuilder.set(JsonFields.TYPE, TYPE);
         jsonObjectBuilder.set(JsonFields.CLIENT_CERTIFICATE, clientCertificate, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.CLIENT_KEY, clientKey, Objects::nonNull);
-        jsonObjectBuilder.set(JsonFields.TRUSTED_CERTIFICATES, trustedCertificates, Objects::nonNull);
         return jsonObjectBuilder.build();
     }
 
-    static X509Credentials fromJson(final JsonObject jsonObject) {
+    static ClientCertificateCredentials fromJson(final JsonObject jsonObject) {
         final Builder builder = newBuilder();
         jsonObject.getValue(JsonFields.CLIENT_CERTIFICATE).ifPresent(builder::clientCertificate);
         jsonObject.getValue(JsonFields.CLIENT_KEY).ifPresent(builder::clientKey);
-        jsonObject.getValue(JsonFields.TRUSTED_CERTIFICATES).ifPresent(builder::trustedCertificates);
         return builder.build();
     }
 
@@ -125,9 +111,7 @@ public final class X509Credentials implements Credentials {
      * @return a new builder.
      */
     public Builder toBuilder() {
-        return new Builder().clientCertificate(clientCertificate)
-                .clientKey(clientKey)
-                .trustedCertificates(trustedCertificates);
+        return new Builder().clientCertificate(clientCertificate).clientKey(clientKey);
     }
 
     /**
@@ -149,9 +133,6 @@ public final class X509Credentials implements Credentials {
 
         @Nullable
         private String clientKey;
-
-        @Nullable
-        private String trustedCertificates;
 
         /**
          * Set the client certificate.
@@ -176,23 +157,12 @@ public final class X509Credentials implements Credentials {
         }
 
         /**
-         * Set the trusted certificates.
-         *
-         * @param trustedCertificates the trusted certificates
-         * @return this builder
-         */
-        public Builder trustedCertificates(@Nullable final String trustedCertificates) {
-            this.trustedCertificates = trustedCertificates;
-            return this;
-        }
-
-        /**
          * Build a new X.509 credentials.
          *
          * @return the credentials.
          */
-        public X509Credentials build() {
-            return new X509Credentials(clientCertificate, clientKey, trustedCertificates);
+        public ClientCertificateCredentials build() {
+            return new ClientCertificateCredentials(clientCertificate, clientKey);
         }
     }
 
@@ -212,10 +182,5 @@ public final class X509Credentials implements Credentials {
          * OpenSSL s_client.
          */
         public static final JsonFieldDefinition<String> CLIENT_KEY = JsonFieldDefinition.ofString("key");
-
-        /**
-         * JSON field definition of trusted certificates.
-         */
-        public static final JsonFieldDefinition<String> TRUSTED_CERTIFICATES = JsonFieldDefinition.ofString("ca");
     }
 }

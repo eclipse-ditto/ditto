@@ -26,11 +26,11 @@ public final class CredentialsTest {
     public void deserializeX509Credentials() {
         // do not use the class X509Credentials here so that the test does not force JVM to load it
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
-                .set("type", "x.509/pem")
+                .set("type", "client-cert")
                 .build();
 
         final Credentials credentials = Credentials.fromJson(jsonObject);
 
-        assertThat(credentials.getClass().getSimpleName()).isEqualTo("X509Credentials");
+        assertThat(credentials.getClass().getSimpleName()).isEqualTo("ClientCertificateCredentials");
     }
 }
