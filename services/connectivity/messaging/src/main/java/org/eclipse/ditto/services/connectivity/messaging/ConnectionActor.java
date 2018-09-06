@@ -19,11 +19,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -42,12 +40,15 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttValidator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMongoSnapshotAdapter;
+import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
+import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -84,9 +85,6 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
-import com.typesafe.config.Config;
-
-import akka.ConfigurationException;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
@@ -107,6 +105,7 @@ import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
 import akka.routing.Broadcast;
 import akka.routing.RoundRobinPool;
+import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -116,21 +115,31 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionActor extends AbstractPersistentActor {
 
+    private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
     private static final String PERSISTENCE_ID_PREFIX = "connection:";
 
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
-    /**
-     * Default timeout for flushing pending responses.
-     *
-     * @see ConfigKeys.Connection#FLUSH_PENDING_RESPONSES_TIMEOUT
-     */
-    private static final java.time.Duration DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT = java.time.Duration.ofSeconds(5L);
+    private static final String UNRESOLVER_PLACEHOLDERS_MESSAGE =
+            "Failed to substitute all placeholders in '{}', target is dropped.";
 
     private static final long DEFAULT_TIMEOUT_MS = 5000;
 
     private static final String PUB_SUB_GROUP_PREFIX = "connection:";
+
+    /**
+     * Message to self to trigger termination after deletion.
+     */
+    private static final Object STOP_SELF_IF_DELETED = new Object();
+
+    /**
+     * Validator of all supported connections.
+     */
+    private static final ConnectionValidator CONNECTION_VALIDATOR = ConnectionValidator.of(
+            RabbitMQValidator.newInstance(),
+            AmqpValidator.newInstance(),
+            MqttValidator.newInstance());
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -154,8 +163,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private Set<Topic> uniqueTopicPaths = Collections.emptySet();
 
     private final FiniteDuration flushPendingResponsesTimeout;
-    private final Queue<WithSender<ConnectivityCommandResponse>> pendingResponses = new LinkedList<>();
-    @Nullable private Cancellable flushPendingResponsesTrigger;
+    @Nullable private Cancellable stopSelfIfDeletedTrigger;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -167,8 +175,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
         this.propsFactory = propsFactory;
-        final DittoConnectivityCommandValidator
-                dittoCommandValidator = new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder);
+        final DittoConnectivityCommandValidator dittoCommandValidator =
+                new DittoConnectivityCommandValidator(propsFactory, conciergeForwarder, CONNECTION_VALIDATOR);
         if (customCommandValidator != null) {
             this.commandValidator =
                     new CompoundConnectivityCommandInterceptor(dittoCommandValidator, customCommandValidator);
@@ -176,19 +184,13 @@ public final class ConnectionActor extends AbstractPersistentActor {
             this.commandValidator = dittoCommandValidator;
         }
 
-        final Config config = getContext().system().settings().config();
-        snapshotThreshold = config.getLong(ConfigKeys.Connection.SNAPSHOT_THRESHOLD);
-        if (snapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Connection.SNAPSHOT_THRESHOLD, snapshotThreshold));
-        }
+        final ConnectionConfigReader configReader =
+                ConnectionConfigReader.fromRawConfig(getContext().system().settings().config());
+        snapshotThreshold = configReader.snapshotThreshold();
         snapshotAdapter = new ConnectionMongoSnapshotAdapter();
         connectionCreatedBehaviour = createConnectionCreatedBehaviour();
 
-        final java.time.Duration javaFlushTimeout =
-                config.hasPath(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
-                        ? config.getDuration(ConfigKeys.Connection.FLUSH_PENDING_RESPONSES_TIMEOUT)
-                        : DEFAULT_FLUSH_PENDING_RESPONSES_TIMEOUT;
+        final java.time.Duration javaFlushTimeout = configReader.flushPendingResponsesTimeout();
         flushPendingResponsesTimeout = Duration.create(javaFlushTimeout.toMillis(), TimeUnit.MILLISECONDS);
     }
 
@@ -236,7 +238,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     @Override
     public void postStop() {
         log.info("stopped connection <{}>", connectionId);
-        flushPendingResponses();
+        cancelStopSelfIfDeletedTrigger();
         super.postStop();
     }
 
@@ -275,11 +277,21 @@ public final class ConnectionActor extends AbstractPersistentActor {
                             subscribeForEvents();
                         }
                         getContext().become(connectionCreatedBehaviour);
+                    } else {
+                        stopSelfIfDeletedAfterDelay();
                     }
 
                     getContext().getParent().tell(ConnectionSupervisorActor.ManualReset.getInstance(), getSelf());
                 })
-                .matchAny(m -> log.warning("Unknown recover message: {}", m))
+                .matchAny(m -> {
+                    if (m == null) {
+                        // connection persistence is corrupted.
+                        connection = null;
+                        log.warning("Invalid persistence of Connection <{}>", connectionId);
+                    } else {
+                        log.warning("Unknown recover message: {}", m);
+                    }
+                })
                 .build();
     }
 
@@ -293,6 +305,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in initial behaviour with cause {}: {}",
                         f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
+                .matchEquals(STOP_SELF_IF_DELETED, msg -> stopSelf())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -328,6 +341,10 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .match(Status.Failure.class, f -> log.warning("Got failure in connectionCreated behaviour with " +
                         "cause {}: {}", f.cause().getClass().getSimpleName(), f.cause().getMessage()))
                 .match(PerformTask.class, this::performTask)
+                .matchEquals(STOP_SELF_IF_DELETED, msg -> {
+                    // do nothing; this connection is not deleted.
+                    cancelStopSelfIfDeletedTrigger();
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -373,10 +390,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
-                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId());
-        if (subscribedAndAuthorizedTargets.size() != filteredTargets.size()) {
-            log.warning("Failed to substitute placeholders in all targets, some targets were dropped.");
-        }
+                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
+                        unresolvedPlaceholder -> log.info(UNRESOLVER_PLACEHOLDERS_MESSAGE, unresolvedPlaceholder));
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
@@ -587,7 +602,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
                                         connectionActor -> {
                                             connectionActor.unsubscribeFromEvents();
                                             connectionActor.stopClientActor();
-                                            schedulePendingResponse(closeConnectionResponse, origin);
+                                            origin.tell(closeConnectionResponse, getSelf());
                                         });
                         self.tell(performTask, ActorRef.noSender());
                     },
@@ -847,6 +862,21 @@ public final class ConnectionActor extends AbstractPersistentActor {
         getContext().getParent().tell(PoisonPill.getInstance(), getSelf());
     }
 
+    private void stopSelfIfDeletedAfterDelay() {
+        final ExecutionContextExecutor dispatcher = getContext().dispatcher();
+        cancelStopSelfIfDeletedTrigger();
+        stopSelfIfDeletedTrigger = getContext().system()
+                .scheduler()
+                .scheduleOnce(DELETED_ACTOR_LIFETIME, getSelf(), STOP_SELF_IF_DELETED, dispatcher, ActorRef.noSender());
+    }
+
+    private void cancelStopSelfIfDeletedTrigger() {
+        if (stopSelfIfDeletedTrigger != null) {
+            stopSelfIfDeletedTrigger.cancel();
+            stopSelfIfDeletedTrigger = null;
+        }
+    }
+
     private void handleSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         log.debug("Successfully subscribed to distributed pub/sub on topic <{}>.",
                 subscribeAck.subscribe().topic());
@@ -862,17 +892,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
     }
 
     private void schedulePendingResponse(final ConnectivityCommandResponse response, final ActorRef sender) {
-        // flush previous responses before scheduling the next flush
-        flushPendingResponses();
-        pendingResponses.add(WithSender.of(response, sender));
-        final PerformTask flushPendingResponses =
-                new PerformTask("flush pending responses", ConnectionActor::flushPendingResponses);
-        flushPendingResponsesTrigger = getContext().system().scheduler()
+        getContext().system().scheduler()
                 .scheduleOnce(flushPendingResponsesTimeout,
-                        getSelf(),
-                        flushPendingResponses,
+                        sender,
+                        response,
                         getContext().dispatcher(),
-                        ActorRef.noSender());
+                        getSelf());
     }
 
     private static Consumer<ConnectionActor> subscribeForEventsAndScheduleResponse(
@@ -883,24 +908,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
             connectionActor.subscribeForEvents();
             connectionActor.schedulePendingResponse(response, sender);
         };
-    }
-
-    /**
-     * Send all pending responses to their senders and cancel response flushing trigger.
-     */
-    private void flushPendingResponses() {
-        cancelFlushPendingResponsesTrigger();
-        while (!pendingResponses.isEmpty()) {
-            final WithSender<ConnectivityCommandResponse> withSender = pendingResponses.remove();
-            withSender.getSender().tell(withSender.getMessage(), getSelf());
-        }
-    }
-
-    private void cancelFlushPendingResponsesTrigger() {
-        if (flushPendingResponsesTrigger != null) {
-            flushPendingResponsesTrigger.cancel();
-            flushPendingResponsesTrigger = null;
-        }
     }
 
     /**

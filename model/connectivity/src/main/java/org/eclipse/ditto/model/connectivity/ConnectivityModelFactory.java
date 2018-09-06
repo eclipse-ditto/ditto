@@ -26,7 +26,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 
 /**
  * Factory to create new {@link Connection} instances.
@@ -220,7 +219,7 @@ public final class ConnectivityModelFactory {
      * @return the builder.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers) {
-        return new MutableExternalMessageBuilder(headers);
+        return new UnmodifiableExternalMessageBuilder(headers);
     }
 
     /**
@@ -230,18 +229,7 @@ public final class ConnectivityModelFactory {
      * @return the builder.
      */
     public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
-        return new MutableExternalMessageBuilder(externalMessage);
-    }
-
-    /**
-     * Creates a new {@link Source}.
-     *
-     * @param addresses the source addresses where messages are consumed from
-     * @param consumerCount how many consumer will consume of the new {@link Source}
-     * @return the created {@link Source}
-     */
-    public static Source newSource(final Set<String> addresses, final int consumerCount) {
-        return new ImmutableSource(addresses, consumerCount, AuthorizationModelFactory.emptyAuthContext(), 0);
+        return new UnmodifiableExternalMessageBuilder(externalMessage);
     }
 
     /**
@@ -283,20 +271,43 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final int consumerCount, final int index,
             final AuthorizationContext authorizationContext,
             final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index
+        );
     }
 
     /**
-     * Creates a new {@code Source} object from the specified JSON object.
+     * Creates a new {@link MqttSource}.
      *
-     * @param jsonObject a JSON object which provides the data for the Source to be created.
+     * @param consumerCount how many consumer will consume from this source
      * @param index the index to distinguish between sources that would otherwise be different
-     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param filter the enforcement filter that should be applied
+     * @param qos the qos value for this source
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
      */
-    public static Source sourceFromJson(final JsonObject jsonObject, final int index) {
-        return ImmutableSource.fromJson(jsonObject, index);
+    public static MqttSource newFilteredMqttSource(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext, final String filter, final int qos,
+            final String... sources) {
+        final ImmutableSource immutableSource =
+                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+        return new ImmutableMqttSource(immutableSource, qos, Collections.singleton(filter));
+    }
+
+    /**
+     * Creates a new {@link MqttSource} without an enforcement filter.
+     *
+     * @param consumerCount how many consumer will consume from this source
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param authorizationContext the authorization context of the new {@link Source}
+     * @param sources the sources where messages are consumed from
+     * @return the created {@link Source}
+     */
+    public static MqttSource newMqttSource(final int consumerCount, final int index,
+            final AuthorizationContext authorizationContext, final int qos, final String... sources) {
+        final ImmutableSource immutableSource =
+                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
+        return new ImmutableMqttSource(immutableSource, qos, Collections.emptySet());
     }
 
     /**
@@ -307,7 +318,7 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Target}
      */
     public static Target newTarget(final Target target, final String address) {
-        return newTarget(address,  target.getAuthorizationContext(), target.getTopics());
+        return newTarget(address, target.getAuthorizationContext(), target.getTopics());
     }
 
     /**
@@ -324,7 +335,7 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@link Target}.
+     * Creates a new {@link MqttTarget}.
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
@@ -340,14 +351,72 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@code Target} object from the specified JSON object.
+     * Creates a new {@link MqttTarget} with MQTT specific configuration.
+     *
+     * @param address the address where the signals will be published
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param qos the target qos value
+     * @param requiredTopic the required topic that should be published via this target
+     * @param additionalTopics additional set of topics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newMqttTarget(final String address,
+            final AuthorizationContext authorizationContext,
+            final int qos,
+            final Topic requiredTopic,
+            final Topic... additionalTopics) {
+        final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        final ImmutableTarget target = new ImmutableTarget(address, topics, authorizationContext);
+        return new ImmutableMqttTarget(target, qos);
+    }
+
+    /**
+     * Creates a new {@code Source} object from the specified JSON object. Decides which specific {@link Source}
+     * implementation to choose depending on the given {@link ConnectionType}.
+     *
+     * @param jsonObject a JSON object which provides the data for the Source to be created.
+     * @param index the index to distinguish between sources that would otherwise be different
+     * @param type the connection type required to decide which iplementation of {@link Source} to choose
+     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static Source sourceFromJson(final JsonObject jsonObject, final int index, final ConnectionType type) {
+        switch (type) {
+            case AMQP_091:
+            case AMQP_10:
+                return ImmutableSource.fromJson(jsonObject, index);
+            case MQTT:
+                return ImmutableMqttSource.fromJson(jsonObject, index);
+            default:
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Unexpected connection type <" + type + ">")
+                        .build();
+        }
+    }
+
+    /**
+     * Creates a new {@code Target} object from the specified JSON object. Decides which specific {@link Target}
+     * implementation to choose depending on the given {@link ConnectionType}.
      *
      * @param jsonObject a JSON object which provides the data for the Target to be created.
+     * @param type the connection type required to decide which iplementation of {@link Source} to choose
      * @return a new Source Target is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Target targetFromJson(final JsonObject jsonObject) {
-        return ImmutableTarget.fromJson(jsonObject);
+    public static Target targetFromJson(final JsonObject jsonObject, final ConnectionType type) {
+        switch (type) {
+            case AMQP_091:
+            case AMQP_10:
+                return ImmutableTarget.fromJson(jsonObject);
+            case MQTT:
+                return ImmutableMqttTarget.fromJson(jsonObject);
+            default:
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Unexpected connection type <" + type + ">")
+                        .build();
+        }
     }
 }

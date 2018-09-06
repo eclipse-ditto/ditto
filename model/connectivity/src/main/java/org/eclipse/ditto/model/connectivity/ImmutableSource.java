@@ -80,19 +80,19 @@ final class ImmutableSource implements Source {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(Source.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(Source.JsonFields.ADDRESSES, addresses.stream()
+        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESSES, addresses.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
+        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
 
         if (!authorizationContext.isEmpty()) {
-            jsonObjectBuilder.set(Target.JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
+            jsonObjectBuilder.set(JsonFields.AUTHORIZATION_CONTEXT, authorizationContext.stream()
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()), predicate);
         }
 
-        jsonObjectBuilder.set(JsonFields.CONSUMER_COUNT, consumerCount, predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -105,14 +105,14 @@ final class ImmutableSource implements Source {
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source fromJson(final JsonObject jsonObject, int index) {
+    public static Source fromJson(final JsonObject jsonObject, final int index) {
         final Set<String> readSources = jsonObject.getValue(JsonFields.ADDRESSES)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final int readConsumerCount =
-                jsonObject.getValue(Source.JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
-        final JsonArray authContext = jsonObject.getValue(Source.JsonFields.AUTHORIZATION_CONTEXT)
+                jsonObject.getValue(JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)

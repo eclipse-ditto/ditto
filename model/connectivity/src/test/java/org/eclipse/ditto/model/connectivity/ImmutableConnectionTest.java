@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.model.connectivity.ImmutableConnection.ConnectionUri;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -22,8 +23,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -39,8 +38,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ImmutableConnection}.
  */
 public final class ImmutableConnectionTest {
-
-    private static final Pattern URI_PATTERN = Pattern.compile(Connection.UriRegex.REGEX);
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
@@ -58,9 +55,11 @@ public final class ImmutableConnectionTest {
             ConnectivityModelFactory.newSource(1, 1, AUTHORIZATION_CONTEXT, "amqp/source2");
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final Target TARGET1 =
-            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS, Topic.LIVE_EVENTS);
+            ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS,
+                    Topic.LIVE_EVENTS);
     private static final Target TARGET2 =
-            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES, Topic.LIVE_MESSAGES,
+            ConnectivityModelFactory.newTarget("amqp/target2", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES,
+                    Topic.LIVE_MESSAGES,
                     Topic.LIVE_EVENTS);
     private static final Target TARGET3 =
             ConnectivityModelFactory.newTarget("amqp/target3", AUTHORIZATION_CONTEXT, Topic.LIVE_MESSAGES,
@@ -247,91 +246,66 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
-    public void uriRegexMatchesExpected() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671/vhost");
+    public void parseUriAsExpected() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671/vhost");
 
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isTrue();
-        assertThat(matcher.group(Connection.UriRegex.PROTOCOL_REGEX_GROUP)).isEqualTo("amqps");
-        assertThat(matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP)).isEqualTo("foo");
-        assertThat(matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP)).isEqualTo("bar");
-        assertThat(matcher.group(Connection.UriRegex.HOSTNAME_REGEX_GROUP)).isEqualTo("hono.eclipse.org");
-        assertThat(matcher.group(Connection.UriRegex.PORT_REGEX_GROUP)).isEqualTo("5671");
-        assertThat(matcher.group(Connection.UriRegex.PATH_REGEX_GROUP)).isEqualTo("vhost");
+        assertThat(underTest.getProtocol()).isEqualTo("amqps");
+        assertThat(underTest.getUserName()).contains("foo");
+        assertThat(underTest.getPassword()).contains("bar");
+        assertThat(underTest.getHostname()).isEqualTo("hono.eclipse.org");
+        assertThat(underTest.getPort()).isEqualTo(5671);
+        assertThat(underTest.getPath()).contains("/vhost");
     }
 
     @Test
-    public void uriRegexMatchesWithoutCredentials() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://hono.eclipse.org:5671");
+    public void parseUriWithoutCredentials() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://hono.eclipse.org:5671");
 
-        final boolean matches = matcher.matches();
-        assertThat(matches).isTrue();
-        assertThat(matcher.group(Connection.UriRegex.USERNAME_REGEX_GROUP)).isNull();
-        assertThat(matcher.group(Connection.UriRegex.PASSWORD_REGEX_GROUP)).isNull();
+        assertThat(underTest.getUserName()).isEmpty();
+        assertThat(underTest.getPassword()).isEmpty();
     }
 
     @Test
-    public void uriRegexMatchesWithoutVHost() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org:5671");
+    public void parseUriWithoutPath() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:bar@hono.eclipse.org:5671");
 
-        final boolean matches = matcher.matches();
-        assertThat(matches).isTrue();
-        assertThat(matcher.group(Connection.UriRegex.PATH_REGEX_GROUP)).isNull();
+        assertThat(underTest.getPath()).isEmpty();
+    }
+
+    @Test(expected = ConnectionUriInvalidException.class)
+    public void cannotParseUriWithoutPort() {
+        ConnectionUri.of("amqps://foo:bar@hono.eclipse.org");
+    }
+
+    @Test(expected = ConnectionUriInvalidException.class)
+    public void cannotParseUriWithoutHost() {
+        ConnectionUri.of("amqps://foo:bar@:5671");
+    }
+
+
+    /**
+     * Permit construction of connection URIs with username and without password
+     * because RFC-3986 permits it.
+     */
+    @Test
+    public void canParseUriWithUsernameWithoutPassword() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://foo:@hono.eclipse.org:5671");
+
+        assertThat(underTest.getUserName()).contains("foo");
+        assertThat(underTest.getPassword()).contains("");
     }
 
     @Test
-    public void uriRegexFailsWithoutPort() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@hono.eclipse.org");
+    public void canParseUriWithoutUsernameWithPassword() {
+        final ConnectionUri underTest = ConnectionUri.of("amqps://:bar@hono.eclipse.org:5671");
 
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
+        assertThat(underTest.getUserName()).contains("");
+        assertThat(underTest.getPassword()).contains("bar");
     }
 
-    @Test
-    public void uriRegexFailsWithoutHost() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:bar@:5671");
-
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
-    }
-
-    @Test
-    public void uriRegexFailsWithoutPassword() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://foo:@hono.eclipse.org:5671");
-
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
-    }
-
-    @Test
-    public void uriRegexFailsWithoutUsername() {
-        final Matcher matcher = URI_PATTERN.matcher("amqps://:bar@hono.eclipse.org:5671");
-
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
-    }
-
-    @Test
+    @Test(expected = ConnectionUriInvalidException.class)
     public void uriRegexFailsWithoutProtocol() {
-        final Matcher matcher = URI_PATTERN.matcher("://foo:bar@hono.eclipse.org:5671");
-
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
-    }
-
-    @Test
-    public void uriRegexFailsWithOtherThanAmqpProtocol() {
-        final Matcher matcher = URI_PATTERN.matcher("http://foo:bar@hono.eclipse.org:5671");
-
-        final boolean matches = matcher.matches();
-
-        assertThat(matches).isFalse();
+        ConnectionUri.of("://foo:bar@hono.eclipse.org:5671");
     }
 
     @Test

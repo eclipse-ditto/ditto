@@ -20,3 +20,4 @@ The following connection types are supported:
 
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
+* [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)

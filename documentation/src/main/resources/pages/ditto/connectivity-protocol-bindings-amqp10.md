@@ -45,12 +45,15 @@ inbound messages are processed. These subjects may contain placeholders, see
 ### Target format
 
 An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source
-identifier. The target address may contain placeholders, see 
+identifier. The target address may contain placeholders; see
 [placeholders](basic-connections.html#placeholder-for-target-addresses) section for more 
-information. It is continued with a list of topic strings, each representing a subscription of a Ditto
-[protocol topic](protocol-specification-topic.html) and an array of authorization subjects. Outbound messages 
-are published to the configured target address if one of these subjects have READ permission on the Thing that is 
-associated with a message. 
+information.
+
+Further, `"topics"` is a list of strings, each list entry representing a subscription of
+[Ditto protocol topics](protocol-specification-topic.html).
+
+Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
+have READ permission on the Thing that is associated with a message.
 
 ```json
 {

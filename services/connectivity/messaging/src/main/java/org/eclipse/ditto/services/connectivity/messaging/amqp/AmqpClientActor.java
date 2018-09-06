@@ -213,8 +213,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     final ActorRef child = consumerByNamePrefix.get(namePrefix);
                     return retrieveAddressMetric(consumerData.getAddressWithIndex(), namePrefix, child);
                 }))
-                .thenApply(entries ->
-                        entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
+                .thenApply(entries -> entries.stream().collect(Collectors.toMap(Pair::first, Pair::second)))
                 .handle((result, error) -> {
                     if (error == null) {
                         return result;
@@ -445,15 +444,19 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             data = data.setConnectionStatus(ConnectionStatus.OPEN)
                     .setConnectionStatusDetails("Connection restored at " + Instant.now());
         }
-        if (statusReport.getFailure().isPresent()) {
-            final ConnectionFailure failure = statusReport.getFailure().get();
+
+        final Optional<ConnectionFailure> possibleFailure = statusReport.getFailure();
+        final Optional<MessageConsumer> possibleClosedConsumer = statusReport.getClosedConsumer();
+
+        if (possibleFailure.isPresent()) {
+            final ConnectionFailure failure = possibleFailure.get();
             final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                     failure.getFailure().cause(), failure.getFailureDescription());
             data = data.setConnectionStatus(ConnectionStatus.FAILED)
                     .setConnectionStatusDetails(message);
         }
-        if (statusReport.getClosedConsumer().isPresent()) {
-            final MessageConsumer consumer = statusReport.getClosedConsumer().get();
+        if (possibleClosedConsumer.isPresent()) {
+            final MessageConsumer consumer = possibleClosedConsumer.get();
 
             consumers.stream()
                     .filter(c -> c.getMessageConsumer().equals(consumer))

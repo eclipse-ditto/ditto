@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -97,7 +97,7 @@ public final class DittoMessageMapper implements MessageMapper {
                     .get(ExternalMessage.CONTENT_TYPE_HEADER))
                     .map(MessageMappers::determineCharset)
                     .orElse(StandardCharsets.UTF_8);
-            payload = message.getBytePayload().map(ByteBuffer::array).map(ba -> new String(ba, charset));
+            payload = message.getBytePayload().map(charset::decode).map(CharBuffer::toString);
         } else {
             payload = Optional.empty();
         }

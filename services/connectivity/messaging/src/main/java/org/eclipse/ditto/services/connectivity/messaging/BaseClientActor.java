@@ -89,6 +89,9 @@ import akka.routing.RoundRobinPool;
 import akka.util.Timeout;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -480,29 +483,59 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 });
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
+    /**
+     * Creates the handler for messages in disconnected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
         return matchEvent(OpenConnection.class, BaseClientData.class, this::openConnection)
                 .event(TestConnection.class, BaseClientData.class, this::testConnection);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
+    /**
+     * Creates the handler for messages in connecting state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientConnected.class, BaseClientData.class, this::clientConnected);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+    /**
+     * Creates the handler for messages in connected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(CloseConnection.class, BaseClientData.class, this::closeConnection);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
+    /**
+     * Creates the handler for messages in disconnected state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), BaseClientData.class, this::connectionTimedOut)
                 .event(ConnectionFailure.class, BaseClientData.class, this::connectionFailure)
                 .event(ClientDisconnected.class, BaseClientData.class, this::clientDisconnected);
     }
 
-    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
-        return matchEvent(Status.Status.class, BaseClientData.class,
+    /**
+     * Creates the handler for messages in testing state.
+     * Overwrite and extend by additional matchers.
+     *
+     * @return an FSM function builder
+     */
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
+        return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
                     final Status.Status answerToPublish;
                     if (status instanceof Status.Failure) {
@@ -539,10 +572,11 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> onUnknownEvent(final Object event,
             final BaseClientData state) {
 
-        log.warning("received unknown/unsupported message {} in state {} - status: {}",
-                event, stateName(),
-                state.getConnectionStatus() + ": " +
-                        state.getConnectionStatusDetails().orElse(""));
+        log.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
+                event,
+                stateName(),
+                state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
+                getSender());
 
         final ActorRef sender = getSender();
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
@@ -701,9 +735,12 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 .source(org.eclipse.ditto.services.utils.config.ConfigUtil.instanceIdentifier())
                 .build();
 
+        final CompletionStage<List<SourceMetrics>> sourceMetricsFuture = getCurrentSourcesMetrics();
+        final CompletionStage<List<TargetMetrics>> targetMetricsFuture = getCurrentTargetsMetrics();
+
         final CompletionStage<ConnectionMetrics> metricsFuture =
-                getCurrentSourcesMetrics().thenCompose(sourceMetrics ->
-                        getCurrentTargetsMetrics().thenApply(targetMetrics ->
+                sourceMetricsFuture.thenCompose(sourceMetrics ->
+                        targetMetricsFuture.thenApply(targetMetrics ->
                                 ConnectivityModelFactory.newConnectionMetrics(
                                         getCurrentConnectionStatus(),
                                         getCurrentConnectionStatusDetails().orElse(null),
@@ -810,21 +847,23 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private CompletionStage<List<SourceMetrics>> getCurrentSourcesMetrics() {
+        final long consumedMessages = consumedMessageCounter;
         return collectAsList(getSourcesOrEmptySet()
                 .stream()
                 .map(this::getSourceConnectionStatus)
                 .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessageCounter)
+                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessages)
                 ))
         );
     }
 
     private CompletionStage<List<TargetMetrics>> getCurrentTargetsMetrics() {
+        final long publishedMessages = publishedMessageCounter;
         return collectAsList(getTargetsOrEmptySet()
                 .stream()
                 .map(this::getTargetConnectionStatus)
                 .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessageCounter)
+                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessages)
                 )));
     }
 
@@ -843,11 +882,21 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     /**
      * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
+     * behind a (cluster node local) RoundRobin pool and a dynamic resizer from the current mapping context.
+     */
+    protected Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor() {
+        final MappingContext mappingContext = stateData().getConnection().getMappingContext().orElse(null);
+        return startMessageMappingProcessor(mappingContext);
+    }
+
+    /**
+     * Starts the {@link MessageMappingProcessorActor} responsible for payload transformation/mapping as child actor
      * behind a (cluster node local) RoundRobin pool and a dynamic resizer.
      *
      * @param mappingContext the MappingContext containing information about how to map external messages
      */
-    private void startMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+    private Either<DittoRuntimeException, ActorRef> startMessageMappingProcessor(
+            @Nullable final MappingContext mappingContext) {
         if (!getMessageMappingProcessorActor().isPresent()) {
             final Connection connection = connection();
 
@@ -859,8 +908,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                 log.info(
                         "Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                         dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
-                getSender().tell(dre, getSelf());
-                return;
+                return Left.apply(dre);
             }
 
             log.info("Configured for processing messages with the following MessageMapperRegistry: <{}>",
@@ -879,6 +927,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         } else {
             log.info("MessageMappingProcessor already instantiated: not initializing again.");
         }
+        return Right.apply(messageMappingProcessorActor);
     }
 
     private String nextChildActorName(final String prefix) {

@@ -113,6 +113,11 @@ public interface ExternalMessage {
     Optional<AuthorizationContext> getAuthorizationContext();
 
     /**
+     * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwie
+     */
+    Optional<ThingIdEnforcement> getThingIdEnforcement();
+
+    /**
      * The known payload types of ExternalMessages.
      */
     enum PayloadType {

@@ -26,7 +26,9 @@
 
     <properties>
         <!-- globally set version for checking binary compatibility against -->
-        <binary-compatibility-check.version>0.8.0-M1</binary-compatibility-check.version>
+        <!-- TODO: set to latest release -->
+        <!--<binary-compatibility-check.version>0.8.0-M1</binary-compatibility-check.version>-->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
 
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.6</scala.full.version>
@@ -96,6 +98,7 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
+        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
     </properties>
 
     <dependencyManagement>
@@ -303,6 +306,12 @@
                 <groupId>com.rabbitmq</groupId>
                 <artifactId>amqp-client</artifactId>
                 <version>${amqp-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.lightbend.akka</groupId>
+                <artifactId>akka-stream-alpakka-mqtt_2.12</artifactId>
+                <version>${alpakka-mqtt.version}</version>
             </dependency>
 
             <dependency>

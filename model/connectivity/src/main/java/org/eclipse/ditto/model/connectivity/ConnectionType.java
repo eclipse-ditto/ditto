@@ -29,7 +29,12 @@ public enum ConnectionType implements CharSequence {
     /**
      * Indicates an AMQP 1.0 connection.
      */
-    AMQP_10("amqp-10");
+    AMQP_10("amqp-10"),
+
+    /**
+     * Indicates an MQTT connection.
+     */
+    MQTT("mqtt");
 
     private final String name;
 

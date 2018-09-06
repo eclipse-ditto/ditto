@@ -8,8 +8,9 @@ permalink: basic-connections.html
 ## Connection model
 
   {%
-    include note.html content="To get started with connections right away, consult the [Manage connections]
-    (connectivity-manage-connections.html) page. "
+    include note.html content="To get started with connections right away, consult the
+    [Manage connections](connectivity-manage-connections.html)
+    page. "
   %}
 
 You can integrate your Ditto instance with external messaging services such as 
@@ -33,6 +34,7 @@ for custom payload formats. Currently the following connection types are support
 
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
+* [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
  
  
 The `sources` and `targets` identifier format depends on the `connectionType` and has therefore `connectionType` 
@@ -40,8 +42,8 @@ specific limitations. Those are documented with the corresponding protocol bindi
 
 A connection is initiated by the connectivity service. This obviates the need for client authorization, because
 Ditto becomes the client in this case. Nevertheless, to access resources within Ditto, the connection must know on 
-whose behalf it is acting. This is controlled via the configured `authorisationContext`, which holds a list of
-self-assigned authorization subjects. Before a connection can access a Ditto resource, one of its
+whose behalf it is acting. This is controlled via the configured `authorizationContext`, which holds a list of
+self-assigned authorization subjects. Before a connection can access a Ditto resource, one of its 
 `authorizationSubject`s must be granted the access rights by an authorization mechanism such as
 [ACLs](basic-acl.html) or [Policies](basic-policy.html).
 
@@ -56,9 +58,9 @@ over how messages are consumed or where they are published to. The general synta
 
 ### Placeholder for source authorization subjects
 Processing the messages received via a source using the _same fixed authorization subject_ may not be 
-suitable for every scenario. For example you want to declare fine-grained write permissions per device which would not 
-be possible with a fixed global subject. For this use case we introduced placeholder substitution for authorization subjects of 
-source addresses that are resolved when processing messages from a source. Of course this requires the sender of the 
+suitable for every scenario. For example, if you want to declare fine-grained write permissions per device, this would not 
+be possible with a fixed global subject. For this use case we have introduced placeholder substitution for authorization subjects of 
+source addresses that are resolved when processing messages from a source. Of course, this requires the sender of the 
 message to provide necessary information about the original issuer of the message. 
 
   {%
@@ -68,6 +70,7 @@ message to provide necessary information about the original issuer of the messag
 You can access any header value of the incoming message by using a placeholder like `{% raw %}{{ header:name }}{% endraw %}`.
 
 Example:
+
 Assuming the messages received from the source _telemetry_ contain a `device_id` header (e.g. _sensor-123_), 
 you may configure your source's authorization subject as follows:
 ```json
@@ -87,19 +90,20 @@ In case the header cannot be resolved or the header contains unexpected characte
 back to the sender as an error message, if a valid _reply-to_ header was provided, otherwise the message is dropped.
 
 ### Placeholder for target addresses
-Another use case for placeholders may be to publish thing events or live commands and events to a target address 
+Another use case for placeholders may be to publish Thing events or live commands and events to a target address 
 containing Thing-specific information e.g. you can distribute Things from different namespaces to different target addresses.
 You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
 For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders are resolved as follows:
 
 | Placeholder | Description | Resolved value |
 |--------|------------|------------|
-| `thing:id`  | Full ID composed of _namespace_ + _:_ as a separator + _name_ | org.eclipse.ditto:device-123 |
+| `thing:id`  | Full ID composed of _namespace_  `:` (as a separator), and _name_ | org.eclipse.ditto:device-123 |
 | `thing:namespace`  | Namespace (i.e. first part of an ID)  | org.eclipse.ditto |
 | `thing:name` | Name (i.e. second part of an ID ) | device-123 |
 
 
 Example:
+
 Sending live commands and events to a target address that contains the Things' namespace.
 ```json
    {

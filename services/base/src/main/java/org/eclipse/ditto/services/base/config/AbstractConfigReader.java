@@ -49,9 +49,7 @@ public abstract class AbstractConfigReader {
      * @return the retrieved value if the path exists in the underlying config, an empty optional otherwise.
      */
     protected <T> Optional<T> getIfPresent(final String path, final Function<String, T> retriever) {
-        return config.hasPath(path)
-                ? Optional.of(retriever.apply(path))
-                : Optional.empty();
+        return getIfPresentFrom(config, path, retriever);
     }
 
     /**
@@ -90,5 +88,22 @@ public abstract class AbstractConfigReader {
     protected static String path(final CharSequence... pathElements) {
         requireNonNull(pathElements);
         return String.join(PATH_DELIMITER, pathElements);
+    }
+
+    /**
+     * Retrieve a value if the config object has the required path.
+     *
+     * @param config the config object to check for existence of the path.
+     * @param path config path to retrieve.
+     * @param retriever function to retrieve value from the path. Typically of the form {@code config::getABC}.
+     * @param <T> type of value to retrieve.
+     * @return the retrieved value if the path exists in the underlying config, an empty optional otherwise.
+     */
+    protected static <T> Optional<T> getIfPresentFrom(final Config config,
+            final String path,
+            final Function<String, T> retriever) {
+        return config.hasPath(path)
+                ? Optional.of(retriever.apply(path))
+                : Optional.empty();
     }
 }

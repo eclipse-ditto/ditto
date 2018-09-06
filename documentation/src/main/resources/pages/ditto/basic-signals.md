@@ -50,3 +50,8 @@ other parts of the system.
 3. In addition an **event** is both persisted into the datastore and published.<br/>
    The event describes that the change was applied to an entity (e.g. a `Thing`).<br/>
    Interested parties can subscribe for such **events** and follow the evolving entity.
+
+{% include note.html
+   content="Events caused by commands from a **[connection](basic-connections.html)** are not published
+            **to the same origin**. The connection can receive a response, but will not additionally get an event."
+%}
