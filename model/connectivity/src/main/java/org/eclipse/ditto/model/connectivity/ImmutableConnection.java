@@ -582,6 +582,8 @@ final class ImmutableConnection implements Connection {
     static final class ConnectionUri {
 
         private static final String MASKED_URI_PATTERN = "{0}://{1}{2}:{3,number,#}{4}";
+
+        @SuppressWarnings("squid:S2068") // S2068 tripped due to 'PASSWORD' in variable name
         private static final String USERNAME_PASSWORD_SEPARATOR = ":";
 
         private final String uriString;
