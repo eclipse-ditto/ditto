@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
@@ -41,6 +42,8 @@ import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotExplici
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionFailedException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionNotModifiedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyTooManyModifyingRequestsException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.ResourceNotAccessibleException;
@@ -201,6 +204,23 @@ public final class TestConstants {
          */
         public static final PolicyConflictException POLICY_CONFLICT_EXCEPTION =
                 PolicyConflictException.newBuilder(POLICY_ID).build();
+
+
+        /**
+         * A known {@code PolicyPreconditionFailedException}.
+         */
+        public static final PolicyPreconditionFailedException POLICY_PRECONDITION_FAILED_EXCEPTION =
+                PolicyPreconditionFailedException
+                        .newBuilder(DittoHeaderDefinition.IF_MATCH.getKey(), "\"rev:1\"", "\"rev:2\"")
+                        .build();
+
+        /**
+         * A known {@code PolicyPreconditionNotModifiedException}.
+         */
+        public static final PolicyPreconditionNotModifiedException POLICY_PRECONDITION_NOT_MODIFIED_EXCEPTION =
+                PolicyPreconditionNotModifiedException
+                        .newBuilder("\"rev:1\"", "*")
+                        .build();
 
         /**
          * A known {@code PolicyNotAccessibleException}.

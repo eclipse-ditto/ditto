@@ -191,7 +191,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersMockV2);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
@@ -203,9 +203,9 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertJournal(policyId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(policyId);
 
-                final DeletePolicy deletePolicy = DeletePolicy.of(policyId, dittoHeadersMockV2);
+                final DeletePolicy deletePolicy = DeletePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(deletePolicy, getRef());
-                expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersMockV2));
+                expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersV2));
 
                 final Policy expectedDeletedSnapshot = toDeletedPolicy(policyCreated, 2);
                 assertSnapshots(policyId, Collections.singletonList(expectedDeletedSnapshot));
@@ -220,7 +220,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 expectTerminated(underTest);
                 underTest = Retry.untilSuccess(() -> createPersistenceActorFor(policyId));
 
-                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersMockV2);
+                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(retrievePolicy, getRef());
 
                 // A deleted Policy cannot be retrieved anymore.
@@ -260,7 +260,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 ActorRef underTest = createPersistenceActorFor(policyId);
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersMockV2);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
@@ -272,7 +272,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertSnapshotsEmpty(policyId);
 
                 final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy).build();
-                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersMockV2);
+                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersV2);
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse = expectMsgClass(ModifyPolicyResponse.class);
@@ -284,7 +284,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertSnapshots(policyId, Collections.singletonList(policyForModify));
 
                 // Make sure that the actor has the correct revision no of 2
-                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersMockV2);
+                final RetrievePolicy retrievePolicy = RetrievePolicy.of(policyId, dittoHeadersV2);
                 underTest.tell(retrievePolicy, getRef());
 
                 final RetrievePolicyResponse retrievePolicyResponse = expectMsgClass(RetrievePolicyResponse
@@ -327,7 +327,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersMockV2);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
@@ -346,7 +346,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertSnapshots(policyId, Collections.singletonList(createdPolicy));
 
                 final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy).build();
-                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersMockV2);
+                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersV2);
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse1 = expectMsgClass(ModifyPolicyResponse.class);
@@ -385,7 +385,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
                 final ActorRef underTest = createPersistenceActorFor(policyId);
 
-                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersMockV2);
+                final CreatePolicy createPolicy = CreatePolicy.of(policy, dittoHeadersV2);
                 underTest.tell(createPolicy, getRef());
 
                 final CreatePolicyResponse createPolicyResponse = expectMsgClass(CreatePolicyResponse.class);
@@ -397,7 +397,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 assertSnapshotsEmpty(policyId);
 
                 final Policy policyForModify = PoliciesModelFactory.newPolicyBuilder(policy).build();
-                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersMockV2);
+                final ModifyPolicy modifyPolicy = ModifyPolicy.of(policyId, policyForModify, dittoHeadersV2);
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyRsponse1 = expectMsgClass(ModifyPolicyResponse.class);

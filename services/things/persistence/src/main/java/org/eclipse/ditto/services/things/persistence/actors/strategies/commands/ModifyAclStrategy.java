@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -27,7 +29,8 @@ import org.eclipse.ditto.signals.events.things.AclModified;
  * This strategy handles the {@link ModifyAcl} command.
  */
 @Immutable
-public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> {
+public final class ModifyAclStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAcl, AccessControlList> {
 
     /**
      * Constructs a new {@code ModifyAclStrategy} object.
@@ -46,13 +49,17 @@ public final class ModifyAclStrategy extends AbstractCommandStrategy<ModifyAcl> 
         final Validator aclValidator = AclValidator.newInstance(newAccessControlList,
                 Thing.MIN_REQUIRED_PERMISSIONS);
         if (!aclValidator.isValid()) {
-            return ResultFactory.newResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
+            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
                     dittoHeaders));
         }
 
-        return ResultFactory.newResult(AclModified.of(thingId, newAccessControlList, nextRevision,
+        return ResultFactory.newMutationResult(command, AclModified.of(thingId, newAccessControlList, nextRevision,
                 getEventTimestamp(), dittoHeaders),
-                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()));
+                ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), this);
     }
 
+    @Override
+    public Optional<AccessControlList> determineETagEntity(final ModifyAcl command, @Nullable final Thing thing) {
+        return getThingOrThrow(thing).getAccessControlList();
+    }
 }

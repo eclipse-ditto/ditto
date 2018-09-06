@@ -11,12 +11,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Authorization.AUTH_SUBJECT_GRIMES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveAclEntryResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
@@ -46,15 +48,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingId(), command.getAuthorizationSubject(),
-                        command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+                        command.getDittoHeaders());
+
+        assertErrorResult(underTest, THING_V2, command, expectedException);
     }
 
     @Test
@@ -62,15 +60,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAllPermissionsOf(AUTH_SUBJECT_GRIMES), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
+        final DittoRuntimeException expectedException =
                 ExceptionFactory.aclEntryNotFound(command.getThingId(), command.getAuthorizationSubject(),
-                        command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+                        command.getDittoHeaders());
+
+        assertErrorResult(underTest, THING_V2, command, expectedException);
     }
 
     @Test
@@ -78,15 +72,11 @@ public final class RetrieveAclEntryStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveAclEntry command =
                 RetrieveAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
+        final RetrieveAclEntryResponse expectedResponse =
+                retrieveAclEntryResponse(command.getThingId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
+                        command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(
-                RetrieveAclEntryResponse.of(command.getThingId(), TestConstants.Authorization.ACL_ENTRY_GRIMES,
-                        command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertQueryResult(underTest, THING_V1, command, expectedResponse);
     }
 
 }

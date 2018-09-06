@@ -27,8 +27,9 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Before;
 import org.junit.Test;
@@ -210,10 +211,10 @@ public final class DefaultDittoHeadersBuilderTest {
         final String key = DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey();
         final String value = AUTHORIZATION_SUBJECTS.get(0);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeader(key, value))
-                .withMessage("Value <%s> for key <%s> is not a valid JSON array!", value, key)
-                .withCauseInstanceOf(JsonParseException.class);
+                .withMessage("The value '%s' of the header '%s' is not a valid JSON array.", value, key)
+                .withNoCause();
     }
 
     @Test
@@ -236,11 +237,11 @@ public final class DefaultDittoHeadersBuilderTest {
         initialHeaders.put("foo", "bar");
         initialHeaders.put(readSubjectsKey, invalidJsonArrayString);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> of(initialHeaders))
-                .withMessage("Value <%s> for key <%s> is not a valid JSON array!", invalidJsonArrayString,
+                .withMessage("The value '%s' of the header '%s' is not a valid JSON array.", invalidJsonArrayString,
                         readSubjectsKey)
-                .withCauseInstanceOf(JsonParseException.class);
+                .withNoCause();
     }
 
     @Test
@@ -254,10 +255,11 @@ public final class DefaultDittoHeadersBuilderTest {
                 .set("foo", "bar")
                 .build();
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> of(headersJsonObject))
-                .withMessage("Value <%s> for key <%s> is not a valid int!", invalidSchemaVersionValue, schemaVersionKey)
-                .withCauseInstanceOf(NumberFormatException.class);
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidSchemaVersionValue,
+                        schemaVersionKey)
+                .withNoCause();
     }
 
     @Test
@@ -271,6 +273,18 @@ public final class DefaultDittoHeadersBuilderTest {
                 .build();
 
         assertThat(dittoHeaders).hasSize(2).doesNotContainKeys(sourceKey);
+    }
+
+    @Test
+    public void removePreconditionHeaders() {
+
+        final DittoHeaders dittoHeaders = underTest
+                .ifMatch(EntityTagMatchers.fromStrings("\"test\""))
+                .ifNoneMatch(EntityTagMatchers.fromStrings("\"test2\""))
+                .removePreconditionHeaders()
+                .build();
+
+        assertThat(dittoHeaders).hasSize(0);
     }
 
 }

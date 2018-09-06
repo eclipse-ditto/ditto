@@ -11,12 +11,16 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
@@ -27,7 +31,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
  * This strategy handles the {@link DeleteAclEntry} command.
  */
 @Immutable
-final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntry> {
+final class DeleteAclEntryStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteAclEntry, AclEntry> {
 
     /**
      * Constructs a new {@code DeleteAclEntryStrategy} object.
@@ -42,14 +46,20 @@ final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntr
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return getThingOrThrow(thing).getAccessControlList()
-                .filter(acl -> acl.contains(authSubject))
+        return extractAcl(thing, command)
                 .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command))
-                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.aclEntryNotFound(context.getThingId(),
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getThingId(),
                         authSubject, dittoHeaders)));
     }
 
-    private static Result getDeleteAclEntryResult(final AccessControlList acl, final Context context,
+    private Optional<AccessControlList> extractAcl(@Nullable final Thing thing, final DeleteAclEntry command) {
+        final AuthorizationSubject authSubject = command.getAuthorizationSubject();
+
+        return getThingOrThrow(thing).getAccessControlList()
+                .filter(acl -> acl.contains(authSubject));
+    }
+
+    private Result getDeleteAclEntryResult(final AccessControlList acl, final Context context,
             final long nextRevision, final DeleteAclEntry command) {
 
         final String thingId = context.getThingId();
@@ -60,16 +70,27 @@ final class DeleteAclEntryStrategy extends AbstractCommandStrategy<DeleteAclEntr
 
         final Validator validator = getAclValidator(aclWithoutAuthSubject);
         if (!validator.isValid()) {
-            return ResultFactory.newResult(ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders));
+            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders));
         }
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 AclEntryDeleted.of(thingId, authSubject, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteAclEntryResponse.of(thingId, authSubject, dittoHeaders));
+                DeleteAclEntryResponse.of(thingId, authSubject, dittoHeaders), this);
     }
 
     private static Validator getAclValidator(final AccessControlList acl) {
         return AclValidator.newInstance(acl, Thing.MIN_REQUIRED_PERMISSIONS);
     }
 
+    @Override
+    public Optional<AclEntry> determineETagEntity(final DeleteAclEntry command, @Nullable final Thing thing) {
+        return extractAclEntry(thing, command);
+    }
+
+    private Optional<AclEntry> extractAclEntry(@Nullable final Thing thing, final DeleteAclEntry command) {
+        final AuthorizationSubject authSubject = command.getAuthorizationSubject();
+
+        return getThingOrThrow(thing).getAccessControlList()
+                .flatMap(acl -> acl.getEntryFor(authSubject));
+    }
 }

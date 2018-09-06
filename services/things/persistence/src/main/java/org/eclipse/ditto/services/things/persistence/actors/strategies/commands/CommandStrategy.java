@@ -11,14 +11,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
@@ -76,13 +73,13 @@ public interface CommandStrategy<T extends Command> {
     interface Result {
 
         /**
+         * @param context the context
          * @param persistConsumer the consumer that is called if the result contains an event to persist and a response
          * @param notifyConsumer the consumer that is called for a response or an exception
-         * @param becomeDeletedRunnable runnable that is called if the actor should now act as deleted handler
          */
-        void apply(BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                Consumer<WithDittoHeaders> notifyConsumer,
-                Runnable becomeDeletedRunnable);
+        void apply(final Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer);
 
         /**
          * @return the empty result
@@ -90,16 +87,6 @@ public interface CommandStrategy<T extends Command> {
         static Result empty() {
             return ResultFactory.emptyResult();
         }
-
-        Optional<ThingModifiedEvent> getEventToPersist();
-
-        Optional<WithDittoHeaders> getCommandResponse();
-
-        Optional<DittoRuntimeException> getException();
-
-        Optional<CompletionStage<WithDittoHeaders>> getFutureResponse();
-
-        boolean isBecomeDeleted();
 
     }
 
@@ -123,6 +110,15 @@ public interface CommandStrategy<T extends Command> {
          */
         ThingSnapshotter getThingSnapshotter();
 
+        /**
+         * @return the runnable to be called in case a Thing is created.
+         */
+        Runnable getBecomeCreatedRunnable();
+
+        /**
+         * @return the runnable to be called in case a Thing is deleted.
+         */
+        Runnable getBecomeDeletedRunnable();
     }
 
 }

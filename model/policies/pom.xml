@@ -80,43 +80,22 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <oldVersion>
-                        <dependency>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${binary-compatibility-check.version}</version>
-                            <type>bundle</type>
-                        </dependency>
-                    </oldVersion>
-                    <newVersion>
-                        <file>
-                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
-                        </file>
-                    </newVersion>
                     <parameter>
                         <excludes>
-                            <exclude>org.eclipse.ditto.model.policies.SubjectIssuer</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#getId()</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#getModified()</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#getRevision()</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#toJson()</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.Policy#toJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
+
+                            <exclude>org.eclipse.ditto.model.policies.PolicyRevision#isGreaterThan(org.eclipse.ditto.model.policies.PolicyRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.PolicyRevision#isGreaterThanOrEqualTo(org.eclipse.ditto.model.policies.PolicyRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.PolicyRevision#isLowerThan(org.eclipse.ditto.model.policies.PolicyRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.PolicyRevision#isLowerThanOrEqualTo(org.eclipse.ditto.model.policies.PolicyRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.policies.PolicyRevision#toLong()</exclude>
                         </excludes>
-                        <onlyModified>true</onlyModified>
-                        <accessModifier>public</accessModifier>
-                        <breakBuildOnModifications>false</breakBuildOnModifications>
-                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
-                        <includeSynthetic>false</includeSynthetic>
-                        <ignoreMissingClasses>false</ignoreMissingClasses>
-                        <skipPomModules>true</skipPomModules>
-                        <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                     </parameter>
-                    <skip>false</skip>
                 </configuration>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>cmp</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newResult;
+import static org.eclipse.ditto.services.things.persistence.actors.strategies.commands.ResultFactory.newErrorResult;
 
 import java.util.Optional;
 
@@ -34,7 +34,8 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This strategy handles the {@link ModifyThing} command for an already existing Thing.
  */
 @Immutable
-final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
+final class ModifyThingStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyThing, Thing> {
 
     /**
      * Constructs a new {@code ModifyThingStrategy} object.
@@ -60,7 +61,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         return handleModifyExistingWithV2Command(context, nonNullThing, nextRevision, command);
     }
 
-    private static Result handleModifyExistingWithV1Command(final Context context, final Thing thing, final long nextRevision,
+    private Result handleModifyExistingWithV1Command(final Context context, final Thing thing, final long nextRevision,
             final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV1Command(context, thing, nextRevision, command);
@@ -69,7 +70,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         }
     }
 
-    private static Result handleModifyExistingV1WithV1Command(final Context context,
+    private Result handleModifyExistingV1WithV1Command(final Context context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         final String thingId = context.getThingId();
@@ -92,19 +93,19 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
 
                 final ThingModified thingModified = ThingModified.of(mergedThing, nextRevision, getEventTimestamp(),
                         dittoHeaders);
-                return newResult(thingModified, ModifyThingResponse.modified(thingId, dittoHeaders));
+                return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, dittoHeaders), this);
             } else {
                 context.getLog().error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
                         "Persisting the event nevertheless to not block the user because of an " +
                         "unknown internal state.", thingId);
                 final ThingModified thingModified =
                         ThingModified.of(command.getThing(), nextRevision, getEventTimestamp(), dittoHeaders);
-                return newResult(thingModified, ModifyThingResponse.modified(thingId, dittoHeaders));
+                return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, dittoHeaders), this);
             }
         }
     }
 
-    private static Result handleModifyExistingV2WithV1Command(final Context context,
+    private Result handleModifyExistingV2WithV1Command(final Context context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         final String thingId = context.getThingId();
@@ -112,7 +113,8 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
         final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()));
         final ThingModified thingModified =
                 ThingModified.of(thingWithoutAcl, nextRevision, getEventTimestamp(), command.getDittoHeaders());
-        return newResult(thingModified, ModifyThingResponse.modified(thingId, command.getDittoHeaders()));
+        return ResultFactory.newMutationResult(command, thingModified, ModifyThingResponse.modified(thingId, command.getDittoHeaders()),
+                this);
     }
 
     private static Thing removeACL(final Thing thing) {
@@ -121,7 +123,7 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 .build();
     }
 
-    private static Result handleModifyExistingWithV2Command(final Context context, final Thing thing,
+    private Result handleModifyExistingWithV2Command(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
             return handleModifyExistingV1WithV2Command(context, thing, nextRevision, command);
@@ -131,25 +133,23 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     }
 
     /**
-     * Handles a {@link ModifyThing} command that was sent
-     * via API v2 and targets a Thing with API version V1.
+     * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V1.
      */
-    private static Result handleModifyExistingV1WithV2Command(final Context context,
+    private Result handleModifyExistingV1WithV2Command(final Context context,
             final Thing thing, final long nextRevision, final ModifyThing command) {
         if (containsPolicyId(command)) {
             final Thing thingWithoutAcl = thing.toBuilder().removeAllPermissions().build();
             return applyModifyCommand(context, thingWithoutAcl, nextRevision, command);
         } else {
-            return newResult(
+            return newErrorResult(
                     PolicyIdMissingException.fromThingIdOnUpdate(context.getThingId(), command.getDittoHeaders()));
         }
     }
 
     /**
-     * Handles a {@link ModifyThing} command that was sent
-     * via API v2 and targets a Thing with API version V2.
+     * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private static Result handleModifyExistingV2WithV2Command(final Context context,
+    private Result handleModifyExistingV2WithV2Command(final Context context,
             final Thing thing, final long nextRevision,
             final ModifyThing command) {
         // ensure the Thing contains a policy ID
@@ -161,23 +161,23 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
                 ModifyThing.of(command.getThingId(), thingWithPolicyId, null, command.getDittoHeaders()));
     }
 
-    private static Result applyModifyCommand(final Context context, final Thing thing,
+    private Result applyModifyCommand(final Context context, final Thing thing,
             final long nextRevision, final ModifyThing command) {
         // make sure that the ThingModified-Event contains all data contained in the resulting existingThing (this is
         // required e. g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return newResult(
+        return ResultFactory.newMutationResult(command,
                 ThingModified.of(mergeThingModifications(command.getThing(), thing, nextRevision),
                         nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyThingResponse.modified(context.getThingId(), dittoHeaders));
+                ModifyThingResponse.modified(context.getThingId(), dittoHeaders), this);
     }
 
     /**
      * Merges the modifications from {@code thingWithModifications} to {@code builder}. Merge is implemented very
-     * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of
-     * {@code builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in
-     * {@code builder} remains unchanged.
+     * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
+     * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code builder}
+     * remains unchanged.
      *
      * @param thingWithModifications the thing containing the modifications.
      */
@@ -214,7 +214,11 @@ final class ModifyThingStrategy extends AbstractCommandStrategy<ModifyThing> {
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
-        return newResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
+        return newErrorResult(new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    public Optional<Thing> determineETagEntity(final ModifyThing thingCommand, @Nullable final Thing thing) {
+        return Optional.of(getThingOrThrow(thing));
+    }
 }

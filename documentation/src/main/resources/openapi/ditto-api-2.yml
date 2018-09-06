@@ -112,6 +112,11 @@ paths:
         '201':
           description: The Thing was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Thing resource
               type: string
@@ -127,6 +132,8 @@ paths:
           description: The request could not be completed due to missing authentication.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}':
     get:
       summary: Retrieve a specific Thing
@@ -141,11 +148,21 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/thingFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned the specific Thing.
           schema:
             $ref: '#/definitions/Thing'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -166,6 +183,8 @@ paths:
             not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a Thing
       description: >-
@@ -262,10 +281,17 @@ paths:
           required: false
           schema:
             $ref: '#/definitions/NewThing'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Thing was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Thing resource
               type: string
@@ -273,6 +299,12 @@ paths:
             $ref: '#/definitions/Thing'
         '204':
           description: The Thing was successfully modified.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -295,6 +327,8 @@ paths:
                 For modifying an existing Thing an unrestricted `WRITE` permission on the Thing's root resource is required.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Thing
       description: >-
@@ -304,6 +338,8 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Thing was successfully deleted.
@@ -332,6 +368,8 @@ paths:
             not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/policyId':
     get:
       summary: Retrieve the Policy ID of a Thing
@@ -341,11 +379,21 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned the Policy ID.
           schema:
             type: string
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: >-
             The request could not be completed. The `thingId` either
@@ -362,6 +410,8 @@ paths:
           description: The request could not be completed. The Thing with the given ID was not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update the Policy ID of a Thing
       description: >-
@@ -384,14 +434,28 @@ paths:
             type: string
             example: "any.namespace:any.policy"
           required: true
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: >-
             The Policy ID was successfully created - the Thing was migrated to API version 2.
           schema:
             type: string
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '204':
           description: The Policy ID was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -410,6 +474,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/attributes':
     get:
       summary: List all Attributes of a specific Thing
@@ -420,11 +486,21 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributesFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Attributes of the specific Thing were successfully retrieved.
           schema:
             $ref: '#/definitions/Attributes'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -442,6 +518,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update all Attributes of a specific Thing at once
       description: >-
@@ -462,17 +540,30 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Attributes'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Attributes were successfully created.
           schema:
             $ref: '#/definitions/Attributes'
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Attributes resource
               type: string
         '204':
           description: The Attributes were successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -499,6 +590,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Attributes of a specific Thing at once
       description: >-
@@ -507,6 +600,8 @@ paths:
         - Things
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Attributes were successfully deleted.
@@ -534,6 +629,8 @@ paths:
             The request could not be completed. The Thing with the given ID or its Attributes were not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific Attribute of a specific Thing
@@ -546,9 +643,19 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Attribute was successfully retrieved.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -567,6 +674,8 @@ paths:
             was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a specific Attribute of a specific Thing
       description: >-
@@ -580,15 +689,28 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
         - $ref: '#/parameters/attributeAndPropertyBodyParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Attribute was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Attribute resource
               type: string
         '204':
           description: The Attribute was successfully modified.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -613,6 +735,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Attribute of a specific Thing
       description: >-
@@ -624,6 +748,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/attributePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Attribute was successfully deleted.
@@ -652,6 +778,8 @@ paths:
             was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
 ###
 ### Features
 ###
@@ -665,12 +793,22 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featuresFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The list of Features of the specific Thing were successfully retrieved.
           schema:
             $ref: '#/definitions/Features'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -691,6 +829,8 @@ paths:
             been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify all Features of a specific Thing at once
       description: >-
@@ -708,17 +848,30 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Features'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Features were successfully created.
           schema:
             $ref: '#/definitions/Features'
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Features resource
               type: string
         '204':
           description: The Features were successfully modified.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -745,6 +898,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Features of a specific Thing
       description: >-
@@ -753,6 +908,8 @@ paths:
         - Features
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Features were successfully deleted.
@@ -781,6 +938,8 @@ paths:
             been defined.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific Feature of a specific Thing
@@ -793,11 +952,21 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/featureFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Feature was successfully retrieved.
           schema:
             $ref: '#/definitions/Feature'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -818,6 +987,8 @@ paths:
             `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify a specific Feature of a specific Thing
       description: >-
@@ -828,6 +999,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
         - name: feature
           in: body
           description: >-
@@ -841,11 +1014,22 @@ paths:
           schema:
             $ref: '#/definitions/Feature'
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Feature resource
               type: string
         '204':
           description: The Feature was successfully modified.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -872,6 +1056,8 @@ paths:
             The request could not be completed. The Thing with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Feature of a specific Thing
       description: >-
@@ -882,6 +1068,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Feature was successfully deleted.
@@ -910,6 +1098,8 @@ paths:
             not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the Definition of a Feature
@@ -920,11 +1110,21 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Definition was successfully retrieved.
           schema:
             $ref: '#/definitions/FeatureDefinition'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -945,6 +1145,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update the Definition of a Feature
       description: >-
@@ -964,17 +1166,30 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/FeatureDefinition'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Definition was successfully created.
           schema:
             $ref: '#/definitions/FeatureDefinition'
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Definition resource
               type: string
         '204':
           description: The Definition was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1000,6 +1215,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete the Definition of a Feature
       description: >-
@@ -1009,6 +1226,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Definition was successfully deleted.
@@ -1036,6 +1255,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all Properties of a Feature
@@ -1047,9 +1268,19 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertiesFieldsQueryParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Properties were successfully retrieved.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1070,6 +1301,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update all Properties of a Feature at once
       description: >-
@@ -1089,11 +1322,25 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/FeatureProperties'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Properties were successfully created.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '204':
           description: The Properties were successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1120,6 +1367,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete all Properties of a Feature
       description: >-
@@ -1129,6 +1378,8 @@ paths:
       parameters:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Properties were successfully deleted.
@@ -1157,6 +1408,8 @@ paths:
             specified `thingId` or the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific Property of a Feature
@@ -1171,9 +1424,19 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The Property was successfully retrieved.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1192,6 +1455,8 @@ paths:
             the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a specific Property of a Feature
       description: >-
@@ -1207,11 +1472,25 @@ paths:
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
         - $ref: '#/parameters/attributeAndPropertyBodyParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Property was successfully created.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '204':
           description: The Property was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `thingId` either
@@ -1238,6 +1517,8 @@ paths:
             The request could not be completed. The Thing or the Feature with the given ID was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Property of a Feature
       description: >-
@@ -1251,6 +1532,8 @@ paths:
         - $ref: '#/parameters/thingIdPathParam'
         - $ref: '#/parameters/featureIdPathPathParam'
         - $ref: '#/parameters/propertyPathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Property was successfully deleted.
@@ -1272,6 +1555,8 @@ paths:
             the Feature with `featureId` was not found.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
 ###
 ### Messages
 ###
@@ -1534,12 +1819,22 @@ paths:
         - Policies
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The request successfully returned completed and returned is the Policy.
           schema:
             $ref: '#/definitions/Policy'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1558,6 +1853,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or update a Policy
       description: Modify the complete Policy identified by the `policyId` path parameter.
@@ -1575,10 +1872,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Policy'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Policy was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Policy resource
               type: string
@@ -1586,6 +1890,12 @@ paths:
             $ref: '#/definitions/Policy'
         '204':
           description: The Policy was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1613,6 +1923,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete a specific Policy
       description: >-
@@ -1622,6 +1934,8 @@ paths:
         - Policies
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Policy was successfully deleted.
@@ -1652,6 +1966,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries':
     get:
       summary: Retrieve the entries of a specific Policy
@@ -1661,12 +1977,22 @@ paths:
         - Policies
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The request successfully returned completed and returned are the Policy entries.
           schema:
             $ref: '#/definitions/PolicyEntries'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1685,6 +2011,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Modify the entries of a specific Policy
       description: >-
@@ -1703,9 +2031,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/PolicyEntries'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Policy entries were successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1732,6 +2068,8 @@ paths:
             The request could not be completed. The Policy with the given ID was not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}':
     get:
       summary: Retrieve one Policy entry of a Policy for a specific label
@@ -1743,12 +2081,22 @@ paths:
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The request successfully returned completed and returned is the Policy entry.
           schema:
             $ref: '#/definitions/PolicyEntry'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1768,6 +2116,8 @@ paths:
             user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify one Policy entry of a Policy for a specific label
       description: >-
@@ -1788,10 +2138,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/PolicyEntry'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Policy entry was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Policy entry
               type: string
@@ -1799,6 +2156,12 @@ paths:
             $ref: '#/definitions/PolicyEntry'
         '204':
           description: The Policy entry was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1826,6 +2189,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete one Policy entry of a Policy for a specific label
       description: >-
@@ -1836,6 +2201,8 @@ paths:
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Policy entry was successfully deleted.
@@ -1864,6 +2231,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/subjects':
     get:
       summary: Retrieve all Subjects of a Policy entry
@@ -1875,11 +2244,21 @@ paths:
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned. The subjects are returned.
           schema:
             $ref: '#/definitions/Subjects'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1898,6 +2277,8 @@ paths:
              context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify all Subjects of a Policy Entry
       description: >-
@@ -1918,9 +2299,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Subjects'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Subjects were successfully created or updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1948,6 +2337,8 @@ paths:
             authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
     get:
       summary: Retrieve one specific Subject of a Policy entry
@@ -1960,12 +2351,22 @@ paths:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
         - $ref: '#/parameters/subjectIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The request successfully returned completed and returned is the Subject.
           schema:
             $ref: '#/definitions/SubjectEntry'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -1984,6 +2385,8 @@ paths:
              found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify one specific Subject of a Policy entry
       description: >-
@@ -2001,10 +2404,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/SubjectEntry'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Subject was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Subject
               type: string
@@ -2012,6 +2422,12 @@ paths:
             $ref: '#/definitions/SubjectEntry'
         '204':
           description: The Subject was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2039,6 +2455,8 @@ paths:
              context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete one specific Subject of a Policy entry
       description: >-
@@ -2050,6 +2468,8 @@ paths:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
         - $ref: '#/parameters/subjectIdPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Subject was successfully deleted.
@@ -2078,6 +2498,8 @@ paths:
              found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/resources':
     get:
       summary: Retrieve all Resources of a Policy entry
@@ -2089,11 +2511,21 @@ paths:
       parameters:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: The request successfully returned. The resources are returned.
           schema:
             $ref: '#/definitions/Resources'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2112,6 +2544,8 @@ paths:
              context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify all Resources of a Policy Entry
       description: >-
@@ -2128,9 +2562,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/Resources'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Resources were successfully created or updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2158,6 +2600,8 @@ paths:
              context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
     get:
       summary: Retrieve one specific Resource of a Policy entry
@@ -2170,12 +2614,22 @@ paths:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
         - $ref: '#/parameters/resourcePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '200':
           description: >-
             The request successfully returned completed and returned is the Resource.
           schema:
             $ref: '#/definitions/ResourceEntry'
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2194,6 +2648,8 @@ paths:
             not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     put:
       summary: Create or modify one specific Resource of a Policy entry
       description: >-
@@ -2211,10 +2667,17 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/ResourceEntry'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '201':
           description: The Resource was successfully created.
           headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
             Location:
               description: The location of the created Resource
               type: string
@@ -2222,6 +2685,14 @@ paths:
             $ref: '#/definitions/ResourceEntry'
         '204':
           description: The Resource was successfully updated.
+          headers:
+            ETag:
+              description: >-
+                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+                "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+              type: string
+        '304':
+          $ref: '#/responses/notModified'
         '400':
           description: |-
             The request could not be completed. The `policyId` either
@@ -2249,6 +2720,8 @@ paths:
              context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
     delete:
       summary: Delete one Resource of a Policy entry
       description: >-
@@ -2260,6 +2733,8 @@ paths:
         - $ref: '#/parameters/policyIdPathParam'
         - $ref: '#/parameters/labelPathParam'
         - $ref: '#/parameters/resourcePathPathParam'
+        - $ref: '#/parameters/ifMatchHeaderParam'
+        - $ref: '#/parameters/ifNoneMatchHeaderParam'
       responses:
         '204':
           description: The Resource was successfully deleted.
@@ -2288,6 +2763,8 @@ paths:
             not found in the context of the authenticated user.
           schema:
             $ref: '#/definitions/AdvancedError'
+        '412':
+          $ref: '#/responses/preconditionFailed'
 ###
 ### Search
 ###
@@ -2676,7 +3153,49 @@ definitions:
         $ref: '#/definitions/Feature'
       featureIdN:
         $ref: '#/definitions/Feature'
+responses:
+  notModified:
+    description: >-
+      The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
+      matches the current ETag of the (sub-)resource.
+    headers:
+      ETag:
+        description: >-
+          The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+          "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+        type: string
+  preconditionFailed:
+    description: >-
+      A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, when you
+      specified an If-Match or If-None-Match header which fails the precondition check against the current ETag of
+      the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
+      failing If-None-Match header for a read request, status 304 will be returned instead.
+    headers:
+      ETag:
+        description: >-
+          The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+          "rev:<revision>", for sub-resources it has the format "hash:<calculated-hash>".
+        type: string
+    schema:
+      $ref: '#/definitions/AdvancedError'
 parameters:
+  ifMatchHeaderParam:
+    name: If-Match
+    in: header
+    description:  >-
+      The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+        * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
+        * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+    type: string
+    required: false
+  ifNoneMatchHeaderParam:
+    name: If-None-Match
+    in: header
+    description:  >-
+      The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
+      modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
+    type: string
+    required: false
   featureIdPathPathParam:
     name: featureId
     in: path

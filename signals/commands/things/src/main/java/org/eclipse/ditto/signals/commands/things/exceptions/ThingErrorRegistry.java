@@ -115,6 +115,8 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(FeatureDefinitionIdentifierInvalidException.ERROR_CODE,
                 FeatureDefinitionIdentifierInvalidException::fromJson);
         parseStrategies.put(MissingThingIdsException.ERROR_CODE, MissingThingIdsException::fromJson);
+        parseStrategies.put(ThingPreconditionNotModifiedException.ERROR_CODE, ThingPreconditionNotModifiedException::fromJson);
+        parseStrategies.put(ThingPreconditionFailedException.ERROR_CODE, ThingPreconditionFailedException::fromJson);
 
         return new ThingErrorRegistry(parseStrategies);
     }

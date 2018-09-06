@@ -1,6 +1,6 @@
 ---
 title: HTTP API concepts
-keywords: http, api, concepts, partial
+keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match, If-None-Match
 tags: [http]
 permalink: httpapi-concepts.html
 ---
@@ -23,9 +23,9 @@ this entity. In API version 1, the JSON structure of the `Thing` entity won't be
 (e.g. by removing or renaming a JSON field).
 
 That is also the reason for Ditto having already 2 API versions. In API 2 the `Thing` structure was changed to no longer
-contain the [acl](basic-acl.html) inline as payload of the Thing, but the authorization information in API 2 is managed 
-by [Policies](basic-policy.html). The `acl` field was removed from structure of the `Thing` and the `policyId` added - 
-that's why Ditto had to make this change in an API version 2.
+contain the [ACL](basic-acl.html) inline as payload of the Thing. Instead, the authorization information in API 2 is 
+managed by [Policies](basic-policy.html). The `acl` field was removed from the structure of the `Thing` and the 
+`policyId` was added - that's why Ditto had to make this change in an API version 2.
 
 
 ## Endpoints
@@ -100,21 +100,21 @@ For example for a `Thing` with following content:
 ```
 
 The following additional API endpoints are automatically available:
-* `/things/{thingId}/acl/userId`: accessing the ACL entry for user `userId` of the `Thing`
-* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the `Thing`
-* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the `Thing`
-* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the `Thing`
-* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the `Thing`
-* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the `Thing`
+* `/things/{thingId}/acl/userId`: accessing the ACL entry for user `userId` of the specific thing
+* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the specific thing
+* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the specific thing
+* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the specific thing
+* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the specific thing
+* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the specific thing
 
 
 ### API version 2
 
 In API version 2, a `Thing` does no longer contain information about the authorization in an inlined [ACL](basic-acl.html),
-but contains a `policyId` which points to a `Policy` managed by another entity and API endpoint located under `/policies`. 
+but contains a `policyId`, which points to a `Policy` managed as another entity. Its API endpoint is `/policies`. 
 
 #### `/things` in API 2
 
@@ -134,10 +134,10 @@ A `Thing` in API 2 has the following JSON structure:
 ```
 
 This maps to the following HTTP API endpoints:
-* `/things/{thingId}`: accessing complete `Thing`
-* `/things/{thingId}/policyId`: accessing the policy ID of the `Thing`
-* `/things/{thingId}/attributes`: accessing the attributes of the `Thing`
-* `/things/{thingId}/features`: accessing the features of the `Thing`
+* `/things/{thingId}`: accessing a complete specific thing
+* `/things/{thingId}/policyId`: accessing the policy ID of the specific thing
+* `/things/{thingId}/attributes`: accessing the attributes of the specific thing
+* `/things/{thingId}/features`: accessing the features of the specific thing
 
 #### `/things` in API 2 - dynamic part
 
@@ -170,14 +170,14 @@ For example for a `Thing` with following content:
 ```
 
 The following additional API endpoints are automatically available:
-* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the `Thing`
-* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the `Thing`
-* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the `Thing`
-* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the `Thing`
-* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the `Thing`
-* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the `Thing`
+* `/things/{thingId}/attributes/manufacturer`: accessing the attribute `manufacturer` of the specific thing
+* `/things/{thingId}/attributes/complex`: accessing the attribute `complex` of the specific thing
+* `/things/{thingId}/attributes/complex/some`: accessing the attribute `complex/some` of the specific thing
+* `/things/{thingId}/attributes/complex/serialNo`: accessing the attribute `complex/serialNo` of the specific thing
+* `/things/{thingId}/features/lamp`: accessing the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties`: accessing all properties of the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties/on`: accessing the `on` property of the feature `lamp` of the specific thing
+* `/things/{thingId}/features/lamp/properties/color`: accessing the `color` properties of the feature `lamp` of the specific thing
 
 
 #### `/policies` in API 2
@@ -217,12 +217,16 @@ This maps to the following HTTP API endpoints:
 As a benefit of the above mentioned mechanism that an API is automatically available based on the JSON structure, the 
 "partial update" pattern can be applied when modifying data.
 
-The benefit of this is a reduction in payload to be transferred and that other parts of the `Thing` are not overwritten
-with an potentially outdated value - only the actually changed data point can be modified.
+The benefit of this is a reduction in payload to be transferred. Further, it is beneficial because other parts of the
+ `Thing` are not overwritten with a potentially outdated value - only the actually changed data part can be modified.
 
-So instead of modifying a complete `Thing` when only a small part (e.g. the `on` property of `lamp` should now be `true`) 
-of it has changed via<br/>
-`PUT .../things/{thingId}` with payload:
+So instead of modifying a complete `Thing` only a specific part is affected.
+
+Given, the `on` property of `lamp` should be changed to `true`.
+
+Instead of  
+<br/>
+`PUT .../things/{thingId}` with the complete payload:
 ```json
 {
   "thingId": "{thingId}",
@@ -245,33 +249,33 @@ of it has changed via<br/>
 }
 ```
 
-we can do a<br/>`PUT .../things/{thingId}/features/lamp/properties/on` with payload:
+we can use a smarter request<br/>`PUT .../things/{thingId}/features/lamp/properties/on` with a minimal payload:
 ```json
 true
 ```
 
 ## Partial requests
 
-Similar to the partial updates from above the HTTP API can also be used to retrieve a single value instead of a complete
-`Thing`.
+Similar to the partial updates from above, the HTTP API can also be used to retrieve a single value instead of a 
+complete `Thing`.
 
-Again the benefit is a reduction in response payload and that the caller can directly use the returned data value 
+Again, the benefit is a reduction in response payload and that the caller can directly use the returned data value 
 (for example expect it to be a `boolean` and treat it accordingly).
 
-For example we can do a<br/>`GET .../things/{thingId}/features/lamp/properties/on` and get as response:
+For example, we can request<br/>`GET .../things/{thingId}/features/lamp/properties/on` and get as response:
 ```json
 true
 ```
 
 ### With field selector
 
-A second mechanism in the API for partial requests is using a so called field selector. This is useful when the JSON
-structure of the `Thing` or other entity should be kept in tact, but not all information is relevant.
+A further mechanism in the API for partial requests is using a so-called field selector. This is useful when the JSON
+structure of the `Thing` or other entity should be kept intact, but not all information is relevant.
 
-The field selector is passed as HTTP query parameter `fields` and contains a comma separated list of fields to include
+The field selector is passed as a HTTP query parameter `fields` and contains a comma separated list of fields to include
 in the response.
 
-For example for the following Thing:
+Given, you have the following Thing:
 ```json
 {
   "thingId": "{thingId}",
@@ -297,9 +301,11 @@ For example for the following Thing:
 
 #### Field selector examples
 
-Various `GET` request examples with field selectors:
+The following `GET` request examples with field selectors show how you can retrieve only the parts of a thing which 
+you are interested in:
 
-`GET .../things/{thingId}?fields=attributes`:
+`GET .../things/{thingId}?fields=attributes`<br/>
+Response:
 ```json
 {
   "attributes": {
@@ -313,7 +319,8 @@ Various `GET` request examples with field selectors:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/manufacturer`:
+`GET .../things/{thingId}?fields=attributes/manufacturer`<br/>
+Response:
 ```json
 {
   "attributes": {
@@ -322,7 +329,8 @@ Various `GET` request examples with field selectors:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/serialNo`:
+`GET .../things/{thingId}?fields=attributes/complex/serialNo`<br/>
+Response:
 ```json
 {
   "attributes": {
@@ -333,19 +341,8 @@ Various `GET` request examples with field selectors:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/some,attributes/complex/serialNo`:
-```json
-{
-  "attributes": {
-    "complex": {
-      "some": false,
-      "serialNo": 4711
-    }
-  }
-}
-```
-
-`GET .../things/{thingId}?fields=attributes/complex(some,serialNo)`:
+`GET .../things/{thingId}?fields=attributes/complex/some,attributes/complex/serialNo`<br/>
+Response:
 ```json
 {
   "attributes": {
@@ -357,7 +354,21 @@ Various `GET` request examples with field selectors:
 }
 ```
 
-`GET .../things/{thingId}?fields=attributes/complex/misc,features/lamp/properties/on`:
+`GET .../things/{thingId}?fields=attributes/complex(some,serialNo)`<br/>
+Response:
+```json
+{
+  "attributes": {
+    "complex": {
+      "some": false,
+      "serialNo": 4711
+    }
+  }
+}
+```
+
+`GET .../things/{thingId}?fields=attributes/complex/misc,features/lamp/properties/on`<br/>
+Response:
 ```json
 {
   "attributes": {
@@ -375,3 +386,144 @@ Various `GET` request examples with field selectors:
 }
 ```
 
+## Conditional Requests
+
+The HTTP API for `Things` and `Policies` partially supports `Conditional Requests` as defined in [RFC-7232](https://tools.ietf.org/html/rfc7232).
+
+### ETag
+
+A successful response on a `thing` or `policy` resource provides an `ETag` header.
+* For read responses, it contains the current entity-tag of the resource.
+* For write responses, it contains the entity-tag after successful write.
+
+The `ETag` has a different format for top-level resources and sub-resources.
+* Top-level resources (e.g. `.../things/{thingId}`): The entity-tag contains the revision of the 
+entity which is addressed by the resource in the format `"rev:<revision>"`, e.g. `"rev:2"`.
+* Sub-resources (e.g. `.../things/{thingId}/features/{featureId}`): The entity-tag contains a hash 
+of the current value of the addressed sub-resource in the format `"hash:<calculated-hash>"`, e.g. 
+`"hash:87192253740"`. Note that this format may change in the future.
+
+### Conditional Headers
+
+The following request headers can be used to issue a conditional request:
+* `If-Match`: 
+  * Read or write the resource only
+    * if the current entity-tag matches at least one of the entity-tags provided in this header
+    * or if the header is `*` and the entity exists
+  * The response will be:
+    * in case of a match, the same response as if the header wouldn't have been specified
+    * in case of no match, status `412 (Precondition Failed)` with an error response containing detail information 
+    and the current entity-tag of the resource as `ETag` header   
+* `If-None-Match`:
+  * Read or write the resource only
+    * if the current entity-tag does not match any one of the entity-tags provided in this header
+    * or if the header is `*` and the entity does not exist
+  * The response will be:
+    * in case of no match, the same response as if the header wouldn't have been specified
+    * in case of a match:
+      * for write requests, status `412 (Precondition Failed)` with an error response containing detail information and 
+      the current entity-tag of the resource as `ETag` header
+      * for read requests, status `304 (Not Modified)` without response body, with the current entity-tag of the 
+      resource as `ETag` header
+
+Note that the Ditto HTTP API always provides a `strong` entity-tag in the `ETag` header, thus you will never receive a 
+`weak` entity-tag (see [RFC-7232 Section 2.1](https://tools.ietf.org/html/rfc7232#section-2.1)). If you convert this 
+strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto will handle it according to RFC-7232. 
+However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary 
+complexity.
+    
+### Examples
+
+The following examples show several scenarios on a top-level (Thing) resource. Nevertheless, these scenarios can 
+also be applied on any sub-resource in the same way.
+
+#### Create: Write only if the resource does not exist
+
+The following example request shows, how you can make sure that a `PUT` request does not overwrite existing data, i.e.
+ how you can enforce that the Thing can only be created by the request.
+ 
+```
+PUT .../things/{thingId}
+If-None-Match: *
+```
+```json
+{
+  "policyId": "{policyId}",
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `201 (Created)` in case the creation was successful, i.e. the Thing did not yet exist.
+* `412 (Precondition Failed)` in case the creation failed, i.e. a Thing with the exactly same `{thingId}` already 
+exists.
+
+#### Update: Write only if the resource already exists
+
+The following example request shows how you can make sure that a `PUT` request does not create the resource, i.e. how
+ you can enforce that the Thing can only be updated by the request, but you do not generate a duplicate by mistake.
+ 
+```
+PUT .../things/{thingId}
+If-Match: *
+```
+```json
+{
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `204 (No Content)` in case the update was successful, i.e. the Thing already existed.
+* `412 (Precondition Failed)` in case the update failed, i.e. the Thing does not yet exist.
+
+#### Optimistic Locking
+
+First, `GET` the Thing in order to retrieve both: the current data and the entity-tag:
+
+`GET .../things/{thingId}`:
+
+Response:
+
+`ETag: "rev:2"`
+```json
+{
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
+  "attributes": {
+    "manufacturer": "ACME crop",
+    "otherData": 4711
+  }
+}
+```
+
+Assume that you have detected the typo in the manufacturer attribute ("ACME crop") and want to fix this with a 
+top-level Thing PUT. You want to make sure, that no one else has modified the Thing in the meantime, because 
+otherwise his changes would be lost. (You could also achieve this with a PUT on the concrete attribute, but for this 
+example we assume that you want to use a top-level Thing PUT.)
+
+`PUT` the Thing with the changed data and the entity-tag from the preceding `GET` response in the `If-Match` header.
+
+```
+PUT .../things/{thingId}
+If-Match: "rev:2"
+```
+```json
+{
+  "attributes": {
+    "manufacturer": "ACME corp",
+    "otherData": 4711
+  }
+}
+```
+
+You will get one of the following responses:
+* `204 (No Content)` in case the update was successful, i.e. no one else has changed the Thing in the meantime.
+* `412 (Precondition Failed)` in case the update was not successful, i.e. the Thing has been changed by someone else 
+in the meantime.

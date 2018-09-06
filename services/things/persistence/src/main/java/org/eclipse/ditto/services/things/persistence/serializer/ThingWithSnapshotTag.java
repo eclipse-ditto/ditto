@@ -96,6 +96,11 @@ public final class ThingWithSnapshotTag implements Thing {
     }
 
     @Override
+    public boolean isDeleted() {
+        return delegee.isDeleted();
+    }
+
+    @Override
     public Optional<String> getId() {
         return delegee.getId();
     }

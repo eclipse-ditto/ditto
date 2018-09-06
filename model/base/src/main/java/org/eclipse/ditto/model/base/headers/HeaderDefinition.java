@@ -36,6 +36,13 @@ public interface HeaderDefinition {
     Class getJavaType();
 
     /**
+     * Returns the type to which this header value should be serialized.
+     *
+     * @return the serialization type
+     */
+    Class getSerializationType();
+
+    /**
      * Returns whether Ditto reads this header from headers sent by externals.
      *
      * @return whether externals are allowed to set this header.

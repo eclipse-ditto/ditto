@@ -17,10 +17,11 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 
 /**
  * Enumeration of definitions of well known Ditto Headers including their key and Java type.
@@ -105,7 +106,31 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "origin"}, Java type: {@link String}.
      * </p>
      */
-    ORIGIN("origin", String.class, false, false);
+    ORIGIN("origin", String.class, false, false),
+
+    /**
+     * Header definition for "ETag".
+     * <p>
+     * Key: {@code "ETag"}, Java type: {@link String}.
+     * </p>
+     */
+    ETAG("ETag", EntityTag.class, String.class, false, true),
+
+    /**
+     * Header definition for "If-Match".
+     * <p>
+     * Key: {@code "If-Match"}, Java type: {@link String}.
+     * </p>
+     */
+    IF_MATCH("If-Match", EntityTagMatchers.class, String.class, true, false),
+
+    /**
+     * Header definition for "If-None-Match".
+     * <p>
+     * Key: {@code "If-None-Match"}, Java type: {@link String}.
+     * </p>
+     */
+    IF_NONE_MATCH("If-None-Match", EntityTagMatchers.class, String.class, true, false);
 
     /**
      * Map to speed up lookup of header definition by key.
@@ -115,6 +140,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
 
     private final String key;
     private final Class<?> type;
+    private final Class<?> serializationType;
     private final boolean readFromExternalHeaders;
     private final boolean writeToExternalHeaders;
 
@@ -126,8 +152,21 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     DittoHeaderDefinition(final String theKey, final Class<?> theType, final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders) {
-        key = theKey;
+        this(theKey, theType, theType, readFromExternalHeaders, writeToExternalHeaders);
+    }
+
+    /**
+     * @param theKey the key used as key for header map.
+     * @param theType the Java type of the header value which is associated with this definition's key.
+     * @param serializationType the type to which this header value should be serialized.
+     * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
+     * @param writeToExternalHeaders whether Ditto publishes this header to externals.
+     */
+    DittoHeaderDefinition(final String theKey, final Class<?> theType, final Class<?> serializationType,
+            final boolean readFromExternalHeaders, final boolean writeToExternalHeaders) {
+        key = theKey.toLowerCase();
         type = theType;
+        this.serializationType = serializationType;
         this.readFromExternalHeaders = readFromExternalHeaders;
         this.writeToExternalHeaders = writeToExternalHeaders;
     }
@@ -153,6 +192,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     }
 
     @Override
+    public Class getSerializationType() {
+        return serializationType;
+    }
+
+    @Override
     public boolean shouldReadFromExternalHeaders() {
         return readFromExternalHeaders;
     }
@@ -162,7 +206,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
         return writeToExternalHeaders;
     }
 
-    @Nonnull
     @Override
     public String toString() {
         return getKey();

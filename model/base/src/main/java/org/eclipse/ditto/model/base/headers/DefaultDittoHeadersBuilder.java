@@ -44,8 +44,8 @@ final class DefaultDittoHeadersBuilder extends AbstractDittoHeadersBuilder<Defau
      * @param headers the header map which provides the initial properties of the builder.
      * @return a builder for creating {@code DittoHeaders} object.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @throws IllegalArgumentException if {@code headers} contains a value that did not represent its appropriate Java
-     * type.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if {@code headers} contains a value
+     * that did not represent its appropriate Java type.
      */
     static DefaultDittoHeadersBuilder of(final Map<String, String> headers) {
         return new DefaultDittoHeadersBuilder(headers);
