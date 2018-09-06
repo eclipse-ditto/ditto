@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 import akka.http.javadsl.server.RequestContext;
@@ -27,7 +28,9 @@ public final class NoopCustomHeadersHandler implements CustomHeadersHandler {
 
     @Override
     public DittoHeaders handleCustomHeaders(final String correlationId, RequestContext requestContext,
-            final RequestType requestType, final DittoHeaders dittoDefaultHeaders) {
+            final RequestType requestType, final AuthorizationContext authorizationContext,
+            final DittoHeaders dittoDefaultHeaders) {
+
         return dittoDefaultHeaders;
     }
 }

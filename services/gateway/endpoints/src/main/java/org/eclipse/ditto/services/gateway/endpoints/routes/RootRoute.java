@@ -310,28 +310,28 @@ public final class RootRoute {
     private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                        customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                        apiAuthentication(correlationId,
-                                authContextWithPrefixedSubjects ->
-                                        mapAuthorizationContext(
-                                                correlationId,
-                                                apiVersion,
-                                                authContextWithPrefixedSubjects,
-                                                authContext ->
-                                                        parameterOptional(TopicPath.Channel.LIVE.getName(), liveParam ->
-                                                            withDittoHeaders(
-                                                                    authContext,
-                                                                    apiVersion,
-                                                                    correlationId,
-                                                                    ctx,
-                                                                    liveParam.orElse(null),
-                                                                    CustomHeadersHandler.RequestType.API,
-                                                                    dittoHeaders ->
-                                                                            buildApiSubRoutes(ctx, dittoHeaders)
-                                                            )
-                                                        )
+                    customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
+                    apiAuthentication(correlationId,
+                        authContextWithPrefixedSubjects ->
+                            mapAuthorizationContext(
+                                correlationId,
+                                apiVersion,
+                                authContextWithPrefixedSubjects,
+                                authContext ->
+                                        parameterOptional(TopicPath.Channel.LIVE.getName(), liveParam ->
+                                            withDittoHeaders(
+                                                    authContext,
+                                                    apiVersion,
+                                                    correlationId,
+                                                    ctx,
+                                                    liveParam.orElse(null),
+                                                    CustomHeadersHandler.RequestType.API,
+                                                    dittoHeaders ->
+                                                            buildApiSubRoutes(ctx, dittoHeaders, authContext)
+                                            )
                                         )
-                        ))
+                            )
+                    ))
                 )
         );
     }
@@ -358,7 +358,8 @@ public final class RootRoute {
                 });
     }
 
-    private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final AuthorizationContext authorizationContext) {
         final Route customApiSubRoutes = customApiRoutesProvider.authorized(dittoHeaders);
 
         return Directives.route(
@@ -366,7 +367,7 @@ public final class RootRoute {
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
                 sseThingsRoute.buildThingsSseRoute(ctx, () ->
-                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE)),
+                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE, authorizationContext)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -420,10 +421,11 @@ public final class RootRoute {
     }
 
     private DittoHeaders overwriteDittoHeaders(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final CustomHeadersHandler.RequestType requestType) {
+            final CustomHeadersHandler.RequestType requestType, final AuthorizationContext authorizationContext) {
+
         final String correlationId = dittoHeaders.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString());
 
-        return handleCustomHeaders(correlationId, ctx, requestType, dittoHeaders);
+        return handleCustomHeaders(correlationId, ctx, requestType, authorizationContext, dittoHeaders);
     }
 
     private DittoHeaders buildDittoHeaders(final AuthorizationContext authorizationContext, final Integer version,
@@ -450,13 +452,16 @@ public final class RootRoute {
         }
 
         final DittoHeaders dittoDefaultHeaders = builder.build();
-        return handleCustomHeaders(correlationId, ctx, requestType, dittoDefaultHeaders);
+        return handleCustomHeaders(correlationId, ctx, requestType, authorizationContext, dittoDefaultHeaders);
     }
 
     private DittoHeaders handleCustomHeaders(final String correlationId, final RequestContext ctx,
-            final CustomHeadersHandler.RequestType requestType, final DittoHeaders dittoDefaultHeaders) {
+            final CustomHeadersHandler.RequestType requestType,
+            final AuthorizationContext authorizationContext,
+            final DittoHeaders dittoDefaultHeaders) {
 
-        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, requestType, dittoDefaultHeaders);
+        return customHeadersHandler.handleCustomHeaders(correlationId, ctx, requestType,
+                authorizationContext, dittoDefaultHeaders);
     }
 
 
