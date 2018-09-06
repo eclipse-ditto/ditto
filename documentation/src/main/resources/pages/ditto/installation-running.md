@@ -8,8 +8,8 @@ permalink: installation-running.html
 ## Start Ditto
 
 In order to start Ditto, you'll need:
-* a running Docker daemon (at least version 17.06 CE),
-* Docker Compose installed (at least version 1.14),
+* a running Docker daemon (at least version 18.06 CE),
+* Docker Compose installed (at least version 1.22),
 * the built Docker images of Ditto
     * either by building them as described in [Building Ditto](installation-building.html),
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).

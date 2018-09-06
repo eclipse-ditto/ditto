@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies a {@link PolicyEntry}.
@@ -65,6 +66,9 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
         PolicyIdValidator.getInstance().accept(policyId, dittoHeaders);
         this.policyId = policyId;
         this.policyEntry = policyEntry;
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> policyEntry.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**
@@ -142,7 +146,7 @@ public final class ModifyPolicyEntry extends AbstractCommand<ModifyPolicyEntry> 
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
+        return Optional.of(policyEntry.toJson(schemaVersion, FieldType.regularOrSpecial()));
     }
 
     @Override

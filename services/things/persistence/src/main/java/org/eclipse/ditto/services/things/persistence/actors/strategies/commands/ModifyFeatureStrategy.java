@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
 import org.eclipse.ditto.signals.events.things.FeatureCreated;
@@ -42,12 +43,22 @@ final class ModifyFeatureStrategy
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeature command) {
 
-        return extractFeature(command, thing)
+        final Thing nonNullThing = getThingOrThrow(thing);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutFeature = nonNullThing.removeFeature(command.getFeatureId())
+                    .toJsonString()
+                    .length();
+            final long featureLength = command.getFeature().toJsonString().length()
+                    + command.getFeatureId().length() + 5L;
+            return lengthWithOutFeature + featureLength;
+        }, command::getDittoHeaders);
+
+        return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private Optional<Feature> extractFeature(final ModifyFeature command, final @Nullable Thing thing) {
+    private Optional<Feature> extractFeature(final ModifyFeature command, final Thing thing) {
         return getThingOrThrow(thing).getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
@@ -74,6 +85,6 @@ final class ModifyFeatureStrategy
 
     @Override
     public Optional<Feature> determineETagEntity(final ModifyFeature command, @Nullable final Thing thing) {
-        return extractFeature(command, thing);
+        return extractFeature(command, getThingOrThrow(thing));
     }
 }

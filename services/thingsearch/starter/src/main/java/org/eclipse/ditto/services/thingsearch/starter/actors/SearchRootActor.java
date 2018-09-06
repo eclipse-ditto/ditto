@@ -17,7 +17,6 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_SYNC_STATE_COLLECTION_NAME;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
@@ -109,7 +108,7 @@ public final class SearchRootActor extends AbstractActor {
                 MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(rawConfig, pubSubMediator, mongoClientWrapper);
+        final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
 
         final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
                 thingsSyncPersistence, policiesSyncPersistence);
@@ -122,8 +121,10 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final Config rawConfig, ActorRef pubSubMediator, final MongoClientWrapper
+    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final MongoClientWrapper
             mongoClientWrapper) {
+
+        final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
                 new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
 
@@ -136,15 +137,16 @@ public final class SearchRootActor extends AbstractActor {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = new ThingsFieldExpressionFactoryImpl();
-        final AggregationBuilderFactory aggregationBuilderFactory = new MongoAggregationBuilderFactory();
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory();
+        final AggregationBuilderFactory aggregationBuilderFactory =
+                new MongoAggregationBuilderFactory(configReader.limits());
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(configReader.limits());
         final ActorRef aggregationQueryActor = startChildActor(AggregationQueryActor.ACTOR_NAME,
                 AggregationQueryActor.props(criteriaFactory, fieldExpressionFactory, aggregationBuilderFactory));
         final ActorRef apiV1QueryActor = startChildActor(QueryActor.ACTOR_NAME,
                 QueryActor.props(criteriaFactory, fieldExpressionFactory, queryBuilderFactory));
 
         return startChildActor(SearchActor.ACTOR_NAME,
-                SearchActor.props(pubSubMediator, aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
+                SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
     }
 
     private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader, final MongoClientWrapper mongoClientWrapper,

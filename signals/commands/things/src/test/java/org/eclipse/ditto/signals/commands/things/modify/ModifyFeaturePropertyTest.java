@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -20,13 +21,13 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -116,6 +117,19 @@ public final class ModifyFeaturePropertyTest {
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
         assertThat(underTest.getPropertyValue()).isEqualTo(PROPERTY_VALUE);
+    }
+
+    @Test
+    public void modifyTooLargeFeatureProperty() {
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        sb.append('b');
+
+        assertThatThrownBy(() -> ModifyFeatureProperty.of("foo:bar", "foo", JsonPointer.of("foo"),
+                JsonValue.of(sb.toString()), DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
     }
 
 }

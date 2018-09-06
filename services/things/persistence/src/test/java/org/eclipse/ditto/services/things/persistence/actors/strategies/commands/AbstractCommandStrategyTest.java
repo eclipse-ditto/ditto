@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -48,6 +49,9 @@ public abstract class AbstractCommandStrategyTest {
 
     protected static final long NEXT_REVISION = 42L;
     private static final EventStrategy<ThingEvent> eventHandleStrategy = EventHandleStrategy.getInstance();
+
+    protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
+            System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
     protected static DiagnosticLoggingAdapter logger;
     protected static ThingSnapshotter thingSnapshotter;

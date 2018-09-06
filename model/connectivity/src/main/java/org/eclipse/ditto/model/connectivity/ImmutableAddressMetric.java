@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -139,5 +140,17 @@ final class ImmutableAddressMetric implements AddressMetric {
                 ", messageCount=" + messageCount +
                 ", lastMessageAt=" + lastMessageAt +
                 "]";
+    }
+
+    /**
+     * Convert an indexed address metric into a JSON field.
+     *
+     * @param key Key of the address metric; may be empty.
+     * @param metric the address metric to convert.
+     * @return a valid JSON field for the address metric.
+     */
+    static JsonField toJsonField(final String key, final AddressMetric metric) {
+        final String nonemptyKey = key.isEmpty() ? "<empty>" : key;
+        return JsonFactory.newField(JsonKey.of(nonemptyKey), metric.toJson());
     }
 }

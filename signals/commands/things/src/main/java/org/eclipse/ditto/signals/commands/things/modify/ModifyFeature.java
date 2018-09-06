@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies an existing Feature.
@@ -70,6 +71,9 @@ public final class ModifyFeature extends AbstractCommand<ModifyFeature> implemen
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.feature = checkNotNull(feature, "Feature");
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> feature.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

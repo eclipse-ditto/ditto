@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.thingsearch.persistence.read.query;
+package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -17,14 +17,12 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.junit.Test;
 
 /**
- * Unit test for {@link MongoAggregationBuilderFactoryTest}.
+ * Tests {@link RabbitMQValidator}.
  */
-public final class MongoAggregationBuilderFactoryTest {
+public final class RabbitMQValidatorTest {
 
-    /** */
     @Test
-    public void assertImmutability() {
-        assertInstancesOf(MongoAggregationBuilderFactory.class, areImmutable());
+    public void testImmutability() {
+        assertInstancesOf(RabbitMQValidator.class, areImmutable());
     }
-
 }

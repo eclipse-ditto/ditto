@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
@@ -44,15 +45,26 @@ final class ModifyFeaturePropertyStrategy
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyFeatureProperty command) {
         final String featureId = command.getFeatureId();
+        final Thing nonNullThing = getThingOrThrow(thing);
 
-        return extractFeature(command, thing)
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutProperty =
+                    nonNullThing.removeFeatureProperty(featureId, command.getPropertyPointer())
+                            .toJsonString()
+                            .length();
+            final long propertyLength = command.getPropertyValue().toString().length()
+                    + command.getPropertyPointer().length() + 5L;
+            return lengthWithOutProperty + propertyLength;
+        }, command::getDittoHeaders);
+
+        return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
     }
 
-    private Optional<Feature> extractFeature(final ModifyFeatureProperty command, final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures()
+    private Optional<Feature> extractFeature(final ModifyFeatureProperty command, final Thing thing) {
+        return thing.getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
@@ -95,6 +107,7 @@ final class ModifyFeaturePropertyStrategy
 
     @Override
     public Optional<JsonValue> determineETagEntity(final ModifyFeatureProperty command, @Nullable final Thing thing) {
-        return extractFeature(command, thing).flatMap(feature -> feature.getProperty(command.getPropertyPointer()));
+        return extractFeature(command, getThingOrThrow(thing)).flatMap(
+                feature -> feature.getProperty(command.getPropertyPointer()));
     }
 }

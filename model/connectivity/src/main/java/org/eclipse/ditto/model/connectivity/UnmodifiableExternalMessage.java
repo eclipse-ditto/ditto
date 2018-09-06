@@ -19,15 +19,14 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
- * Immutable implementation of {@link ExternalMessage}.
+ * Implementation of {@link ExternalMessage} that SHOULD NOT be modified
+ * because objects of this class are sent as messages between actors.
  */
-@Immutable
-final class ImmutableExternalMessage implements ExternalMessage {
+final class UnmodifiableExternalMessage implements ExternalMessage {
 
     private final Map<String, String> headers;
     private final boolean response;
@@ -37,14 +36,16 @@ final class ImmutableExternalMessage implements ExternalMessage {
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
+    @Nullable private final ThingIdEnforcement thingIdEnforcement;
 
-    ImmutableExternalMessage(final Map<String, String> headers,
+    UnmodifiableExternalMessage(final Map<String, String> headers,
             final boolean response,
             final boolean error,
             final PayloadType payloadType,
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload,
-            @Nullable final AuthorizationContext authorizationContext) {
+            @Nullable final AuthorizationContext authorizationContext,
+            @Nullable final ThingIdEnforcement thingIdEnforcement) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -53,6 +54,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
         this.authorizationContext = authorizationContext;
+        this.thingIdEnforcement = thingIdEnforcement;
     }
 
     @Override
@@ -67,7 +69,9 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     @Override
     public ExternalMessage withHeaders(final Map<String, String> additionalHeaders) {
-        return ConnectivityModelFactory.newExternalMessageBuilder(this).withAdditionalHeaders(additionalHeaders).build();
+        return ConnectivityModelFactory.newExternalMessageBuilder(this)
+                .withAdditionalHeaders(additionalHeaders)
+                .build();
     }
 
     @Override
@@ -122,6 +126,11 @@ final class ImmutableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public Optional<ThingIdEnforcement> getThingIdEnforcement() {
+        return Optional.ofNullable(thingIdEnforcement);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -129,11 +138,12 @@ final class ImmutableExternalMessage implements ExternalMessage {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableExternalMessage that = (ImmutableExternalMessage) o;
+        final UnmodifiableExternalMessage that = (UnmodifiableExternalMessage) o;
         return Objects.equals(headers, that.headers) &&
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(thingIdEnforcement, that.thingIdEnforcement) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType;
@@ -141,7 +151,8 @@ final class ImmutableExternalMessage implements ExternalMessage {
 
     @Override
     public int hashCode() {
-        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext);
+        return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
+                thingIdEnforcement);
     }
 
     @Override
@@ -151,6 +162,7 @@ final class ImmutableExternalMessage implements ExternalMessage {
                 ", response=" + response +
                 ", error=" + error +
                 ", authorizationContext=" + authorizationContext +
+                ", thingIdEnforcement=" + thingIdEnforcement +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

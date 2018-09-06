@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 
 /**
  * This command modifies all {@code Thing}'s attributes at once.
@@ -65,6 +66,9 @@ public final class ModifyAttributes extends AbstractCommand<ModifyAttributes>
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
         this.attributes = checkNotNull(attributes, "Attributes");
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributes.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

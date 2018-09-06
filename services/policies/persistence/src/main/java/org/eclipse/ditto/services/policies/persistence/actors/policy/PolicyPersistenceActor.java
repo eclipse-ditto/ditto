@@ -15,13 +15,17 @@ import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -32,6 +36,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
+import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
@@ -51,6 +56,7 @@ import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersVa
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
@@ -762,6 +768,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
     }
 
+    /**
+     * This strategy handles the {@link RetrievePolicy} command.
+     */
     @NotThreadSafe
     private abstract class WithIdReceiveStrategy<T extends Command<T>>
             extends AbstractReceiveStrategy<T> {
@@ -896,6 +905,13 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Policy modifiedPolicy = command.getPolicy();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+            try {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> modifiedPolicy.toJsonString().length(),
+                        command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
+                notifySender(e);
+            }
+
             final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
 
             if (validator.isValid()) {
@@ -1006,6 +1022,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
+            try {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(
+                        () -> StreamSupport.stream(policyEntries.spliterator(), false)
+                                .map(PolicyEntry::toJson)
+                                .collect(JsonCollectors.valuesToArray())
+                                .toString()
+                                .length(),
+                        command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
+                notifySender(e);
+            }
+
             final ModifyPolicyEntriesResponse response = ModifyPolicyEntriesResponse.of(policyId, dittoHeaders);
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, policyEntries,
                     getNextRevision(), getEventTimestamp(), dittoHeaders);
@@ -1044,6 +1072,17 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final PolicyEntry policyEntry = command.getPolicyEntry();
             final Label label = policyEntry.getLabel();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+            try {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
+                    final long policyLength = policy.removeEntry(label).toJsonString().length();
+                    final long entryLength =
+                            policyEntry.toJsonString().length() + label.toString().length() + 5L;
+                    return policyLength + entryLength;
+                }, command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             final PoliciesValidator validator = PoliciesValidator.newInstance(policy.setEntry(policyEntry));
 
@@ -1103,19 +1142,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 final PoliciesValidator validator = PoliciesValidator.newInstance(policy.removeEntry(label));
 
                 if (validator.isValid()) {
-                    final PolicyEntryDeleted policyEntryDeleted =
-                            PolicyEntryDeleted.of(policyId, label, getNextRevision(), getEventTimestamp(),
-                                    dittoHeaders);
-
-                    processEvent(policyEntryDeleted,
-                            event -> sendSuccessResponse(command, DeletePolicyEntryResponse.of(policyId, label,
-                                    dittoHeaders)));
+                    deletePolicyEntry(label, dittoHeaders);
                 } else {
                     policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                 }
             } else {
                 policyEntryNotFound(label, dittoHeaders);
             }
+        }
+
+        private void deletePolicyEntry(final Label label, final DittoHeaders dittoHeaders) {
+            final PolicyEntryDeleted policyEntryDeleted =
+                    PolicyEntryDeleted.of(policyId, label, getNextRevision(), getEventTimestamp(), dittoHeaders);
+
+            processEvent(policyEntryDeleted,
+                    event -> notifySender(DeletePolicyEntryResponse.of(policyId, label, dittoHeaders)));
         }
 
         @Override
@@ -1488,6 +1529,24 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final Label label = command.getLabel();
             final Resources resources = command.getResources();
             final DittoHeaders dittoHeaders = command.getDittoHeaders();
+
+            try {
+                PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> {
+                    final List<ResourceKey> rks = resources.stream()
+                            .map(Resource::getResourceKey)
+                            .collect(Collectors.toList());
+                    Policy tmpPolicy = policy;
+                    for (final ResourceKey rk : rks) {
+                        tmpPolicy = tmpPolicy.removeResourceFor(label, rk);
+                    }
+                    final long policyLength = tmpPolicy.toJsonString().length();
+                    final long resourcesLength = resources.toJsonString()
+                            .length() + 5L;
+                    return policyLength + resourcesLength;
+                }, command::getDittoHeaders);
+            } catch (final PolicyTooLargeException e) {
+                notifySender(e);
+            }
 
             if (policy.getEntryFor(label).isPresent()) {
                 final PoliciesValidator validator =

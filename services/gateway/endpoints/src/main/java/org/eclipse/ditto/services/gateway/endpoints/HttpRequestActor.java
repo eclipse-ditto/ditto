@@ -62,6 +62,7 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.scaladsl.model.ContentType$;
+import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
@@ -355,6 +356,12 @@ public final class HttpRequestActor extends AbstractActor {
                     if (cause instanceof DittoRuntimeException) {
                         final DittoRuntimeException dre = (DittoRuntimeException) cause;
                         handleDittoRuntimeException(dre);
+                    } else if (cause instanceof EntityStreamSizeException) {
+                        logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that " +
+                                "the max. allowed http payload size configured in Akka was overstepped in this request.");
+                        completeWithResult(
+                                HttpResponse.create().withStatus(HttpStatusCode.REQUEST_ENTITY_TOO_LARGE.toInt())
+                        );
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected");
                         completeWithResult(

@@ -13,7 +13,7 @@
     </appender>
 
 
-    <logger name="org.eclipse.ditto" level="INFO"/>
+    <logger name="org.eclipse.ditto" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

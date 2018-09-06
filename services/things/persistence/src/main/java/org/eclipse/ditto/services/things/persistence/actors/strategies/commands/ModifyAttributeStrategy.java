@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -42,8 +43,18 @@ final class ModifyAttributeStrategy
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttribute command) {
+        final Thing nonNullThing = getThingOrThrow(thing);
 
-        return getThingOrThrow(thing).getAttributes()
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutAttribute = nonNullThing.removeAttribute(command.getAttributePointer())
+                    .toJsonString()
+                    .length();
+            final long attributeLength = command.getAttributeValue().toString().length()
+                    + command.getAttributePointer().length() + 5L;
+            return lengthWithOutAttribute + attributeLength;
+        }, command::getDittoHeaders);
+
+        return nonNullThing.getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))
                 .map(attributes -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));

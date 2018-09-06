@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -341,8 +342,14 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @SuppressWarnings("unchecked")
     private void handleCommand(final Command command, final CommandStrategy commandStrategy) {
-        final CommandStrategy.Result result = commandStrategy.apply(defaultContext, thing,
-                getNextRevisionNumber(), command);
+        final CommandStrategy.Result result;
+        try {
+            result = commandStrategy.apply(defaultContext, thing,
+                    getNextRevisionNumber(), command);
+        } catch (final DittoRuntimeException e) {
+            getSender().tell(e, getSelf());
+            return;
+        }
 
         // Unchecked warning suppressed for `persistAndApplyConsumer`.
         // It is actually type-safe with the (infinitely-big) type parameter

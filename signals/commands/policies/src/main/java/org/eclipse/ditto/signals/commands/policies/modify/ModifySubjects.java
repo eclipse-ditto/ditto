@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.policies.PolicyIdValidator;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 
 /**
  * This command modifies {@link Subjects} of a {@link org.eclipse.ditto.model.policies.PolicyEntry}.
@@ -71,6 +72,9 @@ public final class ModifySubjects extends AbstractCommand<ModifySubjects>
         this.policyId = policyId;
         this.label = label;
         this.subjects = subjects;
+
+        PolicyCommandSizeValidator.getInstance().ensureValidSize(() -> subjects.toJsonString().length(), () ->
+                dittoHeaders);
     }
 
     /**

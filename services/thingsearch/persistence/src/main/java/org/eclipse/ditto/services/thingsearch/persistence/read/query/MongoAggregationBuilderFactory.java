@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
@@ -23,18 +24,24 @@ import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilde
 @Immutable
 public final class MongoAggregationBuilderFactory implements AggregationBuilderFactory {
 
-    public static AggregationBuilder newBuilder() {
-        return new PolicyRestrictedMongoSearchAggregation.Builder();
+    private final LimitsConfigReader limitsConfigReader;
+
+    public MongoAggregationBuilderFactory(final LimitsConfigReader limitsConfigReader) {
+        this.limitsConfigReader = limitsConfigReader;
+    }
+
+    public static AggregationBuilder newBuilder(final LimitsConfigReader limitsConfigReader) {
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader);
     }
 
     @Override
     public AggregationBuilder newBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder().filterCriteria(criteria);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria);
     }
 
     @Override
     public AggregationBuilder newCountBuilder(final Criteria criteria) {
-        return new PolicyRestrictedMongoSearchAggregation.Builder().filterCriteria(criteria).count(true);
+        return new PolicyRestrictedMongoSearchAggregation.Builder(limitsConfigReader).filterCriteria(criteria).count(true);
     }
 
 }

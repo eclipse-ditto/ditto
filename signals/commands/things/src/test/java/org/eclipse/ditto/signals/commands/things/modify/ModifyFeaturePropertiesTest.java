@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -19,14 +20,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -41,7 +43,6 @@ public final class ModifyFeaturePropertiesTest {
             .set(ModifyFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(ModifyFeatureProperties.JSON_PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -100,6 +101,21 @@ public final class ModifyFeaturePropertiesTest {
         assertThat(underTest.getId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         Assertions.assertThat(underTest.getProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+    }
+
+    @Test
+    public void modifyTooLargeFeatureProperties() {
+        final StringBuilder sb = new StringBuilder();
+        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+            sb.append('a');
+        }
+        sb.append('b');
+
+        final FeatureProperties featureProperties = FeatureProperties.newBuilder().set("a", JsonValue.of(sb.toString())).build();
+
+        assertThatThrownBy(() -> ModifyFeatureProperties.of("foo:bar", "foo", featureProperties,
+                DittoHeaders.empty()))
+                .isInstanceOf(ThingTooLargeException.class);
     }
 
 }

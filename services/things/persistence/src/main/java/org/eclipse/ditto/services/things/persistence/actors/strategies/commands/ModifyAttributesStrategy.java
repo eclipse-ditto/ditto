@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.events.things.AttributesCreated;
@@ -41,14 +42,19 @@ public final class ModifyAttributesStrategy extends
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAttributes command) {
+        final Thing nonNullThing = getThingOrThrow(thing);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutAttributes = nonNullThing.removeAttributes()
+                    .toJsonString()
+                    .length();
+            final long attributesLength = command.getAttributes().toJsonString().length()
+                    + "attributes".length() + 5L;
+            return lengthWithOutAttributes + attributesLength;
+        }, command::getDittoHeaders);
 
-        return extractAttributes(thing)
+        return nonNullThing.getAttributes()
                 .map(attributes -> getModifyResult(context, nextRevision, command))
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
-    }
-
-    private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getAttributes();
     }
 
     private Result getModifyResult(final Context context, final long nextRevision,
@@ -74,6 +80,6 @@ public final class ModifyAttributesStrategy extends
 
     @Override
     public Optional<Attributes> determineETagEntity(final ModifyAttributes command, @Nullable final Thing thing) {
-        return extractAttributes(thing);
+        return getThingOrThrow(thing).getAttributes();
     }
 }

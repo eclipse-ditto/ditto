@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
@@ -44,14 +45,24 @@ final class ModifyFeaturePropertiesStrategy
             final long nextRevision, final ModifyFeatureProperties command) {
         final String featureId = command.getFeatureId();
 
-        return extractFeature(command, thing)
+        final Thing nonNullThing = getThingOrThrow(thing);
+        ThingCommandSizeValidator.getInstance().ensureValidSize(() -> {
+            final long lengthWithOutProperties = nonNullThing.removeFeatureProperties(command.getFeatureId())
+                    .toJsonString()
+                    .length();
+            final long propertiesLength = command.getProperties().toJsonString().length()
+                    + "properties".length() + command.getFeatureId().length() + 5L;
+            return lengthWithOutProperties + propertiesLength;
+        }, command::getDittoHeaders);
+
+        return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
     }
 
-    private Optional<Feature> extractFeature(final ModifyFeatureProperties command, final @Nullable Thing thing) {
-        return getThingOrThrow(thing).getFeatures()
+    private Optional<Feature> extractFeature(final ModifyFeatureProperties command, final Thing thing) {
+        return thing.getFeatures()
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
@@ -90,7 +101,8 @@ final class ModifyFeaturePropertiesStrategy
 
 
     @Override
-    public Optional<FeatureProperties> determineETagEntity(final ModifyFeatureProperties command, @Nullable final Thing thing) {
-        return extractFeature(command, thing).flatMap(Feature::getProperties);
+    public Optional<FeatureProperties> determineETagEntity(final ModifyFeatureProperties command,
+            @Nullable final Thing thing) {
+        return extractFeature(command, getThingOrThrow(thing)).flatMap(Feature::getProperties);
     }
 }
