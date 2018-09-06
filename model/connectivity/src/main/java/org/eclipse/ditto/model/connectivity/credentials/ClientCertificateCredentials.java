@@ -49,7 +49,7 @@ public final class ClientCertificateCredentials implements Credentials {
 
     @Override
     public <T> T accept(final CredentialsVisitor<T> visitor) {
-        return visitor.x509(this);
+        return visitor.clientCertificate(this);
     }
 
     /**
@@ -103,6 +103,15 @@ public final class ClientCertificateCredentials implements Credentials {
         jsonObject.getValue(JsonFields.CLIENT_CERTIFICATE).ifPresent(builder::clientCertificate);
         jsonObject.getValue(JsonFields.CLIENT_KEY).ifPresent(builder::clientKey);
         return builder.build();
+    }
+
+    /**
+     * Create empty credentials with no certificates.
+     *
+     * @return empty credentials.
+     */
+    public static ClientCertificateCredentials empty() {
+        return newBuilder().build();
     }
 
     /**
