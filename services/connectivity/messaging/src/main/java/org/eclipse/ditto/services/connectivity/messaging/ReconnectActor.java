@@ -185,6 +185,8 @@ public final class ReconnectActor extends AbstractPersistentActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(RetrieveConnectionStatusResponse.class, command -> {
+                    log.debug("Retrieved connection status response for connection {} with status: {}",
+                            command.getConnectionId(), command.getConnectionStatus());
                     if (!ConnectionStatus.OPEN.equals(command.getConnectionStatus())) {
                         connectionIds.remove(command.getConnectionId());
                     }
