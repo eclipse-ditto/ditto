@@ -13,13 +13,11 @@ package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -27,6 +25,7 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.AcceptAnyTrustManager;
 import org.junit.Test;
 
 /**
@@ -34,23 +33,20 @@ import org.junit.Test;
  */
 public final class SSLContextCreatorTest {
 
-    // signs server and client certs
-    private static final String CA_CRT = getCert("ca.crt");
-
     private static final ClientCertificateCredentials SERVER_CREDENTIALS = ClientCertificateCredentials.newBuilder()
-            .clientKey(getCert("server.key"))
-            .clientCertificate(getCert("server.crt"))
+            .clientKey(Certificates.SERVER_KEY)
+            .clientCertificate(Certificates.SERVER_CRT)
             .build();
 
     private static final ClientCertificateCredentials CLIENT_CREDENTIALS = ClientCertificateCredentials.newBuilder()
-            .clientKey(getCert("client.key"))
-            .clientCertificate(getCert("client.crt"))
+            .clientKey(Certificates.CLIENT_KEY)
+            .clientCertificate(Certificates.CLIENT_CRT)
             .build();
 
     private static final ClientCertificateCredentials SELF_SIGNED_CLIENT_CREDENTIALS =
             ClientCertificateCredentials.newBuilder()
-                    .clientKey(getCert("client-self-signed.key"))
-                    .clientCertificate(getCert("client-self-signed.crt"))
+                    .clientKey(Certificates.CLIENT_SELF_SIGNED_KEY)
+                    .clientCertificate(Certificates.CLIENT_SELF_SIGNED_CRT)
                     .build();
 
     @Test
@@ -62,7 +58,7 @@ public final class SSLContextCreatorTest {
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-                    underTest.getOutputStream().write(1234);
+                    underTest.getOutputStream().write(12);
                 }
             });
         }
@@ -71,7 +67,7 @@ public final class SSLContextCreatorTest {
     @Test
     public void trustSignedServer() throws Exception {
         try (final ServerSocket serverSocket = startServer(false);
-                final Socket underTest = SSLContextCreator.of(CA_CRT, DittoHeaders.empty())
+                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, DittoHeaders.empty())
                         .clientCertificate(ClientCertificateCredentials.empty())
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
@@ -85,7 +81,7 @@ public final class SSLContextCreatorTest {
     public void doesNotTrustSelfSignedClient() throws Exception {
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(true);
-                    final Socket underTest = SSLContextCreator.of(CA_CRT, DittoHeaders.empty())
+                    final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, DittoHeaders.empty())
                             .clientCertificate(SELF_SIGNED_CLIENT_CREDENTIALS)
                             .getSocketFactory()
                             .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
@@ -98,7 +94,7 @@ public final class SSLContextCreatorTest {
     @Test
     public void trustSignedClient() throws Exception {
         try (final ServerSocket serverSocket = startServer(true);
-                final Socket underTest = SSLContextCreator.of(CA_CRT, DittoHeaders.empty())
+                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, DittoHeaders.empty())
                         .clientCertificate(CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
@@ -108,9 +104,22 @@ public final class SSLContextCreatorTest {
         }
     }
 
+    @Test
+    public void trustEverybodyWithAcceptAnyTrustManager() throws Exception {
+        try (final ServerSocket serverSocket = startServer(false);
+                final Socket underTest = SSLContextCreator.withTrustManager(new AcceptAnyTrustManager(), null)
+                        .clientCertificate(ClientCertificateCredentials.empty())
+                        .getSocketFactory()
+                        .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+
+            underTest.getOutputStream().write(67);
+            assertThat(underTest.getInputStream().read()).isEqualTo(67);
+        }
+    }
+
     private ServerSocket startServer(final boolean needClientAuth) throws Exception {
         final SSLServerSocket serverSocket =
-                (SSLServerSocket) SSLContextCreator.of(CA_CRT, null)
+                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null)
                         .clientCertificate(SERVER_CREDENTIALS)
                         .getServerSocketFactory()
                         .createServerSocket(0);
@@ -130,13 +139,4 @@ public final class SSLContextCreatorTest {
         return serverSocket;
     }
 
-    private static String getCert(final String cert) {
-        final String path = "/certificates/" + cert;
-        try (final InputStream inputStream = SSLContextCreatorTest.class.getResourceAsStream(path)) {
-            final Scanner scanner = new Scanner(inputStream, StandardCharsets.US_ASCII.name()).useDelimiter("\\A");
-            return scanner.next();
-        } catch (final IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 }

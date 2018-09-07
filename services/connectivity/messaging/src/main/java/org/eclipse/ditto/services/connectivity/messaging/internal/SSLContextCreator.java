@@ -47,12 +47,18 @@ import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredent
 import org.eclipse.ditto.model.connectivity.credentials.CredentialsVisitor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
+
 /**
  * Create SSL context from connection credentials.
  */
 public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
+    private static final String TLS12 = "TLSv1.2";
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
+    private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
     private static final KeyFactory RSA_KEY_FACTORY;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
@@ -68,37 +74,73 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         }
     }
 
-    @Nullable
-    private final String trustedCertificates;
     private final DittoHeaders dittoHeaders;
+    private final Either<TrustManager, String> trust;
 
-    private SSLContextCreator(@Nullable final String trustedCertificates,
-            final DittoHeaders dittoHeaders) {
-        this.trustedCertificates = trustedCertificates;
-        this.dittoHeaders = dittoHeaders;
+    private SSLContextCreator(final Either<TrustManager, String> trust,
+            @Nullable final DittoHeaders dittoHeaders) {
+        this.trust = trust;
+        this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
     }
 
+    /**
+     * Create an SSL context creator with a preconfigured trust manager.
+     *
+     * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
+     * @return the SSL context creator.
+     */
+    public static SSLContextCreator withTrustManager(final TrustManager trustManager,
+            @Nullable final DittoHeaders dittoHeaders) {
+        return new SSLContextCreator(Left.apply(trustManager), dittoHeaders);
+    }
+
+    /**
+     * Create an SSL context creator that verifies server identity.
+     *
+     * @param trustedCertificates certificates to trust; {@code null} to trust the standard certificate authorities.
+     * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
+     * @return the SSL context creator.
+     */
     public static SSLContextCreator of(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders) {
-        return new SSLContextCreator(trustedCertificates, dittoHeaders != null ? dittoHeaders : DittoHeaders.empty());
+        return new SSLContextCreator(Right.apply(trustedCertificates), dittoHeaders);
     }
 
     @Override
     public SSLContext clientCertificate(final ClientCertificateCredentials credentials) {
         final String clientKeyPem = credentials.getClientKey().orElse(null);
         final String clientCertificatePem = credentials.getClientCertificate().orElse(null);
-        final KeyManagerFactory keyManagerFactory = newKeyManagerFactory(clientKeyPem, clientCertificatePem);
-        final TrustManagerFactory trustManagerFactory = newTrustManagerFactory(trustedCertificates);
-        return newTLSContext(keyManagerFactory, trustManagerFactory);
+        final Supplier<KeyManager[]> keyManagerSupplier = newKeyManagerFactory(clientKeyPem, clientCertificatePem);
+        final Supplier<TrustManager[]> trustManagerFactory = trust.isRight()
+                ? newTrustManagerFactory(trust.right().get())
+                : () -> new TrustManager[]{trust.left().get()};
+        return newTLSContext(keyManagerSupplier, trustManagerFactory);
+    }
+
+    /**
+     * Create an SSL context with trusted certificates without client authentication.
+     *
+     * @return the SSL context
+     */
+    public SSLContext withoutClientCertificate() {
+        return clientCertificate(ClientCertificateCredentials.empty());
     }
 
     @Nullable
-    private TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates) {
+    private Supplier<TrustManager[]> newTrustManagerFactory(@Nullable final String trustedCertificates) {
         if (trustedCertificates != null) {
+            final Collection<? extends Certificate> caCerts;
             try {
                 final byte[] caCertsPem = trustedCertificates.getBytes(StandardCharsets.US_ASCII);
-                final Collection<? extends Certificate> caCerts =
-                        X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(caCertsPem));
+                caCerts = X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(caCertsPem));
+
+            } catch (final CertificateException e) {
+                final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
+                throw badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
+                        .cause(e)
+                        .build();
+            }
+            try {
                 final KeyStore keystore = newKeystore();
                 for (final Certificate caCert : caCerts) {
                     keystore.setCertificateEntry("ca", caCert);
@@ -106,7 +148,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
                 final TrustManagerFactory trustManagerFactory =
                         TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(keystore);
-                return trustManagerFactory;
+                return trustManagerFactory::getTrustManagers;
             } catch (final Exception e) {
                 throw fatalError("Engine failed to configure trusted server or CA certificates")
                         .cause(e)
@@ -118,7 +160,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     }
 
     @Nullable
-    private KeyManagerFactory newKeyManagerFactory(@Nullable final String clientKeyPem,
+    private Supplier<KeyManager[]> newKeyManagerFactory(@Nullable final String clientKeyPem,
             @Nullable final String clientCertificatePem) {
 
         if (clientKeyPem != null && clientCertificatePem != null) {
@@ -132,7 +174,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
                 final KeyManagerFactory keyManagerFactory =
                         KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
                 keyManagerFactory.init(keystore, new char[0]);
-                return keyManagerFactory;
+                return keyManagerFactory::getKeyManagers;
             } catch (final Exception e) {
                 throw fatalError("Engine failed to configure client key and client certificate")
                         .cause(e)
@@ -197,13 +239,13 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         }
     }
 
-    private SSLContext newTLSContext(@Nullable final KeyManagerFactory keyManagerFactory,
-            @Nullable final TrustManagerFactory trustManagerFactory) {
+    private SSLContext newTLSContext(@Nullable final Supplier<KeyManager[]> keyManagerSupplier,
+            @Nullable final Supplier<TrustManager[]> trustManagerSupplier) {
+
         try {
-            final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            final KeyManager[] keyManagers = keyManagerFactory != null ? keyManagerFactory.getKeyManagers() : null;
-            final TrustManager[] trustManagers =
-                    trustManagerFactory != null ? trustManagerFactory.getTrustManagers() : null;
+            final SSLContext sslContext = SSLContext.getInstance(TLS12);
+            final KeyManager[] keyManagers = keyManagerSupplier != null ? keyManagerSupplier.get() : null;
+            final TrustManager[] trustManagers = trustManagerSupplier != null ? trustManagerSupplier.get() : null;
             sslContext.init(keyManagers, trustManagers, null);
             return sslContext;
         } catch (final NoSuchAlgorithmException | KeyManagementException e) {
@@ -238,7 +280,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
             final String label,
             final String binaryFormat) {
         final String message = String.format("%s: bad format. " +
-                        "Expect PEM-encoded %s data specified by RFC-7468 starting with '<-----BEGIN %s----->'",
+                        "Expect PEM-encoded %s data specified by RFC-7468 starting with '-----BEGIN %s-----'",
                 errorLocation.toString(), binaryFormat, label);
         return ConnectionConfigurationInvalidException.newBuilder(message)
                 .dittoHeaders(dittoHeaders);

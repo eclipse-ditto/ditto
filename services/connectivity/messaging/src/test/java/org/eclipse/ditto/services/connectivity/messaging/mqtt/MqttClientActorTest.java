@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -400,7 +400,7 @@ public class MqttClientActorTest {
     }
 
     private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
-            final Function<Connection, MqttConnectionFactory> factoryCreator) {
+            final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
         return Props.create(MqttClientActor.class, () ->
                 new MqttClientActor(connection, connection.getConnectionStatus(), testProbe, factoryCreator));

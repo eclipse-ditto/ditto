@@ -21,13 +21,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -74,15 +75,23 @@ public class MqttClientActor extends BaseClientActor {
 
     private final Map<String, ActorRef> consumerByActorNameWithIndex;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
-    private final Function<Connection, MqttConnectionFactory> connectionFactoryCreator;
+    private final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator;
     private final int sourceBufferSize;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
 
+    @SuppressWarnings("unused") // used by `props` via reflection
+    private MqttClientActor(final Connection connection,
+            final ConnectionStatus desiredConnectionStatus,
+            final ActorRef conciergeForwarder) {
+
+        this(connection, desiredConnectionStatus, conciergeForwarder, MqttConnectionFactory::of);
+    }
+
     MqttClientActor(final Connection connection,
             final ConnectionStatus desiredConnectionStatus,
             final ActorRef conciergeForwarder,
-            final Function<Connection, MqttConnectionFactory> connectionFactoryCreator) {
+            final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> connectionFactoryCreator) {
         super(connection, desiredConnectionStatus, conciergeForwarder);
         this.connectionFactoryCreator = connectionFactoryCreator;
         consumerByActorNameWithIndex = new HashMap<>();
@@ -100,9 +109,8 @@ public class MqttClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef conciergeForwarder) {
-        final Function<Connection, MqttConnectionFactory> connectionFactoryCreator = MqttConnectionFactory::of;
         return Props.create(MqttClientActor.class, validateConnection(connection), connection.getConnectionStatus(),
-                conciergeForwarder, connectionFactoryCreator);
+                conciergeForwarder);
     }
 
     private static Connection validateConnection(final Connection connection) {
@@ -208,7 +216,8 @@ public class MqttClientActor extends BaseClientActor {
      * @param dryRun if set to true, exchange no message between the broker and the Ditto cluster.
      */
     private void connectClient(final Connection connection, final boolean dryRun) {
-        final MqttConnectionFactory factory = connectionFactoryCreator.apply(connection);
+        final MqttConnectionFactory factory =
+                connectionFactoryCreator.apply(connection, stateData().getSessionHeaders());
 
         // start publisher
         startMqttPublisher(factory, dryRun);
