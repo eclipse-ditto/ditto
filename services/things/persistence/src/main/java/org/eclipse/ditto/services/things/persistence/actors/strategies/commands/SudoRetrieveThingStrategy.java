@@ -29,7 +29,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @Immutable
-final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrieveThing> {
+final class SudoRetrieveThingStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<SudoRetrieveThing, Thing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -42,7 +43,7 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
     public boolean isDefined(final Context context, @Nullable final Thing thing,
             final SudoRetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
-                .map(t -> !isThingDeleted(t))
+                .map(t -> !t.isDeleted())
                 .orElse(false);
 
         return Objects.equals(context.getThingId(), command.getId()) && thingExists;
@@ -59,7 +60,8 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
                 .map(selectedFields -> theThing.toJson(jsonSchemaVersion, selectedFields, FieldType.regularOrSpecial()))
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
-        return ResultFactory.newResult(SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()));
+        return ResultFactory.newQueryResult(command, thing,
+                SudoRetrieveThingResponse.of(thingJson, command.getDittoHeaders()), this);
     }
 
     private static JsonSchemaVersion determineSchemaVersion(final SudoRetrieveThing command, final Thing thing) {
@@ -71,8 +73,12 @@ final class SudoRetrieveThingStrategy extends AbstractCommandStrategy<SudoRetrie
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
-        return ResultFactory.newResult(
+        return ResultFactory.newErrorResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    public Optional<Thing> determineETagEntity(final SudoRetrieveThing command, @Nullable final Thing thing) {
+        return Optional.ofNullable(thing);
+    }
 }

@@ -21,12 +21,14 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Headers for commands and their responses which provide additional information needed for correlation and transfer.
- * <p>
+ *
  * <em>Implementations of this interface are required to be immutable.</em>
  */
 public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, String> {
@@ -201,4 +203,24 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     Optional<String> getOrigin();
 
+    /**
+     * Returns the eTag of the entity.
+     *
+     * @return the "ETag" value.
+     */
+    Optional<EntityTag> getETag();
+
+    /**
+     * Returns the entity-tags contained in the If-Match header.
+     *
+     * @return the entity-tags contained in the If-Match header.
+     */
+    Optional<EntityTagMatchers> getIfMatch();
+
+    /**
+     * Returns the entity-tags contained in the If-None-Match header.
+     *
+     * @return the entity-tags contained in the If-None-Match header.
+     */
+    Optional<EntityTagMatchers> getIfNoneMatch();
 }

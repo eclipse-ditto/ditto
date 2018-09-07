@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -28,7 +30,8 @@ import org.eclipse.ditto.signals.events.things.AttributeModified;
  * This strategy handles the {@link ModifyAttribute} command.
  */
 @Immutable
-final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttribute> {
+final class ModifyAttributeStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAttribute, JsonValue> {
 
     /**
      * Constructs a new {@code ModifyAttributeStrategy} object.
@@ -57,29 +60,33 @@ final class ModifyAttributeStrategy extends AbstractCommandStrategy<ModifyAttrib
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision,
+    private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 AttributeModified.of(thingId, attributePointer, command.getAttributeValue(), nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders));
+                ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders), this);
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision,
+    private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyAttribute command) {
         final String thingId = context.getThingId();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 AttributeCreated.of(thingId, attributePointer, attributeValue, nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders));
+                ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders), this);
     }
 
+    @Override
+    public Optional<JsonValue> determineETagEntity(final ModifyAttribute command, @Nullable final Thing thing) {
+        return getThingOrThrow(thing).getAttributes().flatMap(attrs -> attrs.getValue(command.getAttributePointer()));
+    }
 }

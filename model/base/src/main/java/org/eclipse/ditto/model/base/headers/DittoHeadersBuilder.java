@@ -18,6 +18,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -135,13 +137,39 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B contentType(CharSequence contentType);
 
     /**
+     * Sets the ETag value.
+     *
+     * @param eTag The ETag value to be set.
+     * @return this builder for Method Chaining
+     */
+    B eTag(EntityTag eTag);
+
+    /**
+     * Sets the If-Match value.
+     *
+     * @param entityTags The entity tags where one should match.
+     * @return this builder for Method Chaining
+     */
+    B ifMatch(EntityTagMatchers entityTags);
+
+    /**
+     * Sets the If-None-Match value.
+     *
+     * @param entityTags The entity tags that must not match.
+     * @return this builder for Method Chaining
+     */
+    B ifNoneMatch(EntityTagMatchers entityTags);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.
      * @param value the String value.
      * @return this builder for Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if key is empty or if {@code value} represents an invalid Java type.
+     * @throws IllegalArgumentException if key is empty
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if {@code value} represents an
+     * invalid Java type.
      */
     B putHeader(CharSequence key, CharSequence value);
 
@@ -151,8 +179,8 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param headers the headers to be put.
      * @return this builder for Method Chaining.
      * @throws NullPointerException if {@code headers} is {@code null}.
-     * @throws IllegalArgumentException if {@code headers} contains a value that did not represent its appropriate Java
-     * type.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException if {@code headers} contains a value
+     * that did not represent its appropriate Java type.
      */
     B putHeaders(Map<String, String> headers);
 
@@ -165,6 +193,13 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @throws IllegalArgumentException if {@code key} is empty.
      */
     B removeHeader(CharSequence key);
+
+    /**
+     * Removes all precondition headers from this builder.
+     *
+     * @return The builder without preconditionHeaders
+     */
+    B removePreconditionHeaders();
 
     /**
      * Creates a DittoHeaders object containing the key-value-pairs which were put to this builder.

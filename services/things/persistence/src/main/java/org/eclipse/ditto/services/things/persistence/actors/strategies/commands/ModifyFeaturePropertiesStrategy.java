@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -28,7 +30,8 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties} command.
  */
 @Immutable
-final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<ModifyFeatureProperties> {
+final class ModifyFeaturePropertiesStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyFeatureProperties, FeatureProperties> {
 
     /**
      * Constructs a new {@code ModifyFeaturePropertiesStrategy} object.
@@ -52,14 +55,18 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
             return lengthWithOutProperties + propertiesLength;
         }, command::getDittoHeaders);
 
-        return nonNullThing.getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
+        return extractFeature(command, nonNullThing)
                 .map(feature -> getModifyOrCreateResult(feature, context, nextRevision, command))
-                .orElseGet(() -> ResultFactory.newResult(
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), featureId, command.getDittoHeaders())));
     }
 
-    private static Result getModifyOrCreateResult(final Feature feature, final Context context,
+    private Optional<Feature> extractFeature(final ModifyFeatureProperties command, final Thing thing) {
+        return thing.getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()));
+    }
+
+    private Result getModifyOrCreateResult(final Feature feature, final Context context,
             final long nextRevision, final ModifyFeatureProperties command) {
 
         return feature.getProperties()
@@ -67,28 +74,35 @@ final class ModifyFeaturePropertiesStrategy extends AbstractCommandStrategy<Modi
                 .orElseGet(() -> getCreateResult(context, nextRevision, command));
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision,
+    private Result getModifyResult(final Context context, final long nextRevision,
             final ModifyFeatureProperties command) {
         final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(FeaturePropertiesModified.of(thingId, featureId, command.getProperties(),
-                nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders));
+        return ResultFactory.newMutationResult(command,
+                FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
+                        getEventTimestamp(), dittoHeaders),
+                ModifyFeaturePropertiesResponse.modified(context.getThingId(), featureId, dittoHeaders), this);
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision,
+    private Result getCreateResult(final Context context, final long nextRevision,
             final ModifyFeatureProperties command) {
         final String thingId = context.getThingId();
         final String featureId = command.getFeatureId();
         final FeatureProperties featureProperties = command.getProperties();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 FeaturePropertiesCreated.of(thingId, featureId, featureProperties, nextRevision,
                         getEventTimestamp(), dittoHeaders),
-                ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties, dittoHeaders));
+                ModifyFeaturePropertiesResponse.created(thingId, featureId, featureProperties, dittoHeaders), this);
     }
 
+
+    @Override
+    public Optional<FeatureProperties> determineETagEntity(final ModifyFeatureProperties command,
+            @Nullable final Thing thing) {
+        return extractFeature(command, getThingOrThrow(thing)).flatMap(Feature::getProperties);
+    }
 }

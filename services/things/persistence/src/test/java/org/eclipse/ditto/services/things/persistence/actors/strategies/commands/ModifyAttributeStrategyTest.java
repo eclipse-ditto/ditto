@@ -11,8 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyAttributeResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -21,7 +21,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.junit.Before;
@@ -60,14 +59,10 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeAttributes(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
-        assertThat(result.getCommandResponse()).contains(
-                ModifyAttributeResponse.created(context.getThingId(), attributePointer, attributeValue,
-                        command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V2.removeAttributes(), command,
+                AttributeCreated.class,
+                modifyAttributeResponse(context.getThingId(), attributePointer, attributeValue,
+                        command.getDittoHeaders(), true));
     }
 
     @Test
@@ -76,14 +71,10 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
         final ModifyAttribute command =
                 ModifyAttribute.of(context.getThingId(), attributePointer, attributeValue, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributeCreated.class);
-        assertThat(result.getCommandResponse()).contains(
-                ModifyAttributeResponse.created(context.getThingId(), attributePointer, attributeValue,
-                        command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V2, command,
+                AttributeCreated.class,
+                modifyAttributeResponse(context.getThingId(), attributePointer, attributeValue,
+                        command.getDittoHeaders(), true));
     }
 
     @Test
@@ -96,14 +87,10 @@ public final class ModifyAttributeStrategyTest extends AbstractCommandStrategyTe
                 ModifyAttribute.of(context.getThingId(), existingAttributePointer, newAttributeValue,
                         DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributeModified.class);
-        assertThat(result.getCommandResponse()).contains(
-                ModifyAttributeResponse.modified(context.getThingId(), existingAttributePointer,
-                        command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V2, command,
+                AttributeModified.class,
+                modifyAttributeResponse(context.getThingId(), existingAttributePointer, newAttributeValue,
+                        command.getDittoHeaders(), false));
     }
 
 }

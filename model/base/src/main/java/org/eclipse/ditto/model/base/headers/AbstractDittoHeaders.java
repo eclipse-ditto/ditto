@@ -33,6 +33,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -149,10 +151,28 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Optional<EntityTag> getETag() {
+        return getStringForDefinition(DittoHeaderDefinition.ETAG)
+                .map(EntityTag::fromString);
+    }
+
+    @Override
+    public Optional<EntityTagMatchers> getIfMatch() {
+        return getStringForDefinition(DittoHeaderDefinition.IF_MATCH)
+                .map(EntityTagMatchers::fromCommaSeparatedString);
+    }
+
+    @Override
+    public Optional<EntityTagMatchers> getIfNoneMatch() {
+        return getStringForDefinition(DittoHeaderDefinition.IF_NONE_MATCH)
+                .map(EntityTagMatchers::fromCommaSeparatedString);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         forEach((key, value) -> {
-            final Class<?> type = getTypeForKey(key);
+            final Class<?> type = getSerializationTypeForKey(key);
             final JsonValue jsonValue = type.isAssignableFrom(String.class)
                     ? JsonFactory.newValue(value)
                     : JsonFactory.readFrom(value);
@@ -161,11 +181,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return jsonObjectBuilder.build();
     }
 
-    private Class<?> getTypeForKey(final CharSequence key) {
+    private Class<?> getSerializationTypeForKey(final CharSequence key) {
         return getSpecificDefinitionByKey(key)
-                .map(HeaderDefinition::getJavaType)
+                .map(HeaderDefinition::getSerializationType)
                 .orElseGet(() -> DittoHeaderDefinition.forKey(key)
-                        .map(HeaderDefinition::getJavaType)
+                        .map(HeaderDefinition::getSerializationType)
                         .orElse(String.class));
     }
 

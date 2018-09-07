@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -44,11 +46,15 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base implementation of a protocol adapter.
  */
 public class DittoProtocolAdapter implements ProtocolAdapter {
+
+    protected final Logger logger;
 
     private final MessageCommandAdapter messageCommandAdapter;
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
@@ -63,6 +69,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
 
     protected DittoProtocolAdapter(final AbstractErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
+        this.logger = LoggerFactory.getLogger(getClass());
         this.errorRegistry = errorRegistry;
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
@@ -72,6 +79,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
         this.headerTranslator = headerTranslator;
+        logger.info("Created ProtocolAdapter with headerTranslator <{}>.", headerTranslator);
     }
 
     /**
@@ -80,7 +88,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
      * @param headerTranslator translator between external and Ditto headers.
      */
     public static DittoProtocolAdapter of(final HeaderTranslator headerTranslator) {
-        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), headerTranslator);
+        return new DittoProtocolAdapter(ProtocolAdapterErrorRegistry.newInstance(), requireNonNull(headerTranslator));
     }
 
     /**

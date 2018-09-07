@@ -11,10 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Authorization.AUTH_SUBJECT_GRIMES;
 import static org.eclipse.ditto.model.things.TestConstants.Authorization.AUTH_SUBJECT_OLDMAN;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -56,32 +54,23 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), authSubject, DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.aclEntryNotFound(context.getThingId(), authSubject, command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
-                ExceptionFactory.aclEntryNotFound(THING_ID, authSubject, command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V2, command, expectedException);
     }
 
     @Test
     public void deleteLastAclEntryWithMinRequiredPermissions() {
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), AUTH_SUBJECT_GRIMES, DittoHeaders.empty());
-        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(THING_ID, Optional.of(
+        final DittoRuntimeException expectedException = ExceptionFactory.aclInvalid(context.getThingId(), Optional.of(
                 MessageFormat.format(
                         "It must contain at least one Authorization Subject with the following permission(s): <{0}>!",
                         Arrays.toString(Permission.values()))),
                 command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAllPermissionsOf(AUTH_SUBJECT_OLDMAN), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(expectedException);
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V1.removeAllPermissionsOf(AUTH_SUBJECT_OLDMAN), command, expectedException);
     }
 
     @Test
@@ -90,13 +79,9 @@ public final class DeleteAclEntryStrategyTest extends AbstractCommandStrategyTes
         final AuthorizationSubject authSubject = AUTH_SUBJECT_GRIMES;
         final DeleteAclEntry command = DeleteAclEntry.of(context.getThingId(), authSubject, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AclEntryDeleted.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V1, command,
+                AclEntryDeleted.class,
                 DeleteAclEntryResponse.of(context.getThingId(), authSubject, command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
     }
 
 }

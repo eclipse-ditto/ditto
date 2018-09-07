@@ -29,6 +29,7 @@
         <module>akka</module>
         <module>cache</module>
         <module>cluster</module>
+        <module>conditional-headers</module>
         <module>config</module>
         <module>devops</module>
         <module>health</module>

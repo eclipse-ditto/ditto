@@ -11,11 +11,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
@@ -45,28 +45,19 @@ public final class DeleteAttributesStrategyTest extends AbstractCommandStrategyT
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(AttributesDeleted.class);
-        assertThat(result.getCommandResponse()).contains(
+        assertModificationResult(underTest, THING_V2, command,
+                AttributesDeleted.class,
                 DeleteAttributesResponse.of(context.getThingId(), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
-
     }
 
     @Test
     public void deleteAttributesFromThingWithoutAttributes() {
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteAttributes command = DeleteAttributes.of(context.getThingId(), DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V1.removeAttributes(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
-                ExceptionFactory.attributesNotFound(context.getThingId(), command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V2.removeAttributes(), command, expectedException);
     }
 
 }

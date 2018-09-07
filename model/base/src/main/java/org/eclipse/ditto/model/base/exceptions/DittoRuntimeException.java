@@ -296,6 +296,18 @@ public class DittoRuntimeException extends RuntimeException implements
     }
 
 
+    @Override
+    public String toString() {
+        return this.getClass().getName() + " [" +
+                "message='" + getMessage() + '\'' +
+                ", errorCode=" + errorCode +
+                ", statusCode=" + statusCode +
+                ", description='" + description + '\'' +
+                ", href=" + href +
+                ", dittoHeaders=" + dittoHeaders +
+                ']';
+    }
+
     /**
      * A mutable builder with a fluent API for a {@link DittoRuntimeException}.
      */

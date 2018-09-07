@@ -70,6 +70,8 @@ There are some pre-defined headers which have a special meaning for Ditto:
 | `correlation-id` | Used for correlating Protocol messages (e.g. a **command** would have the same correlation-id as the sent back **response** message. | `String` |
 | `version` | Determines in which schema version the sent along `payload` should be interpreted. | `Number` - currently: \[1,2\] |
 | `response-required` | Configures for a sent **command** whether a **response** should be sent back. | `Boolean` - default: `true` |
+| `If-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
+| `If-None-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
 
 Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
 custom headers, it is best to attach a prefix specific to your application that does not conflict with Ditto or

@@ -42,7 +42,7 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing> {
     @Override
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final CreateThing command) {
-        return ResultFactory.newResult(ThingConflictException.newBuilder(command.getId())
+        return ResultFactory.newErrorResult(ThingConflictException.newBuilder(command.getId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build());
     }

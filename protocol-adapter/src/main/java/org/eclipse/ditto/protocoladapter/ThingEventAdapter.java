@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,7 +73,7 @@ final class ThingEventAdapter extends AbstractAdapter<ThingEvent<?>> {
      * @return the adapter.
      */
     public static ThingEventAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingEventAdapter(mappingStrategies(), headerTranslator);
+        return new ThingEventAdapter(mappingStrategies(), requireNonNull(headerTranslator));
     }
 
     private static Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies() {

@@ -11,6 +11,10 @@
  */
 package org.eclipse.ditto.services.utils.protocol;
 
+import static java.util.Objects.requireNonNull;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
@@ -29,7 +33,7 @@ public abstract class ProtocolAdapterProvider {
      * @param protocolConfigReader the argument.
      */
     public ProtocolAdapterProvider(final ProtocolConfigReader protocolConfigReader) {
-        this.protocolConfigReader = protocolConfigReader;
+        this.protocolConfigReader = requireNonNull(protocolConfigReader);
     }
 
     /**
@@ -42,25 +46,19 @@ public abstract class ProtocolAdapterProvider {
     }
 
     /**
-     * Create a protocol adapter.
+     * Gets a protocol adapter which is appropriate for the client specified by the given {@code userAgent}.
      *
+     * @param userAgent the user-agent header provided by the client
      * @return the protocol adapter.
      */
-    public abstract ProtocolAdapter createProtocolAdapter();
+    public abstract ProtocolAdapter getProtocolAdapter(@Nullable final String userAgent);
 
     /**
-     * Create a protocol adapter in compatibility mode.
-     *
-     * @return protocol adapter in compatibility mode.
-     */
-    public abstract ProtocolAdapter createProtocolAdapterForCompatibilityMode();
-
-    /**
-     * Create a header translator to filter incoming HTTP headers for the protocol adapter.
+     * Gets a header translator to filter incoming HTTP headers for the protocol adapter.
      *
      * @return the header translator.
      */
-    public abstract HeaderTranslator createHttpHeaderTranslator();
+    public abstract HeaderTranslator getHttpHeaderTranslator();
 
     /**
      * Header definition for headers ignored by Ditto.
@@ -87,6 +85,11 @@ public abstract class ProtocolAdapterProvider {
         @Override
         public Class getJavaType() {
             return Object.class;
+        }
+
+        @Override
+        public Class getSerializationType() {
+            return getJavaType();
         }
 
         @Override

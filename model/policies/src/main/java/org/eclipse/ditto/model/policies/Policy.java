@@ -13,7 +13,6 @@ package org.eclipse.ditto.model.policies;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -30,13 +29,13 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.base.entity.Entity;
 
 /**
  * A Policy contains {@link PolicyEntry}s containing information about which {@link Subjects} are granted/revoked
  * which {@link Permissions} on which {@link Resources}.
  */
-public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
 
     /**
      * The name of the Json field when a policy is inlined in another Json object.
@@ -94,13 +93,6 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
     }
 
     /**
-     * Returns the identifier of this Policy.
-     *
-     * @return the identifier.
-     */
-    Optional<String> getId();
-
-    /**
      * Returns the namespace of this Policy.
      *
      * @return the namespace of this Policy.
@@ -125,20 +117,6 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
                 .filter(actualLifecycle -> Objects.equals(actualLifecycle, lifecycle))
                 .isPresent();
     }
-
-    /**
-     * Returns the current revision of this Policy.
-     *
-     * @return the current revision of this Policy.
-     */
-    Optional<PolicyRevision> getRevision();
-
-    /**
-     * Returns the modified timestamp of this Policy.
-     *
-     * @return the timestamp.
-     */
-    Optional<Instant> getModified();
 
     /**
      * Returns all available {@link Label}s of this Policy.
@@ -392,21 +370,6 @@ public interface Policy extends Iterable<PolicyEntry>, Jsonifiable.WithFieldSele
      * @return a sequential stream of the entries of this Policy.
      */
     Stream<PolicyEntry> stream();
-
-    /**
-     * Returns all non hidden marked fields of this Policy.
-     *
-     * @return a JSON object representation of this Policy including only non hidden marked fields.
-     */
-    @Override
-    default JsonObject toJson() {
-        return toJson(FieldType.notHidden());
-    }
-
-    @Override
-    default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
-        return toJson(schemaVersion, FieldType.regularOrSpecial()).get(fieldSelector);
-    }
 
     /**
      * Returns a JSON object representation of this policy to embed in another JSON object.

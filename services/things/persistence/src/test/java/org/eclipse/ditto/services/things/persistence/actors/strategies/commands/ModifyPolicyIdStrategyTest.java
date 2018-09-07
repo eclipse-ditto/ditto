@@ -11,15 +11,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.POLICY_ID;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.modifyPolicyIdResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyIdResponse;
 import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.junit.Before;
@@ -43,17 +43,13 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
     }
 
     @Test
-    public void modifyPolicyIdOnThingWithoutPolicies() {
+    public void modifyPolicyIdOnThingWithoutPolicyId() {
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V1, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(PolicyIdCreated.class);
-        assertThat(result.getCommandResponse()).contains(
-                ModifyPolicyIdResponse.created(context.getThingId(), command.getPolicyId(), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V1, command,
+                PolicyIdCreated.class,
+                modifyPolicyIdResponse(context.getThingId(), command.getPolicyId(), command.getDittoHeaders(), true));
     }
 
     @Test
@@ -61,13 +57,9 @@ public final class ModifyPolicyIdStrategyTest extends AbstractCommandStrategyTes
         final CommandStrategy.Context context = getDefaultContext();
         final ModifyPolicyId command = ModifyPolicyId.of(context.getThingId(), POLICY_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, TestConstants.Thing.THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(PolicyIdModified.class);
-        assertThat(result.getCommandResponse()).contains(
-                ModifyPolicyIdResponse.modified(context.getThingId(), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertModificationResult(underTest, THING_V2, command,
+                PolicyIdModified.class,
+                modifyPolicyIdResponse(context.getThingId(), command.getPolicyId(), command.getDittoHeaders(), false));
     }
 
 }

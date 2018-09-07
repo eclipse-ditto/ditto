@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointerInvalidException;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
@@ -76,6 +77,8 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         dittoHeaders));
 
         // other common exceptions
+
+        parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
         parseStrategies.put(CommandNotSupportedException.ERROR_CODE, CommandNotSupportedException::fromJson);
         parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
 
