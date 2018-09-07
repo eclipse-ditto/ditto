@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
@@ -53,8 +54,8 @@ abstract class AbstractAdapter<T extends Jsonifiable> implements Adapter<T> {
 
     protected AbstractAdapter(final Map<String, JsonifiableMapper<T>> mappingStrategies,
             final HeaderTranslator headerTranslator) {
-        this.mappingStrategies = mappingStrategies;
-        this.headerTranslator = headerTranslator;
+        this.mappingStrategies = requireNonNull(mappingStrategies);
+        this.headerTranslator = requireNonNull(headerTranslator);
     }
 
     protected static boolean isCreated(final Adaptable adaptable) {

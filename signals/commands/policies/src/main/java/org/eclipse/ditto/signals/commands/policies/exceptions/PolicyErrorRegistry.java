@@ -56,6 +56,9 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(PolicyTooManyModifyingRequestsException.ERROR_CODE,
                 PolicyTooManyModifyingRequestsException::fromJson);
         parseStrategies.put(PolicyEntryNotAccessibleException.ERROR_CODE, PolicyEntryNotAccessibleException::fromJson);
+        parseStrategies.put(PolicyPreconditionFailedException.ERROR_CODE, PolicyPreconditionFailedException::fromJson);
+        parseStrategies.put(PolicyPreconditionNotModifiedException.ERROR_CODE,
+                PolicyPreconditionNotModifiedException::fromJson);
         parseStrategies.put(PolicyEntryNotModifiableException.ERROR_CODE, PolicyEntryNotModifiableException::fromJson);
         parseStrategies.put(PolicyEntryModificationInvalidException.ERROR_CODE,
                 PolicyEntryModificationInvalidException::fromJson);

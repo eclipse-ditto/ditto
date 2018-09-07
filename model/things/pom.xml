@@ -81,40 +81,22 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <oldVersion>
-                        <dependency>
-                            <groupId>${project.groupId}</groupId>
-                            <artifactId>${project.artifactId}</artifactId>
-                            <version>${binary-compatibility-check.version}</version>
-                            <type>bundle</type>
-                        </dependency>
-                    </oldVersion>
-                    <newVersion>
-                        <file>
-                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
-                        </file>
-                    </newVersion>
                     <parameter>
-                        <onlyModified>true</onlyModified>
-                        <accessModifier>public</accessModifier>
-                        <breakBuildOnModifications>false</breakBuildOnModifications>
-                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
-                        <includeSynthetic>false</includeSynthetic>
-                        <ignoreMissingClasses>false</ignoreMissingClasses>
-                        <skipPomModules>true</skipPomModules>
-                        <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                        <excludes>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getId()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getModified()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#getRevision()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#toJson()</exclude>
+                            <exclude>org.eclipse.ditto.model.things.Thing#toJson(org.eclipse.ditto.model.base.json.JsonSchemaVersion,org.eclipse.ditto.json.JsonFieldSelector)</exclude>
+
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isGreaterThan(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isGreaterThanOrEqualTo(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isLowerThan(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#isLowerThanOrEqualTo(org.eclipse.ditto.model.things.ThingRevision)</exclude>
+                            <exclude>org.eclipse.ditto.model.things.ThingRevision#toLong()</exclude>
+                        </excludes>
                     </parameter>
-                    <skip>false</skip>
                 </configuration>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>cmp</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

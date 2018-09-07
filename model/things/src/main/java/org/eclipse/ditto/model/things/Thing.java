@@ -11,7 +11,6 @@
  */
 package org.eclipse.ditto.model.things;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,14 +20,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.base.entity.Entity;
 
 /**
  * A generic entity which can be used as a "handle" for multiple {@link Feature}s belonging to this Thing. A Thing can
@@ -54,7 +52,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * </ul>
  */
 @Immutable
-public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface Thing extends Entity<ThingRevision> {
 
     /**
      * The regex pattern a Thing Namespace.
@@ -105,13 +103,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
         return (getAccessControlList().isPresent() && !getPolicyId().isPresent())
                 ? JsonSchemaVersion.V_1 : JsonSchemaVersion.LATEST;
     }
-
-    /**
-     * Returns the ID of this Thing.
-     *
-     * @return the ID of this Thing.
-     */
-    Optional<String> getId();
 
     /**
      * Returns the namespace this Thing was created in. The namespace is derived from the ID of this Thing.
@@ -441,20 +432,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
     }
 
     /**
-     * Returns the current revision of this Thing.
-     *
-     * @return the current revision of this Thing.
-     */
-    Optional<ThingRevision> getRevision();
-
-    /**
-     * Returns the modified timestamp of this Thing.
-     *
-     * @return the timestamp.
-     */
-    Optional<Instant> getModified();
-
-    /**
      * Returns the Access Control List of this Thing.
      *
      * @return the Access Control List of this Thing.
@@ -543,21 +520,6 @@ public interface Thing extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFie
      * @return a copy of this Thing without the Feature with the given ID.
      */
     Thing removeFeature(String featureId);
-
-    /**
-     * Returns all non hidden marked fields of this object.
-     *
-     * @return a JSON object representation of this object including only non hidden marked fields.
-     */
-    @Override
-    default JsonObject toJson() {
-        return toJson(FieldType.notHidden());
-    }
-
-    @Override
-    default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
-        return toJson(schemaVersion, FieldType.regularOrSpecial()).get(fieldSelector);
-    }
 
     /**
      * An enumeration of the known {@link JsonField}s of a Thing.

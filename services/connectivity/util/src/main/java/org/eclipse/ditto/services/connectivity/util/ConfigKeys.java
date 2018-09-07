@@ -149,6 +149,7 @@ public final class ConfigKeys {
         private Connection() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -166,9 +167,20 @@ public final class ConfigKeys {
          */
         public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
 
+        /**
+         * Initial delay for reconnecting the connections after the ReconnectActor has been started.
+         */
+        public static final String RECONNECT_INITIAL_DELAY = PREFIX + "initial-delay";
+
+        /**
+         * Interval for trying to reconnect all started connections.
+         */
+        public static final String RECONNECT_INTERVAL = PREFIX + "interval";
+
         private Reconnect() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -187,6 +199,7 @@ public final class ConfigKeys {
         private Client() {
             throw new AssertionError();
         }
+
     }
 
     /*

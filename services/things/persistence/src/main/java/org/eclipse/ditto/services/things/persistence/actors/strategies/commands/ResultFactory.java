@@ -11,17 +11,22 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
 /**
@@ -34,205 +39,196 @@ final class ResultFactory {
         throw new AssertionError();
     }
 
-    static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response) {
+    static <C extends ThingModifyCommand, E> CommandStrategy.Result newMutationResult(final C command,
+            final ThingModifiedEvent eventToPersist,
+            final ThingCommandResponse response, final ETagEntityProvider<C, E> eTagEntityProvider) {
 
-        return newResult(eventToPersist, response, false);
+        return new MutationResult<>(command, eventToPersist, response, false, false, eTagEntityProvider);
     }
 
-    static CommandStrategy.Result newResult(final DittoRuntimeException dittoRuntimeException) {
-        return new InfoResult(dittoRuntimeException);
+    static <C extends ThingModifyCommand, E> CommandStrategy.Result newMutationResult(final C command,
+            final ThingModifiedEvent eventToPersist,
+            final ThingCommandResponse response, final boolean becomeCreated, final boolean becomeDeleted,
+            final ETagEntityProvider<C, E> eTagProvider) {
+
+        return new MutationResult<>(command, eventToPersist, response, becomeCreated, becomeDeleted, eTagProvider);
     }
 
-    static CommandStrategy.Result newResult(final WithDittoHeaders response) {
-        return new InfoResult(response);
+    static CommandStrategy.Result newErrorResult(final DittoRuntimeException dittoRuntimeException) {
+        return new DittoRuntimeExceptionResult(dittoRuntimeException);
+    }
+
+    static <C extends Command, E> CommandStrategy.Result newQueryResult(final C command,
+            @Nullable final Thing completeThing, final WithDittoHeaders response,
+            @Nullable final ETagEntityProvider<C, E> eTagEntityProvider) {
+
+        return new InfoResult<>(command, completeThing, response, eTagEntityProvider);
     }
 
     static CommandStrategy.Result emptyResult() {
-        return new EmptyResult();
+        return EmptyResult.INSTANCE;
     }
 
-    static CommandStrategy.Result newResult(final ThingModifiedEvent eventToPersist,
-            final ThingCommandResponse response, final boolean becomeDeleted) {
-
-        return new MutationResult(eventToPersist, response, becomeDeleted);
-    }
-
-    static CommandStrategy.Result newResult(final CompletionStage<WithDittoHeaders> futureResponse) {
+    static CommandStrategy.Result newFutureResult(final CompletionStage<WithDittoHeaders> futureResponse) {
         return new FutureInfoResult(futureResponse);
     }
 
-    /*
-     * Results are actor messages. They must be thread-safe even though some (i. e., FutureInfoResult) may not be
-     * immutable.
-     */
-    private abstract static class AbstractResult implements CommandStrategy.Result {
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) {
-                return true;
+    private static <C extends Command, E> WithDittoHeaders appendETagHeaderIfProvided(final C command,
+            final WithDittoHeaders withDittoHeaders, @Nullable final Thing thing,
+            @Nullable final ETagEntityProvider<C, E> eTagProvider) {
+        if (eTagProvider == null) {
+            return withDittoHeaders;
+        }
+
+        final Optional<E> eTagEntityOpt = eTagProvider.determineETagEntity(command, thing);
+        if (eTagEntityOpt.isPresent()) {
+            final Optional<EntityTag> entityTagOpt = EntityTag.fromEntity(eTagEntityOpt.get());
+            if (entityTagOpt.isPresent()) {
+                final EntityTag entityTag = entityTagOpt.get();
+                final DittoHeaders newDittoHeaders = withDittoHeaders.getDittoHeaders().toBuilder()
+                        .eTag(entityTag)
+                        .build();
+                return withDittoHeaders.setDittoHeaders(newDittoHeaders);
             }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final CommandStrategy.Result that = (CommandStrategy.Result) o;
-            return isBecomeDeleted() == that.isBecomeDeleted() &&
-                    Objects.equals(getEventToPersist(), that.getEventToPersist()) &&
-                    Objects.equals(getCommandResponse(), that.getCommandResponse()) &&
-                    Objects.equals(getException(), that.getException()) &&
-                    Objects.equals(getFutureResponse(), that.getFutureResponse());
         }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(getEventToPersist(), getCommandResponse(), getException(), getFutureResponse(),
-                    isBecomeDeleted());
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "eventToPersist=" + getEventToPersist().orElse(null) +
-                    ", response=" + getCommandResponse().orElse(null) +
-                    ", exception=" + getException().orElse(null) +
-                    ", futureResponse=" + getFutureResponse().orElse(null) +
-                    ", becomeDeleted=" + isBecomeDeleted() +
-                    "]";
-        }
+        return withDittoHeaders;
     }
 
-    private static final class EmptyResult extends AbstractResult {
+
+    private static final class EmptyResult implements CommandStrategy.Result {
+
+        private static final EmptyResult INSTANCE = new EmptyResult();
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
             // do nothing
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
+        public String toString() {
+            return this.getClass().getSimpleName() + " []";
         }
     }
 
-    private static final class MutationResult extends AbstractResult {
+    private static final class MutationResult<C extends ThingModifyCommand, E> implements CommandStrategy.Result {
 
+        private final C command;
         private final ThingModifiedEvent eventToPersist;
         private final WithDittoHeaders response;
+        private final boolean becomeCreated;
         private final boolean becomeDeleted;
+        @Nullable
+        private final ETagEntityProvider<C, E> eTagProvider;
 
-        private MutationResult(final ThingModifiedEvent eventToPersist,
-                final WithDittoHeaders response, final boolean becomeDeleted) {
+        private MutationResult(final C command, final ThingModifiedEvent eventToPersist,
+                final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted,
+                @Nullable final ETagEntityProvider<C, E> eTagProvider) {
+            this.command = command;
             this.eventToPersist = eventToPersist;
             this.response = response;
+            this.becomeCreated = becomeCreated;
             this.becomeDeleted = becomeDeleted;
+            this.eTagProvider = eTagProvider;
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            persistConsumer.accept(eventToPersist, event -> {
-                notifyConsumer.accept(response);
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+            persistConsumer.accept(eventToPersist, (event, resultingThing) -> {
+                final WithDittoHeaders notificationResponse =
+                        appendETagHeaderIfProvided(command, response, resultingThing, eTagProvider);
+                notifyConsumer.accept(notificationResponse);
                 if (becomeDeleted) {
-                    becomeDeletedRunnable.run();
+                    context.getBecomeDeletedRunnable().run();
+                }
+                if (becomeCreated) {
+                    context.getBecomeCreatedRunnable().run();
                 }
             });
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.of(eventToPersist);
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "command=" + command +
+                    ", eventToPersist=" + eventToPersist +
+                    ", response=" + response +
+                    ", becomeCreated=" + becomeCreated +
+                    ", becomeDeleted=" + becomeDeleted +
+                    ", eTagProvider=" + eTagProvider +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.of(response);
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return becomeDeleted;
-        }
-
     }
 
-    private static final class InfoResult extends AbstractResult {
+    private static final class InfoResult<C extends Command, E> implements CommandStrategy.Result {
 
+        private final C command;
         private final WithDittoHeaders response;
+        @Nullable
+        private final Thing completeThing;
+        @Nullable
+        private final ETagEntityProvider<C, E> eTagEntityProvider;
 
-        private InfoResult(final WithDittoHeaders response) {
+        private InfoResult(final C command, @Nullable final Thing completeThing,
+                final WithDittoHeaders response,
+                @Nullable final ETagEntityProvider<C, E> eTagEntityProvider) {
+
+            this.command = command;
+            this.completeThing = completeThing;
             this.response = response;
+            this.eTagEntityProvider = eTagEntityProvider;
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
-            notifyConsumer.accept(response);
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+
+            final WithDittoHeaders notificationResponse =
+                    appendETagHeaderIfProvided(command, response, completeThing, eTagEntityProvider);
+            notifyConsumer.accept(notificationResponse);
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "command=" + command +
+                    ", response=" + response +
+                    ", completeThing=" + completeThing +
+                    ", eTagEntityProvider=" + eTagEntityProvider +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return response instanceof DittoRuntimeException
-                    ? Optional.empty()
-                    : Optional.of(response);
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return response instanceof DittoRuntimeException
-                    ? Optional.of((DittoRuntimeException) response)
-                    : Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
-        }
-
     }
 
-    private static final class FutureInfoResult extends AbstractResult {
+    private static final class DittoRuntimeExceptionResult implements CommandStrategy.Result {
+
+        private final DittoRuntimeException dittoRuntimeException;
+
+        private DittoRuntimeExceptionResult(final DittoRuntimeException dittoRuntimeException) {
+            this.dittoRuntimeException = dittoRuntimeException;
+        }
+
+        @Override
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+
+            notifyConsumer.accept(dittoRuntimeException);
+        }
+
+        @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "dittoRuntimeException=" + dittoRuntimeException +
+                    ']';
+        }
+    }
+
+    private static final class FutureInfoResult implements CommandStrategy.Result {
 
         private final CompletionStage<WithDittoHeaders> futureResponse;
 
@@ -241,35 +237,18 @@ final class ResultFactory {
         }
 
         @Override
-        public void apply(final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistConsumer,
-                final Consumer<WithDittoHeaders> notifyConsumer, final Runnable becomeDeletedRunnable) {
+        public void apply(final CommandStrategy.Context context,
+                final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistConsumer,
+                final Consumer<WithDittoHeaders> notifyConsumer) {
+
             futureResponse.thenAccept(notifyConsumer);
         }
 
         @Override
-        public Optional<ThingModifiedEvent> getEventToPersist() {
-            return Optional.empty();
+        public String toString() {
+            return this.getClass().getSimpleName() + " [" +
+                    "futureResponse=" + futureResponse +
+                    ']';
         }
-
-        @Override
-        public Optional<WithDittoHeaders> getCommandResponse() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<DittoRuntimeException> getException() {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<CompletionStage<WithDittoHeaders>> getFutureResponse() {
-            return Optional.of(futureResponse);
-        }
-
-        @Override
-        public boolean isBecomeDeleted() {
-            return false;
-        }
-
     }
 }

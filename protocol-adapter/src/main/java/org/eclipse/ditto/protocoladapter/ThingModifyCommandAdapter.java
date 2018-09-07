@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +60,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
      * @return the adapter.
      */
     public static ThingModifyCommandAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingModifyCommandAdapter(mappingStrategies(), headerTranslator);
+        return new ThingModifyCommandAdapter(mappingStrategies(), requireNonNull(headerTranslator));
     }
 
     private static Map<String, JsonifiableMapper<ThingModifyCommand>> mappingStrategies() {

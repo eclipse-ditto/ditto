@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.junit.Before;
 import org.junit.Test;
@@ -189,9 +190,9 @@ public final class MessageHeadersBuilderTest {
         invalidHeaders.put(MessageHeaderDefinition.TIMEOUT.getKey(), String.valueOf(TIMEOUT));
         invalidHeaders.put(key, invalidValue);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("Value <%s> for key <%s> is not a valid boolean!", invalidValue, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid boolean.", invalidValue, key)
                 .withNoCause();
     }
 
@@ -205,10 +206,10 @@ public final class MessageHeadersBuilderTest {
         invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
         invalidHeaders.put(key, invalidValue);
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("Value <%s> for key <%s> is not a valid long!", invalidValue, key)
-                .withCauseInstanceOf(NumberFormatException.class);
+                .withMessage("The value '%s' of the header '%s' is not a valid long.", invalidValue, key)
+                .withNoCause();
     }
 
     @Test

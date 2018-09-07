@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
+import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import com.newmotion.akka.rabbitmq.ChannelActor;
+import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.CreateChannel;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -59,6 +61,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.FI;
+import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.PatternsCS;
 import scala.Option;
 import scala.concurrent.duration.FiniteDuration;
@@ -144,6 +147,19 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 .map(Target::getAddress)
                 .forEach(RabbitMQTarget::fromTargetAddress);
         return connection;
+    }
+
+    @Override
+    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
+        return super.inConnectedState()
+                .event(ClientConnected.class, BaseClientData.class,
+                        (event, data) -> {
+                            // when connection is lost, the library (ChannelActor) will automatically reconnect
+                            // without the state of this actor changing. But we will receive a new ClientConnected message
+                            // that we can use to bind our consumers to the channels.
+                            this.allocateResourcesOnConnection(event);
+                            return stay();
+                        });
     }
 
     @Override
@@ -263,9 +279,16 @@ public final class RabbitMQClientActor extends BaseClientActor {
                 rmqPublisherActor = startRmqPublisherActor().orElse(null);
 
                 // create publisher channel
+                final ActorRef finalRmqPublisherActor = rmqPublisherActor;
                 final CreateChannel createChannel = CreateChannel.apply(
-                        ChannelActor.props((channel, s) -> {
-                            log.info("Did set up publisher channel: {}", channel);
+                        ChannelActor.props((channel, channelActor) -> {
+                            log.info("Did set up publisher channel: {}. Telling the publisher actor the new channel",
+                                    channel);
+                            // provide the new channel to the publisher after the channel was connected (also includes reconnects)
+                            if (finalRmqPublisherActor != null) {
+                                final ChannelCreated channelCreated = new ChannelCreated(channelActor);
+                                finalRmqPublisherActor.tell(channelCreated, channelActor);
+                            }
                             return null;
                         }),
                         Option.apply(PUBLISHER_CHANNEL));
@@ -274,9 +297,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
                     } else {
-                        if (rmqPublisherActor != null) {
-                            rmqPublisherActor.tell(reply, rmqConnectionActor);
-                        }
                         future.complete(new Status.Success("channel created"));
                     }
                     return null;
@@ -294,9 +314,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
             @Nullable final ActorRef rmqConnectionActor,
             final ActorRef self) {
         if (consuming && status instanceof Status.Success && rmqConnectionActor != null) {
-            // send self the created channel once
+            // send self the created channel
             final CreateChannel createChannel =
-                    CreateChannel.apply(ChannelActor.props(SendChannelOnce.to(self)::apply),
+                    CreateChannel.apply(ChannelActor.props(SendChannel.to(self)::apply),
                             Option.apply(CONSUMER_CHANNEL));
             // connection actor sends ChannelCreated; use an ASK to swallow the reply in which we are disinterested
             PatternsCS.ask(rmqConnectionActor, createChannel, askTimeoutMillis());
@@ -426,30 +446,27 @@ public final class RabbitMQClientActor extends BaseClientActor {
         public Optional<ActorRef> getOrigin() {
             return Optional.empty();
         }
+
     }
 
-    private static final class SendChannelOnce implements FI.Apply2<Channel, ActorRef, Object> {
+    private static final class SendChannel implements FI.Apply2<Channel, ActorRef, Object> {
 
-        private boolean hasFired = false;
         private final ActorRef recipient;
 
-        private SendChannelOnce(final ActorRef recipient) {
+        private SendChannel(final ActorRef recipient) {
             this.recipient = recipient;
         }
 
-        private static SendChannelOnce to(final ActorRef recipient) {
-            return new SendChannelOnce(recipient);
+        private static SendChannel to(final ActorRef recipient) {
+            return new SendChannel(recipient);
         }
 
         @Override
         public Object apply(final Channel channel, final ActorRef channelActor) {
-            if (!hasFired) {
-                hasFired = true;
-                recipient.tell(new RmqConsumerChannelCreated(channel), channelActor);
-            }
-            // return value ignored by caller com.newmotion.akka.rabbitmq.ChannelActor
+            recipient.tell(new RmqConsumerChannelCreated(channel), channelActor);
             return channel;
         }
+
     }
 
     /**

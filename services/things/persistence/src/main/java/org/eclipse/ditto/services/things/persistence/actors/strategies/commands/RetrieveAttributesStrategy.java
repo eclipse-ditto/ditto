@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -25,7 +27,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesRespons
  * This strategy handles the {@link RetrieveAttributes} command.
  */
 @Immutable
-final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveAttributes> {
+final class RetrieveAttributesStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveAttributes, Attributes> {
 
     /**
      * Constructs a new {@code RetrieveAttributesStrategy} object.
@@ -40,11 +43,15 @@ final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveA
         final String thingId = context.getThingId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return getThingOrThrow(thing).getAttributes()
+        return extractAttributes(thing)
                 .map(attributes -> getAttributesJson(attributes, command))
                 .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
-                .map(ResultFactory::newResult)
-                .orElseGet(() -> ResultFactory.newResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders)));
+                .map(response -> ResultFactory.newQueryResult(command, thing, response, this))
+                .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.attributesNotFound(thingId, dittoHeaders)));
+    }
+
+    private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getAttributes();
     }
 
     private static JsonObject getAttributesJson(final Attributes attributes, final RetrieveAttributes command) {
@@ -53,4 +60,9 @@ final class RetrieveAttributesStrategy extends AbstractCommandStrategy<RetrieveA
                 .orElseGet(() -> attributes.toJson(command.getImplementedSchemaVersion()));
     }
 
+
+    @Override
+    public Optional<Attributes> determineETagEntity(final RetrieveAttributes command, @Nullable final Thing thing) {
+        return extractAttributes(thing);
+    }
 }

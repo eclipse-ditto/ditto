@@ -11,10 +11,9 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.POLICY_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrievePolicyIdResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -45,30 +44,22 @@ public final class RetrievePolicyIdStrategyTest extends AbstractCommandStrategyT
     @Test
     public void retrieveExistingPolicyId() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(THING_ID, DittoHeaders.empty());
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getThingId(), DittoHeaders.empty());
+        final RetrievePolicyIdResponse expectedResponse =
+                retrievePolicyIdResponse(command.getThingId(), POLICY_ID, DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(
-                RetrievePolicyIdResponse.of(command.getThingId(), POLICY_ID, DittoHeaders.empty()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
     public void retrieveNonExistingPolicyId() {
         final CommandStrategy.Context context = getDefaultContext();
-        final RetrievePolicyId command = RetrievePolicyId.of(THING_ID, DittoHeaders.empty());
-
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.toBuilder().removePolicyId().build(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(PolicyIdNotAccessibleException.newBuilder(command.getThingId())
+        final RetrievePolicyId command = RetrievePolicyId.of(context.getThingId(), DittoHeaders.empty());
+        final PolicyIdNotAccessibleException expectedException = PolicyIdNotAccessibleException.newBuilder(command.getThingId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build());
-        assertThat(result.isBecomeDeleted()).isFalse();
+                .build();
+
+        assertErrorResult(underTest, THING_V2.toBuilder().removePolicyId().build(), command, expectedException);
     }
 
 }

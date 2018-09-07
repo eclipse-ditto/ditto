@@ -18,7 +18,9 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,9 +69,9 @@ public final class HeaderValueValidatorTest {
         Mockito.when(headerDefinition.getJavaType()).thenReturn(Boolean.class);
         final String value = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(headerDefinition, value))
-                .withMessage("Value <%s> for key <%s> is not a valid boolean!", value, HEADER_KEY)
+                .withMessage("The value '%s' of the header '%s' is not a valid boolean.", value, HEADER_KEY)
                 .withNoCause();
     }
 
@@ -90,10 +92,10 @@ public final class HeaderValueValidatorTest {
         Mockito.when(headerDefinition.getJavaType()).thenReturn(Integer.class);
         final String value = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(headerDefinition, value))
-                .withMessage("Value <%s> for key <%s> is not a valid int!", value, HEADER_KEY)
-                .withCauseInstanceOf(NumberFormatException.class);
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", value, HEADER_KEY)
+                .withNoCause();
     }
 
     @Test
@@ -118,10 +120,10 @@ public final class HeaderValueValidatorTest {
         Mockito.when(headerDefinition.getJavaType()).thenReturn(JsonArray.class);
         final String value = "foo";
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(headerDefinition, value))
-                .withMessage("Value <%s> for key <%s> is not a valid JSON array!", value, HEADER_KEY)
-                .withCauseInstanceOf(JsonParseException.class);
+                .withMessage("The value '%s' of the header '%s' is not a valid JSON array.", value, HEADER_KEY)
+                .withNoCause();
     }
 
     @Test
@@ -134,10 +136,68 @@ public final class HeaderValueValidatorTest {
                 .build();
         final String value = jsonArray.toString();
 
-        assertThatExceptionOfType(IllegalArgumentException.class)
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(headerDefinition, value))
-                .withMessage("Value <%s> for key <%s> is not a valid JSON array!", value, HEADER_KEY)
-                .withCauseInstanceOf(IllegalArgumentException.class);
+                .withMessage("JSON array for '%s' contained non-String values.", HEADER_KEY)
+                .withNoCause();
     }
 
+    @Test
+    public void invalidEntityTagValue() {
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTag.class);
+        final String value = "invalid\"foo\"";
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.accept(headerDefinition, value))
+                .withMessage("The value '%s' of the header '%s' is not a valid entity-tag.", value, HEADER_KEY)
+                .withNoCause();
+    }
+
+    @Test
+    public void validEntityTagValue() {
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTag.class);
+        final String value = "\"foo\"";
+
+        try {
+            underTest.accept(headerDefinition, value);
+        } catch (final Throwable t) {
+            fail(value + " is a valid entity-tag!");
+        }
+    }
+
+    @Test
+    public void invalidEntityTagsValue() {
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
+        final String value = "\"foo\",invalid\"bar\"";
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.accept(headerDefinition, value))
+                .withMessage("The value '%s' of the header '%s' is not a valid entity-tag.", "invalid\"bar\"",
+                        HEADER_KEY)
+                .withNoCause();
+    }
+
+    @Test
+    public void validEntityTagsValue() {
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
+        final String value = "\"foo\",\"bar\"";
+
+        try {
+            underTest.accept(headerDefinition, value);
+        } catch (final Throwable t) {
+            fail(value + " is a valid entity-tag!");
+        }
+    }
+
+    @Test
+    public void validEntityTagsValueWitSpaces() {
+        Mockito.when(headerDefinition.getJavaType()).thenReturn(EntityTagMatchers.class);
+        final String value = "\"foo\", \"bar\"";
+
+        try {
+            underTest.accept(headerDefinition, value);
+        } catch (final Throwable t) {
+            fail(value + " is a valid entity-tag!");
+        }
+    }
 }

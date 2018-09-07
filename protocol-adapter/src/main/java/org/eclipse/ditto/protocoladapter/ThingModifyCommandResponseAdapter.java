@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +60,7 @@ final class ThingModifyCommandResponseAdapter extends AbstractAdapter<ThingModif
      * @return the adapter.
      */
     public static ThingModifyCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingModifyCommandResponseAdapter(mappingStrategies(), headerTranslator);
+        return new ThingModifyCommandResponseAdapter(mappingStrategies(), requireNonNull(headerTranslator));
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})

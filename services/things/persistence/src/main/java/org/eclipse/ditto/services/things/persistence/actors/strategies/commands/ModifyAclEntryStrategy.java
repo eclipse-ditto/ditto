@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -30,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.AclEntryModified;
  * This strategy handles the {@link ModifyAclEntry} command.
  */
 @Immutable
-final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntry> {
+final class ModifyAclEntryStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<ModifyAclEntry, AclEntry> {
 
     /**
      * Constructs a new {@code ModifyAclEntryStrategy} object.
@@ -43,12 +45,13 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final ModifyAclEntry command) {
 
-        final AccessControlList acl = getThingOrThrow(thing).getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
+        final AccessControlList acl =
+                getThingOrThrow(thing).getAccessControlList().orElseGet(ThingsModelFactory::emptyAcl);
 
         final AccessControlList modifiedAcl = acl.setEntry(command.getAclEntry());
         final Validator validator = getAclValidator(modifiedAcl);
         if (!validator.isValid()) {
-            return ResultFactory.newResult(ExceptionFactory.aclInvalid(context.getThingId(), validator.getReason(),
+            return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(context.getThingId(), validator.getReason(),
                     command.getDittoHeaders()));
         }
 
@@ -59,7 +62,7 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
         return AclValidator.newInstance(acl, Thing.MIN_REQUIRED_PERMISSIONS);
     }
 
-    private static Result getModifyOrCreateResult(final AccessControlList acl, final Context context,
+    private Result getModifyOrCreateResult(final AccessControlList acl, final Context context,
             final long nextRevision, final ModifyAclEntry command) {
 
         final AclEntry aclEntry = command.getAclEntry();
@@ -69,24 +72,35 @@ final class ModifyAclEntryStrategy extends AbstractCommandStrategy<ModifyAclEntr
         return getCreateResult(context, nextRevision, command);
     }
 
-    private static Result getModifyResult(final Context context, final long nextRevision, final ModifyAclEntry command) {
+    private Result getModifyResult(final Context context, final long nextRevision,
+            final ModifyAclEntry command) {
         final String thingId = context.getThingId();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 AclEntryModified.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyAclEntryResponse.modified(thingId, aclEntry, dittoHeaders));
+                ModifyAclEntryResponse.modified(thingId, aclEntry, dittoHeaders), this);
     }
 
-    private static Result getCreateResult(final Context context, final long nextRevision, final ModifyAclEntry command) {
+    private Result getCreateResult(final Context context, final long nextRevision,
+            final ModifyAclEntry command) {
         final String thingId = context.getThingId();
         final AclEntry aclEntry = command.getAclEntry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 AclEntryCreated.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders),
-                ModifyAclEntryResponse.created(thingId, aclEntry, dittoHeaders));
+                ModifyAclEntryResponse.created(thingId, aclEntry, dittoHeaders), this);
     }
 
+    @Override
+    public Optional<AclEntry> determineETagEntity(final ModifyAclEntry command, @Nullable final Thing thing) {
+        return extractAclEntry(command, thing);
+    }
+
+    private Optional<AclEntry> extractAclEntry(final ModifyAclEntry command, @Nullable final Thing thing) {
+        return getThingOrThrow(thing).getAccessControlList()
+                .flatMap(acl -> acl.getEntryFor(command.getAclEntry().getAuthorizationSubject()));
+    }
 }

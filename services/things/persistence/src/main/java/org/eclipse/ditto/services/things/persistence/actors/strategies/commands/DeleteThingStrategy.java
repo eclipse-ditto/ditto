@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -27,7 +29,7 @@ import akka.event.DiagnosticLoggingAdapter;
  * This strategy handles the {@link DeleteThing} command.
  */
 @Immutable
-final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
+final class DeleteThingStrategy extends AbstractConditionalHeadersCheckingCommandStrategy<DeleteThing, Thing> {
 
     /**
      * Constructs a new {@code DeleteThingStrategy} object.
@@ -45,9 +47,13 @@ final class DeleteThingStrategy extends AbstractCommandStrategy<DeleteThing> {
         LogUtil.enhanceLogWithCorrelationId(log, command);
         log.info("Deleted Thing with ID <{}>.", thingId);
 
-        return ResultFactory.newResult(
+        return ResultFactory.newMutationResult(command,
                 ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders),
-                DeleteThingResponse.of(thingId, dittoHeaders), true);
+                DeleteThingResponse.of(thingId, dittoHeaders), false,true, this);
     }
 
+    @Override
+    public Optional<Thing> determineETagEntity(final DeleteThing command, @Nullable final Thing thing) {
+        return Optional.ofNullable(thing);
+    }
 }
