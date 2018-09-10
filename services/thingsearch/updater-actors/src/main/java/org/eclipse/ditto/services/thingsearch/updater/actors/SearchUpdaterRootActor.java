@@ -136,6 +136,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         } else {
             log.warning("Policies synchronization is not active");
         }
+
+        final boolean deletionEnabled = config.getBoolean(ConfigKeys.DELETION_ENABLED);
+        if (deletionEnabled) {
+            startClusterSingletonActor(ThingsSearchIndexDeletionActor.ACTOR_NAME,
+                    ThingsSearchIndexDeletionActor.props(mongoClientWrapper));
+        } else {
+            log.warning("Deletion of marked as deleted Things from search index is not enabled");
+        }
     }
 
     private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {

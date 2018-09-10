@@ -70,6 +70,30 @@ public final class ConfigKeys {
      */
     public static final String INDEX_INITIALIZATION_ENABLED = SEARCH_PREFIX + "index-initialization." + ENABLED_SUFFIX;
 
+    private static final String DELETION_PREFIX = SEARCH_PREFIX + "deletion.";
+
+    /**
+     * Key configuring the age (as Duration) after which marked as deleted Things are physically deleted from search
+     * index.
+     */
+    public static final String DELETION_AGE = DELETION_PREFIX + "deletion-age";
+
+    /**
+     * Whether or not the deletion of marked as deleted Things from the search index is enabled.
+     */
+    public static final String DELETION_ENABLED = DELETION_PREFIX + "enabled";
+
+    /**
+     * Key configuring the interval (as Duration) when marked as deleted Things should be deleted (e.g. once a day).
+     */
+    public static final String DELETION_RUN_INTERVAL = DELETION_PREFIX + "run-interval";
+
+    /**
+     * Key configuring the hour (as int) of the first time the deletion should be triggered. After that the deletion is
+     * done each {@link #DELETION_RUN_INTERVAL}.
+     */
+    public static final String DELETION_FIRST_INTERVAL_HOUR = DELETION_PREFIX + "first-interval-hour";
+
     /**
      * Controls whether thing and policy event processing should be active or not.
      */
