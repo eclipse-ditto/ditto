@@ -50,9 +50,9 @@ public final class SSLContextCreatorTest {
                     .build();
 
     @Test
-    public void doesNotTrustSelfSignedServer() throws Exception {
-        try (final ServerSocket serverSocket = startServer(false)) {
-            assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
+    public void doesNotTrustSelfSignedServer() {
+        assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
+            try (final ServerSocket serverSocket = startServer(false)) {
                 try (final Socket underTest = SSLContextCreator.of(null, DittoHeaders.empty())
                         .clientCertificate(ClientCertificateCredentials.empty())
                         .getSocketFactory()
@@ -60,8 +60,8 @@ public final class SSLContextCreatorTest {
 
                     underTest.getOutputStream().write(12);
                 }
-            });
-        }
+            }
+        });
     }
 
     @Test
@@ -78,7 +78,7 @@ public final class SSLContextCreatorTest {
     }
 
     @Test
-    public void doesNotTrustSelfSignedClient() throws Exception {
+    public void doesNotTrustSelfSignedClient() {
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(true);
                     final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, DittoHeaders.empty())
