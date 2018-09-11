@@ -25,6 +25,9 @@ to see, but to filter for specific criteria, events may be filtered on the Ditto
 The above mentioned different APIs provide their own mechanisms on how to define such filters, but they all share the
 common functionality of based on which information events may be filtered.
 
+{% include note.html content="All filters are specified in an URL query format, therefore their values must be URL
+encoded before sending them to the backend!" %}
+
 ### By namespaces
 
 Filtering may be done based on a namespace name. Each Ditto [Thing](basic-thing.html) has an ID containing a namespace 
@@ -35,7 +38,8 @@ in namespaces of interest are considered and thus only events of these Things ar
 
 For example, one would only subscribe for events occurring in 2 specific namespaces by defining:
 ```
-namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
+// raw: 'namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two'
+namespaces=org.eclipse.ditto.one%2Corg.eclipse.ditto.two
 ```
 
 ### By RQL expression
@@ -52,12 +56,14 @@ This provides the opportunity to formulate filters like the following:
 
 Only emit events when attribute "count" was changed to a value greater than 42:
 ```
-filter=gt(attributes/count,42)
+// raw: filter=gt(attributes/count,42)
+filter=gt(attributes%2Fcount%2C42)
 ```
 
 Only emit events for Things starting with myThing when a feature "lamp" was modified:
 ```
-filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
+// raw: filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
+filter=and(like(thingId%2C%22org.eclipse.ditto%3AmyThing*%22)%2Cexists(features%2Flamp))
 ```
 
 You get the idea of how mighty this becomes by utilizing Ditto's [RQL expressions](basic-rql.html).

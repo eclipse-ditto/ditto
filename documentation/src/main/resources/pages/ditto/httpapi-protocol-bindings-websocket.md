@@ -169,10 +169,10 @@ following parameters can additionally be provided when sending the WebSocket pro
 | Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | yes | yes |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
-with `&`.
+with `&`.  You have to URL encode the filter values before using them in a configuration.
 
 For example this way the WebSocket session would register for all events in the namespace `org.eclipse.ditto` and which
 would match an attribute "counter" to be greater than 42:
 ```
-START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)
+START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes%2Fcounter%2C42)
 ```
