@@ -99,9 +99,7 @@ public class SseThingsRoute extends AbstractRoute {
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        inner.apply(
-                                                doBuildThingsSseRoute(dittoHeadersSupplier.get())
-                                        )
+                                        doBuildThingsSseRoute(dittoHeadersSupplier.get())
                                 )
                         )
                 )

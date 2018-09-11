@@ -386,7 +386,9 @@ public final class ConnectivityModelFactory {
             final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        final ImmutableTarget target = new ImmutableTarget(address, topics, authorizationContext);
+        final ImmutableTarget target = ImmutableTarget.of(address, authorizationContext, topics.stream()
+                .map(ConnectivityModelFactory::newFilteredTopic)
+                .collect(Collectors.toSet()));
         return new ImmutableMqttTarget(target, qos);
     }
 
