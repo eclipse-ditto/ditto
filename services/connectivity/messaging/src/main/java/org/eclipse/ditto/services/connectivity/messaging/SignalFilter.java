@@ -60,9 +60,16 @@ public class SignalFilter {
 
     public static Set<Target> filter(final Connection connection, final Signal<?> signal) {
         return connection.getTargets().stream()
+                .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
-                .filter(t -> isTargetAuthorized(t, signal))
                 .collect(Collectors.toSet());
+    }
+
+    private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
+        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
+        final AuthorizationContext authorizationContext = target.getAuthorizationContext();
+        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
+        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
     }
 
     private static boolean isTargetSubscribedForTopic(final Target t, final Signal<?> signal) {
@@ -76,12 +83,12 @@ public class SignalFilter {
         return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
     }
 
-    private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
-        return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
-    }
-
     private static Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
         return t -> !t.hasFilter() || t.getFilter().filter(f -> matchesFilter(f, signal)).isPresent();
+    }
+
+    private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
+        return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
     }
 
     private static String namespaceFromId(final WithId withId) {
@@ -112,13 +119,6 @@ public class SignalFilter {
                 new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
 
         return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
-    }
-
-    private static boolean isTargetAuthorized(final Target target, final Signal<?> signal) {
-        final Set<String> authorizedReadSubjects = signal.getDittoHeaders().getReadSubjects();
-        final AuthorizationContext authorizationContext = target.getAuthorizationContext();
-        final List<String> connectionSubjects = authorizationContext.getAuthorizationSubjectIds();
-        return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {
