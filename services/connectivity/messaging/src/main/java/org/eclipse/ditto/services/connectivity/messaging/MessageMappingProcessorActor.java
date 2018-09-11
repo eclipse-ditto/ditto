@@ -11,13 +11,12 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -83,6 +82,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final ActorRef conciergeForwarder,
             final MessageMappingProcessor processor,
             final String connectionId) {
+
         this.publisherActor = publisherActor;
         this.conciergeForwarder = conciergeForwarder;
         this.processor = processor;
@@ -116,7 +116,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             }
         });
     }
-
 
     @Override
     public Receive createReceive() {
@@ -155,7 +154,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 conciergeForwarder.tell(adjustedSignal, getSelf());
             });
         } catch (final DittoRuntimeException e) {
-            handleDittoRuntimeException(e, DittoHeaders.of(externalMessage.getHeaders()));
+            handleDittoRuntimeException(e, externalMessage.getHeaders());
         } catch (final Exception e) {
             log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
         }
@@ -171,15 +170,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception,
-            final DittoHeaders dittoHeaders) {
-        final DittoHeaders mergedHeaders =
-                DittoHeaders.newBuilder(exception.getDittoHeaders()).putHeaders(dittoHeaders).build();
-        final ThingErrorResponse errorResponse = ThingErrorResponse.of(exception, mergedHeaders);
+            final Map<String, String> dittoHeaders) {
+
+        final ThingErrorResponse errorResponse =
+                ThingErrorResponse.of(exception, DittoHeaders.newBuilder(exception.getDittoHeaders())
+                        .putHeaders(dittoHeaders)
+                        .build());
 
         enhanceLogUtil(exception);
 
         final String stackTrace = stackTraceAsString(exception);
-        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: ",
+        log.info("Got DittoRuntimeException '{}' when ExternalMessage was processed: {} - {}. StackTrace: {}",
                 exception.getErrorCode(), exception.getMessage(), exception.getDescription().orElse(""), stackTrace);
 
         handleCommandResponse(errorResponse);
@@ -245,13 +246,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         command.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             final StartedTimer timer = TraceUtils
                     .newAmqpRoundTripTimer(command)
-                    .expirationHandling(startedTimer -> this.timers.remove(correlationId))
+                    .expirationHandling(startedTimer -> timers.remove(correlationId))
                     .build();
-            this.timers.put(correlationId, timer);
+            timers.put(correlationId, timer);
         });
     }
 
-    private void finishTrace(final Signal<?> response) {
+    private void finishTrace(final WithDittoHeaders<? extends Signal> response) {
         if (ThingErrorResponse.class.isAssignableFrom(response.getClass())) {
             finishTrace(response, ((ThingErrorResponse) response).getDittoRuntimeException());
         } else {
@@ -259,7 +260,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    private void finishTrace(final Signal<?> response, @Nullable final Throwable cause) {
+    private void finishTrace(final WithDittoHeaders<? extends Signal> response, @Nullable final Throwable cause) {
         response.getDittoHeaders().getCorrelationId().ifPresent(correlationId -> {
             try {
                 finishTrace(correlationId, cause);
@@ -271,18 +272,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private void finishTrace(final String correlationId, @Nullable final Throwable cause) {
         final StartedTimer timer = timers.remove(correlationId);
-        if (Objects.isNull(timer)) {
-            throw new IllegalArgumentException("No trace found for correlationId: " + correlationId);
+        if (null == timer) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("No trace found for correlation-id <{0}>!", correlationId));
         }
 
-        if (Objects.isNull(cause)) {
-            timer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
-        } else {
-            timer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
-        }
+        timer.tag(TracingTags.MAPPING_SUCCESS, null == cause).stop();
     }
 
-    static class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
+    static final class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
 
         private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
 
@@ -296,7 +294,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     authSubjectsArray);
         }
 
-        private AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
+        private static AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
             final AuthorizationContext authorizationContext = externalMessage
                     .getAuthorizationContext()
                     .orElseThrow(() -> new IllegalArgumentException("No authorizationContext available."));
@@ -306,17 +304,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             return authorizationContext;
         }
 
-        private String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
-            return authorizationContext
-                    .stream()
+        private static String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
+            return authorizationContext.stream()
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray())
                     .toString();
         }
+
     }
 
-    static class AdjustHeaders implements BiFunction<ExternalMessage, Signal<?>, Signal<?>> {
+    static final class AdjustHeaders implements BiFunction<ExternalMessage, Signal<?>, Signal<?>> {
 
         private final String connectionId;
 
@@ -345,9 +343,10 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             // does not choose/change the auth-subjects itself:
             return signal.setDittoHeaders(adjustedHeaders);
         }
+
     }
 
-    static class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
+    static final class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
 
         private static final String UNRESOLVED_PLACEHOLDER_MESSAGE =
                 "The placeholder '{}' was not resolved, messages may be dropped.";
@@ -376,6 +375,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {
             log.info(UNRESOLVED_PLACEHOLDER_MESSAGE, unresolvedPlaceholder);
         }
+
     }
 
 }
