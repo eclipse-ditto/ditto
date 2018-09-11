@@ -159,6 +159,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
 
     private final String key;
     private final Class<?> type;
+    private final Class<?> serializationType;
     private final boolean readFromExternalHeaders;
     private final boolean writeToExternalHeaders;
 
@@ -170,8 +171,21 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      */
     MessageHeaderDefinition(final String theKey, final Class<?> theType, final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders) {
+        this(theKey, theType, theType, readFromExternalHeaders, writeToExternalHeaders);
+    }
+
+    /**
+     * @param theKey the key used as key for header map.
+     * @param theType the Java type of the header value which is associated with this definition's key.
+     * @param serializationType the type to which this header value should be serialized.
+     * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
+     * @param writeToExternalHeaders whether Ditto publishes this header to externals.
+     */
+    MessageHeaderDefinition(final String theKey, final Class<?> theType, final Class<?> serializationType,
+            final boolean readFromExternalHeaders, final boolean writeToExternalHeaders) {
         key = theKey;
         type = theType;
+        this.serializationType = serializationType;
         this.readFromExternalHeaders = readFromExternalHeaders;
         this.writeToExternalHeaders = writeToExternalHeaders;
     }
@@ -194,6 +208,11 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
     @Override
     public Class getJavaType() {
         return type;
+    }
+
+    @Override
+    public Class getSerializationType() {
+        return serializationType;
     }
 
     @Override

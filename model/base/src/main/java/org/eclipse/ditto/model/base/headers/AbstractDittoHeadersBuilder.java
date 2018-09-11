@@ -32,6 +32,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -224,6 +226,24 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S eTag(final EntityTag eTag) {
+        putCharSequence(DittoHeaderDefinition.ETAG, eTag.toString());
+        return myself;
+    }
+
+    @Override
+    public S ifMatch(final EntityTagMatchers entityTags) {
+        putCharSequence(DittoHeaderDefinition.IF_MATCH, entityTags.toString());
+        return myself;
+    }
+
+    @Override
+    public S ifNoneMatch(final EntityTagMatchers entityTags) {
+        putCharSequence(DittoHeaderDefinition.IF_NONE_MATCH, entityTags.toString());
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
@@ -259,11 +279,22 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S removePreconditionHeaders() {
+        headers.remove(DittoHeaderDefinition.IF_MATCH.getKey());
+        headers.remove(DittoHeaderDefinition.IF_NONE_MATCH.getKey());
+        return myself;
+    }
+
+    @Override
     public R build() {
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
     }
 
-    protected abstract R doBuild(DittoHeaders dittoHeaders);
+    @Override
+    public String toString() {
+        return headers.toString();
+    }
 
+    protected abstract R doBuild(DittoHeaders dittoHeaders);
 }

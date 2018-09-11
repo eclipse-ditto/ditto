@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.common.ConditionChecker;
 /**
  * Mutable builder for building new instances of ExternalMessage.
  */
-final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
+final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder {
 
     private Map<String, String> headers;
     private boolean response = false;
@@ -33,13 +33,14 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     @Nullable private String textPayload;
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
+    @Nullable private ThingIdEnforcement thingIdEnforcement;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
      *
      * @param message the ExternalMessage to use for initialization.
      */
-    MutableExternalMessageBuilder(final ExternalMessage message) {
+    UnmodifiableExternalMessageBuilder(final ExternalMessage message) {
         this.headers = new HashMap<>(message.getHeaders());
         this.bytePayload = message.getBytePayload().orElse(null);
         this.textPayload = message.getTextPayload().orElse(null);
@@ -47,6 +48,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
         this.response = message.isResponse();
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
+        this.thingIdEnforcement = message.getThingIdEnforcement().orElse(null);
     }
 
     /**
@@ -54,7 +56,7 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
      *
      * @param headers the headers to use for initialization.
      */
-    MutableExternalMessageBuilder(final Map<String, String> headers) {
+    UnmodifiableExternalMessageBuilder(final Map<String, String> headers) {
         this.headers = new HashMap<>(headers);
     }
 
@@ -109,6 +111,12 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
     }
 
     @Override
+    public ExternalMessageBuilder withThingIdEnforcement(@Nullable final ThingIdEnforcement thingIdEnforcement) {
+        this.thingIdEnforcement = thingIdEnforcement;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -122,8 +130,8 @@ final class MutableExternalMessageBuilder implements ExternalMessageBuilder {
 
     @Override
     public ExternalMessage build() {
-        return new ImmutableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext);
+        return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
+                authorizationContext, thingIdEnforcement);
     }
 
 }

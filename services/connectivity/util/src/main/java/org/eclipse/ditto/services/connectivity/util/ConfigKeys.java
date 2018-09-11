@@ -13,14 +13,12 @@ package org.eclipse.ditto.services.connectivity.util;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-
 /**
  * This class encloses everything regarding configuration keys.
  */
 public final class ConfigKeys {
 
-    private static final String CONNECTIVITY_PREFIX = "ditto.connectivity.";
+    static final String CONNECTIVITY_PREFIX = "ditto.connectivity.";
     private static final String ENABLED_SUFFIX = "enabled";
 
     /**
@@ -148,22 +146,10 @@ public final class ConfigKeys {
          */
         public static final String SUPERVISOR_EXPONENTIAL_BACKOFF_MIN = SUPERVISOR_EXPONENTIAL_BACKOFF + "min";
 
-        private static final String SNAPSHOT_PREFIX = PREFIX + "snapshot.";
-
-        /**
-         * Every amount of changes (configured by this key), this Actor will create a snapshot of the connectionStatus.
-         */
-        public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
-
-        /**
-         * Timeout for flushing pending responses in connection actor.
-         * It should be enough time for Akka pub/sub to reach consensus in the cluster.
-         */
-        public static final String FLUSH_PENDING_RESPONSES_TIMEOUT = PREFIX + "flush-pending-responses-timeout";
-
         private Connection() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -181,9 +167,20 @@ public final class ConfigKeys {
          */
         public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
 
+        /**
+         * Initial delay for reconnecting the connections after the ReconnectActor has been started.
+         */
+        public static final String RECONNECT_INITIAL_DELAY = PREFIX + "initial-delay";
+
+        /**
+         * Interval for trying to reconnect all started connections.
+         */
+        public static final String RECONNECT_INTERVAL = PREFIX + "interval";
+
         private Reconnect() {
             throw new AssertionError();
         }
+
     }
 
     /**
@@ -202,6 +199,7 @@ public final class ConfigKeys {
         private Client() {
             throw new AssertionError();
         }
+
     }
 
     /*

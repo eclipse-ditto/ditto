@@ -37,7 +37,8 @@ import akka.event.DiagnosticLoggingAdapter;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing> {
+final class RetrieveThingStrategy
+        extends AbstractConditionalHeadersCheckingCommandStrategy<RetrieveThing, Thing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -50,7 +51,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     public boolean isDefined(final Context context, @Nullable final Thing thing,
             final RetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
-                .map(t -> !isThingDeleted(t))
+                .map(t -> !t.isDeleted())
                 .orElse(false);
 
         return Objects.equals(context.getThingId(), command.getId()) && thingExists;
@@ -62,7 +63,8 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
 
         return command.getSnapshotRevision()
                 .map(snapshotRevision -> getRetrieveThingFromSnapshotterResult(snapshotRevision, context, command))
-                .orElseGet(() -> ResultFactory.newResult(getRetrieveThingResponse(thing, command)));
+                .orElseGet(() -> ResultFactory.newQueryResult(command, thing, getRetrieveThingResponse(thing, command),
+                        this));
     }
 
     private static Result getRetrieveThingFromSnapshotterResult(final long snapshotRevision, final Context context,
@@ -74,7 +76,7 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     private static Result tryToLoadThingSnapshot(final long snapshotRevision, final Context context,
             final RetrieveThing command) {
 
-        return ResultFactory.newResult(
+        final CompletionStage<WithDittoHeaders> futureResponse =
                 loadThingSnapshot(context.getThingSnapshotter(), snapshotRevision, command).handle((message, error) -> {
                     if (error != null) {
                         final DiagnosticLoggingAdapter log = context.getLog();
@@ -84,7 +86,8 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
                     return message != null
                             ? message
                             : getThingUnavailableException(command);
-                }));
+                });
+        return ResultFactory.newFutureResult(futureResponse);
     }
 
     private static CompletionStage<WithDittoHeaders> loadThingSnapshot(
@@ -106,7 +109,6 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
             return RetrieveThingResponse.of(command.getThingId(), getThingJson(thing, command),
                     command.getDittoHeaders());
         } else {
-
             return notAccessible(command);
         }
     }
@@ -131,8 +133,12 @@ final class RetrieveThingStrategy extends AbstractCommandStrategy<RetrieveThing>
     @Override
     protected Result unhandled(final Context context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
-        return ResultFactory.newResult(
+        return ResultFactory.newErrorResult(
                 new ThingNotAccessibleException(context.getThingId(), command.getDittoHeaders()));
     }
 
+    @Override
+    public Optional<Thing> determineETagEntity(final RetrieveThing command, @Nullable final Thing thing) {
+        return Optional.ofNullable(thing);
+    }
 }

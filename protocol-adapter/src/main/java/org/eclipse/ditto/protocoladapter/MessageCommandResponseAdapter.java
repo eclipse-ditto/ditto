@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +42,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
      * @return the adapter.
      */
     public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
-        return new MessageCommandResponseAdapter(mappingStrategies(), headerTranslator);
+        return new MessageCommandResponseAdapter(mappingStrategies(), requireNonNull(headerTranslator));
     }
 
     private static Map<String, JsonifiableMapper<MessageCommandResponse>> mappingStrategies() {

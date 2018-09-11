@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.protocoladapter;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +56,7 @@ final class ThingQueryCommandAdapter extends AbstractAdapter<ThingQueryCommand> 
      * @return the adapter.
      */
     public static ThingQueryCommandAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingQueryCommandAdapter(mappingStrategies(), headerTranslator);
+        return new ThingQueryCommandAdapter(mappingStrategies(), requireNonNull(headerTranslator));
     }
 
     private static Map<String, JsonifiableMapper<ThingQueryCommand>> mappingStrategies() {

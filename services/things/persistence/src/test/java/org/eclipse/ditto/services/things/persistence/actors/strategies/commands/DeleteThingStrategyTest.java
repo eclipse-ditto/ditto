@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -41,17 +41,12 @@ public final class DeleteThingStrategyTest extends AbstractCommandStrategyTest {
 
     @Test
     public void successfullyDeleteThing() {
-         // The Thing of the context is ignored, only the Thing ID is of importance.
         final CommandStrategy.Context context = getDefaultContext();
         final DeleteThing command = DeleteThing.of(context.getThingId(), DittoHeaders.empty());
 
-        final CommandStrategy.Result result = underTest.doApply(context, null, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).containsInstanceOf(ThingDeleted.class);
-        assertThat(result.getCommandResponse()).contains(
-                DeleteThingResponse.of(context.getThingId(), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isTrue();
+        assertModificationResult(underTest, THING_V2, command,
+                ThingDeleted.class,
+                DeleteThingResponse.of(context.getThingId(), command.getDittoHeaders()), true);
     }
 
 }

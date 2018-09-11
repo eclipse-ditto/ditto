@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -25,8 +26,10 @@ import java.util.stream.StreamSupport;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -49,8 +52,10 @@ import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
@@ -767,7 +772,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles the {@link RetrievePolicy} command.
      */
     @NotThreadSafe
-    private abstract class WithIdReceiveStrategy<T extends WithId> extends AbstractReceiveStrategy<T> {
+    private abstract class WithIdReceiveStrategy<T extends Command<T>>
+            extends AbstractReceiveStrategy<T> {
 
         /**
          * Constructs a new {@code WithIdReceiveStrategy} object.
@@ -791,7 +797,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles the {@link CreatePolicy} command for a new Policy.
      */
     @NotThreadSafe
-    private final class CreatePolicyStrategy extends WithIdReceiveStrategy<CreatePolicy> {
+    private final class CreatePolicyStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<CreatePolicy, Policy> {
 
         /**
          * Constructs a new {@code CreatePolicyStrategy} object.
@@ -819,7 +826,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                         PolicyCreated.of(newPolicyWithLifecycle, getNextRevision(), getEventTimestamp(), dittoHeaders);
 
                 processEvent(policyCreated, event -> {
-                    notifySender(CreatePolicyResponse.of(policyId, PolicyPersistenceActor.this.policy, dittoHeaders));
+                    final CreatePolicyResponse response =
+                            CreatePolicyResponse.of(policyId, PolicyPersistenceActor.this.policy, dittoHeaders);
+                    sendSuccessResponse(command, response);
                     log.debug("Created new Policy with ID <{}>.", policyId);
                     becomePolicyCreatedHandler();
                 });
@@ -836,6 +845,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             };
         }
 
+        @Override
+        protected Optional<Policy> determineETagEntity(final CreatePolicy command) {
+            return Optional.ofNullable(policy);
+        }
     }
 
     /**
@@ -877,7 +890,8 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
      * This strategy handles the {@link ModifyPolicy} command for an already existing Policy.
      */
     @NotThreadSafe
-    private final class ModifyPolicyStrategy extends WithIdReceiveStrategy<ModifyPolicy> {
+    private final class ModifyPolicyStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifyPolicy, Policy> {
 
         /**
          * Constructs a new {@code ModifyPolicyStrategy} object.
@@ -904,7 +918,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 final PolicyModified policyModified =
                         PolicyModified.of(modifiedPolicy, getNextRevision(), getEventTimestamp(), dittoHeaders);
                 processEvent(policyModified,
-                        event -> notifySender(ModifyPolicyResponse.modified(policyId, dittoHeaders)));
+                        event -> sendSuccessResponse(command, ModifyPolicyResponse.modified(policyId, dittoHeaders)));
             } else {
                 policyInvalid(validator.getReason().orElse(null), dittoHeaders);
             }
@@ -915,13 +929,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Policy> determineETagEntity(final ModifyPolicy command) {
+            return Optional.ofNullable(policy);
+        }
     }
 
     /**
      * This strategy handles the {@link RetrievePolicy} command.
      */
     @NotThreadSafe
-    private final class RetrievePolicyStrategy extends WithIdReceiveStrategy<RetrievePolicy> {
+    private final class RetrievePolicyStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrievePolicy, Policy> {
 
         /**
          * Constructs a new {@code RetrievePolicyStrategy} object.
@@ -932,7 +951,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final RetrievePolicy command) {
-            notifySender(RetrievePolicyResponse.of(policyId, policy, command.getDittoHeaders()));
+            sendSuccessResponse(command, RetrievePolicyResponse.of(policyId, policy, command.getDittoHeaders()));
         }
 
         @Override
@@ -940,13 +959,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Policy> determineETagEntity(final RetrievePolicy command) {
+            return Optional.ofNullable(policy);
+        }
     }
 
     /**
      * This strategy handles the {@link DeletePolicy} command.
      */
     @NotThreadSafe
-    private final class DeletePolicyStrategy extends WithIdReceiveStrategy<DeletePolicy> {
+    private final class DeletePolicyStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<DeletePolicy, Policy> {
 
         /**
          * Constructs a new {@code DeletePolicyStrategy} object.
@@ -962,7 +986,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                     dittoHeaders);
 
             processEvent(policyDeleted, event -> {
-                notifySender(DeletePolicyResponse.of(policyId, dittoHeaders));
+                sendSuccessResponse(command, DeletePolicyResponse.of(policyId, dittoHeaders));
                 log.info("Deleted Policy with ID <{}>.", policyId);
                 becomePolicyDeletedHandler();
             });
@@ -973,13 +997,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Policy> determineETagEntity(final DeletePolicy command) {
+            return Optional.ofNullable(policy);
+        }
     }
 
     /**
      * This strategy handles the {@link ModifyPolicyEntries} command.
      */
     @NotThreadSafe
-    private final class ModifyPolicyEntriesStrategy extends WithIdReceiveStrategy<ModifyPolicyEntries> {
+    private final class ModifyPolicyEntriesStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifyPolicyEntries, Set<PolicyEntry>> {
 
         /**
          * Constructs a new {@code ModifyPolicyEntriesStrategy} object.
@@ -1009,7 +1038,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, policyEntries,
                     getNextRevision(), getEventTimestamp(), dittoHeaders);
 
-            processEvent(policyEntriesModified, event -> notifySender(response));
+            processEvent(policyEntriesModified, event -> sendSuccessResponse(command, response));
         }
 
         @Override
@@ -1017,13 +1046,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+
+        @Override
+        protected Optional<Set<PolicyEntry>> determineETagEntity(final ModifyPolicyEntries command) {
+            return Optional.ofNullable(policy).map(Policy::getEntriesSet);
+        }
     }
 
     /**
      * This strategy handles the {@link ModifyPolicyEntry} command.
      */
     @NotThreadSafe
-    private final class ModifyPolicyEntryStrategy extends WithIdReceiveStrategy<ModifyPolicyEntry> {
+    private final class ModifyPolicyEntryStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifyPolicyEntry, PolicyEntry> {
 
         /**
          * Constructs a new {@code ModifyPolicyEntryStrategy} object.
@@ -1066,7 +1101,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                     response = ModifyPolicyEntryResponse.created(policyId, policyEntry, dittoHeaders);
                 }
 
-                processEvent(eventToPersist, event -> notifySender(response));
+                processEvent(eventToPersist, event -> sendSuccessResponse(command, response));
             } else {
                 policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
             }
@@ -1077,13 +1112,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<PolicyEntry> determineETagEntity(final ModifyPolicyEntry command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getPolicyEntry().getLabel()));
+        }
     }
 
     /**
      * This strategy handles the {@link DeletePolicyEntry} command.
      */
     @NotThreadSafe
-    private final class DeletePolicyEntryStrategy extends WithIdReceiveStrategy<DeletePolicyEntry> {
+    private final class DeletePolicyEntryStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<DeletePolicyEntry, PolicyEntry> {
 
         /**
          * Constructs a new {@code DeleteAclEntryStrategy} object.
@@ -1123,13 +1164,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<PolicyEntry> determineETagEntity(final DeletePolicyEntry command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()));
+        }
     }
 
     /**
      * This strategy handles the {@link RetrievePolicyEntries} command.
      */
     @NotThreadSafe
-    private final class RetrievePolicyEntriesStrategy extends WithIdReceiveStrategy<RetrievePolicyEntries> {
+    private final class RetrievePolicyEntriesStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrievePolicyEntries, Set<PolicyEntry>> {
 
         /**
          * Constructs a new {@code RetrievePolicyEntryStrategy} object.
@@ -1140,7 +1187,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final RetrievePolicyEntries command) {
-            notifySender(RetrievePolicyEntriesResponse.of(policyId, policy.getEntriesSet(), command.getDittoHeaders()));
+            final RetrievePolicyEntriesResponse response =
+                    RetrievePolicyEntriesResponse.of(policyId, policy.getEntriesSet(), command.getDittoHeaders());
+            sendSuccessResponse(command, response);
         }
 
         @Override
@@ -1148,13 +1197,18 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Set<PolicyEntry>> determineETagEntity(final RetrievePolicyEntries command) {
+            return Optional.ofNullable(policy).map(Policy::getEntriesSet);
+        }
     }
 
     /**
      * This strategy handles the {@link RetrievePolicyEntry} command.
      */
     @NotThreadSafe
-    private final class RetrievePolicyEntryStrategy extends WithIdReceiveStrategy<RetrievePolicyEntry> {
+    private final class RetrievePolicyEntryStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrievePolicyEntry, PolicyEntry> {
 
         /**
          * Constructs a new {@code RetrievePolicyEntryStrategy} object.
@@ -1167,7 +1221,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         protected void doApply(final RetrievePolicyEntry command) {
             final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
             if (optionalEntry.isPresent()) {
-                notifySender(RetrievePolicyEntryResponse.of(policyId, optionalEntry.get(), command.getDittoHeaders()));
+                final RetrievePolicyEntryResponse response =
+                        RetrievePolicyEntryResponse.of(policyId, optionalEntry.get(), command.getDittoHeaders());
+                sendSuccessResponse(command, response);
             } else {
                 policyEntryNotFound(command.getLabel(), command.getDittoHeaders());
             }
@@ -1178,13 +1234,19 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<PolicyEntry> determineETagEntity(final RetrievePolicyEntry command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()));
+        }
     }
 
     /**
      * This strategy handles the {@link ModifySubjects} command.
      */
     @NotThreadSafe
-    private final class ModifySubjectsStrategy extends WithIdReceiveStrategy<ModifySubjects> {
+    private final class ModifySubjectsStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifySubjects, Subjects> {
 
         /**
          * Constructs a new {@code ModifySubjectsStrategy} object.
@@ -1208,7 +1270,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                             SubjectsModified.of(policyId, label, subjects, getNextRevision(), getEventTimestamp(),
                                     command.getDittoHeaders());
                     processEvent(subjectsModified,
-                            event -> notifySender(ModifySubjectsResponse.of(policyId, label, dittoHeaders)));
+                            event -> {
+                                final ModifySubjectsResponse response =
+                                        ModifySubjectsResponse.of(policyId, label, dittoHeaders);
+                                sendSuccessResponse(command, response);
+                            });
                 } else {
                     policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                 }
@@ -1222,13 +1288,20 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Subjects> determineETagEntity(final ModifySubjects command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects);
+        }
     }
 
     /**
      * This strategy handles the {@link RetrieveSubjects} command.
      */
     @NotThreadSafe
-    private final class RetrieveSubjectsStrategy extends WithIdReceiveStrategy<RetrieveSubjects> {
+    private final class RetrieveSubjectsStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrieveSubjects, Subjects> {
 
         /**
          * Constructs a new {@code RetrieveSubjectsStrategy} object.
@@ -1241,9 +1314,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         protected void doApply(final RetrieveSubjects command) {
             final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
             if (optionalEntry.isPresent()) {
-                notifySender(
+                final RetrieveSubjectsResponse response =
                         RetrieveSubjectsResponse.of(policyId, command.getLabel(), optionalEntry.get().getSubjects(),
-                                command.getDittoHeaders()));
+                                command.getDittoHeaders());
+                sendSuccessResponse(command, response);
             } else {
                 policyEntryNotFound(command.getLabel(), command.getDittoHeaders());
             }
@@ -1254,13 +1328,20 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Subjects> determineETagEntity(final RetrieveSubjects command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects);
+        }
     }
 
     /**
      * This strategy handles the {@link ModifySubject} command.
      */
     @NotThreadSafe
-    private final class ModifySubjectStrategy extends WithIdReceiveStrategy<ModifySubject> {
+    private final class ModifySubjectStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifySubject, Subject> {
 
         /**
          * Constructs a new {@code ModifySubjectStrategy} object.
@@ -1296,7 +1377,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                         command.getDittoHeaders());
                     }
 
-                    processEvent(eventToPersist, event -> notifySender(response));
+                    processEvent(eventToPersist, event -> sendSuccessResponse(command, response));
                 } else {
                     policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                 }
@@ -1310,13 +1391,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Subject> determineETagEntity(final ModifySubject command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(s -> s.getSubject(command.getSubject().getId()));
+        }
     }
 
     /**
      * This strategy handles the {@link DeleteSubject} command.
      */
     @NotThreadSafe
-    private final class DeleteSubjectStrategy extends WithIdReceiveStrategy<DeleteSubject> {
+    private final class DeleteSubjectStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<DeleteSubject, Subject> {
 
         /**
          * Constructs a new {@code DeleteSubjectStrategy} object.
@@ -1344,8 +1433,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                         dittoHeaders);
 
                         processEvent(subjectDeleted,
-                                event -> notifySender(DeleteSubjectResponse.of(policyId, label, subjectId,
-                                        dittoHeaders)));
+                                event -> {
+                                    final DeleteSubjectResponse response =
+                                            DeleteSubjectResponse.of(policyId, label, subjectId,
+                                                    dittoHeaders);
+                                    sendSuccessResponse(command, response);
+                                });
                     } else {
                         policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                     }
@@ -1362,13 +1455,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Subject> determineETagEntity(final DeleteSubject command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(s -> s.getSubject(command.getSubjectId()));
+        }
     }
 
     /**
      * This strategy handles the {@link RetrieveSubject} command.
      */
     @NotThreadSafe
-    private final class RetrieveSubjectStrategy extends WithIdReceiveStrategy<RetrieveSubject> {
+    private final class RetrieveSubjectStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrieveSubject, Subject> {
 
         /**
          * Constructs a new {@code RetrieveSubjectStrategy} object.
@@ -1384,8 +1485,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 final PolicyEntry policyEntry = optionalEntry.get();
                 final Optional<Subject> optionalSubject = policyEntry.getSubjects().getSubject(command.getSubjectId());
                 if (optionalSubject.isPresent()) {
-                    notifySender(RetrieveSubjectResponse.of(policyId, command.getLabel(),
-                            optionalSubject.get(), command.getDittoHeaders()));
+                    final RetrieveSubjectResponse response = RetrieveSubjectResponse.of(policyId, command.getLabel(),
+                            optionalSubject.get(), command.getDittoHeaders());
+                    sendSuccessResponse(command, response);
                 } else {
                     subjectNotFound(command.getLabel(), command.getSubjectId(), command.getDittoHeaders());
                 }
@@ -1399,13 +1501,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Subject> determineETagEntity(final RetrieveSubject command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getSubjects)
+                    .flatMap(s -> s.getSubject(command.getSubjectId()));
+        }
     }
 
     /**
      * This strategy handles the {@link ModifyResources} command.
      */
     @NotThreadSafe
-    private final class ModifyResourcesStrategy extends WithIdReceiveStrategy<ModifyResources> {
+    private final class ModifyResourcesStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifyResources, Resources> {
 
         /**
          * Constructs a new {@code ModifyResourcesStrategy} object.
@@ -1448,7 +1558,11 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                     dittoHeaders);
 
                     processEvent(resourcesModified,
-                            event -> notifySender(ModifyResourcesResponse.of(policyId, label, dittoHeaders)));
+                            event -> {
+                                final ModifyResourcesResponse response =
+                                        ModifyResourcesResponse.of(policyId, label, dittoHeaders);
+                                sendSuccessResponse(command, response);
+                            });
                 } else {
                     policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                 }
@@ -1462,13 +1576,20 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Resources> determineETagEntity(final ModifyResources command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources);
+        }
     }
 
     /**
      * This strategy handles the {@link RetrieveResources} command.
      */
     @NotThreadSafe
-    private final class RetrieveResourcesStrategy extends WithIdReceiveStrategy<RetrieveResources> {
+    private final class RetrieveResourcesStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrieveResources, Resources> {
 
         /**
          * Constructs a new {@code RetrieveResourcesStrategy} object.
@@ -1481,8 +1602,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
         protected void doApply(final RetrieveResources command) {
             final Optional<PolicyEntry> optionalEntry = policy.getEntryFor(command.getLabel());
             if (optionalEntry.isPresent()) {
-                notifySender(RetrieveResourcesResponse.of(policyId, command.getLabel(),
-                        optionalEntry.get().getResources(), command.getDittoHeaders()));
+                final RetrieveResourcesResponse response = RetrieveResourcesResponse.of(policyId, command.getLabel(),
+                        optionalEntry.get().getResources(), command.getDittoHeaders());
+                sendSuccessResponse(command, response);
             } else {
                 policyEntryNotFound(command.getLabel(), command.getDittoHeaders());
             }
@@ -1493,13 +1615,20 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Resources> determineETagEntity(final RetrieveResources command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources);
+        }
     }
 
     /**
      * This strategy handles the {@link ModifyResource} command.
      */
     @NotThreadSafe
-    private final class ModifyResourceStrategy extends WithIdReceiveStrategy<ModifyResource> {
+    private final class ModifyResourceStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<ModifyResource, Resource> {
 
         /**
          * Constructs a new {@code ModifyResourceStrategy} object.
@@ -1536,7 +1665,7 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                         dittoHeaders);
                     }
 
-                    processEvent(eventToPersist, event -> notifySender(response));
+                    processEvent(eventToPersist, event -> sendSuccessResponse(command, response));
                 } else {
                     policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                 }
@@ -1550,13 +1679,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Resource> determineETagEntity(final ModifyResource command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources)
+                    .flatMap(r -> r.getResource(command.getResource().getResourceKey()));
+        }
     }
 
     /**
      * This strategy handles the {@link DeleteResource} command.
      */
     @NotThreadSafe
-    private final class DeleteResourceStrategy extends WithIdReceiveStrategy<DeleteResource> {
+    private final class DeleteResourceStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<DeleteResource, Resource> {
 
         /**
          * Constructs a new {@code DeleteResourceStrategy} object.
@@ -1585,8 +1722,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                                         dittoHeaders);
 
                         processEvent(resourceDeleted,
-                                event -> notifySender(DeleteResourceResponse.of(policyId, label, resourceKey,
-                                        dittoHeaders)));
+                                event -> {
+                                    final DeleteResourceResponse response =
+                                            DeleteResourceResponse.of(policyId, label, resourceKey,
+                                                    dittoHeaders);
+                                    sendSuccessResponse(command, response);
+                                });
                     } else {
                         policyEntryInvalid(label, validator.getReason().orElse(null), dittoHeaders);
                     }
@@ -1603,13 +1744,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Resource> determineETagEntity(final DeleteResource command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources)
+                    .flatMap(r -> r.getResource(command.getResourceKey()));
+        }
     }
 
     /**
      * This strategy handles the {@link RetrieveResource} command.
      */
     @NotThreadSafe
-    private final class RetrieveResourceStrategy extends WithIdReceiveStrategy<RetrieveResource> {
+    private final class RetrieveResourceStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<RetrieveResource, Resource> {
 
         /**
          * Constructs a new {@code RetrieveResourceStrategy} object.
@@ -1627,8 +1776,10 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
                 final Optional<Resource> optionalResource =
                         policyEntry.getResources().getResource(command.getResourceKey());
                 if (optionalResource.isPresent()) {
-                    notifySender(RetrieveResourceResponse.of(policyId, command.getLabel(), optionalResource.get(),
-                            command.getDittoHeaders()));
+                    final RetrieveResourceResponse response =
+                            RetrieveResourceResponse.of(policyId, command.getLabel(), optionalResource.get(),
+                                    command.getDittoHeaders());
+                    sendSuccessResponse(command, response);
                 } else {
                     resourceNotFound(command.getLabel(), command.getResourceKey(), command.getDittoHeaders());
                 }
@@ -1642,13 +1793,21 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Resource> determineETagEntity(final RetrieveResource command) {
+            return Optional.ofNullable(policy)
+                    .flatMap(p -> p.getEntryFor(command.getLabel()))
+                    .map(PolicyEntry::getResources)
+                    .flatMap(r -> r.getResource(command.getResourceKey()));
+        }
     }
 
     /**
      * This strategy handles the {@link SudoRetrievePolicy} command w/o valid authorization context.
      */
     @NotThreadSafe
-    private final class SudoRetrievePolicyStrategy extends WithIdReceiveStrategy<SudoRetrievePolicy> {
+    private final class SudoRetrievePolicyStrategy
+            extends AbstractConditionalHeadersCheckingReceiveStrategy<SudoRetrievePolicy, Policy> {
 
         /**
          * Constructs a new {@code SudoRetrievePolicyStrategy} object.
@@ -1659,7 +1818,9 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
 
         @Override
         protected void doApply(final SudoRetrievePolicy command) {
-            notifySender(SudoRetrievePolicyResponse.of(policyId, policy, command.getDittoHeaders()));
+            final SudoRetrievePolicyResponse response =
+                    SudoRetrievePolicyResponse.of(policyId, policy, command.getDittoHeaders());
+            sendSuccessResponse(command, response);
         }
 
         @Override
@@ -1667,6 +1828,86 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
             return command -> notifySender(policyNotFound(command.getDittoHeaders()));
         }
 
+        @Override
+        protected Optional<Policy> determineETagEntity(final SudoRetrievePolicy command) {
+            return Optional.ofNullable(policy);
+        }
+    }
+
+    /**
+     * Responsible to check conditional (http) headers based on the policy's current eTag value.
+     *
+     * @param <C> The type of the handled command.
+     * @param <E> The type of the addressed entity.
+     */
+    private abstract class AbstractConditionalHeadersCheckingReceiveStrategy<C extends Command<C>, E>
+            extends WithIdReceiveStrategy<C> {
+
+        private final ConditionalHeadersValidator validator = PoliciesConditionalHeadersValidatorProvider.getInstance();
+
+        /**
+         * Constructs a new {@code AbstractReceiveStrategy} object.
+         *
+         * @param theMatchingClass the class of the message this strategy reacts to.
+         * @param theLogger the logger to use for logging.
+         * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
+         */
+        protected AbstractConditionalHeadersCheckingReceiveStrategy(final Class<C> theMatchingClass,
+                final DiagnosticLoggingAdapter theLogger) {
+            super(theMatchingClass, theLogger);
+        }
+
+        @Override
+        protected void apply(final C command) {
+            final EntityTag currentETagValue = determineETagEntity(command)
+                    .flatMap(EntityTag::fromEntity)
+                    .orElse(null);
+
+            log.debug("Validating conditional headers with currentETagValue <{}> on command <{}>.");
+            try {
+                validator.checkConditionalHeaders(command, currentETagValue);
+                log.debug("Validating conditional headers succeeded.");
+            } catch (final DittoRuntimeException dre) {
+                log.debug("Validating conditional headers failed with exception <{}>.", dre.getMessage());
+                notifySender(dre);
+                return;
+            }
+
+            super.apply(command);
+        }
+
+        /**
+         * Sends a success-Response, which may be extended with an ETag header.
+         *
+         * @param command the command which caused the response
+         * @param response the response, which may be extended
+         */
+        protected void sendSuccessResponse(final C command, final CommandResponse response) {
+            final WithDittoHeaders responseWithOptionalETagHeader = appendETagHeader(command, response);
+
+            notifySender(responseWithOptionalETagHeader);
+        }
+
+        private WithDittoHeaders appendETagHeader(final C command, final WithDittoHeaders response) {
+            final DittoHeaders dittoHeaders = response.getDittoHeaders();
+
+            final Optional<EntityTag> entityTagOpt = determineETagEntity(command)
+                    .flatMap(EntityTag::fromEntity);
+            if (entityTagOpt.isPresent()) {
+                final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder().eTag(entityTagOpt.get()).build();
+                return response.setDittoHeaders(newDittoHeaders);
+            }
+
+            return response;
+        }
+
+        /**
+         * Determines the value based on which an eTag will be generated.
+         *
+         * @param command the policy command.
+         * @return An optional of the eTag header value. Optional can be empty if no eTag header should be added.
+         */
+        protected abstract Optional<E> determineETagEntity(final C command);
     }
 
     /**

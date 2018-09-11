@@ -103,6 +103,11 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
+    public Target withAddress(final String newAddress) {
+        return new ImmutableTarget(newAddress, topics, authorizationContext);
+    }
+
+    @Override
     public Set<FilteredTopic> getTopics() {
         return topics;
     }
@@ -142,7 +147,7 @@ final class ImmutableTarget implements Target {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Target fromJson(final JsonObject jsonObject) {
-        final String readAddress = jsonObject.getValueOrThrow(Target.JsonFields.ADDRESS);
+        final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
         final Set<FilteredTopic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
@@ -150,7 +155,7 @@ final class ImmutableTarget implements Target {
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 
-        final JsonArray authContext = jsonObject.getValue(Target.JsonFields.AUTHORIZATION_CONTEXT)
+        final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
         final List<AuthorizationSubject> authorizationSubjects = authContext.stream()
                 .filter(JsonValue::isString)

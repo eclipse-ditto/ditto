@@ -11,10 +11,13 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
@@ -26,7 +29,8 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty} command.
  */
 @Immutable
-final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<DeleteFeatureProperty> {
+final class DeleteFeaturePropertyStrategy extends
+        AbstractConditionalHeadersCheckingCommandStrategy<DeleteFeatureProperty, JsonValue> {
 
     /**
      * Constructs a new {@code DeleteFeaturePropertyStrategy} object.
@@ -39,15 +43,26 @@ final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<Delete
     protected Result doApply(final Context context, @Nullable final Thing thing,
             final long nextRevision, final DeleteFeatureProperty command) {
 
-        return getThingOrThrow(thing).getFeatures()
-                .flatMap(features -> features.getFeature(command.getFeatureId()))
+        return extractFeature(command, thing)
                 .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command))
-                .orElseGet(() -> ResultFactory.newResult(
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getThingId(), command.getFeatureId(),
                                 command.getDittoHeaders())));
     }
 
-    private static Result getDeleteFeaturePropertyResult(final Feature feature, final Context context,
+    private Optional<Feature> extractFeature(final DeleteFeatureProperty command, final @Nullable Thing thing) {
+        return getThingOrThrow(thing).getFeatures()
+                .flatMap(features -> features.getFeature(command.getFeatureId()));
+    }
+
+    private Optional<JsonValue> extractFeaturePropertyValue(final DeleteFeatureProperty command,
+            final @Nullable Thing thing) {
+        return extractFeature(command, thing)
+                .flatMap(Feature::getProperties)
+                .flatMap(featureProperties -> featureProperties.getValue(command.getPropertyPointer()));
+    }
+
+    private Result getDeleteFeaturePropertyResult(final Feature feature, final Context context,
             final long nextRevision, final DeleteFeatureProperty command) {
 
         final JsonPointer propertyPointer = command.getPropertyPointer();
@@ -57,12 +72,17 @@ final class DeleteFeaturePropertyStrategy extends AbstractCommandStrategy<Delete
 
         return feature.getProperties()
                 .flatMap(featureProperties -> featureProperties.getValue(propertyPointer))
-                .map(featureProperty -> ResultFactory.newResult(
+                .map(featureProperty -> ResultFactory.newMutationResult(command,
                         FeaturePropertyDeleted.of(thingId, featureId, propertyPointer, nextRevision,
                                 getEventTimestamp(), dittoHeaders),
-                        DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders)))
-                .orElseGet(() -> ResultFactory.newResult(
+                        DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders),
+                        this))
+                .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders)));
     }
 
+    @Override
+    public Optional<JsonValue> determineETagEntity(final DeleteFeatureProperty command, @Nullable final Thing thing) {
+        return extractFeaturePropertyValue(command, thing);
+    }
 }

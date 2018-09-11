@@ -70,7 +70,7 @@ final class ImmutableSourceMetrics implements SourceMetrics {
 
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
-                .map(e -> JsonField.newInstance(e.getKey(), e.getValue().toJson()))
+                .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
         jsonObjectBuilder.set(JsonFields.CONSUMED_MESSAGES, consumedMessages, predicate);
         return jsonObjectBuilder.build();

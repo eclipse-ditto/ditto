@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.protocol;/*
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -42,9 +43,13 @@ public final class ProtocolConfigReaderTest {
 
         final ProtocolAdapterProvider provider = underTest.loadProtocolAdapterProvider(actorSystem);
         assertThat(provider.getClass()).isEqualTo(DittoProtocolAdapterProvider.class);
-        assertThat(provider.createProtocolAdapter().getClass()).isEqualTo(DittoProtocolAdapter.class);
-        assertThat(provider.createProtocolAdapterForCompatibilityMode().getClass())
-                .isEqualTo(DittoProtocolAdapter.class);
+        final ProtocolAdapter protocolAdapter1 = provider.getProtocolAdapter("bumlux");
+        assertThat(protocolAdapter1.getClass()).isEqualTo(DittoProtocolAdapter.class);
+        // make sure that userAgent param may be null
+        final ProtocolAdapter protocolAdapter2 = provider.getProtocolAdapter(null);
+        assertThat(protocolAdapter2.getClass()).isEqualTo(DittoProtocolAdapter.class);
+        // performance: make sure that the same instance is returned for each request
+        assertThat(protocolAdapter1).isSameAs(protocolAdapter2);
     }
 
     private static Config defaultRawConfig() {

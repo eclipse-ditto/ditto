@@ -84,6 +84,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withAuthorizationContext(AuthorizationContext authorizationContext);
 
     /**
+     * Associates {@link ThingIdEnforcement} data with the message. Pass {@code null} to disable enforcement.
+     *
+     * @param thingIdEnforcement enforcement data
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withThingIdEnforcement(@Nullable ThingIdEnforcement thingIdEnforcement);
+
+    /**
      * Marks the message as a response message.
      *
      * @param response whether the message is a response

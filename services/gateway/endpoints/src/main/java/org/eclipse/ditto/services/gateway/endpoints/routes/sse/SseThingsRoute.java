@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -94,14 +94,13 @@ public class SseThingsRoute extends AbstractRoute {
      * @return {@code /things} SSE route.
      */
     @SuppressWarnings("squid:S1172") // allow unused ctx-Param in order to have a consistent route-"interface"
-    public Route buildThingsSseRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final Function<Route, Route> inner) {
+    public Route buildThingsSseRoute(final RequestContext ctx, final Supplier<DittoHeaders> dittoHeadersSupplier) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_THINGS), () ->
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
                                         inner.apply(
-                                                doBuildThingsSseRoute(dittoHeaders)
+                                                doBuildThingsSseRoute(dittoHeadersSupplier.get())
                                         )
                                 )
                         )
@@ -139,8 +138,11 @@ public class SseThingsRoute extends AbstractRoute {
              console.log(e.data);
          }, false);
        */
-    private Route createSseRoute(final DittoHeaders dittoHeaders, final JsonFieldSelector fieldSelector,
-            final List<String> targetThingIds, final List<String> namespaces, @Nullable final String filterString) {
+    private Route createSseRoute(final DittoHeaders dittoHeaders,
+            final JsonFieldSelector fieldSelector,
+            final List<String> targetThingIds,
+            final List<String> namespaces,
+            @Nullable final String filterString) {
 
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                 .orElseGet(() -> UUID.randomUUID().toString());

@@ -11,10 +11,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -23,31 +20,22 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclInvalidException;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
-import org.eclipse.ditto.model.things.AclValidator;
-import org.eclipse.ditto.model.things.PolicyIdMissingException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CommandStrategy;
+import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.CreateThingStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.commands.DefaultContext;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventHandleStrategy;
 import org.eclipse.ditto.services.things.persistence.actors.strategies.events.EventStrategy;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
-import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -55,8 +43,6 @@ import org.eclipse.ditto.signals.base.WithType;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 
@@ -71,6 +57,7 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
@@ -98,6 +85,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
     private static final CommandReceiveStrategy COMMAND_RECEIVE_STRATEGY = CommandReceiveStrategy.getInstance();
+    private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
 
     private final String thingId;
     private final ActorRef pubSubMediator;
@@ -136,7 +124,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         // Snapshotting
         thingSnapshotter = getSnapshotter(config, thingSnapshotterCreate);
 
-        defaultContext = DefaultContext.getInstance(thingId, log, thingSnapshotter);
+        final Runnable becomeCreatedRunnable = this::becomeThingCreatedHandler;
+        final Runnable becomeDeletedRunnable = this::becomeThingDeletedHandler;
+        defaultContext =
+                DefaultContext.getInstance(thingId, log, thingSnapshotter, becomeCreatedRunnable,
+                        becomeDeletedRunnable);
 
         handleThingEvents = ReceiveBuilder.create()
                 .match(ThingEvent.class, event -> {
@@ -272,8 +264,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
          * First no Thing for the ID exists at all. Thus the only command this Actor reacts to is CreateThing.
          * This behaviour changes as soon as a Thing was created.
          */
-        return new StrategyAwareReceiveBuilder(log)
-                .match(new CreateThingStrategy())
+        final FI.UnitApply<CreateThing> commandHandler = command -> handleCommand(command, CREATE_THING_STRATEGY);
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
+                .match(CreateThing.class, CREATE_THING_STRATEGY::isDefined, commandHandler);
+
+        return new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .match(new CheckForActivityStrategy())
                 .matchAny(new MatchAnyDuringInitializeStrategy())
                 .setPeekConsumer(getIncomingMessagesLoggerOrNull())
@@ -328,8 +323,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
      * be activated. In return the strategy for the CreateThing command is not needed anymore.
      */
     private void becomeThingCreatedHandler() {
+        final FI.UnitApply<Command> commandHandler = command -> handleCommand(command, COMMAND_RECEIVE_STRATEGY);
         final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
-                .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, this::handleCommand);
+                .match(Command.class, COMMAND_RECEIVE_STRATEGY::isDefined, commandHandler);
 
         final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .matchEach(thingSnapshotter.strategies())
@@ -345,10 +341,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     @SuppressWarnings("unchecked")
-    private void handleCommand(final Command command) {
+    private void handleCommand(final Command command, final CommandStrategy commandStrategy) {
         final CommandStrategy.Result result;
         try {
-            result = COMMAND_RECEIVE_STRATEGY.apply(defaultContext, thing,
+            result = commandStrategy.apply(defaultContext, thing,
                     getNextRevisionNumber(), command);
         } catch (final DittoRuntimeException e) {
             getSender().tell(e, getSelf());
@@ -358,10 +354,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         // Unchecked warning suppressed for `persistAndApplyConsumer`.
         // It is actually type-safe with the (infinitely-big) type parameter
         // this.<ThingModifiedEvent<? extends ThingModifiedEvent<? extends ThingModifiedEvent<... ad nauseam ...>>>>
-        final BiConsumer<ThingModifiedEvent, Consumer<ThingModifiedEvent>> persistAndApplyConsumer =
+        final BiConsumer<ThingModifiedEvent, BiConsumer<ThingModifiedEvent, Thing>> persistAndApplyConsumer =
                 this::persistAndApplyEvent;
 
-        result.apply(persistAndApplyConsumer, asyncNotifySender(), this::becomeThingDeletedHandler);
+        result.apply(defaultContext, persistAndApplyConsumer, asyncNotifySender());
     }
 
     private long getNextRevisionNumber() {
@@ -369,8 +365,11 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     private void becomeThingDeletedHandler() {
-        final Receive receive = new StrategyAwareReceiveBuilder(log)
-                .match(new CreateThingStrategy())
+        final FI.UnitApply<CreateThing> commandHandler = command -> handleCommand(command, CREATE_THING_STRATEGY);
+        final ReceiveBuilder receiveBuilder = ReceiveBuilder.create()
+                .match(CreateThing.class, CREATE_THING_STRATEGY::isDefined, commandHandler);
+
+        final Receive receive = new StrategyAwareReceiveBuilder(receiveBuilder, log)
                 .matchEach(thingSnapshotter.strategies())
                 .match(new CheckForActivityStrategy())
                 .matchAny(new ThingNotFoundStrategy())
@@ -390,7 +389,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     private <A extends ThingModifiedEvent<? extends A>> void persistAndApplyEvent(
             final A event,
-            final Consumer<A> handler) {
+            final BiConsumer<A, Thing> handler) {
 
         final A modifiedEvent;
         if (thing != null) {
@@ -404,13 +403,13 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
         }
 
         if (modifiedEvent.getDittoHeaders().isDryRun()) {
-            handler.accept(modifiedEvent);
+            handler.accept(modifiedEvent, thing);
         } else {
             persistEvent(modifiedEvent, persistedEvent -> {
                 // after the event was persisted, apply the event on the current actor state
                 applyEvent(persistedEvent);
 
-                handler.accept(persistedEvent);
+                handler.accept(persistedEvent, thing);
             });
         }
     }
@@ -549,137 +548,6 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
         private void logInfoAboutIncomingMessage(final String messageType) {
             log.debug("<{}> got <{}>.", thingId, messageType);
-        }
-
-    }
-
-    /**
-     * This strategy handles the {@link CreateThing} command.
-     */
-    @NotThreadSafe
-    private final class CreateThingStrategy extends AbstractReceiveStrategy<CreateThing>
-            implements ReceiveStrategy.WithUnhandledFunction<CreateThing> {
-
-        /**
-         * Constructs a new {@code CreateThingStrategy} object.
-         */
-        CreateThingStrategy() {
-            super(CreateThing.class, log);
-        }
-
-        @Override
-        public boolean isDefined(final CreateThing command) {
-            return Objects.equals(thingId, command.getId());
-        }
-
-        @Override
-        protected void doApply(final CreateThing command) {
-            final DittoHeaders commandHeaders = command.getDittoHeaders();
-
-            // Thing not yet created - do so ..
-            final Thing newThing;
-            try {
-                newThing =
-                        handleCommandVersion(command.getImplementedSchemaVersion(), command.getThing(), commandHeaders);
-            } catch (final DittoRuntimeException e) {
-                notifySender(e);
-                return;
-            }
-
-            // before persisting, check if the Thing is valid and reject if not:
-            if (!isValidThing(command.getImplementedSchemaVersion(), newThing, commandHeaders)) {
-                return;
-            }
-
-            final ThingCreated thingCreated;
-            if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-                thingCreated = ThingCreated.of(newThing, getNextRevisionNumber(), Instant.now(), commandHeaders);
-            }
-            // default case handle as v2 and upwards:
-            else {
-                thingCreated = ThingCreated.of(newThing.setPolicyId(newThing.getPolicyId().orElse(thingId)),
-                        getNextRevisionNumber(), Instant.now(), commandHeaders);
-            }
-
-            persistAndApplyEvent(thingCreated, event -> {
-                notifySender(CreateThingResponse.of(thing, thingCreated.getDittoHeaders()));
-                log.debug("Created new Thing with ID <{}>.", thingId);
-                becomeThingCreatedHandler();
-            });
-        }
-
-        private Thing handleCommandVersion(final JsonSchemaVersion version, final Thing thing,
-                final DittoHeaders dittoHeaders) {
-
-            if (JsonSchemaVersion.V_1.equals(version)) {
-                return enhanceNewThingWithFallbackAcl(enhanceThingWithLifecycle(thing),
-                        dittoHeaders.getAuthorizationContext());
-            }
-            // default case handle as v2 and upwards:
-            else {
-                //acl is not allowed to be set in v2
-                if (thing.getAccessControlList().isPresent()) {
-                    throw AclNotAllowedException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
-                }
-
-                // policyId is required for v2
-                if (!thing.getPolicyId().isPresent()) {
-                    throw PolicyIdMissingException.fromThingIdOnCreate(thingId, dittoHeaders);
-                }
-
-                return enhanceThingWithLifecycle(thing);
-            }
-        }
-
-        /**
-         * Retrieves the Thing with first authorization subjects as fallback for the ACL of the Thing if the passed
-         * {@code newThing} has no ACL set.
-         *
-         * @param newThing the new Thing to take as a "base" and to check for presence of ACL inside.
-         * @param authContext the AuthorizationContext to take the first AuthorizationSubject as fallback from.
-         * @return the really new Thing with guaranteed ACL.
-         */
-        private Thing enhanceNewThingWithFallbackAcl(final Thing newThing, final AuthorizationContext authContext) {
-            final ThingBuilder.FromCopy newThingBuilder = ThingsModelFactory.newThingBuilder(newThing);
-
-            final Boolean isAclEmpty = newThing.getAccessControlList()
-                    .map(AccessControlList::isEmpty)
-                    .orElse(true);
-            if (isAclEmpty) {
-                // do the fallback and use the first authorized subject and give all permissions to it:
-                final AuthorizationSubject authorizationSubject = authContext.getFirstAuthorizationSubject()
-                        .orElseThrow(() -> new NullPointerException("AuthorizationContext does not contain an " +
-                                "AuthorizationSubject!"));
-                newThingBuilder.setPermissions(authorizationSubject, Thing.MIN_REQUIRED_PERMISSIONS);
-            }
-
-            return newThingBuilder.build();
-        }
-
-        private boolean isValidThing(final JsonSchemaVersion version, final Thing thing, final DittoHeaders headers) {
-            final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
-            if (JsonSchemaVersion.V_1.equals(version)) {
-                if (accessControlList.isPresent()) {
-                    final Validator aclValidator =
-                            AclValidator.newInstance(accessControlList.get(), Thing.MIN_REQUIRED_PERMISSIONS);
-                    // before persisting, check if the ACL is valid and reject if not:
-                    if (!aclValidator.isValid()) {
-                        notifySender(getSender(), AclInvalidException.newBuilder(thing.getId().orElse(thingId))
-                                .dittoHeaders(headers)
-                                .build());
-                        return false;
-                    }
-                } else {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public void unhandled(final CreateThing command) {
-            final String msgPattern = "This Thing Actor did not handle the requested Thing with ID <{0}>!";
-            throw new IllegalArgumentException(MessageFormat.format(msgPattern, command.getId()));
         }
 
     }

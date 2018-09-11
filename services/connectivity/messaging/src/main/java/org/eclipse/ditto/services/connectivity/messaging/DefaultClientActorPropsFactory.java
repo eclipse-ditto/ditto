@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpClientActor;
+import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQClientActor;
 
 import akka.actor.ActorRef;
@@ -44,6 +45,8 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 return RabbitMQClientActor.props(connection, conciergeForwarder);
             case AMQP_10:
                 return AmqpClientActor.props(connection, conciergeForwarder);
+            case MQTT:
+                return MqttClientActor.props(connection, conciergeForwarder);
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");
         }

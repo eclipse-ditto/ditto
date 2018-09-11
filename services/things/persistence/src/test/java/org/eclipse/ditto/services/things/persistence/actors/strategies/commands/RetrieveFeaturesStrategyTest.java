@@ -11,14 +11,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
+import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturesResponse;
@@ -46,15 +47,10 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     public void retrieveFeaturesWithoutSelectedFields() {
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingId(), FEATURES,
+                FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(
-                RetrieveFeaturesResponse.of(command.getThingId(),
-                        FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
@@ -63,28 +59,20 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
                 RetrieveFeatures.of(context.getThingId(), selectedFields, DittoHeaders.empty());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingId(), FEATURES,
+                FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2, NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).contains(RetrieveFeaturesResponse.of(command.getThingId(),
-                FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders()));
-        assertThat(result.getException()).isEmpty();
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
 
     @Test
     public void retrieveFeaturesFromThingWithoutFeatures() {
         final CommandStrategy.Context context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getThingId(), DittoHeaders.empty());
+        final DittoRuntimeException expectedException =
+                ExceptionFactory.featuresNotFound(command.getThingId(), command.getDittoHeaders());
 
-        final CommandStrategy.Result result = underTest.doApply(context, THING_V2.removeFeatures(), NEXT_REVISION, command);
-
-        assertThat(result.getEventToPersist()).isEmpty();
-        assertThat(result.getCommandResponse()).isEmpty();
-        assertThat(result.getException()).contains(
-                ExceptionFactory.featuresNotFound(command.getThingId(), command.getDittoHeaders()));
-        assertThat(result.isBecomeDeleted()).isFalse();
+        assertErrorResult(underTest, THING_V2.removeFeatures(), command, expectedException);
     }
 
 }

@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclEntry;
@@ -61,6 +62,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionNotModifiedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingTooManyModifyingRequestsException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 
@@ -236,6 +239,22 @@ public final class TestConstants {
          */
         public static final ThingIdNotExplicitlySettableException THING_ID_NOT_EXPLICITLY_SETTABLE_EXCEPTION =
                 ThingIdNotExplicitlySettableException.newBuilder(true).build();
+
+        /**
+         * A known {@code ThingPreconditionFailedException}.
+         */
+        public static final ThingPreconditionFailedException THING_PRECONDITION_FAILED_EXCEPTION =
+                ThingPreconditionFailedException
+                        .newBuilder(DittoHeaderDefinition.IF_MATCH.getKey(), "\"rev:1\"", "\"rev:2\"")
+                        .build();
+
+        /**
+         * A known {@code ThingPreconditionNotModifiedException}.
+         */
+        public static final ThingPreconditionNotModifiedException THING_PRECONDITION_NOT_MODIFIED_EXCEPTION =
+                ThingPreconditionNotModifiedException
+                        .newBuilder("\"rev:1\"", "*")
+                        .build();
 
         /**
          * A known {@code ThingNotAccessibleException}.

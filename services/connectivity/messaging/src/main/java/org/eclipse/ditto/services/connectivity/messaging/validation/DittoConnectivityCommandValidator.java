@@ -24,15 +24,18 @@ import akka.actor.ActorRef;
 /**
  * Checks if the given {@link ConnectivityCommand} is valid by trying to create the client actor props.
  */
-public class DittoConnectivityCommandValidator implements ConnectivityCommandInterceptor {
+public final class DittoConnectivityCommandValidator implements ConnectivityCommandInterceptor {
 
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef conciergeForwarder;
+    private final ConnectionValidator connectionValidator;
 
     public DittoConnectivityCommandValidator(
-            final ClientActorPropsFactory propsFactory, final ActorRef conciergeForwarder) {
+            final ClientActorPropsFactory propsFactory, final ActorRef conciergeForwarder,
+            final ConnectionValidator connectionValidator) {
         this.propsFactory = propsFactory;
         this.conciergeForwarder = conciergeForwarder;
+        this.connectionValidator = connectionValidator;
     }
 
     @Override
@@ -43,7 +46,11 @@ public class DittoConnectivityCommandValidator implements ConnectivityCommandInt
             case ModifyConnection.TYPE:
                 final Connection connection = getConnectionFromCommand(command);
                 if (connection != null) {
+                    connectionValidator.validate(connection, command.getDittoHeaders());
                     propsFactory.getActorPropsForType(connection, conciergeForwarder);
+                } else {
+                    // should never happen
+                    throw new IllegalStateException("connection=null in " + command);
                 }
                 break;
             default: //nothing to validate for other commands

@@ -29,12 +29,11 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableTargetTest {
 
     private static final String ADDRESS = "amqp/target1";
-    private static final String THINGS_TWIN_EVENTS = "_/_/things/twin/events";
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
-    private static final Target
-            TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
+    private static final Target TARGET_WITH_AUTH_CONTEXT =
+            ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
     private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
             .newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())

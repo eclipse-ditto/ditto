@@ -32,10 +32,13 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.junit.AfterClass;
@@ -76,28 +79,52 @@ public class MessageMappingProcessorActorTest {
 
     @Test
     public void testExternalMessageInDittoProtocolIsProcessed() {
+        testExternalMessageInDittoProtocolIsProcessed(null, true);
+    }
+
+    @Test
+    public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessed() {
+        final ThingIdEnforcement thingIdEnforcement = ThingIdEnforcement
+                .of("mqtt/topic/my/thing", Collections.singleton("mqtt/topic/{{ thing:namespace }}/{{ thing:name }}"));
+        testExternalMessageInDittoProtocolIsProcessed(thingIdEnforcement, true);
+    }
+
+    @Test
+    public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessedExpectErrorResponse() {
+        final ThingIdEnforcement thingIdEnforcement = ThingIdEnforcement
+                .of("some/invalid/target", Collections.singleton("mqtt/topic/{{ thing:namespace }}/{{ thing:name }}"));
+        testExternalMessageInDittoProtocolIsProcessed(thingIdEnforcement, false);
+    }
+
+    private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final ThingIdEnforcement thingIdEnforcement,
+            final boolean expectSuccess) {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
-
-            final Map<String, String> headers = new HashMap<>();
-            final String correlationId = UUID.randomUUID().toString();
-            headers.put("correlation-id", correlationId);
-            headers.put("content-type", "application/json");
-            final ModifyAttribute modifyCommand = ModifyAttribute.of("my:thing", JsonPointer.of("foo"),
-                    JsonValue.of(42), DittoHeaders.empty());
-            final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
-                    .withText(ProtocolFactory
-                            .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
-                            .toJsonString())
-                    .withAuthorizationContext(AUTHORIZATION_CONTEXT)
-                    .build();
+            final ModifyAttribute modifyCommand = createModifyAttributeCommand();
+            final ExternalMessage externalMessage =
+                    ConnectivityModelFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
+                            .withText(ProtocolFactory
+                                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
+                                    .toJsonString())
+                            .withAuthorizationContext(AUTHORIZATION_CONTEXT)
+                            .withThingIdEnforcement(thingIdEnforcement)
+                            .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
 
-            final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
-            assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
-            assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
-            assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(AUTHORIZATION_CONTEXT);
+            if (expectSuccess) {
+                final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
+                assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
+                assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
+                        modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
+                assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(
+                        AUTHORIZATION_CONTEXT);
+            } else {
+                final MappedOutboundSignal errorResponse = expectMsgClass(MappedOutboundSignal.class);
+                assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
+                final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
+                assertThat(response.getDittoRuntimeException()).isInstanceOf(IdEnforcementFailedException.class);
+            }
         }};
     }
 
@@ -220,6 +247,14 @@ public class MessageMappingProcessorActorTest {
     private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
         return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
                 Mockito.mock(DiagnosticLoggingAdapter.class));
+    }
+
+    private ModifyAttribute createModifyAttributeCommand() {
+        final Map<String, String> headers = new HashMap<>();
+        final String correlationId = UUID.randomUUID().toString();
+        headers.put("correlation-id", correlationId);
+        headers.put("content-type", "application/json");
+        return ModifyAttribute.of("my:thing", JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
     }
 
 }

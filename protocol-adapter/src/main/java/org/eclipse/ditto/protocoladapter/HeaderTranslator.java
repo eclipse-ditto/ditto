@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility for translating Headers from external sources or to external sources.
@@ -34,10 +37,14 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 @Immutable
 public final class HeaderTranslator {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(HeaderTranslator.class);
+
+    private final Set<String> headerKeys;
     private final Map<String, HeaderDefinition> headerDefinitionMap;
 
     private HeaderTranslator(final Map<String, HeaderDefinition> headerDefinitionMap) {
         this.headerDefinitionMap = Collections.unmodifiableMap(headerDefinitionMap);
+        this.headerKeys = headerDefinitionMap.keySet();
     }
 
     /**
@@ -76,7 +83,11 @@ public final class HeaderTranslator {
                 builder.putHeader(key, value);
             }
         });
-        return builder.build();
+        final DittoHeaders resultHeaders = builder.build();
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("fromExternalHeaders:\n in: {}\nout: {}", externalHeaders.keySet(), resultHeaders.keySet());
+        }
+        return resultHeaders;
     }
 
     /**
@@ -93,6 +104,9 @@ public final class HeaderTranslator {
                 headers.put(key, value);
             }
         });
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("toExternalHeaders:\n in: {}\nout: {}", dittoHeaders.keySet(), headers.keySet());
+        }
         return headers;
     }
 
@@ -108,5 +122,12 @@ public final class HeaderTranslator {
                 .filter(entry -> !headerKeys.contains(entry.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         return new HeaderTranslator(newHeaderDefinitionMap);
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + " [" +
+                "headerKeys=" + headerKeys +
+                ']';
     }
 }

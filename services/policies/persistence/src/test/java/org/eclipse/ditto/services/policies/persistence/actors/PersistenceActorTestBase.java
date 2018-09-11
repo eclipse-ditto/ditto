@@ -13,13 +13,10 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUBJECT_TYPE;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -90,21 +87,21 @@ public abstract class PersistenceActorTestBase {
     private static final long POLICY_REVISION = 0;
     protected ActorSystem actorSystem = null;
     protected ActorRef pubSubMediator = null;
-    protected DittoHeaders dittoHeadersMockV2;
+    protected DittoHeaders dittoHeadersV2;
 
-    protected static DittoHeaders createDittoHeadersMock(final JsonSchemaVersion schemaVersion,
+    protected static DittoHeaders createDittoHeaders(final JsonSchemaVersion schemaVersion,
             final String... authSubjects) {
-        final DittoHeaders result = mock(DittoHeaders.class);
-        when(result.getCorrelationId()).thenReturn(Optional.empty());
-        when(result.getSource()).thenReturn(Optional.empty());
-        when(result.isResponseRequired()).thenReturn(false);
-        when(result.getSchemaVersion()).thenReturn(Optional.ofNullable(schemaVersion));
         final List<String> authSubjectsStr = Arrays.asList(authSubjects);
-        when(result.getAuthorizationSubjects()).thenReturn(authSubjectsStr);
         final List<AuthorizationSubject> authSubjectsList = new ArrayList<>();
         authSubjectsStr.stream().map(AuthorizationModelFactory::newAuthSubject).forEach(authSubjectsList::add);
-        when(result.getAuthorizationContext()).thenReturn(AuthorizationModelFactory.newAuthContext(authSubjectsList));
-        return result;
+
+        return DittoHeaders.newBuilder()
+                .correlationId(null)
+                .source(null)
+                .responseRequired(false)
+                .schemaVersion(schemaVersion)
+                .authorizationSubjects(authSubjectsStr)
+                .authorizationContext(AuthorizationModelFactory.newAuthContext(authSubjectsList)).build();
     }
 
     protected static Policy createPolicyWithRandomId() {
@@ -138,7 +135,7 @@ public abstract class PersistenceActorTestBase {
     private void init(final Config config) {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
-        dittoHeadersMockV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
+        dittoHeadersV2 = createDittoHeaders(JsonSchemaVersion.V_2, AUTH_SUBJECT);
     }
 
     /** */

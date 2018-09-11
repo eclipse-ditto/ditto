@@ -30,7 +30,7 @@ import akka.cluster.sharding.ShardRegion;
 
 
 /**
- * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the with the
+ * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the
  * configured amount of overall shards. This number has to be same on each cluster node.
  */
 public final class ShardRegionExtractor implements ShardRegion.MessageExtractor {
