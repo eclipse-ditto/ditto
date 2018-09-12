@@ -132,6 +132,16 @@ public class TestConstants {
         public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
         public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
 
+        // signed by CA with common name (CN) and alternative names.
+        // CN=discard.ipv6
+        // subjectAltNames=
+        //   DNS:hello.world.com,
+        //   DNS:goodbye.cruel.world.com,
+        //   IP:100:0:0:0:1319:8a2e:370:7348,
+        //   IP:127.128.129.130
+        public static final String SERVER_WITH_ALT_NAMES_KEY = getCert("server-alt.key");
+        public static final String SERVER_WITH_ALT_NAMES_CRT = getCert("server-alt.crt");
+
         private static String getCert(final String cert) {
             final String path = "/certificates/" + cert;
             try (final InputStream inputStream = Certificates.class.getResourceAsStream(path)) {

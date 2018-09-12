@@ -62,7 +62,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
             if (SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol())) {
                 if (connection.isValidateCertificates()) {
                     final SSLContextCreator sslContextCreator =
-                            SSLContextCreator.of(connection.getTrustedCertificates().orElse(null), null);
+                            SSLContextCreator.fromConnection(connection, null);
                     connectionFactory.useSslProtocol(sslContextCreator.withoutClientCertificate());
                 } else {
                     // attention: this accepts all certificates whether they are valid or not

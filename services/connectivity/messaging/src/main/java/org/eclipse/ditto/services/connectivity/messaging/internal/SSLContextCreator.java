@@ -77,10 +77,15 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private final DittoHeaders dittoHeaders;
     private final Either<TrustManager, String> trust;
 
+    @Nullable
+    private final String hostname;
+
     private SSLContextCreator(final Either<TrustManager, String> trust,
-            @Nullable final DittoHeaders dittoHeaders) {
+            @Nullable final DittoHeaders dittoHeaders,
+            @Nullable String hostname) {
         this.trust = trust;
         this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
+        this.hostname = hostname;
     }
 
     /**
@@ -91,19 +96,34 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      */
     public static SSLContextCreator withTrustManager(final TrustManager trustManager,
             @Nullable final DittoHeaders dittoHeaders) {
-        return new SSLContextCreator(Left.apply(trustManager), dittoHeaders);
+        return new SSLContextCreator(Left.apply(trustManager), dittoHeaders, null);
     }
 
     /**
-     * Create an SSL context creator that verifies server identity.
+     * Create an SSL context creator that verifies server hostname but accepts all IP addresses.
      *
-     * @param trustedCertificates certificates to trust; {@code null} to trust the standard certificate authorities.
+     * @param connection connection for which to create SSLContext.
      * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
      * @return the SSL context creator.
      */
-    public static SSLContextCreator of(@Nullable final String trustedCertificates,
+    public static SSLContextCreator fromConnection(final Connection connection,
             @Nullable final DittoHeaders dittoHeaders) {
-        return new SSLContextCreator(Right.apply(trustedCertificates), dittoHeaders);
+        final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
+        return of(trustedCertificates, dittoHeaders, connection.getHostname());
+    }
+
+    /**
+     * Create an SSL context creator that verifies server identity but accepts all IP addresses.
+     *
+     * @param trustedCertificates certificates to trust; {@code null} to trust the standard certificate authorities.
+     * @param dittoHeaders headers to write in Ditto runtime exceptions; {@code null} to write empty headers.
+     * @param hostnameOrIp hostname to verify in server certificate or a nullable IP address to not verify hostname.
+     * @return the SSL context creator.
+     */
+    public static SSLContextCreator of(@Nullable final String trustedCertificates,
+            @Nullable final DittoHeaders dittoHeaders,
+            @Nullable final String hostnameOrIp) {
+        return new SSLContextCreator(Right.apply(trustedCertificates), dittoHeaders, hostnameOrIp);
     }
 
     @Override
@@ -148,7 +168,10 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
                 final TrustManagerFactory trustManagerFactory =
                         TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(keystore);
-                return trustManagerFactory::getTrustManagers;
+                return () -> {
+                    final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+                    return DittoTrustManager.wrapTrustManagers(trustManagers, hostname);
+                };
             } catch (final Exception e) {
                 throw fatalError("Engine failed to configure trusted server or CA certificates")
                         .cause(e)

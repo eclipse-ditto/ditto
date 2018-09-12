@@ -61,7 +61,7 @@ class MqttConnectionSettingsFactory {
             final MqttConnectionSettings connectionSettings,
             final DittoHeaders dittoHeaders) {
         final SSLContextCreator sslContextCreator = connection.isValidateCertificates()
-                ? SSLContextCreator.of(connection.getTrustedCertificates().orElse(null), dittoHeaders)
+                ? SSLContextCreator.fromConnection(connection, dittoHeaders)
                 : SSLContextCreator.withTrustManager(ACCEPT_ANY_TRUST_MANAGER, dittoHeaders);
 
         final Credentials clientCredentials =

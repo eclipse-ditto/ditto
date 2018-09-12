@@ -74,8 +74,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId());
 
         if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
-            final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-            cf.setSslContext(SSLContextCreator.of(trustedCertificates, null).withoutClientCertificate());
+            cf.setSslContext(SSLContextCreator.fromConnection(connection, null).withoutClientCertificate());
         }
 
         @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();

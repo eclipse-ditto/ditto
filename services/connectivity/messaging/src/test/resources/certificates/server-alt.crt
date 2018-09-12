@@ -1,0 +1,77 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 14780916813310059767 (0xcd205d876ff1e4f7)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=AU, ST=Some-State, O=Internet Widgits Pty Ltd
+        Validity
+            Not Before: Sep 11 15:46:30 2018 GMT
+            Not After : Sep 11 15:46:30 2019 GMT
+        Subject: C=AU, ST=Some-State, O=Discard IPv6, CN=discard.ipv6
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:b9:79:88:91:70:bb:c4:5f:9d:95:c4:ae:f8:34:
+                    26:08:b7:30:fc:59:81:93:46:b2:9e:55:33:b7:3d:
+                    20:fb:bf:21:63:2b:fa:45:34:9d:76:2d:e1:63:f8:
+                    6a:ac:2b:9b:1f:11:12:b4:4b:77:ea:63:88:e6:c7:
+                    e3:32:e6:26:ad:55:8e:bd:d4:23:a6:23:4c:a6:14:
+                    3a:b1:fb:30:f2:eb:6c:d0:db:0e:f6:f2:95:81:82:
+                    07:65:6f:de:91:75:97:05:47:5f:11:38:71:72:04:
+                    5d:a8:88:d6:09:b7:0c:05:55:c6:7c:79:d1:63:a3:
+                    d3:7a:05:17:83:bc:81:f0:7a:b8:4a:ff:5b:21:54:
+                    fb:52:69:f6:ab:60:c3:99:ce:24:6d:a5:c5:d6:99:
+                    01:cd:e8:12:85:bc:4a:b7:ec:5c:cb:d1:ff:b1:e3:
+                    2c:9f:ae:00:17:7c:9a:00:b7:57:e0:9e:5f:2b:0d:
+                    aa:a4:c7:a2:b8:98:cc:e7:dd:a6:e9:f2:67:42:f6:
+                    be:85:f6:56:a9:a8:dd:6a:af:4d:b2:03:0a:9f:a3:
+                    e0:2e:40:7b:2f:86:0a:30:13:5f:bc:8e:26:3e:be:
+                    f2:83:46:6c:a3:71:03:83:d8:89:f4:fc:f7:f9:c4:
+                    4b:e7:33:e5:9e:ea:c1:16:f6:a8:c9:f6:7d:e0:7d:
+                    ee:f9
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Key Usage: 
+                Digital Signature, Non Repudiation, Key Encipherment
+            X509v3 Subject Alternative Name: 
+                DNS:hello.world.com, DNS:goodbye.cruel.world.com, IP Address:100:0:0:0:1319:8A2E:370:7348, IP Address:127.128.129.130
+    Signature Algorithm: sha256WithRSAEncryption
+         5f:53:34:94:fd:56:c6:7d:98:94:53:25:0e:d5:37:f4:48:fe:
+         ff:3d:f2:44:82:cf:14:34:03:34:d4:cf:ae:ea:0b:61:15:f7:
+         3d:7b:bc:47:01:4b:56:2e:15:38:b2:98:79:22:d0:2d:9d:b0:
+         a9:38:e0:5d:41:a0:66:f9:8f:21:f7:a3:14:5e:05:dd:02:b3:
+         38:71:7e:0d:c1:50:41:70:6b:db:7b:b3:03:23:eb:f5:51:e2:
+         a0:71:66:d0:75:af:4f:72:0e:9e:63:31:71:0b:12:12:c5:45:
+         7f:33:78:e6:34:f9:0d:fd:cc:f6:70:30:c7:cb:97:68:ce:49:
+         5d:ce:22:25:e4:2e:47:80:0b:be:7f:30:43:80:5f:4b:da:e6:
+         d9:be:e3:28:36:ad:b4:e8:7b:cf:82:b3:ee:36:63:77:d9:f2:
+         a0:05:cb:53:5f:d9:01:0d:6f:2a:2a:54:5d:f4:07:27:10:58:
+         bc:0e:44:a6:92:11:3f:e2:ee:1b:15:bf:67:7b:79:80:ef:b5:
+         ed:88:07:b1:90:4f:2c:72:34:e4:b8:14:77:d0:df:3c:46:04:
+         94:00:90:0d:a5:4f:9a:66:2b:69:65:e4:ef:03:c4:34:de:fd:
+         10:92:57:a7:65:f3:3c:8e:e7:84:f4:3e:4e:0d:c1:7d:e7:1a:
+         23:b9:7b:91
+-----BEGIN CERTIFICATE-----
+MIIDfzCCAmegAwIBAgIJAM0gXYdv8eT3MA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMTgwOTExMTU0NjMwWhcNMTkwOTExMTU0NjMwWjBQ
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEVMBMGA1UECgwMRGlz
+Y2FyZCBJUHY2MRUwEwYDVQQDDAxkaXNjYXJkLmlwdjYwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQC5eYiRcLvEX52VxK74NCYItzD8WYGTRrKeVTO3PSD7
+vyFjK/pFNJ12LeFj+GqsK5sfERK0S3fqY4jmx+My5iatVY691COmI0ymFDqx+zDy
+62zQ2w728pWBggdlb96RdZcFR18ROHFyBF2oiNYJtwwFVcZ8edFjo9N6BReDvIHw
+erhK/1shVPtSafarYMOZziRtpcXWmQHN6BKFvEq37FzL0f+x4yyfrgAXfJoAt1fg
+nl8rDaqkx6K4mMzn3abp8mdC9r6F9lapqN1qr02yAwqfo+AuQHsvhgowE1+8jiY+
+vvKDRmyjcQOD2In0/Pf5xEvnM+We6sEW9qjJ9n3gfe75AgMBAAGjZzBlMAkGA1Ud
+EwQCMAAwCwYDVR0PBAQDAgXgMEsGA1UdEQREMEKCD2hlbGxvLndvcmxkLmNvbYIX
+Z29vZGJ5ZS5jcnVlbC53b3JsZC5jb22HEAEAAAAAAAAAExmKLgNwc0iHBH+AgYIw
+DQYJKoZIhvcNAQELBQADggEBAF9TNJT9VsZ9mJRTJQ7VN/RI/v898kSCzxQ0AzTU
+z67qC2EV9z17vEcBS1YuFTiymHki0C2dsKk44F1BoGb5jyH3oxReBd0Cszhxfg3B
+UEFwa9t7swMj6/VR4qBxZtB1r09yDp5jMXELEhLFRX8zeOY0+Q39zPZwMMfLl2jO
+SV3OIiXkLkeAC75/MEOAX0va5tm+4yg2rbToe8+Cs+42Y3fZ8qAFy1Nf2QENbyoq
+VF30BycQWLwORKaSET/i7hsVv2d7eYDvte2IB7GQTyxyNOS4FHfQ3zxGBJQAkA2l
+T5pmK2ll5O8DxDTe/RCSV6dl8zyO54T0Pk4NwX3nGiO5e5E=
+-----END CERTIFICATE-----
