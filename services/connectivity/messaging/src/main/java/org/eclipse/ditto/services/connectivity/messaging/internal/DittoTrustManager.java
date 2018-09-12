@@ -34,7 +34,8 @@ import javax.net.ssl.X509TrustManager;
 
 /**
  * Trust manager with identity verification. The check succeeds if the expected hostname is the common name (CN) or a
- * subject alternative DNS name in the certificate, or the expected ip is a subject alternative IP address.
+ * subject alternative DNS name in the certificate, or the expected ip is a subject alternative IP address, or the
+ * server certificate is equal to a certificate in the trust store.
  */
 final class DittoTrustManager implements X509TrustManager {
 
@@ -92,7 +93,7 @@ final class DittoTrustManager implements X509TrustManager {
             throw new CertificateException("Cannot verify hostname - empty certificate chain");
         }
         final X509Certificate serverCertificate = x509Certificates[0];
-        if (!trustServerCertificate(serverCertificate) && shouldRejectHostnameOrIp(serverCertificate)) {
+        if (!isServerCertificateInTrustStore(serverCertificate) && shouldRejectHostnameOrIp(serverCertificate)) {
             final String message = String.format("Host '%s' does not match signed hosts '%s' ",
                     hostnameOrIp,
                     Stream.concat(getSignedHostnames(serverCertificate), getSignedIps(serverCertificate))
@@ -106,7 +107,7 @@ final class DittoTrustManager implements X509TrustManager {
         return delegate.getAcceptedIssuers();
     }
 
-    private boolean trustServerCertificate(final X509Certificate serverCertificate) {
+    private boolean isServerCertificateInTrustStore(final X509Certificate serverCertificate) {
         return Arrays.stream(delegate.getAcceptedIssuers())
                 .anyMatch(trusted -> haveEqualIssuerDNAndSerialNumber(trusted, serverCertificate));
     }
