@@ -36,6 +36,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceed
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTooManyRequestsException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayUnknownPlaceholderException;
 
 /**
  * A {@link ErrorRegistry} aware of common {@link DittoRuntimeException}s.
@@ -84,49 +85,40 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         // Gateway exceptions
         parseStrategies.put(GatewayAuthenticationFailedException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayAuthenticationFailedException.newBuilder(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders).build());
+                (jsonObject, dittoHeaders) -> GatewayAuthenticationFailedException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayAuthenticationProviderUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayAuthenticationProviderUnavailableException.newBuilder()
-                        .message(getMessage(jsonObject)).dittoHeaders(dittoHeaders).build());
+                (jsonObject, dittoHeaders) -> GatewayAuthenticationProviderUnavailableException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayInternalErrorException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayInternalErrorException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayInternalErrorException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayMethodNotAllowedException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayMethodNotAllowedException.newBuilder("")
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayMethodNotAllowedException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayQueryTimeExceededException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayQueryTimeExceededException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayQueryTimeExceededException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayServiceTimeoutException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTimeoutException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayServiceTimeoutException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceUnavailableException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayServiceUnavailableException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayServiceTooManyRequestsException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTooManyRequestsException.newBuilder()
-                        .message(getMessage(jsonObject))
-                        .dittoHeaders(dittoHeaders)
-                        .build());
+                (jsonObject, dittoHeaders) -> GatewayServiceTooManyRequestsException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
+        parseStrategies.put(GatewayUnknownPlaceholderException.ERROR_CODE,
+                (jsonObject, dittoHeaders) -> GatewayUnknownPlaceholderException
+                        .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         return new CommonErrorRegistry(parseStrategies);
     }

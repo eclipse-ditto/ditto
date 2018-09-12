@@ -54,6 +54,21 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
     }
 
     /**
+     * Constructs a new {@code GatewayQueryTimeExceededException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayQueryTimeExceededException.
+     */
+    public static GatewayQueryTimeExceededException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
+        return new GatewayQueryTimeExceededException.Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
+    }
+
+    /**
      * Deserialize a new {@code GatewayQueryTimeExceededException} object.
      *
      * @param json the json object. It is ignored because this object has no state.
