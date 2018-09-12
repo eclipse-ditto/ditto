@@ -99,8 +99,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         final String baseUri = formatUri(protocol, hostname, port);
 
-        final List<String> parameters =
-                new ArrayList<>(getAmqpParameters(username == null || password == null, specificConfig));
+        final boolean anonymous = username == null || username.isEmpty() || password == null || password.isEmpty();
+        final List<String> parameters = new ArrayList<>(getAmqpParameters(anonymous, specificConfig));
         final boolean securedConnection =
                 !connection.isValidateCertificates() && SECURE_AMQP_SCHEME.equalsIgnoreCase(protocol);
         parameters.addAll(getTransportParameters(securedConnection, specificConfig));
@@ -142,7 +142,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .collect(Collectors.toList());
 
         jmsParams.add("jms.clientID=" + encodedId);
-        if (username != null && password != null) {
+        if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
             jmsParams.add("jms.username=" + username);
             jmsParams.add("jms.password=" + password);
         }
