@@ -51,7 +51,6 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
 
     @Override
     public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource, final int bufferSize) {
-
         final String clientId = connectionId() + "-source" + mqttSource.getIndex();
         final MqttSourceSettings sourceSettings =
                 MqttSourceSettings.create(settings.withClientId(clientId))
