@@ -175,7 +175,7 @@ Here is an example MQTT connection that checks the broker certificate and authen
   ],
   "targets": [
     {
-      "address": "eclipse-ditto-sandbox/{{ thing:id }}",
+      "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
       "topics": [
         "_/_/things/twin/events"
       ],
