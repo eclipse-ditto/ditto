@@ -192,6 +192,21 @@ public class ThingPredicateVisitorTest {
     }
 
     @Test
+    public void testFilterAttributeWithIntegerGeFloatType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/anInteger", MATCHING_THING_INTEGER * 0.9);
+    }
+
+    @Test
+    public void testFilterAttributeWithIntegerGeDoubleType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/anInteger", MATCHING_THING_INTEGER * 0.9d);
+    }
+
+    @Test
+    public void testFilterAttributeWithIntegerGeStringType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/anInteger", String.valueOf(MATCHING_THING_INTEGER-1));
+    }
+
+    @Test
     public void testFilterAttributeWithLongGe() {
         testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aLong", MATCHING_THING_LONG - 1);
         testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aLong", MATCHING_THING_LONG); // corner case
@@ -201,6 +216,21 @@ public class ThingPredicateVisitorTest {
     public void testFilterAttributeWithDoubleGe() {
         testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aDouble", MATCHING_THING_DOUBLE - 1.0);
         testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aDouble", MATCHING_THING_DOUBLE); // corner case
+    }
+
+    @Test
+    public void testFilterAttributeWithDoubleGeFloatType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aDouble", (float) (MATCHING_THING_DOUBLE - 1.0));
+    }
+
+    @Test
+    public void testFilterAttributeWithDoubleGeIntegerType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aDouble", (int) MATCHING_THING_DOUBLE);
+    }
+
+    @Test
+    public void testFilterAttributeWithDoubleGeStringType() {
+        testPredicate(NON_MATCHING_THING_LESSER, "ge", "attributes/aDouble", String.valueOf(MATCHING_THING_DOUBLE-1.0));
     }
 
     @Test

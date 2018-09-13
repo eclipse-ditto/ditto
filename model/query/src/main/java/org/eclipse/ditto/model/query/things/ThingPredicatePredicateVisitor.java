@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.model.query.things;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -83,7 +84,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .map(this::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
-                        .filter(obj -> obj.compareTo(value) >= 0)
+                        .filter(obj -> compare((Comparable) value, obj) >= 0)
                         .isPresent();
     }
 
@@ -94,7 +95,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .map(this::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
-                        .filter(obj -> obj.compareTo(value) > 0)
+                        .filter(obj -> compare((Comparable) value, obj) > 0)
                         .isPresent();
     }
 
@@ -105,7 +106,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .map(this::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
-                        .filter(obj -> obj.compareTo(value) <= 0)
+                        .filter(obj -> compare((Comparable) value, obj) <= 0)
                         .isPresent();
     }
 
@@ -116,8 +117,41 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .map(this::mapJsonValueToJava)
                         .filter(obj -> obj instanceof Comparable && value instanceof Comparable)
                         .map(obj -> (Comparable) obj)
-                        .filter(obj -> obj.compareTo(value) < 0)
+                        .filter(obj -> compare((Comparable) value, obj) < 0)
                         .isPresent();
+    }
+
+    private int compare(final Comparable value, final Comparable obj) {
+        final Comparable comparableObj = asNumber(obj);
+        final Comparable comparableValue = asNumber(value);
+        // best effort try to convert both values to a BigDecimal in order to compare them:
+        if (comparableValue instanceof String && comparableObj instanceof BigDecimal) {
+            try {
+                return comparableObj.compareTo(new BigDecimal((String) comparableValue));
+            } catch (final NumberFormatException e) {
+                // continue trying
+            }
+        } else if (comparableValue instanceof BigDecimal && comparableObj instanceof String) {
+            try {
+                return new BigDecimal((String) comparableObj).compareTo((BigDecimal) comparableValue);
+            } catch (final NumberFormatException e) {
+                // continue trying
+            }
+        }
+
+        if (comparableValue.getClass().equals(comparableObj.getClass())) {
+            // only compare same classes:
+            return comparableObj.compareTo(comparableValue);
+        } else {
+            // as a fallback, for different types, compare by their string representation:
+            final String comparableObjString = comparableObj.toString();
+            final String comparableValueString = comparableValue.toString();
+            return comparableObjString.compareTo(comparableValueString);
+        }
+    }
+
+    private static Comparable asNumber(final Comparable comparable) {
+        return comparable instanceof Number ? new BigDecimal(comparable.toString()) : comparable;
     }
 
     @Override
