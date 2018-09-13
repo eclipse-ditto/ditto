@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.model.policies;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
@@ -36,10 +36,9 @@ final class ImmutableSubjectIssuer implements SubjectIssuer {
      * @param subjectIssuerValue the character sequence forming the SubjectType's value.
      * @return a new SubjectIssuer.
      * @throws NullPointerException if {@code subjectIssuerValue} is {@code null}.
-     * @throws IllegalArgumentException if {@code subjectIssuerValue} is empty.
      */
     public static SubjectIssuer of(final CharSequence subjectIssuerValue) {
-        argumentNotEmpty(subjectIssuerValue, "subjectIssuerValue");
+        checkNotNull(subjectIssuerValue, "subjectIssuerValue");
 
         return new ImmutableSubjectIssuer(subjectIssuerValue.toString());
     }
