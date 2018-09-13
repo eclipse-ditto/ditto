@@ -25,8 +25,9 @@ to see, but to filter for specific criteria, events may be filtered on the Ditto
 The above mentioned different APIs provide their own mechanisms on how to define such filters, but they all share the
 common functionality of based on which information events may be filtered.
 
-{% include note.html content="All filters are specified in an URL query format, therefore their values must be URL
-encoded before sending them to the backend!" %}
+{% include note.html content="All filters are specified in an URL query format, therefore their values should be URL
+encoded before sending them to the backend. The equal (=) and the ampersand (&) character must be encoded in any RQL
+filter!" %}
 
 ### By namespaces
 
@@ -38,8 +39,7 @@ in namespaces of interest are considered and thus only events of these Things ar
 
 For example, one would only subscribe for events occurring in 2 specific namespaces by defining:
 ```
-// raw: 'namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two'
-namespaces=org.eclipse.ditto.one%2Corg.eclipse.ditto.two
+namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 ```
 
 ### By RQL expression
@@ -56,14 +56,17 @@ This provides the opportunity to formulate filters like the following:
 
 Only emit events when attribute "count" was changed to a value greater than 42:
 ```
-// raw: filter=gt(attributes/count,42)
-filter=gt(attributes%2Fcount%2C42)
+filter=gt(attributes/count,42)
 ```
 
 Only emit events for Things starting with myThing when a feature "lamp" was modified:
 ```
-// raw: filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
-filter=and(like(thingId%2C%22org.eclipse.ditto%3AmyThing*%22)%2Cexists(features%2Flamp))
+filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
+```
+
+A string match filter that needs URL encoding as the matched value contains characters that must be escaped.
+```
+filter=gt(attributes/manufacturer,"ACME %26 Sons")
 ```
 
 You get the idea of how mighty this becomes by utilizing Ditto's [RQL expressions](basic-rql.html).

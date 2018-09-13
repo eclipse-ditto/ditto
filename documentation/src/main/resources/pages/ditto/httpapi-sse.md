@@ -54,7 +54,8 @@ several possibilities listed in the sections below.
 All of the query parameters below can be combined, so that you can for example formulate that only events from a certain
 namespace with a specific RQL expression should be emitted which could look like:
 ```
-http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one%2Corg.eclipse.test&filter=gt(attributes%2Fcounter%2C42)
+http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test&filter=gt
+(attributes/counter,42)
 ```
 
 #### Specify the Thing IDs
@@ -82,7 +83,7 @@ As described in [change notifications](basic-changenotifications.html#by-namespa
 for changes done in certain namespaces. At the SSE API, simply specify the `namespaces` parameter and provide a comma
 separated list of which namespaces to select, e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one%2Corg.eclipse.test
+http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
 ```
 
 #### Filtering by RQL expression
@@ -91,7 +92,7 @@ As also described in [change notifications](basic-changenotifications.html#by-rq
 to specify an RQL expression expressing on which occasions to emit an event via the SSE API. Simply specify the `filter`
 parameter with an [RQL expression](basic-rql.html), e.g.:
 ```
-http://localhost:8080/api/<1|2>/things?filter=gt(attributes%2Fcounter%2C42)
+http://localhost:8080/api/<1|2>/things?filter=gt(attributes/counter,42)
 ```
 
 

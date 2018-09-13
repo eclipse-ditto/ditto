@@ -174,5 +174,5 @@ with `&`.  You have to URL encode the filter values before using them in a confi
 For example this way the WebSocket session would register for all events in the namespace `org.eclipse.ditto` and which
 would match an attribute "counter" to be greater than 42:
 ```
-START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes%2Fcounter%2C42)
+START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)
 ```

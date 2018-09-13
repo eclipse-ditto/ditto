@@ -88,7 +88,7 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
 {
   "address": "<exchange_name>/<routing_key>",
   "topics": [
-    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes%2Fcounter%2C42)",
+    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
