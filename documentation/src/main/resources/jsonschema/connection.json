@@ -42,6 +42,51 @@
         "amqps://user:password@localhost:5671"
       ]
     },
+    "ca": {
+      "$id": "/properties/ca",
+      "type": "string",
+      "title": "Trusted certificates",
+      "description": "Certificates to trust as DER in PEM-format",
+      "examples": [
+        "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+      ]
+    },
+    "credentials": {
+      "$id": "/properties/credentials",
+      "type": "object",
+      "title": "Credentials",
+      "description": "Credentials with which Ditto authenticates itself at the connection URI",
+      "properties": {
+        "type": {
+          "$id": "/properties/credentials/properties/type",
+          "type": "string",
+          "enum": [ "client-cert" ],
+          "title": "Type of credentials",
+          "description": "Type of credentials",
+          "examples": [
+            "client-cert"
+          ]
+        },
+        "cert": {
+          "$id": "/properties/credentials/properties/cert",
+          "type": "string",
+          "title": "Client certificate for type client-cert",
+          "description": "Client certificate for type client-cert as DER in PEM-format",
+          "examples": [
+            "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----\n"
+          ]
+        },
+        "key": {
+          "$id": "/properties/credentials/properties/key",
+          "type": "string",
+          "title": "Client private key for type client-cert",
+          "description": "Unencrypted client private for type client-cert as PKCS8 in PEM-format",
+          "examples": [
+            "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+          ]
+        }
+      }
+    },
     "sources": {
       "$id": "/properties/sources",
       "type": "array",

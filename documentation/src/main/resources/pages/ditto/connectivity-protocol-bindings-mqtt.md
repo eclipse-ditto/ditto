@@ -140,3 +140,48 @@ meaning that the messages are expected to be [Ditto Protocol](protocol-overview.
 UTF-8-coded JSON (as shown for example in the [protocol examples](protocol-examples.html)).
 If your payload does not conform to the [Ditto Protocol](protocol-overview.html) or uses any character set other
 than UTF-8, you can configure a custom [payload mapping](connectivity-mapping.html).
+
+## Client-certificate authentication
+
+Ditto supports certificate-based authentication for MQTT connections. Consult 
+[Certificates for Transport Layer Security](connectivity-tls-certificates.html)
+for how to set it up.
+
+Here is an example MQTT connection that checks the broker certificate and authenticates by a client certificate.
+
+```json
+{
+  "id": "mqtt-example-connection-124",
+  "connectionType": "mqtt",
+  "connectionStatus": "open",
+  "failoverEnabled": true,
+  "uri": "ssl://test.mosquitto.org:8884",
+  "validateCertificates": true,
+  "ca": "-----BEGIN CERTIFICATE-----\n<test.mosquitto.org certificate>\n-----END CERTIFICATE-----"
+  "credentials": {
+    "type": "client-cert",
+    "cert": "-----BEGIN CERTIFICATE-----\n<signed client certificate>\n-----END CERTIFICATE-----",
+    "key": "-----BEGIN PRIVATE KEY-----\n<client private key>\n-----END PRIVATE KEY-----"
+  },
+  "sources": [
+    {
+      "addresses": [
+        "eclipse-ditto-sandbox/#"
+      ],
+      "authorizationContext": ["ditto:inbound-auth-subject"],
+      "qos": 0,
+      "filters": []
+    }
+  ],
+  "targets": [
+    {
+      "address": "eclipse-ditto-sandbox/{{ thing:id }}",
+      "topics": [
+        "_/_/things/twin/events"
+      ],
+      "authorizationContext": ["ditto:outbound-auth-subject"],
+      "qos": 0
+    }
+  ]
+}
+```
