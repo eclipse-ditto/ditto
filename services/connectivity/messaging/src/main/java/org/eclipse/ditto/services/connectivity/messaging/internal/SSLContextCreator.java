@@ -12,16 +12,23 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.cert.CertPathBuilder;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.PKIXRevocationChecker;
+import java.security.cert.X509CertSelector;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -32,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -56,10 +64,13 @@ import scala.util.Right;
  */
 public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
+    private static final String PKIX = "PKIX";
     private static final String TLS12 = "TLSv1.2";
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
+    private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
+
     private static final KeyFactory RSA_KEY_FACTORY;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
 
@@ -146,43 +157,48 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         return clientCertificate(ClientCertificateCredentials.empty());
     }
 
-    @Nullable
     private Supplier<TrustManager[]> newTrustManagerFactory(@Nullable final String trustedCertificates) {
-        if (trustedCertificates != null) {
-            final Collection<? extends Certificate> caCerts;
-            try {
+        try {
+            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
+            if (trustedCertificates != null) {
+                final KeyStore keystore = newKeystore();
+                final Collection<? extends Certificate> caCerts;
                 final byte[] caCertsPem = trustedCertificates.getBytes(StandardCharsets.US_ASCII);
                 caCerts = X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(caCertsPem));
-
-            } catch (final CertificateException e) {
-                final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
-                throw badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
-                        .cause(e)
-                        .build();
-            }
-            try {
-                final KeyStore keystore = newKeystore();
                 for (final Certificate caCert : caCerts) {
                     keystore.setCertificateEntry("ca", caCert);
                 }
-                final TrustManagerFactory trustManagerFactory =
-                        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 trustManagerFactory.init(keystore);
-                return () -> {
-                    final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-                    return DittoTrustManager.wrapTrustManagers(trustManagers, hostname);
-                };
-            } catch (final Exception e) {
-                throw fatalError("Engine failed to configure trusted server or CA certificates")
-                        .cause(e)
-                        .build();
+                // TODO: consider adding cert revocation checker if AWS-IoT has OSCP/CRL.
+            } else {
+                // standard CAs; add revocation check
+                final PKIXRevocationChecker revocationChecker =
+                        (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker();
+                final PKIXBuilderParameters parameters =
+                        new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
+                parameters.addCertPathChecker(revocationChecker);
+                trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
             }
-        } else {
-            return null;
+            return () -> {
+                final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+                return DittoTrustManager.wrapTrustManagers(trustManagers, hostname);
+            };
+        } catch (final CertificateException e) {
+            final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
+            throw badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
+                    .cause(e)
+                    .build();
+        } catch (final KeyStoreException e) {
+            throw fatalError("Engine failed to configure trusted CA certificates")
+                    .cause(e)
+                    .build();
+        } catch (final NoSuchAlgorithmException | InvalidAlgorithmParameterException e) {
+            throw fatalError("Failed to start TLS engine")
+                    .cause(e)
+                    .build();
         }
     }
 
-    @Nullable
     private Supplier<KeyManager[]> newKeyManagerFactory(@Nullable final String clientKeyPem,
             @Nullable final String clientCertificatePem) {
 
@@ -204,7 +220,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
                         .build();
             }
         } else {
-            return null;
+            return () -> null;
         }
     }
 
@@ -262,14 +278,13 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         }
     }
 
-    private SSLContext newTLSContext(@Nullable final Supplier<KeyManager[]> keyManagerSupplier,
+    private SSLContext newTLSContext(final Supplier<KeyManager[]> keyManagerSupplier,
             @Nullable final Supplier<TrustManager[]> trustManagerSupplier) {
 
         try {
             final SSLContext sslContext = SSLContext.getInstance(TLS12);
-            final KeyManager[] keyManagers = keyManagerSupplier != null ? keyManagerSupplier.get() : null;
             final TrustManager[] trustManagers = trustManagerSupplier != null ? trustManagerSupplier.get() : null;
-            sslContext.init(keyManagers, trustManagers, null);
+            sslContext.init(keyManagerSupplier.get(), trustManagers, null);
             return sslContext;
         } catch (final NoSuchAlgorithmException | KeyManagementException e) {
             throw fatalError("Cannot start TLS 1.2 engine")
@@ -324,5 +339,23 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private static byte[] decodeBase64(final String content) {
         return Base64.getDecoder().decode(content.replace("\\s", ""));
+    }
+
+    private static KeyStore loadDefaultCAKeystore() {
+        try {
+            final String javaHome = System.getProperty("java.home");
+            final String cacerts = javaHome + "/lib/security/cacerts";
+            final KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (final FileInputStream cacertsStream = new FileInputStream(cacerts)) {
+                keystore.load(cacertsStream, "changeit".toCharArray());
+            }
+            return keystore;
+        } catch (final KeyStoreException e) {
+            throw new Error("FATAL: Cannot create default CA keystore");
+        } catch (final IOException e) {
+            throw new Error("FATAL: Cannot read default CA keystore");
+        } catch (final NoSuchAlgorithmException | CertificateException e) {
+            throw new Error("FATAL: Cannot load default CA keystore");
+        }
     }
 }

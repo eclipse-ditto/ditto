@@ -108,8 +108,7 @@ final class DittoTrustManager implements X509TrustManager {
     }
 
     private boolean isServerCertificateInTrustStore(final X509Certificate serverCertificate) {
-        return Arrays.stream(delegate.getAcceptedIssuers())
-                .anyMatch(trusted -> haveEqualIssuerDNAndSerialNumber(trusted, serverCertificate));
+        return Arrays.stream(delegate.getAcceptedIssuers()).anyMatch(serverCertificate::equals);
     }
 
     private boolean shouldRejectHostnameOrIp(final X509Certificate serverCertificate) {
