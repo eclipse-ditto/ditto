@@ -19,11 +19,11 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;

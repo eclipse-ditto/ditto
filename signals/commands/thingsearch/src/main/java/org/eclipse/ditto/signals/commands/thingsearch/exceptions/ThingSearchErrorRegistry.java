@@ -18,7 +18,6 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
 import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -61,8 +60,8 @@ public final class ThingSearchErrorRegistry extends AbstractErrorRegistry<DittoR
         commonErrorRegistry.getTypes()
                 .forEach(type -> parseStrategies.put(type, commonErrorRegistry::parse));
 
-        parseStrategies.put(InvalidFilterException.ERROR_CODE, InvalidFilterException::fromJson);
         parseStrategies.put(InvalidOptionException.ERROR_CODE, InvalidOptionException::fromJson);
+        parseStrategies.put(InvalidNamespacesException.ERROR_CODE, InvalidNamespacesException::fromJson);
 
         return new ThingSearchErrorRegistry(parseStrategies);
     }

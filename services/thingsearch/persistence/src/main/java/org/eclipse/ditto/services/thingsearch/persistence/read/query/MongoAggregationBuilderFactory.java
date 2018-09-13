@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;

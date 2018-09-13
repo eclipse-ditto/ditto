@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Permission;
 import org.junit.Before;

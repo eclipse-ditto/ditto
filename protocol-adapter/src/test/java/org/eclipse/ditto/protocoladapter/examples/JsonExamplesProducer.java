@@ -79,7 +79,6 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -1500,9 +1499,6 @@ class JsonExamplesProducer {
     private void produceSearchExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("exceptions"));
         Files.createDirectories(exceptionsDir);
-
-        final InvalidFilterException invalidFilterException = InvalidFilterException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("invalidFilterException.json")), invalidFilterException);
 
         final InvalidOptionException invalidOptionException = InvalidOptionException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("invalidOptionException.json")), invalidOptionException);

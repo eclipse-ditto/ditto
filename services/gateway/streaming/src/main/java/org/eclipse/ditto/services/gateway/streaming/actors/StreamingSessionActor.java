@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;

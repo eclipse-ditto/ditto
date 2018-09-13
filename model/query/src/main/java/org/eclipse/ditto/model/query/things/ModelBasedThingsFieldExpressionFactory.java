@@ -14,12 +14,12 @@ package org.eclipse.ditto.model.query.things;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 
 /**
  * {@link ThingsFieldExpressionFactory} which applies a special field mapping

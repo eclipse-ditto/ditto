@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 
-import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
 
 /**
  * Constants for Search Persistence.

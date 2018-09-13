@@ -17,8 +17,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.junit.Before;
 import org.junit.runner.RunWith;

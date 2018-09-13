@@ -22,16 +22,16 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.query.Query;
-import org.eclipse.ditto.model.query.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.junit.After;
@@ -160,9 +160,10 @@ public final class QueryActorTest {
                 final ActorRef underTest = createQueryActor();
 
                 underTest.tell(QueryThings.of(KNOWN_INVALID_FILTER, KNOWN_DITTO_HEADERS), getRef());
-                final InvalidFilterException invalidFilterException = expectMsgClass(InvalidFilterException.class);
+                final InvalidRqlExpressionException
+                        invalidinvalidRqlExpressionException = expectMsgClass(InvalidRqlExpressionException.class);
 
-                assertThat(invalidFilterException.getDittoHeaders()).isEqualTo(KNOWN_DITTO_HEADERS);
+                assertThat(invalidinvalidRqlExpressionException.getDittoHeaders()).isEqualTo(KNOWN_DITTO_HEADERS);
             }
         };
     }

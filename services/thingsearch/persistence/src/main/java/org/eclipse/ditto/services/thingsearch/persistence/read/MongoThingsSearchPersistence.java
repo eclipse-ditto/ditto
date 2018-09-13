@@ -27,7 +27,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;

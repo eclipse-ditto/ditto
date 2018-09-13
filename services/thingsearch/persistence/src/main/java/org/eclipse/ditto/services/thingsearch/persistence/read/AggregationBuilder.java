@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 import java.util.Collection;
 import java.util.List;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.model.query.SortOption;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 
 /**
  * Defines a Builder for a {@link PolicyRestrictedSearchAggregation}.

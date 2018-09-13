@@ -13,8 +13,8 @@ package org.eclipse.ditto.model.query.things;
 
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.visitors.ExistsFieldExpressionVisitor;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.things.Thing;
 
 /**

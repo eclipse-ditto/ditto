@@ -17,11 +17,11 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import java.util.Optional;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.junit.Test;
 
 /**

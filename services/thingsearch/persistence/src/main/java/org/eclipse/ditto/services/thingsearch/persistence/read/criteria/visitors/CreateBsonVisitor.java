@@ -16,11 +16,11 @@ import java.util.stream.Stream;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors.GetFilterBsonVisitor;
 

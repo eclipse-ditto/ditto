@@ -18,7 +18,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
+import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
 
 /**
@@ -45,7 +45,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     /**
-     * Creates a Java {@link Predicate} from a Ditto query {@link org.eclipse.ditto.model.query.model.criteria.Predicate Predicate}
+     * Creates a Java {@link Predicate} from a Ditto query {@link org.eclipse.ditto.model.query.criteria.Predicate Predicate}
      * and its field name.
      *
      * @param predicate The Ditto Predicate to generate the Predicate from.
@@ -53,7 +53,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
      * @return The created Predicate.
      */
     public static Predicate<Thing> apply(
-            final org.eclipse.ditto.model.query.model.criteria.Predicate predicate,
+            final org.eclipse.ditto.model.query.criteria.Predicate predicate,
             final String fieldName) {
         return predicate.accept(getInstance()).apply(fieldName);
     }

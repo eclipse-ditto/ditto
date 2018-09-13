@@ -18,13 +18,13 @@ import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
-import org.eclipse.ditto.model.thingsearchparser.ParserException;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.rql.RqlPredicateParser;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
+import org.eclipse.ditto.model.rql.ParserException;
+import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
+import org.eclipse.ditto.model.rql.predicates.rql.RqlPredicateParser;
 
 /**
  * The place for query filter manipulations
@@ -105,7 +105,7 @@ public final class QueryFilterCriteriaFactory {
      * @param filter the filter string
      * @param headers the corresponding command headers
      * @return a criterion built from given filter or null if filter is null.
-     * @throws InvalidFilterException if the filter string cannot be mapped to a valid criterion
+     * @throws InvalidRqlExpressionException if the filter string cannot be mapped to a valid criterion
      */
     public Criteria filterCriteria(final String filter, final DittoHeaders headers) {
         return null == filter ? criteriaFactory.any() : mapCriteria(filter, headers);
@@ -150,7 +150,7 @@ public final class QueryFilterCriteriaFactory {
             }
             return criteria;
         } catch (final ParserException | IllegalArgumentException e) {
-            throw InvalidFilterException.newBuilder()
+            throw InvalidRqlExpressionException.newBuilder()
                     .message(e.getMessage())
                     .cause(e)
                     .dittoHeaders(dittoHeaders)

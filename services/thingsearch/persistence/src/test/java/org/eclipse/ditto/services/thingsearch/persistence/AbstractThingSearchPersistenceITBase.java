@@ -24,12 +24,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
 import org.bson.Document;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.query.model.query.Query;
-import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;

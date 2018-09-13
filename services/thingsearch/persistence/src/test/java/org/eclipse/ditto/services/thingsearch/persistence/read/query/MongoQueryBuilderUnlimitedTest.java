@@ -17,11 +17,11 @@ import static org.mockito.Mockito.mock;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
-import org.eclipse.ditto.model.query.model.query.Query;
-import org.eclipse.ditto.model.query.model.query.SortDirection;
-import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.SortDirection;
+import org.eclipse.ditto.model.query.SortOption;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.junit.Before;
 import org.junit.Test;
 /**

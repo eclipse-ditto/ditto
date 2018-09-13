@@ -11,7 +11,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 
 /**
  * Factory for creating a {@link AggregationBuilder}.

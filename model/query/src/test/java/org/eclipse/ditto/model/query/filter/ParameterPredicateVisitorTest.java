@@ -15,13 +15,13 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.model.query.model.expression.FieldExpressionUtil;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.FieldExpressionUtil;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.rql.predicates.ast.LogicalNode;
+import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
+import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -14,10 +14,10 @@ package org.eclipse.ditto.model.query.things;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.model.things.Thing;
 
 /**
@@ -50,7 +50,7 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
 
     @Override
     public Predicate<Thing> visitField(final FilterFieldExpression fieldExpression,
-            final org.eclipse.ditto.model.query.model.criteria.Predicate predicate) {
+            final org.eclipse.ditto.model.query.criteria.Predicate predicate) {
         return FilterThingPredicateVisitor.apply(fieldExpression,
                 predicate.accept(ThingPredicatePredicateVisitor.getInstance()));
     }

@@ -14,10 +14,10 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 import static java.util.Objects.requireNonNull;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.EqPredicateImpl;
-import org.eclipse.ditto.model.query.model.criteria.FieldCriteriaImpl;
-import org.eclipse.ditto.model.query.model.expression.AttributeExpressionImpl;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
+import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 

@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.query.model.query.Query;
+import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 

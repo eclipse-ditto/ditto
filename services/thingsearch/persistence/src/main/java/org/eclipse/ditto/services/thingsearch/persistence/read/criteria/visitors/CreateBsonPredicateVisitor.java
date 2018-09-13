@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.criteria.visitors.PredicateVisitor;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 
 import com.mongodb.client.model.Filters;
 

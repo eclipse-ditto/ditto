@@ -19,18 +19,19 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.query.filter.ParameterOptionVisitor;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
-import org.eclipse.ditto.model.thingsearchparser.ParserException;
+import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
+import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
@@ -46,7 +47,7 @@ import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Actor handling the parsing of search queries. It accepts {@link CountThings} and {@link QueryThings} commands and
- * responses with a corresponding {@link org.eclipse.ditto.model.query.model.query.Query}.
+ * responses with a corresponding {@link Query}.
  * <p>
  * This actor receives only messages which where emitted by API v. 1 requests.
  */
@@ -109,7 +110,7 @@ public final class QueryActor extends AbstractActor {
     private <T extends Command> void catchDittoRuntimeException(final Consumer<T> consumer, final T command) {
         try {
             consumer.accept(command);
-        } catch (final InvalidFilterException | InvalidOptionException e) {
+        } catch (final InvalidRqlExpressionException | InvalidOptionException e) {
             LogUtil.enhanceLogWithCorrelationId(logger, command);
             logger.info("Error when creating Query from Command: {}", e.getMessage());
             getSender().tell(e, getSelf());

@@ -19,7 +19,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 
 /**
@@ -102,17 +101,6 @@ public final class TestConstants {
          * Kknown namespaces set.
          */
         public static final Set<String> KNOWN_NAMESPACES_SET = Collections.singleton(KNOWN_NAMESPACE);
-
-        /**
-         * A known message for {@code InvalidFilterException}.
-         */
-        public static final String KNOWN_INVALID_FILTER_EXCEPTION_MESSAGE = "Invalid filter: " + KNOWN_FILTER_STR;
-        /**
-         * A known {@code InvalidFilterException}.
-         */
-        public static final InvalidFilterException INVALID_FILTER_EXCEPTION =
-                InvalidFilterException
-                        .newBuilder().message(KNOWN_INVALID_FILTER_EXCEPTION_MESSAGE).build();
 
         /**
          * A known message for {@code InvalidOptionException}.

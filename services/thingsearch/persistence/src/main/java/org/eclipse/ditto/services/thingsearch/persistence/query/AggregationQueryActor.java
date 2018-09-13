@@ -16,13 +16,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.EnsureMonotonicityVisitor;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
-import org.eclipse.ditto.model.thingsearchparser.ParserException;
+import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
+import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
@@ -105,7 +105,7 @@ public final class AggregationQueryActor extends AbstractActor {
     private <T extends Command> void catchDittoRuntimeException(final Consumer<T> consumer, final T command) {
         try {
             consumer.accept(command);
-        } catch (final InvalidFilterException | InvalidOptionException e) {
+        } catch (final InvalidRqlExpressionException | InvalidOptionException e) {
             logger.warning("Error when creating PolicyRestrictedSearchAggregation from Command: {}", e.getMessage());
             getSender().tell(e, getSelf());
         }

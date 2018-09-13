@@ -16,7 +16,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
 

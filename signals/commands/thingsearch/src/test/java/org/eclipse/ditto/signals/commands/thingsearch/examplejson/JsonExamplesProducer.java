@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -137,9 +136,6 @@ public final class JsonExamplesProducer {
     private static void produceSearchExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("errors"));
         Files.createDirectories(exceptionsDir);
-
-        final InvalidFilterException invalidFilterException = InvalidFilterException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("invalidFilterException.json")), invalidFilterException);
 
         final InvalidOptionException invalidOptionException = InvalidOptionException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("invalidOptionException.json")), invalidOptionException);

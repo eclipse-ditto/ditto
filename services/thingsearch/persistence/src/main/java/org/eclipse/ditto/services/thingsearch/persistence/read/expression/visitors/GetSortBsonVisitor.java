@@ -17,9 +17,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.visitors.SortFieldExpressionVisitor;
-import org.eclipse.ditto.model.query.model.query.SortDirection;
+import org.eclipse.ditto.model.query.SortDirection;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 

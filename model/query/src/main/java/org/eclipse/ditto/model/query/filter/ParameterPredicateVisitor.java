@@ -19,20 +19,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.CriteriaFactory;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.ExistsNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.LogicalNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.MultiComparisonNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.Node;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.PredicateVisitor;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.RootNode;
-import org.eclipse.ditto.model.thingsearchparser.predicates.ast.SingleComparisonNode;
-
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.rql.predicates.ast.ExistsNode;
+import org.eclipse.ditto.model.rql.predicates.ast.LogicalNode;
+import org.eclipse.ditto.model.rql.predicates.ast.MultiComparisonNode;
+import org.eclipse.ditto.model.rql.predicates.ast.Node;
+import org.eclipse.ditto.model.rql.predicates.ast.PredicateVisitor;
+import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
+import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode;
 
 /**
  * Predicate AST PredicateVisitor. Implements the visitor for AST nodes and creates a search criteria out of it.

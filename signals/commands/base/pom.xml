@@ -24,6 +24,13 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Signals :: Commands :: Base</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-rql</artifactId>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>

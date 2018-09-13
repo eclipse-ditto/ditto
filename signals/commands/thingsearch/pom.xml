@@ -30,6 +30,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-rql</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

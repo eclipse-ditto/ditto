@@ -14,8 +14,8 @@ package org.eclipse.ditto.model.query.things;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.visitors.FilterFieldExpressionVisitor;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVisitor;
 import org.eclipse.ditto.model.things.Thing;
 
 /**

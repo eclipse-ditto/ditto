@@ -14,9 +14,9 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.query.QueryBuilder;
-import org.eclipse.ditto.model.query.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.QueryBuilder;
+import org.eclipse.ditto.model.query.QueryBuilderFactory;
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.services.base.config.DittoLimitsConfigReader;
 import org.junit.Test;
 

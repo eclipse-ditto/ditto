@@ -15,12 +15,12 @@ import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.query.model.criteria.Criteria;
-import org.eclipse.ditto.model.query.model.criteria.Predicate;
-import org.eclipse.ditto.model.query.model.criteria.visitors.CriteriaVisitor;
-import org.eclipse.ditto.model.query.model.expression.ExistsFieldExpression;
-import org.eclipse.ditto.model.query.model.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.thingsearch.InvalidFilterException;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 
 /**
  * Throws an exception if the criteria contains negation (i. e., is not monotone) but the API forbids negation.
@@ -46,7 +46,7 @@ public final class EnsureMonotonicityVisitor implements CriteriaVisitor<Void> {
      *
      * @param criteria The criteria to check for negation.
      * @param dittoHeaders The command headers containing the API version to check.
-     * @throws InvalidFilterException if criteria contains negation but dittoHeaders disallow it.
+     * @throws InvalidRqlExpressionException if criteria contains negation but dittoHeaders disallow it.
      */
     public static void apply(final Criteria criteria, final DittoHeaders dittoHeaders) {
         criteria.accept(new EnsureMonotonicityVisitor(dittoHeaders));
@@ -79,7 +79,7 @@ public final class EnsureMonotonicityVisitor implements CriteriaVisitor<Void> {
         if (norIsForbidden) {
             final String message = String.format("The filter operation 'not' is not available in API versions >= %d. " +
                     "Please rephrase your search query without using 'not'.", getForbiddenSchemaVersion());
-            throw InvalidFilterException.fromMessage(message, dittoHeaders);
+            throw InvalidRqlExpressionException.fromMessage(message, dittoHeaders);
         } else {
             // force the stream to evaluate criteria on children
             negativeDisjoints.count();

@@ -17,10 +17,10 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.query.model.expression.FieldExpressionFactory;
-import org.eclipse.ditto.model.query.model.expression.SortFieldExpression;
-import org.eclipse.ditto.model.query.model.query.SortDirection;
-import org.eclipse.ditto.model.query.model.query.SortOption;
+import org.eclipse.ditto.model.query.SortDirection;
+import org.eclipse.ditto.model.query.SortOption;
+import org.eclipse.ditto.model.query.expression.FieldExpressionFactory;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.OptionVisitor;

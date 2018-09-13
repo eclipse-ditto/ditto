@@ -16,11 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
-import org.eclipse.ditto.model.thingsearchparser.ParserException;
 import org.junit.Test;
 
 /**
