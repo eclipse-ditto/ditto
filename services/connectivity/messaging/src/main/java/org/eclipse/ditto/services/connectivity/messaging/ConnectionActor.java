@@ -156,6 +156,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     @Nullable private ActorRef clientActorRouter;
     @Nullable private Connection connection;
+    @Nullable private SignalFilter signalFilter = null;
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
@@ -251,17 +252,17 @@ public final class ConnectionActor extends AbstractPersistentActor {
                     final Connection fromSnapshotStore = snapshotAdapter.fromSnapshotStore(ss);
                     log.info("Received SnapshotOffer containing connection: <{}>", fromSnapshotStore);
                     if (fromSnapshotStore != null) {
-                        connection = fromSnapshotStore;
+                        restoreConnection(fromSnapshotStore);
                     }
                     lastSnapshotSequenceNr = ss.metadata().sequenceNr();
                 })
-                .match(ConnectionCreated.class, event -> connection = event.getConnection())
-                .match(ConnectionModified.class, event -> connection = event.getConnection())
-                .match(ConnectionOpened.class, event -> connection = connection != null ? connection.toBuilder()
-                        .connectionStatus(ConnectionStatus.OPEN).build() : null)
-                .match(ConnectionClosed.class, event -> connection = connection != null ? connection.toBuilder()
-                        .connectionStatus(ConnectionStatus.CLOSED).build() : null)
-                .match(ConnectionDeleted.class, event -> connection = null)
+                .match(ConnectionCreated.class, event -> restoreConnection(event.getConnection()))
+                .match(ConnectionModified.class, event -> restoreConnection(event.getConnection()))
+                .match(ConnectionOpened.class, event -> restoreConnection(connection != null ? connection.toBuilder()
+                        .connectionStatus(ConnectionStatus.OPEN).build() : null))
+                .match(ConnectionClosed.class, event -> restoreConnection(connection != null ? connection.toBuilder()
+                        .connectionStatus(ConnectionStatus.CLOSED).build() : null))
+                .match(ConnectionDeleted.class, event -> restoreConnection(null))
                 .match(RecoveryCompleted.class, rc -> {
                     log.info("Connection <{}> was recovered: {}", connectionId, connection);
                     if (connection != null) {
@@ -287,13 +288,20 @@ public final class ConnectionActor extends AbstractPersistentActor {
                 .matchAny(m -> {
                     if (m == null) {
                         // connection persistence is corrupted.
-                        connection = null;
+                        restoreConnection(null);
                         log.warning("Invalid persistence of Connection <{}>", connectionId);
                     } else {
                         log.warning("Unknown recover message: {}", m);
                     }
                 })
                 .build();
+    }
+
+    private void restoreConnection(@Nullable final Connection theConnection) {
+        connection = theConnection;
+        if (theConnection != null) {
+            signalFilter = new SignalFilter(theConnection);
+        }
     }
 
     @Override
@@ -370,8 +378,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
             log.debug("Signal dropped: Client actor not ready.");
             return;
         }
-        if (connection == null) {
-            log.debug("Signal dropped: No Connection configuration available.");
+        if (connection == null || signalFilter == null) {
+            log.debug("Signal dropped: No Connection or signalFilter configuration available.");
             return;
         }
         if (uniqueTopics.isEmpty()) {
@@ -383,7 +391,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
             return;
         }
 
-        final Set<Target> subscribedAndAuthorizedTargets = SignalFilter.filter(connection, signal);
+        final Set<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             log.debug("Signal dropped: No subscribed and authorized targets present");
             return;
@@ -403,7 +411,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void testConnection(final TestConnection command) {
         final ActorRef origin = getSender();
         final ActorRef self = getSelf();
-        connection = command.getConnection();
+        restoreConnection(command.getConnection());
 
         final PerformTask stopSelfTask = new PerformTask("stop self after test", ConnectionActor::stopSelf);
 
@@ -436,7 +444,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef parent = getContext().getParent();
 
         persistEvent(ConnectionCreated.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
-            connection = persistedEvent.getConnection();
+            restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
             if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
@@ -493,7 +501,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         }
 
         persistEvent(ConnectionModified.of(command.getConnection(), command.getDittoHeaders()), persistedEvent -> {
-            connection = persistedEvent.getConnection();
+            restoreConnection(persistedEvent.getConnection());
             getContext().become(connectionCreatedBehaviour);
 
             // if client actor is started: send an artificial CloseConnection command to gracefully disconnect and stop the child actors
@@ -564,7 +572,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final ActorRef self = getSelf();
 
         persistEvent(connectionOpened, persistedEvent -> {
-            connection = connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build();
+            restoreConnection(connection.toBuilder().connectionStatus(ConnectionStatus.OPEN).build());
             askClientActor(command, response -> {
                         final ConnectivityCommandResponse commandResponse =
                                 OpenConnectionResponse.of(connectionId, command.getDittoHeaders());
@@ -591,7 +599,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         persistEvent(connectionClosed, persistedEvent -> {
             if (connection != null) {
-                connection = connection.toBuilder().connectionStatus(ConnectionStatus.CLOSED).build();
+                restoreConnection(connection.toBuilder().connectionStatus(ConnectionStatus.CLOSED).build());
             }
             final CloseConnectionResponse closeConnectionResponse =
                     CloseConnectionResponse.of(connectionId, command.getDittoHeaders());

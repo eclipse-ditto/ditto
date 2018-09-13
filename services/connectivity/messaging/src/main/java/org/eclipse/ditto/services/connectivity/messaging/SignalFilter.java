@@ -55,10 +55,33 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
  * <li>removing those targets that are not allowed to read a signal</li>
  * </ul>
  */
-public class SignalFilter {
+class SignalFilter {
 
+    private final Connection connection;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
-    public static Set<Target> filter(final Connection connection, final Signal<?> signal) {
+    /**
+     * Constructs a new SignalFilter instance with the given {@code connection}.
+     *
+     * @param connection the connection to filter the signals on.
+     */
+    SignalFilter(final Connection connection) {
+        this.connection = connection;
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
+    }
+
+    /**
+     * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
+     *
+     * @param signal the signal to filter / determine the {@link Target}s for
+     * @return the determined Targets for the passed in {@code signal}
+     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the optional filter string of a Target
+     * cannot be mapped to a valid criterion
+     */
+    Set<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
@@ -72,8 +95,8 @@ public class SignalFilter {
         return !Collections.disjoint(authorizedReadSubjects, connectionSubjects);
     }
 
-    private static boolean isTargetSubscribedForTopic(final Target t, final Signal<?> signal) {
-        return t.getTopics().stream()
+    private boolean isTargetSubscribedForTopic(final Target target, final Signal<?> signal) {
+        return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyRqlFilter(signal))
                 .anyMatch(applyNamespaceFilter(signal));
@@ -83,7 +106,7 @@ public class SignalFilter {
         return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
     }
 
-    private static Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
+    private Predicate<FilteredTopic> applyRqlFilter(final Signal<?> signal) {
         return t -> !t.hasFilter() || t.getFilter().filter(f -> matchesFilter(f, signal)).isPresent();
     }
 
@@ -95,7 +118,7 @@ public class SignalFilter {
         return withId.getId().split(":", 2)[0];
     }
 
-    private static boolean matchesFilter(final String filter, final Signal<?> signal) {
+    private boolean matchesFilter(final String filter, final Signal<?> signal) {
 
         if (signal instanceof ThingEvent) {
 
@@ -110,14 +133,11 @@ public class SignalFilter {
         }
     }
 
-    private static Criteria parseCriteria(final String filter) {
-
-        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
-        final ThingsFieldExpressionFactory fieldExpressionFactory =
-                new ModelBasedThingsFieldExpressionFactory();
-        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
-                new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
-
+    /**
+     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
+     * valid criterion
+     */
+    private Criteria parseCriteria(final String filter) {
         return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
     }
 
@@ -167,6 +187,4 @@ public class SignalFilter {
         return criterion;
     }
 
-    private SignalFilter() {
-    }
 }

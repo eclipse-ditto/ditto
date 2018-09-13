@@ -80,7 +80,8 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final Set<Target> filteredTargets = SignalFilter.filter(connection, thingModified);
+        final SignalFilter signalFilter = new SignalFilter(connection);
+        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
                 .isEqualTo(Collections.singleton(targetA)); // THEN: only targetA should be in the filtered targets
@@ -120,7 +121,8 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final Set<Target> filteredTargets = SignalFilter.filter(connection, thingModified);
+        final SignalFilter signalFilter = new SignalFilter(connection);
+        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
                 .isEqualTo(Collections.singleton(targetA)); // THEN: only targetA should be in the filtered targets
@@ -166,7 +168,8 @@ public class SignalFilterWithFilterTest {
                 .build();
         final ThingModified thingModified = ThingModified.of(thing, 3L, headers);
 
-        final Set<Target> filteredTargets = SignalFilter.filter(connection, thingModified);
+        final SignalFilter signalFilter = new SignalFilter(connection);
+        final Set<Target> filteredTargets = signalFilter.filter(thingModified);
         Assertions
                 .assertThat(filteredTargets)
                 .contains(targetA, targetD); // THEN: only targetA and targetD should be in the filtered targets

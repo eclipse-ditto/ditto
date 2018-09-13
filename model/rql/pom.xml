@@ -23,7 +23,7 @@
 
     <artifactId>ditto-model-rql</artifactId>
     <packaging>bundle</packaging>
-    <name>Eclipse Ditto :: Model :: RQL Parser</name>
+    <name>Eclipse Ditto :: Model :: RQL</name>
 
     <dependencies>
         <!-- ### Compile ### -->

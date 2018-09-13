@@ -36,6 +36,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
@@ -74,6 +79,8 @@ public class SseThingsRoute extends AbstractRoute {
     private static final String PARAM_FILTER = "filter";
     private static final String PARAM_NAMESPACES = "namespaces";
 
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+
     private ActorRef streamingActor;
 
     /**
@@ -86,6 +93,11 @@ public class SseThingsRoute extends AbstractRoute {
     public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
         super(proxyActor, actorSystem);
         this.streamingActor = streamingActor;
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
     }
 
     /**
@@ -146,6 +158,11 @@ public class SseThingsRoute extends AbstractRoute {
                 .orElseGet(() -> UUID.randomUUID().toString());
         final JsonSchemaVersion jsonSchemaVersion =
                 dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
+
+        if (filterString != null) {
+            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+            queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+        }
 
         final Source<ServerSentEvent, NotUsed> sseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(

@@ -141,12 +141,21 @@ final class StreamingSessionActor extends AbstractActor {
                     authorizationSubjects = startStreaming.getAuthorizationContext().getAuthorizationSubjectIds();
                     namespacesForStreamingTypes
                             .put(startStreaming.getStreamingType(), startStreaming.getNamespaces());
-                    eventFilterCriteriaForStreamingTypes
-                            .put(startStreaming.getStreamingType(), startStreaming.getFilter()
-                                    .map(this::parseCriteria)
-                                    .orElse(null));
 
                     LogUtil.enhanceLogWithCorrelationId(logger, connectionCorrelationId);
+
+                    try {
+                        eventFilterCriteriaForStreamingTypes
+                                .put(startStreaming.getStreamingType(), startStreaming.getFilter()
+                                        .map(this::parseCriteria)
+                                        .orElse(null));
+                    } catch (final DittoRuntimeException e) {
+                        logger.info("Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing: {}: <{}>",
+                                type, e.getClass().getSimpleName(), e.getMessage());
+                        eventAndResponsePublisher.tell(e, getSelf());
+                        return;
+                    }
+
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster..",
                             type, startStreaming.getStreamingType().name());
 
@@ -287,6 +296,10 @@ final class StreamingSessionActor extends AbstractActor {
         return withId.getId().split(":", 2)[0];
     }
 
+    /**
+     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
+     * valid criterion
+     */
     private Criteria parseCriteria(final String filter) {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
