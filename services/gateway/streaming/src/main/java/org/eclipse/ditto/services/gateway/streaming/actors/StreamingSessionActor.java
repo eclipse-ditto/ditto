@@ -147,10 +147,14 @@ final class StreamingSessionActor extends AbstractActor {
                     try {
                         eventFilterCriteriaForStreamingTypes
                                 .put(startStreaming.getStreamingType(), startStreaming.getFilter()
-                                        .map(this::parseCriteria)
+                                        .map(f -> parseCriteria(f, DittoHeaders.newBuilder()
+                                                .correlationId(startStreaming.getConnectionCorrelationId())
+                                                .build())
+                                        )
                                         .orElse(null));
                     } catch (final DittoRuntimeException e) {
-                        logger.info("Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing: {}: <{}>",
+                        logger.info(
+                                "Got 'DittoRuntimeException' <{}> session during 'StartStreaming' processing: {}: <{}>",
                                 type, e.getClass().getSimpleName(), e.getMessage());
                         eventAndResponsePublisher.tell(e, getSelf());
                         return;
@@ -300,7 +304,7 @@ final class StreamingSessionActor extends AbstractActor {
      * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
      * valid criterion
      */
-    private Criteria parseCriteria(final String filter) {
+    private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
 
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory =
@@ -308,7 +312,7 @@ final class StreamingSessionActor extends AbstractActor {
         final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
                 new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
 
-        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
+        return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
     private boolean matchesFilter(final Signal<?> signal) {

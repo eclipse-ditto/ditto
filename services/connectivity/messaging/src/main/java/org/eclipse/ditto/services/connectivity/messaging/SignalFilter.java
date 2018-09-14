@@ -124,7 +124,7 @@ class SignalFilter {
 
             // currently only ThingEvents may be filtered
             return ThingEventToThingConverter.thingEventToThing((ThingEvent) signal)
-                    .filter(thing -> ThingPredicateVisitor.apply(parseCriteria(filter))
+                    .filter(thing -> ThingPredicateVisitor.apply(parseCriteria(filter, signal.getDittoHeaders()))
                             .test(thing)
                     )
                     .isPresent();
@@ -137,8 +137,8 @@ class SignalFilter {
      * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
      * valid criterion
      */
-    private Criteria parseCriteria(final String filter) {
-        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
+    private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
+        return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }
 
     private static Optional<Topic> topicFromSignal(final Signal<?> signal) {
