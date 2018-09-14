@@ -213,16 +213,6 @@ and(<query>,<query>, ...)
 and(eq(attributes/floor,"upper floor"),eq(attributes/location,"living-room"))
 ```
   
-**Example - filter lamps which have a on value of true**
-```
-and(eq(features/lamp/properties/on,true))
-```
-
-**Example - filter lamps which have a color "blue"**
-```
-and(eq(features/lamp/properties/color,"blue"))
-``` 
-
 #### or
 At least one of the given queries match.
 
@@ -234,6 +224,21 @@ or(<query>,<query>, ...)
 ```
 or(eq(attributes/floor,"upper floor"),eq(attributes/location,"living-room"))
 ```
+
+#### not
+Negates the given query.
+
+```
+not(<query>)
+```   
+
+**Example - filter things whose ID do not start with a common prefix**
+```
+not(like(thingId,"org.eclipse.ditto:blacklisted*"))
+```
+  
+{% include warning.html content="The `not` expression is not usable at the [search](basic-search.html) API due to
+                                 long running queries against the search index when using negation." %}
 
 
 ## RQL sorting

@@ -64,9 +64,10 @@ Only emit events for Things starting with myThing when a feature "lamp" was modi
 filter=and(like(thingId,"org.eclipse.ditto:myThing*"),exists(features/lamp))
 ```
 
-A string match filter that needs URL encoding as the matched value contains characters that must be escaped.
+Only emit events when the attribute "manufacturer" was changed to starting with "ACME & Sons".
+The `&` must be escaped in that case:
 ```
-filter=gt(attributes/manufacturer,"ACME %26 Sons")
+filter=like(attributes/manufacturer,"ACME %26 Sons*")
 ```
 
 You get the idea of how mighty this becomes by utilizing Ditto's [RQL expressions](basic-rql.html).
