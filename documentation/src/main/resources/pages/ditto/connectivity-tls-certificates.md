@@ -52,8 +52,8 @@ The server identity is verified directly or indirectly.
   certificate.
 
 - **Indirect identity verification via a trusted party**:
-  The server certificate is signed by a trusted party whose certificate is in the connection configuration `ca`, and the
-  host-component of the connection URI is listed in the server certificate.
+  The server certificate is signed by a trusted party, whose certificate is in the connection configuration `ca`, and
+  the host-component of the connection URI is listed in the server certificate.
 
   If the host-component is a DNS name, then it should be listed as the common name (CN)
   or a subject alternative name (SAN) of type DNS.
@@ -74,7 +74,7 @@ The server identity is verified directly or indirectly.
 {% include note.html content="Certificates signed by public CAs get compromised on a daily basis.
    It is more secure to upload your message broker's certificate directly even if it was signed
    by a public CA. Then the Ditto connection trusts only your broker (or rather any holder of the broker's private key).
-   To minimize unavailability from certificate expiry, upload both the current broker certificate and the next 
+   To minimize unavailability due to certificate expiry, upload both: the current broker certificate and the next
    certificate as a concatenated string." %}
 
 ## Authenticate by client certificate
@@ -108,7 +108,7 @@ the PEM preamble must be `-----BEGIN PRIVATE KEY-----`.
 
 As of September 2018, [OpenSSL][openssl] and [AWS IoT][awsiot] generate PKCS1-coded private keys by default, which
 have the PEM preamble `-----BEGIN RSA PRIVATE KEY-----`. Ditto will reject these keys. The command below converts a
-PKCS1 key file `client-private.pem.key` into a PKCS8 key file `client-private.pem.pk8`.
+PKCS1 key file `client-private.pem.key` into a PKCS8 key file `client-private.pem.pk8` accepted by Ditto.
 
 ```
 openssl pkcs8 -topk8 -nocrypt -in client-private.pem.key -out client-private.pem.pk8

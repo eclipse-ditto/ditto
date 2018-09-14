@@ -5,6 +5,8 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-mqtt.html
 ---
 
+[awsiot]: https://docs.aws.amazon.com/iot/
+
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
 
@@ -39,8 +41,9 @@ For an MQTT connection:
   `{%raw%}{{ thing:namespace }}{%endraw%}` or `{%raw%}{{ thing:name }}{%endraw%}`.
 * The additional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
   can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
-  Support of any Quality of Service depends on the external MQTT broker.
-  The default value is `0` (at-most-once).
+  The default value is `2` (exactly-once).
+  Support of any Quality of Service depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
+  acknowledge subscriptions with `qos=2`.
 
 
 ```json
@@ -55,7 +58,7 @@ For an MQTT connection:
     "{%raw%}device/{{ thing:namespace }}/{{ thing:name }}{%endraw%}",
     "..."
   ],
-  "qos": 0
+  "qos": 2
 }
 ```
 
