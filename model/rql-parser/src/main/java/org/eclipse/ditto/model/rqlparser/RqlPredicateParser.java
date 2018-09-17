@@ -9,11 +9,11 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.rql.predicates.rql;
+package org.eclipse.ditto.model.rqlparser;
 
-import org.eclipse.ditto.model.rql.parser.RqlPredicateParser$;
 import org.eclipse.ditto.model.rql.predicates.PredicateParser;
 import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
+import org.eclipse.ditto.model.rqlparser.internal.RqlPredicateParser$;
 
 /**
  * RQL Parser parsing predicates in the RQL "standard" according to https://github.com/persvr/rql.

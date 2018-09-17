@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.rql.parser
+package org.eclipse.ditto.model.rqlparser.internal
 
 import org.parboiled2._
 import shapeless.HNil

@@ -21,6 +21,8 @@ import org.eclipse.ditto.model.thingsearch.LimitOption;
 import org.eclipse.ditto.model.thingsearch.Option;
 import org.eclipse.ditto.model.thingsearch.SortOption;
 import org.eclipse.ditto.model.thingsearch.SortOptionEntry;
+import org.eclipse.ditto.model.thingsearchparser.OptionParser;
+import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.junit.Test;
 
 /**

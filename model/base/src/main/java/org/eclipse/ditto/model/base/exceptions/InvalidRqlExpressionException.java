@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.rql;
+package org.eclipse.ditto.model.base.exceptions;
 
 import java.net.URI;
 
@@ -17,19 +17,17 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
  * Thrown if an RQL expression is invalid.
  */
-public class InvalidRqlExpressionException extends DittoRuntimeException implements RqlParserException {
+public class InvalidRqlExpressionException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = RqlParserException.ERROR_CODE_PREFIX + "expression.invalid";
+    public static final String ERROR_CODE = "rql.expression.invalid";
 
     static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that the " +
             "RQL expression is valid.";

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.QueryBuilder;
@@ -27,9 +28,8 @@ import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.rql.ParserException;
-import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
+import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;

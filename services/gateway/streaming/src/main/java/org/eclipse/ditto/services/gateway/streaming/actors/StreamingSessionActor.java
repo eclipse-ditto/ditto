@@ -301,7 +301,7 @@ final class StreamingSessionActor extends AbstractActor {
     }
 
     /**
-     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
+     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be mapped to a
      * valid criterion
      */
     private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

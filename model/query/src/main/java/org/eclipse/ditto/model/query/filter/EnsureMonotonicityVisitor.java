@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.query.filter;
 
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.criteria.Criteria;
@@ -20,7 +21,6 @@ import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.model.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
-import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 
 /**
  * Throws an exception if the criteria contains negation (i. e., is not monotone) but the API forbids negation.

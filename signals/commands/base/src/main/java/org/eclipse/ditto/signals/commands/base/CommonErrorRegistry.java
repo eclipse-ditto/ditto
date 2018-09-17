@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -82,7 +82,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
         parseStrategies.put(CommandNotSupportedException.ERROR_CODE, CommandNotSupportedException::fromJson);
         parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
-
         parseStrategies.put(InvalidRqlExpressionException.ERROR_CODE, InvalidRqlExpressionException::fromJson);
 
         // Gateway exceptions

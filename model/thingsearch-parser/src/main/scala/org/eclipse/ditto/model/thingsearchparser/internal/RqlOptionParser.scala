@@ -9,15 +9,15 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.thingsearchparser.parser
+package org.eclipse.ditto.model.thingsearchparser.internal
 
 import java.util
 
 import org.eclipse.ditto.model.rql.ParserException
-import org.eclipse.ditto.model.rql.parser.RqlParserBase
+import org.eclipse.ditto.model.rqlparser.internal.RqlParserBase
 import org.eclipse.ditto.model.thingsearch
 import org.eclipse.ditto.model.thingsearch.{LimitOption, Option, SearchModelFactory, SortOption, SortOptionEntry}
-import org.eclipse.ditto.model.thingsearchparser.options.rql.OptionParser
+import org.eclipse.ditto.model.thingsearchparser.OptionParser
 import org.parboiled2._
 
 import scala.collection.JavaConverters

@@ -15,15 +15,15 @@ package org.eclipse.ditto.services.thingsearch.persistence.query;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.filter.EnsureMonotonicityVisitor;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.rql.ParserException;
-import org.eclipse.ditto.model.thingsearchparser.options.rql.RqlOptionParser;
+import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
 import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;

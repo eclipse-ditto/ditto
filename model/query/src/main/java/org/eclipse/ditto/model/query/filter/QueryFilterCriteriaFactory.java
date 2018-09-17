@@ -17,14 +17,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.model.rql.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.rql.predicates.ast.RootNode;
-import org.eclipse.ditto.model.rql.predicates.rql.RqlPredicateParser;
+import org.eclipse.ditto.model.rqlparser.RqlPredicateParser;
 
 /**
  * The place for query filter manipulations
