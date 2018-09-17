@@ -20,7 +20,7 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 
 /**
  * Computes whether an element of an internal array is related to this field expression.

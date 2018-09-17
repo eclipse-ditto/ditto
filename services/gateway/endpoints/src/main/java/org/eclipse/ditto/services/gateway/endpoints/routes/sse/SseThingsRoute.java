@@ -20,16 +20,15 @@ import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -37,43 +36,21 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
-import org.eclipse.ditto.signals.events.things.AttributeCreated;
-import org.eclipse.ditto.signals.events.things.AttributeDeleted;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.AttributesCreated;
-import org.eclipse.ditto.signals.events.things.AttributesDeleted;
-import org.eclipse.ditto.signals.events.things.AttributesModified;
-import org.eclipse.ditto.signals.events.things.FeatureCreated;
-import org.eclipse.ditto.signals.events.things.FeatureDeleted;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertiesModified;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyCreated;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
-import org.eclipse.ditto.signals.events.things.FeaturesCreated;
-import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
-import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
-import org.eclipse.ditto.signals.events.things.PolicyIdModified;
-import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.eclipse.ditto.signals.events.things.ThingModified;
+import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -99,10 +76,12 @@ public class SseThingsRoute extends AbstractRoute {
 
     private static final String STREAMING_TYPE_SSE = "SSE";
 
-    private ActorRef streamingActor;
+    private static final String PARAM_FILTER = "filter";
+    private static final String PARAM_NAMESPACES = "namespaces";
 
-    private static final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> EVENT_TO_THING_MAPPERS =
-            createEventToThingMappers();
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
+
+    private ActorRef streamingActor;
 
     /**
      * Constructs the SSE - ServerSentEvents supporting {@code /things} route builder.
@@ -114,6 +93,11 @@ public class SseThingsRoute extends AbstractRoute {
     public SseThingsRoute(final ActorRef proxyActor, final ActorSystem actorSystem, final ActorRef streamingActor) {
         super(proxyActor, actorSystem);
         this.streamingActor = streamingActor;
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
     }
 
     /**
@@ -127,17 +111,31 @@ public class SseThingsRoute extends AbstractRoute {
                 pathEndOrSingleSlash(() ->
                         get(() ->
                                 headerValuePF(AcceptHeaderExtractor.INSTANCE, accept ->
-                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                                parameterOptional(ThingsParameter.IDS.toString(),
-                                                        idsString -> // "ids" is optional for SSE
-                                                                createSseRoute(dittoHeadersSupplier.get(),
-                                                                        calculateSelectedFields(fieldsString).orElse(
-                                                                                null),
-                                                                        idsString.map(ids -> ids.split(",")))
-                                                )
-                                        )
+                                        doBuildThingsSseRoute(dittoHeadersSupplier.get())
                                 )
                         )
+                )
+        );
+    }
+
+    private Route doBuildThingsSseRoute(final DittoHeaders dittoHeaders) {
+        return parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                parameterOptional(ThingsParameter.IDS.toString(),
+                        idsString -> // "ids" is optional for SSE
+                                parameterOptional(PARAM_NAMESPACES, namespacesString ->
+                                        parameterOptional(PARAM_FILTER, filterString ->
+                                                createSseRoute(dittoHeaders,
+                                                        calculateSelectedFields(
+                                                                fieldsString).orElse(null),
+                                                        idsString.map(ids -> ids.split(","))
+                                                                .map(Arrays::asList)
+                                                                .orElse(Collections.emptyList()),
+                                                        namespacesString.map(str -> str.split(","))
+                                                                .map(Arrays::asList)
+                                                                .orElse(Collections.emptyList()),
+                                                        filterString.orElse(null))
+                                        )
+                                )
                 )
         );
     }
@@ -152,13 +150,19 @@ public class SseThingsRoute extends AbstractRoute {
        */
     private Route createSseRoute(final DittoHeaders dittoHeaders,
             final JsonFieldSelector fieldSelector,
-            final Optional<String[]> thingIds) {
-        final Optional<List<String>> targetThingIds = thingIds.map(Arrays::asList);
+            final List<String> targetThingIds,
+            final List<String> namespaces,
+            @Nullable final String filterString) {
 
         final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                 .orElseGet(() -> UUID.randomUUID().toString());
         final JsonSchemaVersion jsonSchemaVersion =
                 dittoHeaders.getSchemaVersion().orElse(dittoHeaders.getImplementedSchemaVersion());
+
+        if (filterString != null) {
+            // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+            queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
+        }
 
         final Source<ServerSentEvent, NotUsed> sseSource =
                 Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
@@ -168,16 +172,19 @@ public class SseThingsRoute extends AbstractRoute {
                                     null);
                             streamingActor.tell(
                                     new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                                            dittoHeaders.getAuthorizationContext()),
+                                            dittoHeaders.getAuthorizationContext(), namespaces, filterString),
                                     null);
                             return NotUsed.getInstance();
                         })
                         .filter(jsonifiable -> jsonifiable instanceof ThingEvent)
                         .map(jsonifiable -> ((ThingEvent) jsonifiable))
-                        .filter(thingEvent -> !targetThingIds.isPresent() || targetThingIds.get().contains(
-                                thingEvent.getThingId())) // only Events of the target thingIds
-                        .map(this::thingEventToThing)
-                        .filter(Objects::nonNull)
+                        .filter(thingEvent -> targetThingIds.isEmpty() ||
+                                targetThingIds.contains(thingEvent.getThingId()) // only Events of the target thingIds
+                        )
+                        .filter(thingEvent -> namespaces.isEmpty() || namespaces.contains(namespaceFromId(thingEvent)))
+                        .map(ThingEventToThingConverter::thingEventToThing)
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
                         .map(thing -> fieldSelector != null ? thing.toJson(jsonSchemaVersion, fieldSelector) :
                                 thing.toJson(jsonSchemaVersion))
                         .filter(thingJson -> fieldSelector == null || fieldSelector.getPointers().stream()
@@ -192,82 +199,8 @@ public class SseThingsRoute extends AbstractRoute {
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
 
-    /**
-     * Creates a Thing from the passed ThingEvent
-     */
-    private Thing thingEventToThing(final ThingEvent te) {
-        final BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing> eventToThingMapper =
-                EVENT_TO_THING_MAPPERS.get(te.getClass());
-        if (eventToThingMapper == null) {
-            return null;
-        }
-
-        final ThingBuilder.FromScratch tb = Thing.newBuilder().setId(te.getThingId()).setRevision(te.getRevision());
-        return eventToThingMapper.apply(te, tb);
-    }
-
-    private static Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {
-        final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> mappers = new HashMap<>();
-
-        mappers.put(ThingCreated.class,
-                (te, tb) -> ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
-        mappers.put(ThingModified.class,
-                (te, tb) -> ((ThingModified) te).getThing().toBuilder().setRevision(te.getRevision()).build());
-        mappers.put(ThingDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(AclModified.class,
-                (te, tb) -> tb.setPermissions(((AclModified) te).getAccessControlList()).build());
-        mappers.put(AclEntryCreated.class,
-                (te, tb) -> tb.setPermissions(((AclEntryCreated) te).getAclEntry()).build());
-        mappers.put(AclEntryModified.class,
-                (te, tb) -> tb.setPermissions(((AclEntryModified) te).getAclEntry()).build());
-        mappers.put(AclEntryDeleted.class,
-                (te, tb) -> tb.build());
-
-        mappers.put(PolicyIdCreated.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdCreated) te).getPolicyId()).build());
-        mappers.put(PolicyIdModified.class,
-                (te, tb) -> tb.setPolicyId(((PolicyIdModified) te).getPolicyId()).build());
-
-        mappers.put(AttributesCreated.class,
-                (te, tb) -> tb.setAttributes(((AttributesCreated) te).getCreatedAttributes()).build());
-        mappers.put(AttributesModified.class,
-                (te, tb) -> tb.setAttributes(((AttributesModified) te).getModifiedAttributes()).build());
-        mappers.put(AttributesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(AttributeCreated.class, (te, tb) -> tb.setAttribute(((AttributeCreated) te).getAttributePointer(),
-                ((AttributeCreated) te).getAttributeValue()).build());
-        mappers.put(AttributeModified.class, (te, tb) -> tb.setAttribute(((AttributeModified) te).getAttributePointer(),
-                ((AttributeModified) te).getAttributeValue()).build());
-        mappers.put(AttributeDeleted.class, (te, tb) -> tb.build());
-
-        mappers.put(FeaturesCreated.class, (te, tb) -> tb.setFeatures(((FeaturesCreated) te).getFeatures()).build());
-        mappers.put(FeaturesModified.class, (te, tb) -> tb.setFeatures(((FeaturesModified) te).getFeatures()).build());
-        mappers.put(FeaturesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(FeatureCreated.class, (te, tb) -> tb.setFeature(((FeatureCreated) te).getFeature()).build());
-        mappers.put(FeatureModified.class, (te, tb) -> tb.setFeature(((FeatureModified) te).getFeature()).build());
-        mappers.put(FeatureDeleted.class, (te, tb) -> tb.build());
-
-        mappers.put(FeaturePropertiesCreated.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
-                .properties(((FeaturePropertiesCreated) te).getProperties())
-                .withId(((FeaturePropertiesCreated) te).getFeatureId())
-                .build()).build());
-        mappers.put(FeaturePropertiesModified.class, (te, tb) -> tb.setFeature(Feature.newBuilder()
-                .properties(((FeaturePropertiesModified) te).getProperties())
-                .withId(((FeaturePropertiesModified) te).getFeatureId())
-                .build()).build());
-        mappers.put(FeaturePropertiesDeleted.class, (te, tb) -> tb.build());
-        mappers.put(FeaturePropertyCreated.class, (te, tb) ->
-                tb.setFeatureProperty(((FeaturePropertyCreated) te).getFeatureId(),
-                        ((FeaturePropertyCreated) te).getPropertyPointer(),
-                        ((FeaturePropertyCreated) te).getPropertyValue()).build());
-        mappers.put(FeaturePropertyModified.class, (te, tb) ->
-                tb.setFeatureProperty(((FeaturePropertyModified) te).getFeatureId(),
-                        ((FeaturePropertyModified) te).getPropertyPointer(),
-                        ((FeaturePropertyModified) te).getPropertyValue()).build());
-        mappers.put(FeaturePropertyDeleted.class, (te, tb) -> tb.build());
-
-        return mappers;
+    private static String namespaceFromId(final WithId withId) {
+        return withId.getId().split(":", 2)[0];
     }
 
     private static final class AcceptHeaderExtractor extends JavaPartialFunction<HttpHeader, Accept> {

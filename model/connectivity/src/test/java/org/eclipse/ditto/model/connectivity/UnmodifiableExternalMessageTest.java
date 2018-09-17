@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -35,7 +36,7 @@ public final class UnmodifiableExternalMessageTest {
         // Assume the user never modifies it.
         assertInstancesOf(UnmodifiableExternalMessage.class, areImmutable(),
                 assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                provided(ByteBuffer.class, AuthorizationContext.class).areAlsoImmutable());
+                provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class).areAlsoImmutable());
     }
 
     @Test

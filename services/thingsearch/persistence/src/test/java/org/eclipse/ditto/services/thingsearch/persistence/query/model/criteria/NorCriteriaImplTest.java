@@ -17,13 +17,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.NorCriteriaImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.NorCriteriaImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Tests {@link NorCriteriaImpl}.
  */

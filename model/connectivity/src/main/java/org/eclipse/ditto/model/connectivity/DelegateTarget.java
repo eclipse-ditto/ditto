@@ -34,7 +34,7 @@ abstract class DelegateTarget implements Target {
     }
 
     @Override
-    public Set<Topic> getTopics() {
+    public Set<FilteredTopic> getTopics() {
         return delegate.getTopics();
     }
 

@@ -13,10 +13,10 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.query;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilder;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.AggregationBuilderFactory;
+import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilder;
+import org.eclipse.ditto.services.thingsearch.persistence.read.AggregationBuilderFactory;
 
 /**
  * Mongo implementation for {@link AggregationBuilderFactory}.

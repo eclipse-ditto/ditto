@@ -235,7 +235,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
@@ -1500,9 +1499,6 @@ class JsonExamplesProducer {
     private void produceSearchExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("exceptions"));
         Files.createDirectories(exceptionsDir);
-
-        final InvalidFilterException invalidFilterException = InvalidFilterException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("invalidFilterException.json")), invalidFilterException);
 
         final InvalidOptionException invalidOptionException = InvalidOptionException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("invalidOptionException.json")), invalidOptionException);

@@ -5,9 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -43,12 +43,12 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @param newAddress new value for the address field.
      * @return a copy of this object retaining the class and all other fields.
      */
-    Target withAddress(final String newAddress);
+    Target withAddress(String newAddress);
 
     /**
      * @return set of topics that should be published via this target
      */
-    Set<Topic> getTopics();
+    Set<FilteredTopic> getTopics();
 
     /**
      * Returns the Authorization Context of this {@code Target}. If an authorization context is set on a {@link Target}

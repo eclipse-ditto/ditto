@@ -37,11 +37,6 @@
             <artifactId>ditto-services-thingsearch-common</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-thingsearch-query-model</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -62,6 +57,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-query</artifactId>
         </dependency>
 
         <dependency>

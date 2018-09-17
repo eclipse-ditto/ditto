@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -56,8 +57,7 @@ public final class ConnectivityModelFactory {
 
     /**
      * Returns a mutable builder with a fluent API for an immutable {@link Connection}. The builder is initialised with
-     * the
-     * values of the given Connection.
+     * the values of the given Connection.
      *
      * @param connection the Connection which provides the initial values of the builder.
      * @return the new builder.
@@ -325,13 +325,29 @@ public final class ConnectivityModelFactory {
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
-     * @param topics the topics for which this target will receive signals
+     * @param topics the FilteredTopics for which this target will receive signals
      * @param authorizationContext the authorization context of the new {@link Target}
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            final Set<Topic> topics) {
-        return new ImmutableTarget(address, topics, authorizationContext);
+            final Set<FilteredTopic> topics) {
+        return ImmutableTarget.of(address, authorizationContext, topics);
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopics that should be published via this target
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
+            final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
+        final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return ImmutableTarget.of(address, authorizationContext, topics);
     }
 
     /**
@@ -347,7 +363,10 @@ public final class ConnectivityModelFactory {
             final Topic requiredTopic, final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return new ImmutableTarget(address, topics, authorizationContext);
+        return ImmutableTarget.of(address, authorizationContext, topics.stream()
+                .map(ConnectivityModelFactory::newFilteredTopic)
+                .collect(Collectors.toSet())
+        );
     }
 
     /**
@@ -367,7 +386,9 @@ public final class ConnectivityModelFactory {
             final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        final ImmutableTarget target = new ImmutableTarget(address, topics, authorizationContext);
+        final ImmutableTarget target = ImmutableTarget.of(address, authorizationContext, topics.stream()
+                .map(ConnectivityModelFactory::newFilteredTopic)
+                .collect(Collectors.toSet()));
         return new ImmutableMqttTarget(target, qos);
     }
 
@@ -418,5 +439,61 @@ public final class ConnectivityModelFactory {
                         .newBuilder("Unexpected connection type <" + type + ">")
                         .build();
         }
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} without the optional {@code filter} String.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic) {
+        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), null);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} with the optional {@code filter} String.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @param filter the filter String to apply for the FilteredTopic
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic, @Nullable final String filter) {
+        return ImmutableFilteredTopic.of(topic, Collections.emptyList(), filter);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} with the passed {@code namespaces}.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
+        return ImmutableFilteredTopic.of(topic, namespaces, null);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} with the passed {@code namespaces} and the optional {@code filter} String.
+     *
+     * @param topic the {@code Topic} of the FilteredTopic
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param filter the filter String to apply for the FilteredTopic
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces,
+            @Nullable final String filter) {
+        return ImmutableFilteredTopic.of(topic, namespaces, filter);
+    }
+
+    /**
+     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic}
+     * and an optional filter string supplied with {@code ?filter=...}.
+     *
+     * @param topicString the {@code FilteredTopic} String representation
+     * @return the created FilteredTopic
+     */
+    public static FilteredTopic newFilteredTopic(final String topicString) {
+        return ImmutableFilteredTopic.fromString(topicString);
     }
 }

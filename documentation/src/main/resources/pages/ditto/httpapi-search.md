@@ -1,7 +1,7 @@
 ---
 title: HTTP API search
 keywords: http, api, search, query, rql
-tags: [http, search]
+tags: [http, search, rql]
 permalink: httpapi-search.html
 ---
 
@@ -10,7 +10,7 @@ The [search aspect](basic-search.html) of Ditto can be accessed via an HTTP API.
 {% include note.html content="Find the HTTP API reference at the 
     [Search resources](http-api-doc.html?urls.primaryName=api2#/Search)." %}
 
-The concepts of the [RQL filter](basic-search.html#rql-filter), [RQL sorting](basic-search.html#rql-sorting) and 
+The concepts of the [RQL expression](basic-rql.html#rql-filter), [RQL sorting](basic-rql.html#rql-sorting) and 
 [RQL paging](basic-search.html#rql-paging) are mapped to HTTP as query parameters which are added to `GET` requests
 to the search endpoint:
 

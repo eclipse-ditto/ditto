@@ -135,7 +135,8 @@ public class SignalFilterTest {
                         ConnectionStatus.OPEN,
                         URI).targets(targets).build();
 
-        final Set<Target> filteredTargets = SignalFilter.filter(connection, signal(signalTopic, readSubjects));
+        final SignalFilter signalFilter = new SignalFilter(connection);
+        final Set<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
         Assertions
                 .assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);

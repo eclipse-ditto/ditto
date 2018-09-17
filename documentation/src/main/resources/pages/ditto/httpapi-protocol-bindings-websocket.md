@@ -1,7 +1,7 @@
 ---
 title: WebSocket protocol binding
 keywords: binding, protocol, websocket, http
-tags: [protocol, http]
+tags: [protocol, http, rql]
 permalink: httpapi-protocol-bindings-websocket.html
 ---
 
@@ -114,133 +114,65 @@ of information from the backend to be pushed into the WebSocket session.
 ### Request events
 
 In order to subscribe for [events/change notifications](basic-changenotifications.html) for entities (e.g. Things), 
-following text message has to be sent to the backend:
-
-```
-START-SEND-EVENTS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-START-SEND-EVENTS:ACK
-``` 
+following text message has to be sent to the backend: `START-SEND-EVENTS`
 
 From then on the WebSocket session will receive all change notifications it is entitled to see.
-
-In order to stop receiving change notifications, the following text message has to be sent to the backend:
-                                               
-```
-STOP-SEND-EVENTS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-STOP-SEND-EVENTS:ACK
-``` 
 
 ### Request messages
 
 In order to subscribe for [messages](basic-messages.html) which can be sent from a WebSocket session to another 
 WebSocket session or from the [HTTP API](httpapi-overview.html) to a WebSocket session, the following text message has 
-to be sent to the backend:
-
-```
-START-SEND-MESSAGES
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-START-SEND-MESSAGES:ACK
-``` 
+to be sent to the backend: `START-SEND-MESSAGES`
 
 From then on the WebSocket session will receive all messages it is entitled to see.
-
-In order to stop receiving messages, the following text message has to be sent to the backend:
-                                               
-```
-STOP-SEND-MESSAGES
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-STOP-SEND-MESSAGES:ACK
-``` 
 
 ### Request live commands
 
 In order to subscribe for [live commands](protocol-twinlive.html) which can be sent from a WebSocket session to another 
-WebSocket session, the following text message has to be sent to the backend:
-
-```
-START-SEND-LIVE-COMMANDS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-START-SEND-LIVE-COMMANDS:ACK
-``` 
+WebSocket session, the following text message has to be sent to the backend: `START-SEND-LIVE-COMMANDS`
 
 From then on the WebSocket session will receive all live commands it is entitled to see.
-
-In order to stop receiving live commands, the following text message has to be sent to the backend:
-                                               
-```
-STOP-SEND-LIVE-COMMANDS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-STOP-SEND-LIVE-COMMANDS:ACK
-``` 
 
 ### Request live events
 
 In order to subscribe for [live events](protocol-twinlive.html) which can be sent from a WebSocket session to another 
-WebSocket session, the following text message has to be sent to the backend:
-
-```
-START-SEND-LIVE-EVENTS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-START-SEND-LIVE-EVENTS:ACK
-``` 
+WebSocket session, the following text message has to be sent to the backend: `START-SEND-LIVE-EVENTS`
 
 From then on the WebSocket session will receive all live events it is entitled to see.
 
-In order to stop receiving live events, the following text message has to be sent to the backend:
-                                               
+### Overview
+
+The following table shows which WebSocket protocol message are supported:
+
+| Description | Request message | Response message |
+|-------------|-----------------|------------------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | `START-SEND-EVENTS:ACK` |
+| Stop receiving change notifications | `STOP-SEND-EVENTS` | `STOP-SEND-EVENTS:ACK` |
+| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | `START-SEND-MESSAGES:ACK` |
+| Stop receiving messages | `STOP-SEND-MESSAGES` | `STOP-SEND-MESSAGES:ACK` |
+| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | `START-SEND-LIVE-COMMANDS:ACK` |
+| Stop receiving live commands | `STOP-SEND-LIVE-COMMANDS` | `STOP-SEND-LIVE-COMMANDS:ACK` |
+| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
+| Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
+
+
+### Filtering
+
+In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
+following parameters can additionally be provided when sending the WebSocket protocol messages:
+
+| Description | Request message | Filter by namespaces | Filter by RQL expression |
+|-------------|-----------------|------------------|-----------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | yes | yes |
+| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | yes | |
+| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | yes |  |
+| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | yes | yes |
+
+The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
+with `&`.  You have to URL encode the filter values before using them in a configuration.
+
+For example this way the WebSocket session would register for all events in the namespace `org.eclipse.ditto` and which
+would match an attribute "counter" to be greater than 42:
 ```
-STOP-SEND-LIVE-EVENTS
-``` 
-
-This message is acknowledged by Ditto by sending back:
-
-```
-STOP-SEND-LIVE-EVENTS:ACK
-``` 
-
-### Heartbeat messages
-
-In order to keep the WebSocket connection alive, you need to send data on a
-regular basis. Since there might be times where no data is available before
-the connection would time out, we advise you to send Ping messages **every 
-60 seconds**.
-
-
-Ditto detects any empty binary message as a Heartbeat message and will keep
-the connection alive. If your framework does not support sending Ping messages,
-you can implement them on your own. E.g. when working with JavaScript, you 
-could do this by sending an empty Buffer:
-
-```javascript
-websocket.send(new ArrayBuffer(0))
+START-SEND-EVENTS?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)
 ```

@@ -24,6 +24,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 
 /**
  * Validate a connection according to its type.
@@ -32,11 +37,17 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 public final class ConnectionValidator {
 
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
+    private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
 
     private ConnectionValidator(final AbstractProtocolValidator... connectionSpecs) {
         final Map<ConnectionType, AbstractProtocolValidator> specMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(specMap);
+
+        final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
+        final ThingsFieldExpressionFactory fieldExpressionFactory =
+                new ModelBasedThingsFieldExpressionFactory();
+        queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
     }
 
     /**
@@ -68,7 +79,7 @@ public final class ConnectionValidator {
         }
     }
 
-    private static void validateSourceAndTargetAddressesAreNonempty(final Connection connection,
+    private void validateSourceAndTargetAddressesAreNonempty(final Connection connection,
             final DittoHeaders dittoHeaders) {
 
         connection.getSources().forEach(source -> {
@@ -84,6 +95,10 @@ public final class ConnectionValidator {
                 final String location = String.format("Targets of connection <%s>", connection.getId());
                 throw emptyAddressesError(location, dittoHeaders);
             }
+            target.getTopics().forEach(topic -> topic.getFilter().ifPresent(filter -> {
+                // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
+                queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
+            }));
         });
     }
 

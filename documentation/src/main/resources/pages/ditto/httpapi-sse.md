@@ -1,7 +1,7 @@
 ---
 title: HTTP API server sent events (SSE)
 keywords: http, api, sse, EventSource
-tags: [http]
+tags: [http, rql]
 permalink: httpapi-sse.html
 ---
 
@@ -45,7 +45,20 @@ The format of the message at the `/things` endpoint is always in the form of a [
 
 For partial updates to a `Thing` however, only the changed part is sent back via the SSE, not the complete `Thing`.
 
-### Only get notified about changes of specific Things
+
+### Only get notified about certain changes
+
+In order to apply a server side filtering of which Server-Sent Events should be emitted to a consumer, Ditto provides
+several possibilities listed in the sections below. 
+
+All of the query parameters below can be combined, so that you can for example formulate that only events from a certain
+namespace with a specific RQL expression should be emitted which could look like:
+```
+http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test&filter=gt
+(attributes/counter,42)
+```
+
+#### Specify the Thing IDs
 
 When the `/things` endpoint is used for connecting to the SSE stream, all for the authenticated user visible `Things` are
 included in the stream. If only specific `Things` should be watched, the query parameter `ids` can be added:
@@ -53,16 +66,34 @@ included in the stream. If only specific `Things` should be watched, the query p
 http://localhost:8080/api/<1|2>/things?ids=<thingId1>,<thingId2>
 ```
 
-### Only get notified about certain changes
+#### Fields projection
 
-Additionally using the `fields` paramter of the [partial request](httpapi-concepts.html#partial-requests) feature, only
-specific parts can be watched for changes:
+Additionally using the `fields` parameter of the [partial request](httpapi-concepts.html#partial-requests) feature, only
+specific parts can be watched for changes, e.g.:
 ```
 http://localhost:8080/api/<1|2>/things?fields=thingId,attributes
 ```
 
 {% include tip.html content="The `thingId` should always be included in the `fields` query, otherwise it is no longer
     reproducible, for which Thing the change was made." %}
+
+#### Filtering by namespaces
+
+As described in [change notifications](basic-changenotifications.html#by-namespaces), it is possible to only subscribe
+for changes done in certain namespaces. At the SSE API, simply specify the `namespaces` parameter and provide a comma
+separated list of which namespaces to select, e.g.:
+```
+http://localhost:8080/api/<1|2>/things?namespaces=org.eclipse.ditto.one,org.eclipse.test
+```
+
+#### Filtering by RQL expression
+
+As also described in [change notifications](basic-changenotifications.html#by-rql-expression), it is additionally possible
+to specify an RQL expression expressing on which occasions to emit an event via the SSE API. Simply specify the `filter`
+parameter with an [RQL expression](basic-rql.html), e.g.:
+```
+http://localhost:8080/api/<1|2>/things?filter=gt(attributes/counter,42)
+```
 
 
 ### Example for SSE on Things

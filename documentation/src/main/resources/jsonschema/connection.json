@@ -120,14 +120,19 @@
             "uniqueItems": true,
             "items": {
               "type": "string",
-              "enum": [
-                "_/_/things/twin/events",
-                "_/_/things/live/commands",
-                "_/_/things/live/events",
-                "_/_/things/live/messages"
-              ],
               "title": "Subscribed topics.",
-              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`"
+              "description": "Contains the type of messages that are delivered to this target. You can receive\n * Thing events: `_/_/things/twin/events` (notification about twin change) \n * Live events: `_/_/things/live/events`\n * Live commands: `_/_/things/live/commands`\n * Live messages: `_/_/things/live/messages`\n\nYou can specify an additional namespace and/or event filter (URL encoded)",
+              "examples": [
+                "_/_/things/twin/events",
+                "_/_/things/twin/events?namespaces=org.eclipse.ditto.one,org.eclipse.foo",
+                "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=eq(attributes/counter,42)",
+                "_/_/things/live/commands",
+                "_/_/things/live/commands?namespaces=org.eclipse.ditto.one",
+                "_/_/things/live/events",
+                "_/_/things/live/events?filter=eq(attributes/counter,42)",
+                "_/_/things/live/messages",
+                "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+              ]
             }
           },
           "authorizationContext": {

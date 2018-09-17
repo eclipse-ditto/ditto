@@ -30,6 +30,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-rql</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -72,6 +76,49 @@
             <plugin>
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
+                <configuration>
+                    <oldVersion>
+                        <dependency>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${binary-compatibility-check.version}</version>
+                            <type>bundle</type>
+                        </dependency>
+                    </oldVersion>
+                    <newVersion>
+                        <file>
+                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
+                        </file>
+                    </newVersion>
+                    <parameter>
+                        <excludes>
+                            <!-- moved to ditto-model-thingsearch: -->
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchException</exclude>
+                            <!-- not compatible as based on moved interfaces: -->
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException</exclude>
+                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException</exclude>
+                        </excludes>
+                        <onlyModified>true</onlyModified>
+                        <accessModifier>public</accessModifier>
+                        <breakBuildOnModifications>false</breakBuildOnModifications>
+                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+                        <includeSynthetic>false</includeSynthetic>
+                        <ignoreMissingClasses>false</ignoreMissingClasses>
+                        <skipPomModules>true</skipPomModules>
+                        <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
+                    </parameter>
+                    <skip>false</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>cmp</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

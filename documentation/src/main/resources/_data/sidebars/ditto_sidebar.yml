@@ -118,6 +118,9 @@ entries:
     - title: Change notifications
       url: /basic-changenotifications.html
       output: web
+    - title: RQL expressions
+      url: /basic-rql.html
+      output: web
     - title: Search
       url: /basic-search.html
       output: web

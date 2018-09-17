@@ -13,9 +13,10 @@ package org.eclipse.ditto.model.thingsearchparser.parser
 
 import java.util
 
+import org.eclipse.ditto.model.rql.ParserException
+import org.eclipse.ditto.model.rql.parser.RqlParserBase
 import org.eclipse.ditto.model.thingsearch
 import org.eclipse.ditto.model.thingsearch.{LimitOption, Option, SearchModelFactory, SortOption, SortOptionEntry}
-import org.eclipse.ditto.model.thingsearchparser.ParserException
 import org.eclipse.ditto.model.thingsearchparser.options.rql.OptionParser
 import org.parboiled2._
 
