@@ -122,21 +122,26 @@ public class TestConstants {
 
     public static final class Certificates {
 
-        // server and client certs signed by CA
         public static final String CA_CRT = getCert("ca.crt");
+        // signed by CA_CRT
+        // CN=localhost
         public static final String SERVER_KEY = getCert("server.key");
         public static final String SERVER_CRT = getCert("server.crt");
+
+        // signed by CA_CRT
+        // no CN
         public static final String CLIENT_KEY = getCert("client.key");
         public static final String CLIENT_CRT = getCert("client.crt");
-        // not signed by CA
+
+        // signed by self
+        // no CN
         public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
         public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
 
-        // signed by CA with common name (CN) and alternative names.
-        // CN=discard.ipv6
+        // signed by CA_CRT with common name (CN) and alternative names.
+        // CN=server.alt
         // subjectAltNames=
-        //   DNS:hello.world.com,
-        //   DNS:goodbye.cruel.world.com,
+        //   DNS:example.com
         //   IP:100:0:0:0:1319:8a2e:370:7348,
         //   IP:127.128.129.130
         public static final String SERVER_WITH_ALT_NAMES_KEY = getCert("server-alt.key");

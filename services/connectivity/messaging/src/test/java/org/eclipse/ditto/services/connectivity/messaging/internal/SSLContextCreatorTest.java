@@ -29,6 +29,10 @@ import org.junit.Test;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator}.
+ * <p>
+ * Certificates used by this test expires on 01 January 2100. Please regenerate certificates
+ * according to {@link org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates}.
+ * </p>
  */
 public final class SSLContextCreatorTest {
 
@@ -55,7 +59,7 @@ public final class SSLContextCreatorTest {
                     .build();
 
     @Test
-    public void distrustSelfSignedServer() {
+    public void distrustServerSignedByUntrustedCA() {
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(false)) {
                 try (final Socket underTest = SSLContextCreator.of(null, null, null)
@@ -136,8 +140,8 @@ public final class SSLContextCreatorTest {
 
     @Test
     public void trustSignedServerHostname() throws Exception {
-        final String signedCommonName = "discard.ipv6";
-        final String signedAltName = "hello.world.com";
+        final String signedCommonName = "server.alt";
+        final String signedAltName = "example.com";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES)) {
             try (final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedCommonName)
                     .withoutClientCertificate()
