@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.thingsearchparser.options.rql;
+package org.eclipse.ditto.model.thingsearchparser;
 
 import java.util.List;
 

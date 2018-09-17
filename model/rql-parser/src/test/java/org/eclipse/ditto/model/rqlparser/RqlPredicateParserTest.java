@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.rql.predicates.rql;
+package org.eclipse.ditto.model.rqlparser;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 

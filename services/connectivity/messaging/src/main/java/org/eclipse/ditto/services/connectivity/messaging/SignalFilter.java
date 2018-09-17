@@ -78,7 +78,7 @@ class SignalFilter {
      *
      * @param signal the signal to filter / determine the {@link Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the optional filter string of a Target
+     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a Target
      * cannot be mapped to a valid criterion
      */
     Set<Target> filter(final Signal<?> signal) {
@@ -134,7 +134,7 @@ class SignalFilter {
     }
 
     /**
-     * @throws org.eclipse.ditto.model.rql.InvalidRqlExpressionException if the filter string cannot be mapped to a
+     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be mapped to a
      * valid criterion
      */
     private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

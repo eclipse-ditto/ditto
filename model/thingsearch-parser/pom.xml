@@ -39,6 +39,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-rql</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-rql-parser</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.parboiled</groupId>
@@ -101,6 +105,7 @@
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
+                            !org.eclipse.ditto.model.thingsearchparser.internal,
                             org.eclipse.ditto.model.thingsearchparser.*
                         </Export-Package>
                     </instructions>

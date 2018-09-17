@@ -9,12 +9,12 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.model.thingsearchparser.options.rql;
+package org.eclipse.ditto.model.thingsearchparser;
 
 import java.util.List;
 
 import org.eclipse.ditto.model.thingsearch.Option;
-import org.eclipse.ditto.model.thingsearchparser.parser.RqlOptionParser$;
+import org.eclipse.ditto.model.thingsearchparser.internal.RqlOptionParser$;
 
 /**
  * RQL Parser parsing options in the RQL "standard" according to https://github.com/persvr/rql.
