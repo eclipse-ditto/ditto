@@ -537,21 +537,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inTestingState() {
         return matchEvent(Status.Status.class, (e, d) -> Objects.equals(getSender(), getSelf()),
                 (status, data) -> {
-                    final Status.Status answerToPublish;
-                    if (status instanceof Status.Failure) {
-                        final Status.Failure failure = (Status.Failure) status;
-                        log.info("test failed: <{}>", failure.cause());
-                        if (!(failure.cause() instanceof DittoRuntimeException)) {
-                            final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
-                                    .dittoHeaders(data.getSessionHeaders())
-                                    .build();
-                            answerToPublish = new Status.Failure(error);
-                        } else {
-                            answerToPublish = status;
-                        }
-                    } else {
-                        answerToPublish = status;
-                    }
+                    final Status.Status answerToPublish = getStatusToReport(status);
                     data.getSessionSender().ifPresent(sender -> sender.tell(answerToPublish, getSelf()));
                     return stop();
                 })
@@ -702,7 +688,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         return ifEventUpToDate(event, () -> {
             LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId());
             cleanupResourcesForConnection();
-            data.getSessionSender().ifPresent(sender -> sender.tell(event.getFailure(), getSelf()));
+            data.getSessionSender().ifPresent(sender -> sender.tell(getStatusToReport(event.getFailure()), getSelf()));
             return goTo(UNKNOWN).using(data.resetSession()
                     .setConnectionStatus(ConnectionStatus.FAILED)
                     .setConnectionStatusDetails(event.getFailureDescription())
@@ -943,11 +929,46 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
+    /**
+     * Add meaningful message to status for reporting.
+     *
+     * @param status status to report.
+     * @return status with meaningful message.
+     */
+    private Status.Status getStatusToReport(final Status.Status status) {
+        final Status.Status answerToPublish;
+        if (status instanceof Status.Failure) {
+            final Status.Failure failure = (Status.Failure) status;
+            log.info("test failed: <{}>", failure.cause());
+            if (!(failure.cause() instanceof DittoRuntimeException)) {
+                final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
+                        .description(describeEventualCause(failure.cause()))
+                        .dittoHeaders(stateData().getSessionHeaders())
+                        .build();
+                answerToPublish = new Status.Failure(error);
+            } else {
+                answerToPublish = status;
+            }
+        } else {
+            answerToPublish = status;
+        }
+        return answerToPublish;
+    }
+
     private void stopMessageMappingProcessorActor() {
         if (messageMappingProcessorActor != null) {
             log.debug("Stopping MessageMappingProcessorActor.");
             getContext().stop(messageMappingProcessorActor);
             messageMappingProcessorActor = null;
+        }
+    }
+
+    private static String describeEventualCause(final Throwable throwable) {
+        final Throwable cause = throwable.getCause();
+        if (cause == null || cause == throwable) {
+            return "Cause: " + throwable.getMessage();
+        } else {
+            return describeEventualCause(cause);
         }
     }
 }
