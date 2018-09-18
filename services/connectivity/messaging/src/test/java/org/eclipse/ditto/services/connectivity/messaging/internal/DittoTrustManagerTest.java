@@ -28,7 +28,10 @@ import javax.net.ssl.X509TrustManager;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
 import org.junit.Test;
 
-public class DittoTrustManagerTest {
+/**
+ * Tests {@link org.eclipse.ditto.services.connectivity.messaging.internal.DittoTrustManager}.
+ */
+public final class DittoTrustManagerTest {
 
     private static final String AWS_IOT_ENDPOINT = "aws-account-id.iot.eu-central-1.amazonaws.com";
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
@@ -42,6 +45,14 @@ public class DittoTrustManagerTest {
         }
     }
 
+    /**
+     * Test that Ditto trust manager trusts an AWS IoT certificate when it trusts its CAs.
+     * WARNING:
+     * The AWS-IoT certificate expires on 28.11.2018.
+     * When this test fails, update it or mock it.
+     *
+     * @throws Exception if the AWS IoT certificate is not trusted.
+     */
     @Test
     public void testAwsIotCertificates() throws Exception {
 
