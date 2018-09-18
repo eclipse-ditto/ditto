@@ -157,7 +157,7 @@ final class DittoTrustManager implements X509TrustManager {
      * otherwise the hostname is not touched
      */
     private static String replaceWildCard(final String extractedHostname, @Nullable final String leftMostSubdomain) {
-        if (leftMostSubdomain != null && extractedHostname.charAt(0) == '*') {
+        if (leftMostSubdomain != null && extractedHostname.startsWith("*")) {
             return new StringBuilder(extractedHostname).replace(0, 1, leftMostSubdomain).toString();
         } else {
             return extractedHostname;
@@ -172,11 +172,6 @@ final class DittoTrustManager implements X509TrustManager {
     private static Stream<String> getSignedIps(final X509Certificate certificate) {
         final Integer ipFlag = 7;
         return getSubjectAltNames(certificate, ipFlag::equals);
-    }
-
-    private static boolean haveEqualIssuerDNAndSerialNumber(final X509Certificate cert1, final X509Certificate cert2) {
-        return Objects.equals(cert1.getIssuerDN(), cert2.getIssuerDN()) &&
-                Objects.equals(cert1.getSerialNumber(), cert2.getSerialNumber());
     }
 
     private static Stream<String> getSubjectAltNames(final X509Certificate certificate,
