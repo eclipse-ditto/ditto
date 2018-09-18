@@ -34,8 +34,8 @@ import javax.net.ssl.X509TrustManager;
 
 /**
  * Trust manager with identity verification. The check succeeds if the expected hostname is the common name (CN) or a
- * subject alternative DNS name in the certificate, or the expected ip is a subject alternative IP address, or the
- * server certificate is equal to a certificate in the trust store.
+ * subject alternative DNS name in the certificate (including wildcard match), or the expected ip is a subject
+ * alternative IP address, or the server certificate is equal to a certificate in the trust store.
  */
 final class DittoTrustManager implements X509TrustManager {
 
@@ -48,10 +48,14 @@ final class DittoTrustManager implements X509TrustManager {
 
     private final X509TrustManager delegate;
     private final String hostnameOrIp;
+    private final boolean isIp;
+    @Nullable private final String leftMostSubdomain;
 
     private DittoTrustManager(final X509TrustManager delegate, final String hostnameOrIp) {
         this.delegate = delegate;
         this.hostnameOrIp = hostnameOrIp;
+        isIp = shouldTreatAsIpAddress(hostnameOrIp);
+        leftMostSubdomain = isIp ? null : extractSubdomain(hostnameOrIp).orElse(null);
     }
 
     /**
@@ -61,7 +65,7 @@ final class DittoTrustManager implements X509TrustManager {
      * @param hostnameOrIp expected hostname or IP address in URI-embedded format.
      * @return array of trust managers such that all X509 trust managers are converted to Ditto trust managers.
      */
-    public static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagers,
+    static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagers,
             @Nullable final String hostnameOrIp) {
 
         if (hostnameOrIp != null) {
@@ -76,23 +80,21 @@ final class DittoTrustManager implements X509TrustManager {
     }
 
     @Override
-    public void checkClientTrusted(final X509Certificate[] x509Certificates, final String s)
-            throws CertificateException {
-        delegate.checkClientTrusted(x509Certificates, s);
+    public void checkClientTrusted(final X509Certificate[] chain, final String s) throws CertificateException {
+        delegate.checkClientTrusted(chain, s);
     }
 
     @Override
-    public void checkServerTrusted(final X509Certificate[] x509Certificates, final String s)
-            throws CertificateException {
+    public void checkServerTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {
 
         // verify certificate chain
-        delegate.checkServerTrusted(x509Certificates, s);
+        delegate.checkServerTrusted(chain, authType);
 
         // verify hostname
-        if (x509Certificates.length <= 0) {
+        if (chain.length <= 0) {
             throw new CertificateException("Cannot verify hostname - empty certificate chain");
         }
-        final X509Certificate serverCertificate = x509Certificates[0];
+        final X509Certificate serverCertificate = chain[0];
         if (!isServerCertificateInTrustStore(serverCertificate) && shouldRejectHostnameOrIp(serverCertificate)) {
             final String message = String.format("Host '%s' does not match signed hosts '%s' ",
                     hostnameOrIp,
@@ -112,10 +114,10 @@ final class DittoTrustManager implements X509TrustManager {
     }
 
     private boolean shouldRejectHostnameOrIp(final X509Certificate serverCertificate) {
-        if (shouldTreatAsIpAddress(hostnameOrIp)) {
+        if (isIp) {
             return shouldRejectIpAddress(serverCertificate, hostnameOrIp);
         } else {
-            return shouldRejectHostname(serverCertificate, hostnameOrIp);
+            return shouldRejectHostname(serverCertificate, hostnameOrIp, leftMostSubdomain);
         }
     }
 
@@ -135,8 +137,31 @@ final class DittoTrustManager implements X509TrustManager {
         }
     }
 
-    private static boolean shouldRejectHostname(final X509Certificate certificate, final String expectedHostname) {
-        return getSignedHostnames(certificate).noneMatch(expectedHostname::equalsIgnoreCase);
+    private static boolean shouldRejectHostname(final X509Certificate certificate, final String expectedHostname,
+            @Nullable final String leftMostSubdomain) {
+        return getSignedHostnames(certificate)
+                .map(extractedHostname -> replaceWildCard(extractedHostname, leftMostSubdomain))
+                .noneMatch(expectedHostname::equalsIgnoreCase);
+    }
+
+    /**
+     * Replaces the wildcard character (*) at the first position in the name extracted from the certificate with the
+     * left-most part of the subdomain from the expected hostname. Wildcard is only replaced if it's the first
+     * character as RFC6125 recommends (see https://tools.ietf.org/search/rfc6125#section-6.4.3).
+     *
+     * @param extractedHostname a hostname entry from the certificate that may contain the wildcard (*) e.g.
+     * *.eclipse.org
+     * @param leftMostSubdomain the left-most subdomain part e.g. ditto from ditto.eclipse.org
+     * @return the extracted hostname, with the wildcard (*) replaced if it is the first character (*.eclipse.org,
+     * NOT ditto.*.eclipse.org) AND the expected hostname contains a subdomain e.g. ditto.eclipse.org,
+     * otherwise the hostname is not touched
+     */
+    private static String replaceWildCard(final String extractedHostname, @Nullable final String leftMostSubdomain) {
+        if (leftMostSubdomain != null && extractedHostname.charAt(0) == '*') {
+            return new StringBuilder(extractedHostname).replace(0, 1, leftMostSubdomain).toString();
+        } else {
+            return extractedHostname;
+        }
     }
 
     private static Stream<String> getSignedHostnames(final X509Certificate certificate) {
@@ -194,5 +219,14 @@ final class DittoTrustManager implements X509TrustManager {
      */
     private static boolean shouldTreatAsIpAddress(final String hostnameOrIp) {
         return IPV4PATTERN.matcher(hostnameOrIp).matches() || IPV6PATTERN.matcher(hostnameOrIp).matches();
+    }
+
+    private static Optional<String> extractSubdomain(final String hostname) {
+        final String[] split = hostname.split("\\.");
+        if (split.length > 2 && split[0].length() > 0) {
+            return Optional.of(split[0]);
+        } else {
+            return Optional.empty();
+        }
     }
 }

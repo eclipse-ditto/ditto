@@ -12,8 +12,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyFactory;
@@ -22,29 +20,22 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.cert.CertPathBuilder;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.PKIXRevocationChecker;
-import java.security.cert.X509CertSelector;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
-import java.util.Collection;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -69,7 +60,6 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
-    private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
 
     private static final KeyFactory RSA_KEY_FACTORY;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
@@ -159,30 +149,9 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private Supplier<TrustManager[]> newTrustManagerFactory(@Nullable final String trustedCertificates) {
         try {
-            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
-            if (trustedCertificates != null) {
-                final KeyStore keystore = newKeystore();
-                final Collection<? extends Certificate> caCerts;
-                final byte[] caCertsPem = trustedCertificates.getBytes(StandardCharsets.US_ASCII);
-                caCerts = X509_CERTIFICATE_FACTORY.generateCertificates(new ByteArrayInputStream(caCertsPem));
-                for (final Certificate caCert : caCerts) {
-                    keystore.setCertificateEntry("ca", caCert);
-                }
-                trustManagerFactory.init(keystore);
-                // TODO: consider adding cert revocation checker if AWS-IoT has OSCP/CRL.
-            } else {
-                // standard CAs; add revocation check
-                final PKIXRevocationChecker revocationChecker =
-                        (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker();
-                final PKIXBuilderParameters parameters =
-                        new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
-                parameters.addCertPathChecker(revocationChecker);
-                trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
-            }
-            return () -> {
-                final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-                return DittoTrustManager.wrapTrustManagers(trustManagers, hostname);
-            };
+            final TrustManager[] trustManagers = TrustManagerFactory.newTrustManager(trustedCertificates,
+                    this::newKeystore);
+            return () -> DittoTrustManager.wrapTrustManagers(trustManagers, hostname);
         } catch (final CertificateException e) {
             final JsonPointer errorLocation = Connection.JsonFields.TRUSTED_CERTIFICATES.getPointer();
             throw badFormat(errorLocation, CERTIFICATE_LABEL, "DER")
@@ -295,10 +264,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private KeyStore newKeystore() {
         try {
-            final KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            // initialize an empty keystore
-            keyStore.load(null, null);
-            return keyStore;
+            return TrustManagerFactory.emptyKeyStore();
         } catch (final Exception e) {
             throw fatalError("Cannot initialize client-side security for connection")
                     .cause(e)
@@ -341,21 +307,4 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         return Base64.getDecoder().decode(content.replace("\\s", ""));
     }
 
-    private static KeyStore loadDefaultCAKeystore() {
-        try {
-            final String javaHome = System.getProperty("java.home");
-            final String cacerts = javaHome + "/lib/security/cacerts";
-            final KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-            try (final FileInputStream cacertsStream = new FileInputStream(cacerts)) {
-                keystore.load(cacertsStream, "changeit".toCharArray());
-            }
-            return keystore;
-        } catch (final KeyStoreException e) {
-            throw new Error("FATAL: Cannot create default CA keystore");
-        } catch (final IOException e) {
-            throw new Error("FATAL: Cannot read default CA keystore");
-        } catch (final NoSuchAlgorithmException | CertificateException e) {
-            throw new Error("FATAL: Cannot load default CA keystore");
-        }
-    }
 }

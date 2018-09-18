@@ -138,6 +138,10 @@ public class TestConstants {
         public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
         public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
 
+        // AWS IoT CAs and server certificate
+        public static final String AWS_CA_CRT = getCert("aws-ca.pem");
+        public static final String AWS_IOT_CRT = getCert("aws-iot.crt");
+
         // signed by CA_CRT with common name (CN) and alternative names.
         // CN=server.alt
         // subjectAltNames=
