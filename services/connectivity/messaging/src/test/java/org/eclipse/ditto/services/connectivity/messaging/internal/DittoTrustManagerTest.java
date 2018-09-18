@@ -33,7 +33,8 @@ import org.junit.Test;
  */
 public final class DittoTrustManagerTest {
 
-    private static final String AWS_IOT_ENDPOINT = "aws-account-id.iot.eu-central-1.amazonaws.com";
+    private static final String AWS_IOT_EU_ENDPOINT = "aws-account-id.iot.eu-central-1.amazonaws.com";
+    private static final String AWS_IOT_US_ENDPOINT = "aws-account-id.iot.us-east-1.amazonaws.com";
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
     private static final String AUTH_TYPE = "RSA";
 
@@ -54,7 +55,16 @@ public final class DittoTrustManagerTest {
      * @throws Exception if the AWS IoT certificate is not trusted.
      */
     @Test
-    public void testAwsIotCertificates() throws Exception {
+    public void testAwsIotCertificatesWithValidEndpoint() throws Exception {
+        testAwsIotCertificates(AWS_IOT_EU_ENDPOINT);
+    }
+
+    @Test(expected = CertificateException.class)
+    public void testAwsIotCertificatesWithInvalidEndpoint() throws Exception {
+        testAwsIotCertificates(AWS_IOT_US_ENDPOINT);
+    }
+
+    private void testAwsIotCertificates(final String endpoint) throws Exception {
 
         final KeyStore keyStore = TrustManagerFactory.emptyKeyStore();
 
@@ -63,7 +73,7 @@ public final class DittoTrustManagerTest {
 
         final List<X509TrustManager> dittoTrustManagers =
                 Stream.of(DittoTrustManager.wrapTrustManagers(trustManagers,
-                        AWS_IOT_ENDPOINT)).map(tm -> ((X509TrustManager) tm)).collect(Collectors.toList());
+                        endpoint)).map(tm -> ((X509TrustManager) tm)).collect(Collectors.toList());
 
         final byte[] bytes = Certificates.AWS_IOT_CRT.getBytes(StandardCharsets.US_ASCII);
 

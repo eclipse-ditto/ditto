@@ -55,7 +55,6 @@ import scala.util.Right;
  */
 public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
-    private static final String PKIX = "PKIX";
     private static final String TLS12 = "TLSv1.2";
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final String CERTIFICATE_LABEL = "CERTIFICATE";
