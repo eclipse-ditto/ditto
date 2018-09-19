@@ -26,8 +26,6 @@
 
     <modules>
         <module>common</module>
-        <module>query-model</module>
-        <module>query</module>
         <module>persistence</module>
         <module>updater-actors</module>
         <module>starter</module>

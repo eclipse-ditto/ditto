@@ -5,17 +5,17 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
- *
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -42,13 +42,59 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableTarget implements Target {
 
     private final String address;
-    private final Set<Topic> topics;
+    private final Set<FilteredTopic> topics;
     private final AuthorizationContext authorizationContext;
 
-    ImmutableTarget(final String address, final Set<Topic> topics, final AuthorizationContext authorizationContext) {
+    private ImmutableTarget(final String address, final Set<FilteredTopic> topics, final AuthorizationContext authorizationContext) {
         this.address = address;
         this.topics = Collections.unmodifiableSet(new HashSet<>(topics));
         this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
+    }
+
+    /**
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param topics set of FilteredTopics that should be published via this target
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return a new instance of ImmutableTarget
+     */
+    public static ImmutableTarget of(final String address, final AuthorizationContext authorizationContext,
+            final Set<FilteredTopic> topics) {
+        return new ImmutableTarget(address, topics, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopics that should be published via this target
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return a new instance of ImmutableTarget
+     */
+    public static ImmutableTarget of(final String address, final AuthorizationContext authorizationContext,
+            final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
+        final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics, authorizationContext);
+    }
+
+    /**
+     * Creates a new {@code ImmutableTarget} instance.
+     *
+     * @param address the address of this target
+     * @param requiredTopic the required FilteredTopic that should be published via this target
+     * @param additionalTopics additional set of FilteredTopic that should be published via this target
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @return a new instance of ImmutableTarget
+     */
+    public static ImmutableTarget of(final String address, final AuthorizationContext authorizationContext,
+            final String requiredTopic, final String... additionalTopics) {
+        final HashSet<String> topics = new HashSet<>(Collections.singletonList(requiredTopic));
+        topics.addAll(Arrays.asList(additionalTopics));
+        return new ImmutableTarget(address, topics.stream().map(ConnectivityModelFactory::newFilteredTopic)
+                .collect(Collectors.toSet()), authorizationContext);
     }
 
     @Override
@@ -62,7 +108,7 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
-    public Set<Topic> getTopics() {
+    public Set<FilteredTopic> getTopics() {
         return topics;
     }
 
@@ -79,7 +125,7 @@ final class ImmutableTarget implements Target {
         jsonObjectBuilder.set(Target.JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(Target.JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(Target.JsonFields.TOPICS, topics.stream()
-                .map(Topic::getName)
+                .map(FilteredTopic::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
         if (!authorizationContext.isEmpty()) {
@@ -102,12 +148,10 @@ final class ImmutableTarget implements Target {
      */
     public static Target fromJson(final JsonObject jsonObject) {
         final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
-        final Set<Topic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
+        final Set<FilteredTopic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
-                        .map(Topic::forName)
-                        .filter(Optional::isPresent)
-                        .map(Optional::get)
+                        .map(ConnectivityModelFactory::newFilteredTopic)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
 

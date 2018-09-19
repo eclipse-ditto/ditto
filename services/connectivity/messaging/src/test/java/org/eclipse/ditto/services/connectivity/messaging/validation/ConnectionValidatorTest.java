@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createConnection;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.junit.Test;
 
@@ -46,7 +48,8 @@ public class ConnectionValidatorTest {
         assertInstancesOf(ConnectionValidator.class,
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
-                assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                provided(QueryFilterCriteriaFactory.class).isAlsoImmutable());
     }
 
     @Test

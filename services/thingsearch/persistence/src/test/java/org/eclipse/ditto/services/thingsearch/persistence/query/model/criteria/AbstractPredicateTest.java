@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.criteria.Predicate;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonPredicateVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAssertions;
 import org.junit.Test;
 

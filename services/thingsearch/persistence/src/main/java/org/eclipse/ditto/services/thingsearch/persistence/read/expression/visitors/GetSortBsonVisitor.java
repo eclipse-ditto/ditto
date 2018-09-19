@@ -17,11 +17,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.SortDirection;
+import org.eclipse.ditto.model.query.expression.SortFieldExpression;
+import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.MongoSortKeyMappingFunction;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.SortFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.visitors.SortFieldExpressionVisitor;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.SortDirection;
 
 import com.mongodb.client.model.Sorts;
 

@@ -21,22 +21,22 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.query.Query;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
+import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
+import org.eclipse.ditto.services.thingsearch.persistence.query.AggregationQueryActor;
+import org.eclipse.ditto.services.thingsearch.persistence.query.QueryActor;
+import org.eclipse.ditto.services.thingsearch.persistence.read.PolicyRestrictedSearchAggregation;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.IsPolicyLookupNeededVisitor;
-import org.eclipse.ditto.services.thingsearch.query.actors.AggregationQueryActor;
-import org.eclipse.ditto.services.thingsearch.query.actors.QueryActor;
-import org.eclipse.ditto.services.thingsearch.query.actors.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ThingsFieldExpressionFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -213,10 +213,10 @@ public final class SearchActor extends AbstractActor {
                                         .map(count -> CountThingsResponse.of(count, dittoHeaders));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.failed((Throwable) query);
+                                return Source.<Object>failed((Throwable) query);
                             } else {
                                 log.error("Expected 'PolicyRestrictedSearchAggregation', but got: {}", query);
-                                return Source.single(CountThingsResponse.of(-1, dittoHeaders));
+                                return Source.<Object>single(CountThingsResponse.of(-1, dittoHeaders));
                             }
                         })
                         .via(Flow.fromFunction(result -> {
@@ -274,11 +274,11 @@ public final class SearchActor extends AbstractActor {
                                         .flatMapConcat(resultList -> retrieveThingsForIds(resultList, queryThings));
                             } else if (query instanceof DittoRuntimeException) {
                                 log.info("QueryActor responded with DittoRuntimeException: {}", query);
-                                return Source.failed((Throwable) query);
+                                return Source.<QueryThingsResponse>failed((Throwable) query);
                             } else {
                                 log.error("Expected 'PolicyRestrictedSearchAggregation' or 'query', but got: {}",
                                         query);
-                                return Source.single(
+                                return Source.<QueryThingsResponse>single(
                                         QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
                             }
                         })
@@ -302,7 +302,7 @@ public final class SearchActor extends AbstractActor {
                     return result;
                 });
 
-        return source.via(logAndFinishPersistenceSegmentFlow);
+        return source.<T, NotUsed>via(logAndFinishPersistenceSegmentFlow);
     }
 
     private Graph<SourceShape<QueryThingsResponse>, NotUsed> retrieveThingsForIds(final ResultList<String> thingIds,
@@ -314,7 +314,7 @@ public final class SearchActor extends AbstractActor {
         final Optional<String> correlationIdOpt = dittoHeaders.getCorrelationId();
         LogUtil.enhanceLogWithCorrelationId(log, correlationIdOpt);
         if (thingIds.isEmpty()) {
-            result = Source.single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
+            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders));
         } else  {
             // only respond with the determined "thingIds", the lookup of the things is done in gateway:
             final JsonArray items = thingIds.stream()
@@ -326,7 +326,7 @@ public final class SearchActor extends AbstractActor {
                     .collect(JsonCollectors.valuesToArray());
             final SearchResult searchResult = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
 
-            result = Source.single(QueryThingsResponse.of(searchResult, dittoHeaders));
+            result = Source.<QueryThingsResponse>single(QueryThingsResponse.of(searchResult, dittoHeaders));
         }
 
         return result;

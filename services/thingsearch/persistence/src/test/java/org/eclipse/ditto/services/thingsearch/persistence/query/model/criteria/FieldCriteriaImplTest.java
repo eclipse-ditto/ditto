@@ -16,15 +16,14 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
+import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.FieldCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.AttributeExpressionImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Tests class {@link FieldCriteriaImpl}.
  */

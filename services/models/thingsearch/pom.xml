@@ -27,6 +27,11 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-query</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-policies</artifactId>
         </dependency>
         <dependency>

@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 
 /**
  * Thrown if a filter string for a search is invalid.
@@ -47,7 +48,7 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
     }
 
     /**
-     * A mutable builder for a {@code InvalidFilterException}.
+     * A mutable builder for a {@code InvalidNamespacesException}.
      *
      * @return the builder.
      */
@@ -56,11 +57,11 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
     }
 
     /**
-     * Constructs a new {@code InvalidFilterException} object with given message.
+     * Constructs a new {@code InvalidNamespacesException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new InvalidFilterException.
+     * @return the new InvalidNamespacesException.
      */
     public static InvalidNamespacesException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
@@ -70,12 +71,12 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
     }
 
     /**
-     * Constructs a new {@code InvalidFilterException} object with the exception message extracted from the
+     * Constructs a new {@code InvalidNamespacesException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new InvalidFilterException.
+     * @return the new InvalidNamespacesException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
