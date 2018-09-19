@@ -139,26 +139,33 @@ public final class SSLContextCreatorTest {
     }
 
     @Test
-    public void trustSignedServerHostname() throws Exception {
-        final String signedCommonName = "server.alt";
+    public void trustSignedServerDNSName() throws Exception {
         final String signedAltName = "example.com";
-        try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES)) {
-            try (final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedCommonName)
-                    .withoutClientCertificate()
-                    .getSocketFactory()
-                    .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+        try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
+                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedAltName)
+                        .withoutClientCertificate()
+                        .getSocketFactory()
+                        .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-                underTest.getOutputStream().write(173);
-                assertThat(underTest.getInputStream().read()).isEqualTo(173);
-            }
-            try (final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedAltName)
-                    .withoutClientCertificate()
-                    .getSocketFactory()
-                    .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+            underTest.getOutputStream().write(180);
+            assertThat(underTest.getInputStream().read()).isEqualTo(180);
+        }
+    }
 
-                underTest.getOutputStream().write(180);
-                assertThat(underTest.getInputStream().read()).isEqualTo(180);
-            }
+    @Test(expected = SSLHandshakeException.class)
+    public void distrustSignedServerCNIfSANExist() throws Exception {
+        // https://tools.ietf.org/html/rfc6125#section-6.4.4
+        // ... a client MUST NOT seek a match for a reference identifier of CN-ID if the presented identifiers
+        // include a DNS-ID, SRV-ID, URI-ID, or any application-specific identifier types supported by the client.
+        final String signedCommonName = "server.alt";
+        try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
+                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, signedCommonName)
+                        .withoutClientCertificate()
+                        .getSocketFactory()
+                        .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+
+            underTest.getOutputStream().write(173);
+            assertThat(underTest.getInputStream().read()).isEqualTo(173);
         }
     }
 

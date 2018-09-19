@@ -59,6 +59,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
     private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final Pattern PRIVATE_KEY_REGEX = Pattern.compile(pemRegex(PRIVATE_KEY_LABEL));
+    private static final Pattern IPV6_URI_PATTERN = Pattern.compile("^\\[[A-Fa-f0-9.:\\s]++]$");
 
     private static final KeyFactory RSA_KEY_FACTORY;
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;
@@ -85,7 +86,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
             @Nullable String hostname) {
         this.trust = trust;
         this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
-        this.hostname = hostname;
+        this.hostname = stripIpv6Brackets(hostname);
     }
 
     /**
@@ -306,4 +307,12 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
         return Base64.getDecoder().decode(content.replace("\\s", ""));
     }
 
+    @Nullable
+    private static String stripIpv6Brackets(@Nullable final String hostnameOrIp) {
+        if (hostnameOrIp != null && IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
+            return hostnameOrIp.substring(1, hostnameOrIp.length() - 1);
+        } else {
+            return hostnameOrIp;
+        }
+    }
 }
