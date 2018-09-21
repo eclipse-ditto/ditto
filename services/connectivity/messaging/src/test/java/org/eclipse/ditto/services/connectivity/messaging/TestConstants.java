@@ -16,10 +16,14 @@ import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newS
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 
@@ -104,12 +108,58 @@ public class TestConstants {
     public static class Targets {
 
         static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
-        static final Target TWIN_TARGET = newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT,
+                        Topic.TWIN_EVENTS);
+        static final Target TWIN_TARGET =
+                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT,
+                        Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
                 newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
-        private static final Target LIVE_TARGET = newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
+        private static final Target LIVE_TARGET =
+                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
+    }
+
+    public static final class Certificates {
+
+        public static final String CA_CRT = getCert("ca.crt");
+        // signed by CA_CRT
+        // CN=localhost
+        public static final String SERVER_KEY = getCert("server.key");
+        public static final String SERVER_CRT = getCert("server.crt");
+
+        // signed by CA_CRT
+        // no CN
+        public static final String CLIENT_KEY = getCert("client.key");
+        public static final String CLIENT_CRT = getCert("client.crt");
+
+        // signed by self
+        // no CN
+        public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
+        public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
+
+        // AWS IoT CAs and server certificate
+        public static final String AWS_CA_CRT = getCert("aws-ca.pem");
+        public static final String AWS_IOT_CRT = getCert("aws-iot.crt");
+
+        // signed by CA_CRT with common name (CN) and alternative names.
+        // CN=server.alt
+        // subjectAltNames=
+        //   DNS:example.com
+        //   IP:100:0:0:0:1319:8a2e:370:7348,
+        //   IP:127.128.129.130
+        public static final String SERVER_WITH_ALT_NAMES_KEY = getCert("server-alt.key");
+        public static final String SERVER_WITH_ALT_NAMES_CRT = getCert("server-alt.crt");
+
+        private static String getCert(final String cert) {
+            final String path = "/certificates/" + cert;
+            try (final InputStream inputStream = Certificates.class.getResourceAsStream(path)) {
+                final Scanner scanner = new Scanner(inputStream, StandardCharsets.US_ASCII.name()).useDelimiter("\\A");
+                return scanner.next();
+            } catch (final IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     public static String createRandomConnectionId() {

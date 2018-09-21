@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -61,7 +62,8 @@ public class RabbitMQClientActorTest {
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
 
-    private static final IllegalArgumentException CUSTOM_EXCEPTION = new IllegalArgumentException("rabbitmq");
+    private static final IllegalArgumentException CUSTOM_EXCEPTION =
+            new IllegalArgumentException("custom error message");
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 
@@ -127,7 +129,7 @@ public class RabbitMQClientActorTest {
 
             connectionActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
-            expectMsg(new Status.Failure(CUSTOM_EXCEPTION));
+            expectMsgClass(Status.Failure.class);
         }};
     }
 

@@ -12,6 +12,9 @@
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createConnection;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -26,8 +29,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.junit.Test;
 
@@ -52,7 +55,7 @@ public class ConnectionValidatorTest {
     @Test
     public void acceptValidConnection() {
         final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
-        final Connection connection = TestConstants.createConnection("connectionId", system);
+        final Connection connection = createConnection("connectionId", system);
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         underTest.validate(connection, DittoHeaders.empty());
     }
@@ -64,7 +67,7 @@ public class ConnectionValidatorTest {
                         "amqp://localhost:5671")
                         .sources(Collections.singletonList(
                                 ConnectivityModelFactory.newSource(1, 0,
-                                        TestConstants.Authorization.AUTHORIZATION_CONTEXT)))
+                                        Authorization.AUTHORIZATION_CONTEXT)))
                         .build();
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -79,7 +82,7 @@ public class ConnectionValidatorTest {
                         "amqp://localhost:5671")
                         .sources(Collections.singletonList(
                                 ConnectivityModelFactory.newSource(1, 0,
-                                        TestConstants.Authorization.AUTHORIZATION_CONTEXT,
+                                        Authorization.AUTHORIZATION_CONTEXT,
                                         "sourceAddress1", "")))
                         .build();
 
@@ -95,13 +98,81 @@ public class ConnectionValidatorTest {
                         "amqp://localhost:5671")
                         .targets(Collections.singleton(
                                 ConnectivityModelFactory.newTarget("",
-                                        TestConstants.Authorization.AUTHORIZATION_CONTEXT,
+                                        Authorization.AUTHORIZATION_CONTEXT,
                                         Topic.LIVE_MESSAGES)))
                         .build();
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+    }
+
+    @Test
+    public void rejectConnectionWithIllFormedTrustedCertificates() {
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
+        final Connection connection = createConnection("connectionId", system).toBuilder()
+                .trustedCertificates("Wurst")
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+    }
+
+    @Test
+    public void acceptConnectionWithTrustedCertificates() {
+        final String trustedCertificates = String.join("\n",
+                Certificates.CA_CRT,
+                Certificates.SERVER_CRT,
+                Certificates.CLIENT_CRT,
+                Certificates.CLIENT_SELF_SIGNED_CRT);
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
+        final Connection connection = createConnection("connectionId", system).toBuilder()
+                .trustedCertificates(trustedCertificates)
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        underTest.validate(connection, DittoHeaders.empty());
+    }
+
+    @Test
+    public void rejectIllFormedClientCertificate() {
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
+        final Connection connection = createConnection("connectionId", system).toBuilder()
+                .credentials(ClientCertificateCredentials.newBuilder()
+                        .clientKey(Certificates.CLIENT_KEY)
+                        .clientCertificate("Wurst")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+    }
+
+    @Test
+    public void rejectIllFormedClientKey() {
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
+        final Connection connection = createConnection("connectionId", system).toBuilder()
+                .credentials(ClientCertificateCredentials.newBuilder()
+                        .clientKey("-----BEGIN RSA PRIVATE KEY-----\nWurst\n-----END RSA PRIVATE KEY-----")
+                        .clientCertificate(Certificates.CLIENT_CRT)
+                        .build())
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty()));
+
+    }
+
+    @Test
+    public void acceptClientCertificate() {
+        final ActorSystem system = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test"));
+        final Connection connection = createConnection("connectionId", system).toBuilder()
+                .credentials(ClientCertificateCredentials.newBuilder()
+                        .clientKey(Certificates.CLIENT_KEY)
+                        .clientCertificate(Certificates.CLIENT_CRT)
+                        .build())
+                .build();
+        final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
+        underTest.validate(connection, DittoHeaders.empty());
     }
 
 }

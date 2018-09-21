@@ -11,15 +11,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
+import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import akka.stream.alpakka.mqtt.MqttConnectionSettings;
@@ -32,13 +32,12 @@ class MqttConnectionSettingsFactory {
 
     private static final MqttConnectionSettingsFactory INSTANCE = new MqttConnectionSettingsFactory();
     private static final AcceptAnyTrustManager ACCEPT_ANY_TRUST_MANAGER = new AcceptAnyTrustManager();
-    private static final String TLS12 = "TLSv1.2";
 
     static MqttConnectionSettingsFactory getInstance() {
         return INSTANCE;
     }
 
-    MqttConnectionSettings createMqttConnectionSettings(final Connection connection) {
+    MqttConnectionSettings createMqttConnectionSettings(final Connection connection, final DittoHeaders dittoHeaders) {
         final String uri = connection.getUri();
         MqttConnectionSettings connectionSettings = MqttConnectionSettings
                 .create(uri, connection.getId(), new MemoryPersistence());
@@ -51,33 +50,29 @@ class MqttConnectionSettingsFactory {
             connectionSettings = connectionSettings.withAuth(possibleUsername.get(), possiblePassword.get());
         }
 
-        if (isSecureconnection(connection)) {
-            connectionSettings = applySSLSocketFactory(connection, connectionSettings);
+        if (isSecureConnection(connection)) {
+            connectionSettings = applySSLSocketFactory(connection, connectionSettings, dittoHeaders);
         }
 
         return connectionSettings;
     }
 
     private MqttConnectionSettings applySSLSocketFactory(final Connection connection,
-            final MqttConnectionSettings connectionSettings) {
-        try {
-            if (connection.isValidateCertificates()) {
-                return SocketFactoryExtension.withSocketFactory(connectionSettings,
-                        SSLContext.getDefault().getSocketFactory());
-            } else {
-                final SSLContext sslContext = SSLContext.getInstance(TLS12);
-                sslContext.init(null, new TrustManager[]{ACCEPT_ANY_TRUST_MANAGER}, null);
-                return SocketFactoryExtension.withSocketFactory(connectionSettings, sslContext.getSocketFactory());
-            }
-        } catch (final NoSuchAlgorithmException | KeyManagementException e) {
-            throw ConnectionFailedException.newBuilder(connection.getId())
-                    .description("Failed to create SSL context: " + e.getMessage())
-                    .cause(e)
-                    .build();
-        }
+            final MqttConnectionSettings connectionSettings,
+            final DittoHeaders dittoHeaders) {
+        final SSLContextCreator sslContextCreator = connection.isValidateCertificates()
+                ? SSLContextCreator.fromConnection(connection, dittoHeaders)
+                : SSLContextCreator.withTrustManager(ACCEPT_ANY_TRUST_MANAGER, dittoHeaders);
+
+        final Credentials clientCredentials =
+                connection.getCredentials().orElseGet(ClientCertificateCredentials::empty);
+
+        final SSLContext sslContext = clientCredentials.accept(sslContextCreator);
+
+        return SocketFactoryExtension.withSocketFactory(connectionSettings, sslContext.getSocketFactory());
     }
 
-    private boolean isSecureconnection(final Connection connection) {
+    private boolean isSecureConnection(final Connection connection) {
         return "ssl".equals(connection.getProtocol()) || "wss".equals(connection.getProtocol());
     }
 }

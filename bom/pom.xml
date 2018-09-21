@@ -50,7 +50,7 @@
         <parboiled.version>2.1.4</parboiled.version>
         <jjwt.version>0.10.1</jjwt.version>
         <asm.version>5.2</asm.version>
-        <qpid-jms-client.version>0.35.0</qpid-jms-client.version>
+        <qpid-jms-client.version>0.36.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.2.0</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>

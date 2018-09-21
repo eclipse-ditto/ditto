@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 
@@ -38,9 +39,9 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     private final Connection connection;
     private final MqttConnectionSettings settings;
 
-    DefaultMqttConnectionFactory(final Connection connection) {
+    DefaultMqttConnectionFactory(final Connection connection, final DittoHeaders dittoHeaders) {
         this.connection = connection;
-        settings = MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection);
+        settings = MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection, dittoHeaders);
     }
 
     @Override
@@ -49,9 +50,7 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     }
 
     @Override
-    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource,
-            final int bufferSize) {
-
+    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource, final int bufferSize) {
         final String clientId = connectionId() + "-source" + mqttSource.getIndex();
         final MqttSourceSettings sourceSettings =
                 MqttSourceSettings.create(settings.withClientId(clientId))

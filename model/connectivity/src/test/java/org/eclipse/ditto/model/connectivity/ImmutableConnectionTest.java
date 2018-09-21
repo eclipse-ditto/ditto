@@ -30,6 +30,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
+import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -46,6 +48,7 @@ public final class ImmutableConnectionTest {
     private static final String NAME = "myConnection";
 
     private static final String URI = "amqps://foo:bar@example.com:443";
+    private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
@@ -114,6 +117,7 @@ public final class ImmutableConnectionTest {
             .set(Connection.JsonFields.NAME, NAME)
             .set(Connection.JsonFields.CONNECTION_TYPE, TYPE.getName())
             .set(Connection.JsonFields.CONNECTION_STATUS, STATUS.getName())
+            .set(Connection.JsonFields.CREDENTIALS, CREDENTIALS.toJson())
             .set(Connection.JsonFields.URI, URI)
             .set(Connection.JsonFields.SOURCES, KNOWN_SOURCES_JSON)
             .set(Connection.JsonFields.TARGETS, KNOWN_TARGETS_JSON)
@@ -138,7 +142,7 @@ public final class ImmutableConnectionTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,
-                        MappingContext.class).isAlsoImmutable());
+                        MappingContext.class, Credentials.class).isAlsoImmutable());
     }
 
     @Test
@@ -204,6 +208,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void fromJsonReturnsExpected() {
         final Connection expected = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .credentials(CREDENTIALS)
                 .name(NAME)
                 .sources(SOURCES)
                 .targets(TARGETS)
@@ -232,6 +237,7 @@ public final class ImmutableConnectionTest {
     @Test
     public void toJsonReturnsExpected() {
         final Connection underTest = ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                .credentials(CREDENTIALS)
                 .name(NAME)
                 .sources(Arrays.asList(SOURCE2, SOURCE1)) // use different order to test sorting
                 .targets(TARGETS)

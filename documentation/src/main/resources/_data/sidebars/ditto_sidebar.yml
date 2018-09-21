@@ -203,6 +203,9 @@ entries:
     - title: Payload mapping
       url: /connectivity-mapping.html
       output: web
+    - title: TLS certificates
+      url: /connectivity-tls-certificates.html
+      output: web
 
 
   - title: Ditto Protocol

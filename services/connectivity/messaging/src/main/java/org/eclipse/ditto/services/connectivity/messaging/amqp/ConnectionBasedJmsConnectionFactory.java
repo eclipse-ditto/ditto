@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.naming.Context;
@@ -37,6 +36,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -70,7 +70,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         checkNotNull(exceptionListener, "Exception Listener");
 
         final Context ctx = createContext(connection);
-        final ConnectionFactory cf = (javax.jms.ConnectionFactory) ctx.lookup(connection.getId());
+        final org.apache.qpid.jms.JmsConnectionFactory cf =
+                (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId());
+
+        if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
+            cf.setSslContext(SSLContextCreator.fromConnection(connection, null).withoutClientCertificate());
+        }
 
         @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();
         jmsConnection.setExceptionListener(exceptionListener);
@@ -101,9 +106,9 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         final boolean anonymous = username == null || username.isEmpty() || password == null || password.isEmpty();
         final List<String> parameters = new ArrayList<>(getAmqpParameters(anonymous, specificConfig));
-        final boolean securedConnection =
-                !connection.isValidateCertificates() && SECURE_AMQP_SCHEME.equalsIgnoreCase(protocol);
-        parameters.addAll(getTransportParameters(securedConnection, specificConfig));
+        final boolean isSecuredConnectionWithAcceptInvalidCertificates =
+                isSecuredConnection(connection) && !connection.isValidateCertificates();
+        parameters.addAll(getTransportParameters(isSecuredConnectionWithAcceptInvalidCertificates, specificConfig));
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
 
         final List<String> globalParameters =
@@ -118,6 +123,10 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         }
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
         return connectionUri;
+    }
+
+    private static boolean isSecuredConnection(final Connection connection) {
+        return SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol());
     }
 
     private static String formatUri(final String protocol, final String hostname, final int port) {
