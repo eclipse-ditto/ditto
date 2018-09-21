@@ -4,7 +4,7 @@ published: true
 permalink: 2018-09-21-selective-push-notifications.html
 layout: post
 author: philipp_michalski
-tags: [blog, connectivity, rql, connection]
+tags: [blog, connectivity, rql]
 hide_sidebar: true
 sidebar: false
 toc: true
@@ -38,7 +38,7 @@ They can help you with a lot of problems in a bunch of scenarios:
 
 The following diagram visualizes this context:
 
-![visual comparison](images/blog/2018-09-13-selective-message-subscriptions-visual-comparison.png)
+![visual comparison](images/blog/2018-09-21-selective-push-notifications-visual-comparison.png)
 
 
 With the upcoming Ditto release `0.8.0-M2`, those filters are available for the following endpoints:
@@ -69,7 +69,7 @@ In our case, a smart thermostat uses the sensor data to control the indoor clima
 
 The following figure displays this setting:
 
-![example setup](images/blog/2018-09-13-selective-message-subscriptions-example-setup.png)
+![example setup](images/blog/2018-09-21-selective-push-notifications-example-setup.png)
 
 So let's start with the prerequisites. You need:
 
@@ -140,7 +140,7 @@ curl -X PUT -u 'ditto:ditto' --header 'Content-Type: application/json' -d \
 Open your browser on https://websocket.org/echo.html. 
 This site allows you to connect with any WebSocket endpoint and supports simple sending and receiving of messages. The interface is shown below:
 
-![websocket.org site](images/blog/2018-09-13-selective-message-subscriptions-websocket_org.png)
+![websocket.org site](images/blog/2018-09-21-selective-push-notifications-websocket_org.png)
 
 Enter Ditto's WebSocket endpoint with user credentials `ws://ditto:ditto@localhost:8080/ws/2` and hit the *Connect* button.
 The log output should confirm the action by printing a simple `CONNECTED`.
