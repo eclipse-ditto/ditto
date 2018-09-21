@@ -70,6 +70,13 @@ public interface ServiceConfigReader {
     LimitsConfigReader limits();
 
     /**
+     * Retrieve DevOps configuration reader.
+     *
+     * @return the DevOps configuration reader.
+     */
+    DevOpsConfigReader devops();
+
+    /**
      * Retrieve the underlying {@code Config} object for backward compatibility.
      *
      * @return the underlying {@code Config} object.
