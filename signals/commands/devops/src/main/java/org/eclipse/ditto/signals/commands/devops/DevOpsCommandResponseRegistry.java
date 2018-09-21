@@ -20,6 +20,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
+import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptinessResponse;
 
 /**
  * A {@link JsonParsableRegistry} aware of all {@link DevOpsCommandResponse}s.
@@ -44,8 +45,11 @@ public final class DevOpsCommandResponseRegistry extends AbstractJsonParsableReg
         parseStrategies.put(RetrieveLoggerConfigResponse.TYPE, RetrieveLoggerConfigResponse::fromJson);
         parseStrategies.put(RetrieveStatisticsResponse.TYPE, RetrieveStatisticsResponse::fromJson);
         parseStrategies.put(RetrieveStatisticsDetailsResponse.TYPE, RetrieveStatisticsResponse::fromJson);
-        parseStrategies.put(AggregatedDevOpsCommandResponse.TYPE,
-                (jsonObject, dittoHeaders) -> AggregatedDevOpsCommandResponse.fromJson(jsonObject, dittoHeaders, parseStrategies));
+        parseStrategies.put(AggregatedDevOpsCommandResponse.TYPE, (jsonObject, dittoHeaders) ->
+                AggregatedDevOpsCommandResponse.fromJson(jsonObject, dittoHeaders, parseStrategies));
+
+        // namespace responses
+        parseStrategies.put(QueryNamespaceEmptinessResponse.TYPE, QueryNamespaceEmptinessResponse::fromJson);
 
         return new DevOpsCommandResponseRegistry(parseStrategies);
     }
