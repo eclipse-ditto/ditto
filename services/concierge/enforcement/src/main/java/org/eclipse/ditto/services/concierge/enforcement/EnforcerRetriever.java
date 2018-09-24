@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -86,7 +87,7 @@ public final class EnforcerRetriever {
     @SuppressWarnings("WeakerAccess")
     public CompletionStage<Void> retrieve(final EntityId entityKey,
             final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
-        return idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
+        return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (!enforcerKeyEntryOptional.isPresent()) {
                 // must not happen
                 LOGGER.error("Did not get id-cache value for entityKey <{}>.", entityKey);
@@ -100,12 +101,13 @@ public final class EnforcerRetriever {
                     if (enforcerCache == null) {
                         throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
                     }
-                    retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
+                    return retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
                             consumer.accept(enforcerKeyEntry, enforcerEntry));
                 } else {
                     consumer.accept(enforcerKeyEntry, Entry.nonexistent());
                 }
             }
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -116,14 +118,15 @@ public final class EnforcerRetriever {
      * @param consumer what to do with the enforcer.
      */
     @SuppressWarnings("WeakerAccess")
-    public void retrieveByEnforcerKey(final EntityId enforcerKey, final Consumer<Entry<Enforcer>> consumer) {
+    public CompletionStage<Void> retrieveByEnforcerKey(final EntityId enforcerKey,
+            final Consumer<Entry<Enforcer>> consumer) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityId, Entry<Enforcer>> enforcerCache =
                 enforcerCacheFunction.apply(resourceType);
         if (enforcerCache == null) {
             throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
         }
-        enforcerCache.get(enforcerKey)
+        return enforcerCache.get(enforcerKey)
                 .thenAccept(enforcerEntryOptional -> {
                     if (!enforcerEntryOptional.isPresent()) {
                         // must not happen
