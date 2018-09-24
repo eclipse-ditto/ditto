@@ -14,12 +14,18 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.services.concierge.cache.update.NamespaceCacheWriter;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
@@ -84,24 +90,44 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
+        // pre-enforcer
+        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
+
         final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        null, activityCheckInterval);
+                        preEnforcer(namespaceCache, configReader.devops()), activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
         final int instanceIndex = configReader.instanceIndex();
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
+        final Props namespaceCacheWriterProps =
+                NamespaceCacheWriter.props(namespaceCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
+        context.actorOf(namespaceCacheWriterProps, NamespaceCacheWriter.ACTOR_NAME);
 
         context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
                 DispatcherActorCreator.ACTOR_NAME);
 
         return enforcerShardRegion;
+    }
+
+    private Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer(
+            final Cache<String, Object> namespaceCache,
+            final DevOpsConfigReader devOpsConfigReader) {
+
+        final String description = String.format("Please try again after %s.",
+                devOpsConfigReader.namespaceBlockTime().toString());
+
+        return NamespaceCacheWriter.blockCachedNamespaces(namespaceCache, (namespace, dittoHeaders) ->
+                NamespaceBlockedException.newBuilder(namespace)
+                        .description(description)
+                        .dittoHeaders(dittoHeaders)
+                        .build());
     }
 
 }
