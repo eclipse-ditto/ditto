@@ -62,7 +62,7 @@ import akka.http.javadsl.server.Route;
 /**
  * Builder for creating Akka HTTP routes for Policy {@code /entries}.
  */
-class PolicyEntriesRoute extends AbstractRoute {
+final class PolicyEntriesRoute extends AbstractRoute {
 
     private static final String PATH_SUFFIX_SUBJECTS = "subjects";
     private static final String PATH_SUFFIX_RESOURCES = "resources";
@@ -83,8 +83,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return the {@code /entries} route.
      */
-    Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final String policyId) {
+    Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final String policyId) {
         return Directives.route(
                 thingsEntryPolicyEntries(ctx, dittoHeaders, policyId),
                 thingsEntryPolicyEntry(ctx, dittoHeaders, policyId),
@@ -102,6 +101,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return pathEndOrSingleSlash(() ->
                 Directives.route(
                         get(() -> // GET /entries
@@ -129,6 +129,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 pathEndOrSingleSlash(() ->
                         route(
@@ -173,6 +174,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntrySubjects(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
                         pathEndOrSingleSlash(() ->
@@ -205,6 +207,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntrySubjectsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_SUBJECTS), () ->
                         rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.remaining()), subjectId ->
@@ -254,6 +257,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntryResources(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
                         pathEndOrSingleSlash(() ->
@@ -288,6 +292,7 @@ class PolicyEntriesRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyEntryResourcesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final String policyId) {
+
         return rawPathPrefix(mergeDoubleSlashes().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_SUFFIX_RESOURCES), () ->
                         extractUnmatchedPath(resource ->
