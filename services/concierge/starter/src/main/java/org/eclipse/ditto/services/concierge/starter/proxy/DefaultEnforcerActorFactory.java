@@ -83,22 +83,24 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl");
 
+        // pre-enforcer
+        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
+        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
+                newPreEnforcer(namespaceCache, configReader.devops());
+
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache));
+                policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
-
-        // pre-enforcer
-        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
 
         final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        preEnforcer(namespaceCache, configReader.devops()), activityCheckInterval);
+                        preEnforcer, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
@@ -116,7 +118,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         return enforcerShardRegion;
     }
 
-    private Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer(
+    private Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
             final Cache<String, Object> namespaceCache,
             final DevOpsConfigReader devOpsConfigReader) {
 

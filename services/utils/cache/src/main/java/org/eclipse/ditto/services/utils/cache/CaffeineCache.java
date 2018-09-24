@@ -194,8 +194,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
-        final boolean reportInvalidation =
-                (metricStatsCounter != null) && currentlyExisting;
+        final boolean reportInvalidation = (metricStatsCounter != null) && currentlyExisting;
         synchronousCacheView.invalidate(key);
 
         if (reportInvalidation) {
@@ -219,6 +218,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
+    // TODO: replace uses of this method by AsyncCache without loader once Caffeine releases it.
     private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
         @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
                 (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;

@@ -39,15 +39,15 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
     private static final String MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' could not be created as the Policy with "
             + "ID ''{1}'' is not existing.";
 
-    private static final String MESSAGE_TEMPLATE_POLICY_EXISTING =
-            "The Thing with ID ''{0}'' could not be created with " +
-                    "implicit Policy as the Policy with ID ''{1}'' is already existing.";
+    private static final String MESSAGE_TEMPLATE_POLICY_CREATION_FAILURE =
+            "The Thing with ID ''{0}'' could not be created because creation of its " +
+                    "implicit Policy ID ''{1}'' failed.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of the Policy you created the Thing with is correct and that the Policy is existing.";
 
-    private static final String DEFAULT_DESCRIPTION_POLICY_EXISTING =
-            "If you want to use the existing Policy, specify it as 'policyId' in the Thing JSON you create.";
+    private static final String DEFAULT_DESCRIPTION_POLICY_CREATION_FAILED =
+            "If you want to use an existing Policy, specify it as 'policyId' in the Thing JSON you create.";
 
     private static final long serialVersionUID = 2153912949789822362L;
 
@@ -69,14 +69,14 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
     }
 
     /**
-     * A mutable builder for a {@code ThingNotCreatableException} thrown if a Thing could not be created because an
-     * implicitly created Policy would collide with an already existing Policy with such an ID.
+     * A mutable builder for a {@code ThingNotCreatableException} thrown if a Thing could not be created because
+     * the creation of its implicit Policy failed.
      *
      * @param thingId the ID of the Thing.
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyExisting(final String thingId, final String policyId) {
+    public static Builder newBuilderForPolicyCreationFailure(final String thingId, final String policyId) {
         return new Builder(thingId, policyId, false);
     }
 
@@ -119,7 +119,6 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
 
     /**
      * A mutable builder with a fluent API for a {@link ThingNotCreatableException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotCreatableException> {
@@ -128,7 +127,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             if (policyMissing) {
                 description(DEFAULT_DESCRIPTION);
             } else {
-                description(DEFAULT_DESCRIPTION_POLICY_EXISTING);
+                description(DEFAULT_DESCRIPTION_POLICY_CREATION_FAILED);
             }
         }
 
@@ -137,7 +136,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             if (policyMissing) {
                 message(MessageFormat.format(MESSAGE_TEMPLATE, thingId, policyId));
             } else {
-                message(MessageFormat.format(MESSAGE_TEMPLATE_POLICY_EXISTING, thingId, policyId));
+                message(MessageFormat.format(MESSAGE_TEMPLATE_POLICY_CREATION_FAILURE, thingId, policyId));
             }
         }
 

@@ -96,7 +96,7 @@ public class TestSetup {
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
+                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
