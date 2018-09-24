@@ -10,6 +10,7 @@
    com.github.nscala-time:nscala-time_2.12:jar:2.14.0:compile
    com.github.scullxbones:akka-persistence-mongo-casbah_2.12:jar:2.0.9:compile
    com.github.scullxbones:akka-persistence-mongo-common_2.12:jar:2.0.9:compile
+   com.lightbend.akka:akka-stream-alpakka-mqtt_2.12:jar:0.20:compile
    com.lightbend.akka.discovery:akka-discovery_2.12:jar:0.14.0:compile
    com.lightbend.akka.discovery:akka-discovery-dns_2.12:jar:0.14.0:compile
    com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.12:jar:0.14.0:compile
@@ -61,8 +62,9 @@
    nl.grons:metrics-scala_2.12:jar:3.5.5_a2.4:compile
    org.agrona:agrona:jar:0.9.17:compile
    org.apache.geronimo.specs:geronimo-jms_2.0_spec:jar:1.0-alpha-2:compile
-   org.apache.qpid:proton-j:jar:0.28.0:compile
-   org.apache.qpid:qpid-jms-client:jar:0.35.0:compile
+   org.apache.qpid:proton-j:jar:0.29.0:compile
+   org.apache.qpid:qpid-jms-client:jar:0.36.0:compile
+   org.eclipse.paho:org.eclipse.paho.client.mqttv3:jar:1.2.0:compile
    org.hdrhistogram:HdrHistogram:jar:2.1.9:compile
    org.joda:joda-convert:jar:1.2:compile
    org.lmdbjava:lmdbjava:jar:0.6.0:compile

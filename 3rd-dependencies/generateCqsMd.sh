@@ -20,4 +20,5 @@ echo "## Works-With dependencies"
 echo ""
 echo "| Group ID  | Artifact ID  | Version  | CQ |"
 echo "|---|---|---|---|"
-cut provided.txt test.txt|cut -d':' -f1,2,4|sed -e 's/:/|/g'|while read i; do echo "|$i| []() |";done
+cat provided.txt test.txt |cut -d':' -f1,2,4|sed -e 's/:/|/g'|while read i; do echo "|$i| []() |";done
+cat maven-plugins.txt |cut -d':' -f1,2,4|sed -e 's/:/|/g'|while read i; do echo "|$i| []() |";done
