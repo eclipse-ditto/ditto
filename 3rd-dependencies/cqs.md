@@ -3,7 +3,7 @@
 ## Eclipse CQs - Compile
 
 | Group ID  | Artifact ID  | Version  | CQ  |
-|---|---|---|---|---|
+|---|---|---|---|
 |ch.qos.logback|logback-classic|1.2.3| [16306](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16306) |
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
 |com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
@@ -54,7 +54,6 @@
 |io.netty|netty-codec|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-common|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-handler|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
-|io.netty|netty|3.10.6.Final| [16316](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16316) |
 |io.netty|netty-resolver|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport|4.1.27.Final| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
 |io.netty|netty-transport-native-epoll|linux-x86_64| [16559](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16559) |
