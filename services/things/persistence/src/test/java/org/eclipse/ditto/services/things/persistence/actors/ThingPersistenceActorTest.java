@@ -63,6 +63,7 @@ import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
@@ -487,9 +488,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                     thingBuilder.setAttribute(JsonPointer.of("attr" + i), JsonValue.of(i));
                     thing = thingBuilder.build();
                     i++;
-                } while(thing.toJsonString().length() < TestConstants.THING_SIZE_LIMIT_BYTES);
+                } while (thing.toJsonString().length() < TestConstants.THING_SIZE_LIMIT_BYTES);
 
-                thing = thing.removeAttribute("attr" + (i-1));
+                thing = thing.removeAttribute("attr" + (i - 1));
 
                 final ActorRef underTest = createPersistenceActorFor(thing);
 
@@ -1579,6 +1580,22 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(restartCounter.get()).isEqualTo(1);
             }
         };
+    }
+
+    @Test
+    public void shutdownOnCommand() {
+        new TestKit(actorSystem) {{
+            final Thing thing = createThingV2WithRandomId();
+            final ActorRef underTest = watch(createSupervisorActorFor(thing.getId().get()));
+
+            final DistributedPubSubMediator.Subscribe subscribe =
+                    new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, underTest);
+            pubSubTestProbe.expectMsg(subscribe);
+            pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
+
+            underTest.tell(ShutdownNamespace.of(thing.getNamespace().get()), pubSubTestProbe.ref());
+            expectTerminated(underTest);
+        }};
     }
 
     private DittoHeaders testCreateAndModify(final Thing toCreate,

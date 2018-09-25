@@ -62,6 +62,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -85,6 +86,8 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.event.Logging;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -98,10 +101,12 @@ import scala.concurrent.duration.FiniteDuration;
 @RunWith(MockitoJUnitRunner.class)
 public final class ThingUpdaterTest {
 
-    private static final String POLICY_ID = "abc:policy";
-    private static final long INITIAL_POLICY_REVISION = -1L;
-    private static final String THING_ID = "abc:myId";
+    private static final String NAMESPACE = "abc";
 
+    private static final String POLICY_ID = NAMESPACE + ":policy";
+    private static final String THING_ID = NAMESPACE + ":myId";
+
+    private static final long INITIAL_POLICY_REVISION = -1L;
     private static final long REVISION = 1L;
 
     private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
@@ -117,6 +122,7 @@ public final class ThingUpdaterTest {
     private static final int MOCKITO_TIMEOUT = 2500;
 
     private ActorSystem actorSystem;
+    private TestProbe pubSubTestProbe;
 
     @Mock
     private ThingsSearchUpdaterPersistence persistenceMock;
@@ -146,6 +152,7 @@ public final class ThingUpdaterTest {
     private void startActorSystem(final Config config) {
         shutdownActorSystem();
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        pubSubTestProbe = TestProbe.apply(actorSystem);
     }
 
     private void shutdownActorSystem() {
@@ -153,6 +160,7 @@ public final class ThingUpdaterTest {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
+        pubSubTestProbe = null;
     }
 
     @Test
@@ -577,6 +585,9 @@ public final class ThingUpdaterTest {
     /** */
     @Test
     public void policyEventTriggersPolicyUpdate() {
+        actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
+        actorSystem.log().info("Re-enable logging should the test fail.");
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
         final long policyRevision = REVISION;
         final long newPolicyRevision = 2L;
         final Policy initialPolicy = Policy.newBuilder(THING_ID)
@@ -889,6 +900,24 @@ public final class ThingUpdaterTest {
         };
     }
 
+    @Test
+    public void shutdownOnCommand() {
+        new JavaTestProbe(actorSystem) {
+            {
+                final ActorRef underTest = watch(createInitializedThingUpdaterActor());
+
+                final DistributedPubSubMediator.Subscribe subscribe =
+                        new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, underTest);
+                pubSubTestProbe.expectMsg(subscribe);
+                pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
+
+                underTest.tell(ShutdownNamespace.of(NAMESPACE), pubSubTestProbe.ref());
+                expectTerminated(underTest);
+            }
+        };
+
+    }
+
     private void expectRetrievePolicyAndAnswer(
             final Policy policy,
             final TestProbe policiesActor,
@@ -975,8 +1004,8 @@ public final class ThingUpdaterTest {
                 new CircuitBreaker(actorSystem.dispatcher(), actorSystem.scheduler(), 5, Duration.create(30, "s"),
                         Duration.create(1, "min"));
 
-        final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
-                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100)
+        final Props props = ThingUpdater.props(pubSubTestProbe.ref(), persistenceMock, circuitBreaker, thingsShard,
+                policiesShard, java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100)
                 .withMailbox("akka.actor.custom-updater-mailbox");
 
         return actorSystem.actorOf(props, THING_ID);
@@ -1012,12 +1041,6 @@ public final class ThingUpdaterTest {
         // null type makes the event invalid!!
         when(invalidThingEvent.getType()).thenReturn(null);
         return invalidThingEvent;
-    }
-
-    private void expectRetrieveThingAndPolicy(final Thing thing, final Policy policy,
-            final ActorRef thingUpdater, final TestProbe thingsActor, final TestProbe policiesActor) {
-        expectRetrieveThingAndAnswer(thing, thingsActor, thingUpdater);
-        expectRetrievePolicyAndAnswer(policy, policiesActor, thingUpdater, null, DittoHeaders.empty());
     }
 
     private void expectRetrieveThingAndAnswer(final Thing thing,

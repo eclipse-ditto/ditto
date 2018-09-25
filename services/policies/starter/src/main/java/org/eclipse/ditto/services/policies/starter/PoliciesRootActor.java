@@ -17,7 +17,6 @@ import static akka.http.javadsl.server.Directives.logResult;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;

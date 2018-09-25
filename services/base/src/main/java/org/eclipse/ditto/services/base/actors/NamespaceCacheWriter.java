@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.base.actors;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -39,6 +40,8 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "namespaceCacheWriter";
+
+    private static final char NAMESPACE_SEPARATOR = ':';
 
     private final Cache<String, Object> namespaceCache;
 
@@ -78,7 +81,7 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
             final Cache<String, Object> namespaceCache,
             final BiFunction<String, WithDittoHeaders, DittoRuntimeException> errorCreator) {
 
-        return NamespaceBlockingBehavior.of(namespaceCache, errorCreator).asPreEnforcer();
+        return BlockNamespaceBehavior.of(namespaceCache, errorCreator).asPreEnforcer();
     }
 
     @Override
@@ -91,5 +94,12 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
     private void blockNamespace(final BlockNamespace blockNamespace) {
         final String namespace = blockNamespace.getNamespace();
         namespaceCache.put(namespace, namespace);
+    }
+
+    static Optional<String> namespaceFromId(final String id) {
+        final int i = id.indexOf(NAMESPACE_SEPARATOR);
+        return i >= 0
+                ? Optional.of(id.substring(0, i))
+                : Optional.empty();
     }
 }

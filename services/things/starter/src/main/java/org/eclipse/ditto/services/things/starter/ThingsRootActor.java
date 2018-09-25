@@ -272,7 +272,7 @@ final class ThingsRootActor extends AbstractActor {
         final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
 
-        return ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
+        return ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
                 ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
     }
 

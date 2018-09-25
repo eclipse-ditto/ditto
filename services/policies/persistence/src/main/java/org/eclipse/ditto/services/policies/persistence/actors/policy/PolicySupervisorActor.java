@@ -25,6 +25,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
 import org.eclipse.ditto.services.policies.persistence.actors.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.ReceiveStrategy;
 import org.eclipse.ditto.services.policies.persistence.actors.StrategyAwareReceiveBuilder;
@@ -62,6 +63,7 @@ public class PolicySupervisorActor extends AbstractActor {
     private final Duration maxBackoff;
     private final double randomFactor;
     private final SupervisorStrategy supervisorStrategy;
+    private final ShutdownNamespaceBehavior onShutdownNamespace;
 
     private ActorRef child;
     private long restartCount;
@@ -83,6 +85,8 @@ public class PolicySupervisorActor extends AbstractActor {
         this.maxBackoff = maxBackoff;
         this.randomFactor = randomFactor;
         this.supervisorStrategy = supervisorStrategy;
+
+        onShutdownNamespace = ShutdownNamespaceBehavior.fromId(policyId, getSelf()).initPubSub(pubSubMediator);
     }
 
     /**
@@ -147,6 +151,8 @@ public class PolicySupervisorActor extends AbstractActor {
         final Collection<ReceiveStrategy<?>> receiveStrategies = initReceiveStrategies();
         final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
         receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
+        strategyAwareReceiveBuilder.match(onShutdownNamespace.shutdownClass(), onShutdownNamespace::shutdown);
+        strategyAwareReceiveBuilder.match(onShutdownNamespace.subscribeAckClass(), onShutdownNamespace::subscribeAck);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
         return strategyAwareReceiveBuilder.build();

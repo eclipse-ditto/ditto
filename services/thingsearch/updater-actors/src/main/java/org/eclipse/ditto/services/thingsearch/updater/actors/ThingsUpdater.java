@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.base.actors.NamespaceBlockingBehavior;
+import org.eclipse.ditto.services.base.actors.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
@@ -67,7 +67,7 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
-    private final NamespaceBlockingBehavior<String> namespaceBlockingBehavior;
+    private final BlockNamespaceBehavior<String> namespaceBlockingBehavior;
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -87,8 +87,9 @@ final class ThingsUpdater extends AbstractActor {
         final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
 
         final Props thingUpdaterProps =
-                ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize)
+                ThingUpdater.props(pubSubMediator, searchUpdaterPersistence, circuitBreaker, thingsShardRegion,
+                        policiesShardRegion, thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT,
+                        maxBulkSize)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -102,7 +103,7 @@ final class ThingsUpdater extends AbstractActor {
                     self());
         }
 
-        namespaceBlockingBehavior = NamespaceBlockingBehavior.of(namespaceCache);
+        namespaceBlockingBehavior = BlockNamespaceBehavior.of(namespaceCache);
     }
 
     /**

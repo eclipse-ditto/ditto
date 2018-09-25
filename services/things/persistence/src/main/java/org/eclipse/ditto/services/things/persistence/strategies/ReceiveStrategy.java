@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.things.persistence.strategies;
 
+import java.util.function.Consumer;
+
 /**
  * This interface represents a strategy for received messages in the Thing managing actors.
  *
@@ -31,6 +33,18 @@ public interface ReceiveStrategy<T> {
      * @param message the message.
      */
     void apply(T message);
+
+    /**
+     * Create a simple receive strategy.
+     *
+     * @param clazz the class to match on.
+     * @param consumer the message handler.
+     * @param <T> type of messages handled.
+     * @return a simple receive strategy.
+     */
+    static <T> ReceiveStrategy<T> simple(final Class<T> clazz, final Consumer<T> consumer) {
+        return new SimpleReceiveStrategy<>(clazz, consumer);
+    }
 
     /**
      * Extends the {@link ReceiveStrategy} interface with a {@code defined} function that returns {@code true} if the
@@ -67,6 +81,32 @@ public interface ReceiveStrategy<T> {
          */
         void unhandled(T message);
 
+    }
+
+    /**
+     * A simple receive strategy handling messages of a type via a consumer.
+     *
+     * @param <T> type of messages handled.
+     */
+    final class SimpleReceiveStrategy<T> implements ReceiveStrategy<T> {
+
+        private final Class<T> clazz;
+        private final Consumer<T> handler;
+
+        private SimpleReceiveStrategy(final Class<T> clazz, final Consumer<T> handler) {
+            this.clazz = clazz;
+            this.handler = handler;
+        }
+
+        @Override
+        public Class<T> getMatchingClass() {
+            return clazz;
+        }
+
+        @Override
+        public void apply(final T message) {
+            handler.accept(message);
+        }
     }
 
 }

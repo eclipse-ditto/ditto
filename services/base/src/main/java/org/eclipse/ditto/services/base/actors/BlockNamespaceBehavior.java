@@ -34,14 +34,12 @@ import scala.util.Right;
  *
  * @param <T> type of replies for blocked namespaces.
  */
-public final class NamespaceBlockingBehavior<T> {
-
-    private static final char NAMESPACE_SEPARATOR = ':';
+public final class BlockNamespaceBehavior<T> {
 
     private final Cache<String, Object> namespaceCache;
     private final BiFunction<String, WithDittoHeaders, T> errorCreator;
 
-    private NamespaceBlockingBehavior(final Cache<String, Object> namespaceCache,
+    private BlockNamespaceBehavior(final Cache<String, Object> namespaceCache,
             final BiFunction<String, WithDittoHeaders, T> errorCreator) {
 
         this.namespaceCache = namespaceCache;
@@ -56,10 +54,10 @@ public final class NamespaceBlockingBehavior<T> {
      * @param <T> type of replies for blocked messages.
      * @return the namespace-blocking behavior.
      */
-    public static <T> NamespaceBlockingBehavior<T> of(final Cache<String, Object> namespaceCache,
+    public static <T> BlockNamespaceBehavior<T> of(final Cache<String, Object> namespaceCache,
             final BiFunction<String, WithDittoHeaders, T> errorCreator) {
 
-        return new NamespaceBlockingBehavior<>(namespaceCache, errorCreator);
+        return new BlockNamespaceBehavior<>(namespaceCache, errorCreator);
     }
 
     /**
@@ -68,9 +66,9 @@ public final class NamespaceBlockingBehavior<T> {
      * @param namespaceCache the cache to read namespaces from.
      * @return the namespace-blocking behavior.
      */
-    public static NamespaceBlockingBehavior<String> of(final Cache<String, Object> namespaceCache) {
+    public static BlockNamespaceBehavior<String> of(final Cache<String, Object> namespaceCache) {
 
-        return new NamespaceBlockingBehavior<>(namespaceCache, (ns, msg) -> ns);
+        return new BlockNamespaceBehavior<>(namespaceCache, (ns, msg) -> ns);
     }
 
     /**
@@ -81,11 +79,11 @@ public final class NamespaceBlockingBehavior<T> {
      */
     public CompletionStage<Either<T, WithDittoHeaders>> apply(final WithDittoHeaders withDittoHeaders) {
         if (withDittoHeaders instanceof WithId) {
-            final String id = ((WithId) withDittoHeaders).getId();
-            final int i = id.indexOf(NAMESPACE_SEPARATOR);
-            if (i >= 0) {
+            final Optional<String> namespaceOptional =
+                    NamespaceCacheWriter.namespaceFromId(((WithId) withDittoHeaders).getId());
+            if (namespaceOptional.isPresent()) {
                 // check namespace
-                final String namespace = id.substring(0, i);
+                final String namespace = namespaceOptional.get();
                 return namespaceCache.getIfPresent(namespace)
                         .thenApply(cachedNamespace -> cachedNamespace
                                 .<Either<T, WithDittoHeaders>>map(cachedValue ->
