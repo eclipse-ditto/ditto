@@ -12,6 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -20,10 +21,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.base.actors.NamespaceBlockingBehavior;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
+import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -62,6 +67,7 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
+    private final NamespaceBlockingBehavior<String> namespaceBlockingBehavior;
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -69,7 +75,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final Cache<String, Object> namespaceCache) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -94,6 +101,8 @@ final class ThingsUpdater extends AbstractActor {
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
                     self());
         }
+
+        namespaceBlockingBehavior = NamespaceBlockingBehavior.of(namespaceCache);
     }
 
     /**
@@ -104,6 +113,7 @@ final class ThingsUpdater extends AbstractActor {
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
      * actively updated
      * @param maxBulkSize maximum number of events to update in a bulk.
+     * @param namespaceCache cache of namespaces to block.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
@@ -112,7 +122,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final Cache<String, Object> namespaceCache) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
@@ -120,7 +131,7 @@ final class ThingsUpdater extends AbstractActor {
             @Override
             public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize);
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, namespaceCache);
             }
         });
     }
@@ -163,10 +174,16 @@ final class ThingsUpdater extends AbstractActor {
 
     private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-        thingIdsForPolicy(policyEvent.getPolicyId())
-                .thenAccept(thingIds ->
-                        thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id))
-                );
+        final String policyId = policyEvent.getPolicyId();
+        namespaceBlockingBehavior.asPreEnforcer()
+                .apply(policyEvent)
+                .thenCompose(event -> thingIdsForPolicy(policyId))
+                .thenAccept(thingIds -> thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id)))
+                .exceptionally(error -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
+                    log.info("Policy event ''{}'' not applied due to ''{}''", policyEvent, error);
+                    return null;
+                });
     }
 
     private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
@@ -204,7 +221,9 @@ final class ThingsUpdater extends AbstractActor {
         final JsonObject jsonObject = toJson.apply(message);
         final DittoHeaders dittoHeaders = getDittoHeaders.apply(message);
         final ShardedMessageEnvelope messageEnvelope = ShardedMessageEnvelope.of(id, type, jsonObject, dittoHeaders);
-        shardRegion.forward(messageEnvelope, context());
+
+        namespaceBlockingBehavior.acknowledgeOrForward(getContext(), shardRegion, acknowledgeBlockedNamespace(message))
+                .accept(messageEnvelope);
     }
 
     private void forwardPolicyEventToShardRegion(final PolicyEvent<?> policyEvent, final String thingId) {
@@ -215,6 +234,15 @@ final class ThingsUpdater extends AbstractActor {
 
     private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'", subscribeAck.subscribe().topic());
+    }
+
+    private static Function<String, Optional<StreamAck>> acknowledgeBlockedNamespace(final Object message) {
+        // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.
+        if (message instanceof IdentifiableStreamingMessage) {
+            return ns -> Optional.of(StreamAck.success(((IdentifiableStreamingMessage) message).asIdentifierString()));
+        } else {
+            return ns -> Optional.empty();
+        }
     }
 
 }

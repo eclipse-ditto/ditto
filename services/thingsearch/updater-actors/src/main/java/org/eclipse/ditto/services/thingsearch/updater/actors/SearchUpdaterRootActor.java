@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.services.base.actors.NamespaceCacheWriter;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventT
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
@@ -111,9 +113,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
-        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
-                .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize));
+        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
+        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME,
+                ThingsUpdater.props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, namespaceCache));
+        startChildActor(NamespaceCacheWriter.ACTOR_NAME,
+                NamespaceCacheWriter.props(namespaceCache, pubSubMediator, configReader.instanceIndex()));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

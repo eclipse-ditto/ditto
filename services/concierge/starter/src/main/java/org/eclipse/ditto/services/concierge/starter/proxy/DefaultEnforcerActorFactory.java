@@ -20,12 +20,12 @@ import java.util.function.Function;
 import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.services.base.actors.NamespaceCacheWriter;
 import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.update.NamespaceCacheWriter;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
@@ -125,10 +125,10 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final String description = String.format("Please try again after %s.",
                 devOpsConfigReader.namespaceBlockTime().toString());
 
-        return NamespaceCacheWriter.blockCachedNamespaces(namespaceCache, (namespace, dittoHeaders) ->
+        return NamespaceCacheWriter.blockCachedNamespaces(namespaceCache, (namespace, msg) ->
                 NamespaceBlockedException.newBuilder(namespace)
                         .description(description)
-                        .dittoHeaders(dittoHeaders)
+                        .dittoHeaders(msg.getDittoHeaders())
                         .build());
     }
 

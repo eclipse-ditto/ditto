@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -31,6 +32,9 @@ import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -44,6 +48,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -53,6 +58,7 @@ import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Test for {@link org.eclipse.ditto.services.thingsearch.updater.actors.ThingsUpdater}.
@@ -73,6 +79,7 @@ public class ThingsUpdaterTest {
     private ActorSystem actorSystem;
     private TestProbe shardMessageReceiver;
     private ShardRegionFactory shardRegionFactory;
+    private Cache<String, Object> namespaceCache;
 
     @Before
     public void setUp() {
@@ -82,6 +89,7 @@ public class ThingsUpdaterTest {
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
                 ShardRegionFactory.getInstance(actorSystem)
         );
+        namespaceCache = CaffeineCache.of(Caffeine.newBuilder());
     }
 
     @After
@@ -147,6 +155,44 @@ public class ThingsUpdaterTest {
         }};
     }
 
+    @Test
+    public void blockAndAcknowledgeMessagesByNamespace() {
+        final PolicyEvent notBlockedPolicyEvent =
+                PolicyDeleted.of("not.blocked:policy", 8L, Instant.now(), KNOWN_HEADERS);
+        final PolicyEvent blockedPolicyEvent =
+                PolicyDeleted.of("blocked:policy", 9L, Instant.now(), KNOWN_HEADERS);
+        final Set<String> thingIds = new HashSet<>(Arrays.asList("not.blocked:thing", "blocked:thing1"));
+        final ThingEvent thingEvent = ThingDeleted.of("blocked:thing2", 10L, KNOWN_HEADERS);
+        final ThingTag thingTag = ThingTag.of("blocked:thing3", 11L);
+        final PolicyReferenceTag refTag = PolicyReferenceTag.of("blocked:thing4", PolicyTag.of(KNOWN_POLICY_ID, 12L));
+
+        namespaceCache.asMap().put("blocked", "blocked");
+
+        new TestKit(actorSystem) {{
+            when(persistence.getThingIdsForPolicy(anyString())).thenReturn(Source.single(thingIds));
+
+            final ActorRef underTest = createThingsUpdater();
+
+            // events blocked silently
+            underTest.tell(thingEvent, getRef());
+            underTest.tell(blockedPolicyEvent, getRef());
+
+            // policy event only forwarded to not.blocked:thing1
+            underTest.tell(notBlockedPolicyEvent, getRef());
+            expectShardedMessage(shardMessageReceiver, notBlockedPolicyEvent, "not.blocked:thing");
+
+            // thing tag blocked with acknowledgement
+            underTest.tell(thingTag, getRef());
+            expectMsg(StreamAck.success(thingTag.asIdentifierString()));
+
+            // policy tag blocked with acknowledgement
+            underTest.tell(refTag, getRef());
+            expectMsg(StreamAck.success(refTag.asIdentifierString()));
+
+            // check that blocked messages are not forwarded to shard region
+            shardMessageReceiver.expectNoMessage(FiniteDuration.create(1L, TimeUnit.SECONDS));
+        }};
+    }
 
     private void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final String id) {
         final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
@@ -172,7 +218,8 @@ public class ThingsUpdaterTest {
                 circuitBreaker,
                 eventProcessingActive,
                 activityCheckInterval,
-                Integer.MAX_VALUE));
+                Integer.MAX_VALUE,
+                namespaceCache));
     }
 
     private ThingsSearchUpdaterPersistence waitUntil() {

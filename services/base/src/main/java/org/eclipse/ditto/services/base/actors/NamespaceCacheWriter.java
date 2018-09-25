@@ -9,22 +9,19 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.concierge.cache.update;
+package org.eclipse.ditto.services.base.actors;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -42,8 +39,6 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "namespaceCacheWriter";
-
-    private static final char NAMESPACE_SEPARATOR = ':';
 
     private final Cache<String, Object> namespaceCache;
 
@@ -81,26 +76,9 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
      */
     public static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces(
             final Cache<String, Object> namespaceCache,
-            final BiFunction<String, DittoHeaders, DittoRuntimeException> errorCreator) {
+            final BiFunction<String, WithDittoHeaders, DittoRuntimeException> errorCreator) {
 
-        return withDittoHeaders -> {
-            if (withDittoHeaders instanceof WithId) {
-                final String id = ((WithId) withDittoHeaders).getId();
-                final int i = id.indexOf(NAMESPACE_SEPARATOR);
-                if (i >= 0) {
-                    // check namespace
-                    final String namespace = id.substring(0, i);
-                    return namespaceCache.getIfPresent(namespace)
-                            .thenApply(cachedNamespace -> {
-                                cachedNamespace.ifPresent(cachedValue -> {
-                                    throw errorCreator.apply(namespace, withDittoHeaders.getDittoHeaders());
-                                });
-                                return withDittoHeaders;
-                            });
-                }
-            }
-            return CompletableFuture.completedFuture(withDittoHeaders);
-        };
+        return NamespaceBlockingBehavior.of(namespaceCache, errorCreator).asPreEnforcer();
     }
 
     @Override

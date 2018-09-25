@@ -9,7 +9,7 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - initial contribution
  */
-package org.eclipse.ditto.services.concierge.cache.update;
+package org.eclipse.ditto.services.base.actors;
 
 import static java.util.Objects.requireNonNull;
 
