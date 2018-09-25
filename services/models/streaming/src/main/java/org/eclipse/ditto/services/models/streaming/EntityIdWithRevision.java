@@ -15,12 +15,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Represents the ID of an entity with a revision of the entity.
  */
-public interface EntityIdWithRevision extends Jsonifiable, IdentifiableStreamingMessage {
+public interface EntityIdWithRevision extends Jsonifiable<JsonObject>, IdentifiableStreamingMessage {
 
     /**
      * Returns the ID of the modified entity.
