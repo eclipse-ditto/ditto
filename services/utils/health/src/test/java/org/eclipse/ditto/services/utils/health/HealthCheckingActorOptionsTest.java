@@ -39,7 +39,6 @@ public final class HealthCheckingActorOptionsTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(HealthCheckingActorOptions.class)
-                .withPrefabValues(Supplier.class, () -> null, () -> null)
                 .usingGetClass()
                 .verify();
     }
