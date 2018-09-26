@@ -125,6 +125,7 @@ final class ImmutableConnection implements Connection {
                 .connectionStatus(connection.getConnectionStatus())
                 .credentials(connection.getCredentials().orElse(null))
                 .uri(connection.getUri())
+                .trustedCertificates(connection.getTrustedCertificates().orElse(null))
                 .failoverEnabled(connection.isFailoverEnabled())
                 .validateCertificate(connection.isValidateCertificates())
                 .processorPoolSize(connection.getProcessorPoolSize())
