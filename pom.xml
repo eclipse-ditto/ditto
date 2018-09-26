@@ -502,18 +502,10 @@
                         <id>copy-legal-docs</id>
                         <phase>prepare-package</phase>
                         <goals>
-                            <goal>unpack</goal>
+                            <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.eclipse.ditto</groupId>
-                                    <artifactId>ditto-legal</artifactId>
-                                    <version>${project.version}</version>
-                                    <type>jar</type>
-                                    <overWrite>false</overWrite>
-                                </artifactItem>
-                            </artifactItems>
+                            <includeArtifactIds>ditto-legal</includeArtifactIds>
                             <excludes>NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
                             <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
                         </configuration>
