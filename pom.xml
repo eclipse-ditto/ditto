@@ -408,6 +408,8 @@
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
+                            <Include-Resource>META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>
+                            <!--<Include-Resource>{maven-resources},META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>-->
                         </instructions>
                     </configuration>
                 </plugin>
@@ -510,15 +512,15 @@
                                     <version>${project.version}</version>
                                     <type>jar</type>
                                     <overWrite>false</overWrite>
-                                    <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
-                                    <excludes>NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
                                 </artifactItem>
                             </artifactItems>
+                            <excludes>NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
                         </configuration>
                     </execution>
                     <execution>
                         <id>copy-dependencies</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
