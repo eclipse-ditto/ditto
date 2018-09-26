@@ -1,3 +1,14 @@
+## Eclipse Ditto :: Legal
+
+This folder contains license-informations of Ditto itself and used third-parties.
+
+### Update used dependencies
+
+Have a look at folder [3rd-party-dependencies](3rd-party-dependencies) and the shell scripts inside in order to update
+the used `compile`, `provided`, `test` dependencies and used `maven-plugins`.
+
+### Update NOTICE-THIRD-PARTY.md
+
 Generate/update the file [NOTICE-THIRD-PARTY.md](NOTICE-THIRD-PARTY.md) like this:
 
 ```bash
