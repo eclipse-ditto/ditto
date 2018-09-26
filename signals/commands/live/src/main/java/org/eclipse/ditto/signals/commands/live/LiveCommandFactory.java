@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.live;
 
@@ -25,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyLiveCommandFactory;
+import org.eclipse.ditto.signals.commands.live.query.QueryLiveCommandFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
@@ -51,8 +51,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
-
-import org.eclipse.ditto.signals.commands.live.query.QueryLiveCommandFactory;
 
 /**
  * A factory for creating immutable instances of {@link LiveCommand} based on existing <em>Twin Commands</em>.

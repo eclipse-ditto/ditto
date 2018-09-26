@@ -10,7 +10,7 @@
     <#assign p = e.getKey()/>
     <#assign licenses = e.getValue()/>
     <#return "## " + p.name + " (" + p.version + ")"
-        + "\n\n * Maven coordinates: " + p.groupId + ":" + p.artifactId + ":" + p.version
+        + "\n\n * Maven coordinates: `" + p.groupId + ":" + p.artifactId + ":" + p.version + "`"
         + "\n * License: " + licenseFormat(licenses)
         + "\n * Project: " + p.url
         + "\n * Source: " + p.scm.url
