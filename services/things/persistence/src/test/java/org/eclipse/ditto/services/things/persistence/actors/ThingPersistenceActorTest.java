@@ -188,6 +188,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 thingActor.tell(PoisonPill.getInstance(), getRef());
                 expectTerminated(thingActor);
 
+                // wait for supervisor to react to termination message
+                Thread.sleep(500L);
+
                 // retrieve unavailable thing
                 underTest.tell(retrieveThing, getRef());
                 expectMsgClass(ThingUnavailableException.class);
