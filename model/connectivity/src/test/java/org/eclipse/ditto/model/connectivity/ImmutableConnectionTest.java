@@ -174,6 +174,30 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
+    public void getBuilderFromConnectionCoversAllFields() {
+
+        final Connection connection = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
+                .sources(SOURCES)
+                .targets(TARGETS)
+                .connectionStatus(ConnectionStatus.OPEN)
+                .name("connection")
+                .clientCount(5)
+                .tag("AAA")
+                .trustedCertificates("certs")
+                .processorPoolSize(8)
+                .credentials(ClientCertificateCredentials.newBuilder()
+                        .clientKey("clientkey")
+                        .clientCertificate("certificate")
+                        .build())
+                .validateCertificate(true)
+                .uri("amqps://some.amqp.org:5672")
+                .id("id")
+                .build();
+
+        assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);
+    }
+
+    @Test
     public void createInstanceWithNullSources() {
         final ConnectionBuilder builder = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI);
 
