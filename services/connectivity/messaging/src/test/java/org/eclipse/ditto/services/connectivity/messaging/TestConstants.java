@@ -64,6 +64,7 @@ import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.Logging;
 import akka.japi.Creator;
 
 public class TestConstants {
@@ -74,6 +75,13 @@ public class TestConstants {
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    public static void disableLogging(final ActorSystem system) {
+        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+    }
 
     public static class Things {
 

@@ -17,6 +17,7 @@ import static org.eclipse.ditto.json.JsonFactory.newPointer;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
+import static org.eclipse.ditto.services.thingsearch.updater.actors.TestUtils.disableLogging;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -185,10 +186,11 @@ public final class ThingUpdaterTest {
 
     @Test
     public void unknownThingEventTriggersResync() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
+        disableLogging(actorSystem);
 
         new TestKit(actorSystem) {
             {
+                final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().schemaVersion(V_1).build();
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
@@ -330,6 +332,8 @@ public final class ThingUpdaterTest {
 
     @Test
     public void databaseExceptionTriggersSync() {
+        disableLogging(actorSystem);
+
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(V_1)
                 .build();
@@ -457,6 +461,7 @@ public final class ThingUpdaterTest {
 
     @Test
     public void persistenceErrorForCombinedWritesTriggersSync() {
+        disableLogging(actorSystem);
         new TestKit(actorSystem) {
             {
                 final long revision = 1L;
@@ -501,6 +506,8 @@ public final class ThingUpdaterTest {
 
     @Test
     public void invalidThingEventTriggersSync() {
+        disableLogging(actorSystem);
+
         new TestKit(actorSystem) {
             {
                 final ThingEvent<?> invalidThingEvent = createInvalidThingEvent();
@@ -735,6 +742,8 @@ public final class ThingUpdaterTest {
                 final SudoRetrievePolicy sudoRetrievePolicy =
                         policiesShardProbe.expectMsgClass(SudoRetrievePolicy.class);
                 assertEquals(policyId, sudoRetrievePolicy.getId());
+
+                when(persistenceMock.updatePolicy(any(), any())).thenReturn(Source.single(true));
                 underTest.tell(policyResponse, null);
 
                 waitUntil().updatePolicy(eq(thingWithPolicy), any(Enforcer.class));
@@ -853,10 +862,11 @@ public final class ThingUpdaterTest {
 
     @Test
     public void acknowledgesFailedSync() {
-        final long thingTagRevision = 7L;
+        disableLogging(actorSystem);
 
         new JavaTestProbe(actorSystem) {
             {
+                final long thingTagRevision = 7L;
                 final TestProbe thingsShardProbe = TestProbe.apply(actorSystem);
                 final TestProbe policiesShardProbe = TestProbe.apply(actorSystem);
                 final ActorRef underTest = createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe);
@@ -1043,14 +1053,6 @@ public final class ThingUpdaterTest {
         return invalidThingEvent;
     }
 
-    private void expectRetrieveThingAndAnswer(final Thing thing,
-            final TestProbe thingsActor, final ActorRef thingUpdater) {
-        expectShardedSudoRetrieveThing(thingsActor, thing.getId().orElseThrow(IllegalStateException::new));
-
-        thingUpdater.tell(createSudoRetrieveThingsResponse(thing, DittoHeaders.empty()),
-                ActorRef.noSender());
-    }
-
     private static SudoRetrieveThingResponse createSudoRetrieveThingsResponse(final Thing thing,
             final DittoHeaders headers) {
 
@@ -1070,7 +1072,6 @@ public final class ThingUpdaterTest {
         assertThat(envelope.getId()).isEqualTo(thingId);
         return envelope;
     }
-
 
     private scala.concurrent.duration.FiniteDuration toScala(final java.time.Duration duration) {
         return scala.concurrent.duration.Duration.fromNanos(duration.toNanos());

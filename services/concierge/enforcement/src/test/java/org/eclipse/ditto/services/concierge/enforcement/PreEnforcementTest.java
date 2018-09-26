@@ -43,6 +43,7 @@ import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.event.Logging;
 import akka.testkit.TestActorRef;
 import akka.testkit.javadsl.TestKit;
 
@@ -98,6 +99,8 @@ public final class PreEnforcementTest {
 
     @Test
     public void rejectWhenPreEnforcementThrowsDittoRuntimeException() {
+        disableLogging();
+
         final JsonObject thingWithAcl = newThing()
                 .setPermissions(
                         AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
@@ -128,6 +131,8 @@ public final class PreEnforcementTest {
 
     @Test
     public void rejectWhenPreEnforcementReturnsUnexpectedException() {
+        disableLogging();
+
         final JsonObject thingWithAcl = newThing()
                 .setPermissions(
                         AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
@@ -159,5 +164,12 @@ public final class PreEnforcementTest {
     private ActorRef newEnforcerActor(final ActorRef testActorRef,
             final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor, preEnforcer);
+    }
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    private void disableLogging() {
+        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 }

@@ -33,6 +33,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -79,6 +80,7 @@ public class DefaultStreamForwarderTest {
 
     @Test
     public void streamWithTimeout() {
+        disableLogging();
         new TestKit(actorSystem) {
             {
                 final ActorRef streamForwarder = createStreamForwarder(Duration.ofMillis(100));
@@ -105,6 +107,7 @@ public class DefaultStreamForwarderTest {
      */
     @Test
     public void streamWithFailure() {
+        disableLogging();
         new TestKit(actorSystem) {
             {
                 final ActorRef streamForwarder = createStreamForwarder();
@@ -175,4 +178,10 @@ public class DefaultStreamForwarderTest {
         return createStreamForwarder(MAX_IDLE_TIME);
     }
 
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    private void disableLogging() {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+    }
 }

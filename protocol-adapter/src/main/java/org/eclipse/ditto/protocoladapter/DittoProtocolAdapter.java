@@ -79,7 +79,7 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
         this.thingQueryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
         this.headerTranslator = headerTranslator;
-        logger.info("Created ProtocolAdapter with headerTranslator <{}>.", headerTranslator);
+        logger.debug("Created ProtocolAdapter with headerTranslator <{}>.", headerTranslator);
     }
 
     /**

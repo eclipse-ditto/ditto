@@ -55,6 +55,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Kill;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -260,6 +261,7 @@ public final class BatchCoordinatorActorTest {
     /** */
     @Test
     public void batchExecutionResumesAfterRecovery() {
+        disableLogging();
         new JavaTestProbe(actorSystem) {
             {
                 final String batchId = randomBatchId();
@@ -378,6 +380,13 @@ public final class BatchCoordinatorActorTest {
                     ModifyAttributesResponse.modified(command.getThingId(), command.getDittoHeaders());
             getSender().tell(response, getSelf());
         }
+    }
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    private void disableLogging() {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 
 }

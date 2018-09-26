@@ -47,6 +47,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -202,5 +203,12 @@ public abstract class PersistenceActorTestBase {
         protected void starting(final org.junit.runner.Description description) {
             logger.info("Testing: {}#{}()", description.getTestClass().getSimpleName(), description.getMethodName());
         }
+    }
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    protected void disableLogging() {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 }
