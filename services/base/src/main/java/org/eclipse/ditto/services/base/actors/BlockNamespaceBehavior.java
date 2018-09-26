@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.WithId;
@@ -69,6 +70,19 @@ public final class BlockNamespaceBehavior<T> {
     public static BlockNamespaceBehavior<String> of(final Cache<String, Object> namespaceCache) {
 
         return new BlockNamespaceBehavior<>(namespaceCache, (ns, msg) -> ns);
+    }
+
+    /**
+     * Create a pre-enforcer function from the cache that blocks all cached namespaces
+     *
+     * @param namespaceCache cache of namespaces.
+     * @return the pre-enforcer function that raises an exception if and only if the namespace is cached.
+     */
+    public static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> asPreEnforcer(
+            final Cache<String, Object> namespaceCache,
+            final BiFunction<String, WithDittoHeaders, DittoRuntimeException> errorCreator) {
+
+        return of(namespaceCache, errorCreator).asPreEnforcer();
     }
 
     /**

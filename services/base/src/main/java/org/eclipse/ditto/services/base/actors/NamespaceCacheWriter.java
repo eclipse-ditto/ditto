@@ -71,19 +71,6 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(timeToBlock));
     }
 
-    /**
-     * Create a pre-enforcer function from the cache that blocks all cached namespaces
-     *
-     * @param namespaceCache cache of namespaces.
-     * @return the pre-enforcer function that raises an exception if and only if the namespace is cached.
-     */
-    public static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces(
-            final Cache<String, Object> namespaceCache,
-            final BiFunction<String, WithDittoHeaders, DittoRuntimeException> errorCreator) {
-
-        return BlockNamespaceBehavior.of(namespaceCache, errorCreator).asPreEnforcer();
-    }
-
     @Override
     protected Receive handleEvents() {
         return ReceiveBuilder.create()
