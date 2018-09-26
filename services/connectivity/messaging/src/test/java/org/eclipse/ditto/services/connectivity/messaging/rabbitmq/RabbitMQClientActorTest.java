@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
@@ -33,7 +32,6 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;

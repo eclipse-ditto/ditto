@@ -1,23 +1,23 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.live.modify;
 
-import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions.assertThat;
 
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
@@ -28,8 +28,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
 
 /**
  * Unit test for {@link DeleteAttributesLiveCommandAnswerBuilderImpl}.

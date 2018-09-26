@@ -15,8 +15,8 @@ In order to start Ditto, you'll need:
     * or by using the pre-built [Ditto images on Docker Hub](https://hub.docker.com/u/eclipse/).
 
 ```bash
-# switch to the docker/ directory:
-cd docker/
+# switch to the deployment/docker/ directory:
+cd deployment/docker/
 docker-compose up -d
 ```
 

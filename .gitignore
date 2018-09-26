@@ -10,8 +10,8 @@
 target/
 /ditto_all_dependencies/
 dependencies.txt
-/docker/.env
-/docker/sandbox/.env
-/docker/sandbox/postgres
-/docker/sandbox/graphite/storage
+/deployment/docker/.env
+/deployment/docker/sandbox/.env
+/deployment/docker/sandbox/postgres
+/deployment/docker/sandbox/graphite/storage
 ajcore.*.txt
