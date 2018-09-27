@@ -15,7 +15,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientA
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -23,9 +22,13 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -38,41 +41,50 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 public class MqttConsumerActor extends AbstractActor {
 
     static final String ACTOR_NAME_PREFIX = "mqttConsumer-";
+    private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext sourceAuthorizationContext;
-    private final Set<String> enforcementFilters;
+//    private final Enforcement enforcement;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     private final AddressMetric addressMetric;
     private final ActorRef deadLetters;
     private final boolean dryRun;
+    @Nullable private final EnforcementFilterFactory<String, String> enforcementFilterFactory;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
-            final Set<String> enforcementFilters,
+            final Enforcement enforcement,
             final boolean dryRun) {
         this.messageMappingProcessor = messageMappingProcessor;
         this.sourceAuthorizationContext = sourceAuthorizationContext;
-        this.enforcementFilters = enforcementFilters;
+//        this.enforcement = enforcement;
         this.dryRun = dryRun;
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
         deadLetters = getContext().system().deadLetters();
+
+        if (enforcement != null) {
+            this.enforcementFilterFactory = EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement,
+                    TopicPlaceholder.INSTANCE);
+        } else {
+            enforcementFilterFactory = null;
+        }
     }
 
     static Props props(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
-            final Set<String> enforcementFilters,
+            final Enforcement enforcement,
             final boolean dryRun) {
         return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttConsumerActor create() {
-                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcementFilters,
+                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcement,
                         dryRun);
             }
         });
@@ -90,12 +102,12 @@ public class MqttConsumerActor extends AbstractActor {
 
                     final HashMap<String, String> headers = new HashMap<>();
 
-                    headers.put("mqtt.topic", message.topic());
+                    headers.put(MQTT_TOPIC_HEADER, message.topic());
 
-                    final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                    final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                             .withBytes(message.payload().toByteBuffer())
                             .withAuthorizationContext(sourceAuthorizationContext)
-                            .withThingIdEnforcement(getThingIdEnforcement(message))
+                            .withEnforcement(getEnforcementFilter(message.topic()))
                             .build();
 
                     lastMessageConsumedAt = Instant.now();
@@ -121,10 +133,10 @@ public class MqttConsumerActor extends AbstractActor {
     }
 
     @Nullable
-    private ThingIdEnforcement getThingIdEnforcement(final MqttMessage message) {
-        if (enforcementFilters != null && !enforcementFilters.isEmpty()) {
-            return ThingIdEnforcement.of(message.topic(), enforcementFilters)
-                    .withErrorMessage(getIdEnforcementErrorMessage(message));
+    private EnforcementFilter<String> getEnforcementFilter(final String topic) {
+        if (enforcementFilterFactory != null) {
+            return enforcementFilterFactory.getFilter(topic);
+            // TODO error message
         } else {
             return null;
         }
@@ -157,8 +169,8 @@ public class MqttConsumerActor extends AbstractActor {
         }
     }
 
-    private static String getIdEnforcementErrorMessage(final MqttMessage message) {
+    private static String getIdEnforcementErrorMessage(final String topic) {
         return String.format("The MQTT topic ''%s'' of the Ditto protocol message does not match any message filter " +
-                "configured for the connection.", message.topic());
+                "configured for the connection.", topic);
     }
 }

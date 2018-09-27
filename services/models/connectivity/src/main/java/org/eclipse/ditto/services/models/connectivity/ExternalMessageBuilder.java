@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *  All rights reserved. This program and the accompanying materials
+ *  are made available under the terms of the Eclipse Public License v2.0
+ *  which accompanies this distribution, and is available at
+ *  https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * SPDX-License-Identifier: EPL-2.0
+ *  SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -16,6 +16,8 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Builder for building instances of {@link ExternalMessage}.
@@ -49,7 +51,7 @@ public interface ExternalMessageBuilder {
 
     /**
      * Sets the passed {@code text} to the builder and also changing the
-     * {@link org.eclipse.ditto.model.connectivity.ExternalMessage.PayloadType PayloadType} to {@code TEXT}.
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code TEXT}.
      *
      * @param text the text payload to set
      * @return this builder in order to enable method chaining
@@ -58,7 +60,7 @@ public interface ExternalMessageBuilder {
 
     /**
      * Sets the passed {@code bytes} to the builder and also changing the
-     * {@link org.eclipse.ditto.model.connectivity.ExternalMessage.PayloadType PayloadType} to {@code BYTES}.
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code BYTES}.
      *
      * @param bytes the bytes payload to set
      * @return this builder in order to enable method chaining
@@ -67,7 +69,7 @@ public interface ExternalMessageBuilder {
 
     /**
      * Sets the passed {@code bytes} to the builder and also changing the
-     * {@link org.eclipse.ditto.model.connectivity.ExternalMessage.PayloadType PayloadType} to {@code BYTES}.
+     * {@link ExternalMessage.PayloadType PayloadType} to {@code BYTES}.
      *
      * @param bytes the bytes payload to set
      * @return this builder in order to enable method chaining
@@ -83,12 +85,13 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withAuthorizationContext(AuthorizationContext authorizationContext);
 
     /**
-     * Associates {@link ThingIdEnforcement} data with the message. Pass {@code null} to disable enforcement.
+     * Associates {@link Enforcement} data with the message. Pass {@code null} to disable enforcement.
      *
-     * @param thingIdEnforcement enforcement data
+     * @param <F> the {@link EnforcementFilter} type
+     * @param enforcement enforcement data
      * @return this builder in order to enable method chaining
      */
-    ExternalMessageBuilder withThingIdEnforcement(@Nullable ThingIdEnforcement thingIdEnforcement);
+    <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
 
     /**
      * Marks the message as a response message.

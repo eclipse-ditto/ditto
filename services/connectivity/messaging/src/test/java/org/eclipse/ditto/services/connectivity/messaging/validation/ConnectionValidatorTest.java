@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
@@ -64,9 +65,12 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectionStatus.OPEN,
                         "amqp://localhost:5671")
-                        .sources(Collections.singletonList(
-                                ConnectivityModelFactory.newSource(1, 0,
-                                        Authorization.AUTHORIZATION_CONTEXT)))
+                        .sources(singletonList(
+                                ConnectivityModelFactory.newSourceBuilder()
+                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                        .consumerCount(0)
+                                        .index(1)
+                                        .build()))
                         .build();
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());
@@ -79,10 +83,13 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder("id", ConnectionType.AMQP_10, ConnectionStatus.OPEN,
                         "amqp://localhost:5671")
-                        .sources(Collections.singletonList(
-                                ConnectivityModelFactory.newSource(1, 0,
-                                        Authorization.AUTHORIZATION_CONTEXT,
-                                        "sourceAddress1", "")))
+                        .sources(singletonList(
+                                ConnectivityModelFactory.newSourceBuilder()
+                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                        .address("")
+                                        .consumerCount(1)
+                                        .index(0)
+                                        .build()))
                         .build();
 
         final ConnectionValidator underTest = ConnectionValidator.of(AmqpValidator.newInstance());

@@ -31,10 +31,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -141,7 +142,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
             headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder externalMessageBuilder =
-                    ConnectivityModelFactory.newExternalMessageBuilder(headers);
+                    ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
             if (shouldBeInterpretedAsText(contentType)) {
                 final String text = new String(body, MessageMappers.determineCharset(contentType));

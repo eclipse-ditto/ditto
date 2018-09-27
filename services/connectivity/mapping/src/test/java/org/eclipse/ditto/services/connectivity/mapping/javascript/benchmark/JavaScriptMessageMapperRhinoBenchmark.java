@@ -12,8 +12,8 @@ package org.eclipse.ditto.services.connectivity.mapping.javascript.benchmark;
 
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Scope;

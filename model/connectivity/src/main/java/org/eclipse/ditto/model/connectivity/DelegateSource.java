@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
  * Abstract class that delegates to an existing {@link Source}. Used to extend the default fields of a {@link Source}
@@ -23,8 +24,8 @@ abstract class DelegateSource implements Source {
 
     protected final Source delegate;
 
-    protected DelegateSource(final Source delegate) {
-        this.delegate = delegate;
+    DelegateSource(final Source delegate) {
+        this.delegate = ConditionChecker.checkNotNull(delegate, "delegate");
     }
 
     @Override
@@ -45,6 +46,11 @@ abstract class DelegateSource implements Source {
     @Override
     public int getIndex() {
         return delegate.getIndex();
+    }
+
+    @Override
+    public Enforcement getEnforcement() {
+        return delegate.getEnforcement();
     }
 
     @Override

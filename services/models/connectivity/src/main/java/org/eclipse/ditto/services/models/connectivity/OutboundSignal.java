@@ -1,23 +1,23 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
+ *  All rights reserved. This program and the accompanying materials
+ *  are made available under the terms of the Eclipse Public License v2.0
+ *  which accompanies this distribution, and is available at
+ *  https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
+ *  SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.Set;
 
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
- * Represents an outbound signal i.e. a signal that is sent from Ditto to an external target.
+ * Represents an outbound signal i.e. a signal that is sent from Ditto to an external target. It contains the
+ * original signal and the set of targets where this signal should be delivered.
  */
 public interface OutboundSignal {
 

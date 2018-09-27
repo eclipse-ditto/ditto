@@ -48,6 +48,9 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -403,7 +406,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
-        final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
+        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, filteredTargets);
         clientActorRouter.tell(outbound, getSelf());
     }
 

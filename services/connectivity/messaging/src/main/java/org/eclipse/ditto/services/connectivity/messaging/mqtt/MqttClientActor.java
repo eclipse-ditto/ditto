@@ -277,7 +277,8 @@ public class MqttClientActor extends BaseClientActor {
 
             final Props mqttConsumerActorProps =
                     MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext(),
-                            mqttSource.getFilters(), dryRun);
+                            source.getEnforcement(),
+                            dryRun);
             final ActorRef mqttConsumerActor = startChildActorConflictFree(actorNamePrefix, mqttConsumerActorProps);
 
             consumerByActorNameWithIndex.put(actorNamePrefix, mqttConsumerActor);

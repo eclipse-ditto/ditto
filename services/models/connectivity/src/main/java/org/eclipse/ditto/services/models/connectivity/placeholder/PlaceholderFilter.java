@@ -1,0 +1,217 @@
+/*
+ *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *
+ *  All rights reserved. This program and the accompanying materials
+ *  are made available under the terms of the Eclipse Public License v2.0
+ *  which accompanies this distribution, and is available at
+ *  https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ *  SPDX-License-Identifier: EPL-2.0
+ */
+
+package org.eclipse.ditto.services.models.connectivity.placeholder;
+
+import static java.util.regex.Pattern.quote;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder.SEPARATOR;
+
+import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+
+/**
+ * A filter implementation to replace defined placeholders with their values.
+ */
+public final class PlaceholderFilter {
+
+    private static final String PLACEHOLDER_START = "{{";
+    private static final String PLACEHOLDER_END = "}}";
+    private static final String CHARS = "(?:\\w|[-])+"; // \w = [a-zA-Z_0-9]
+    private static final String SPACES = " *";
+    private static final String PLACEHOLDER_REGEX =
+            quote(PLACEHOLDER_START) // opening double curly braces
+                    + SPACES // arbitrary number of spaces (useful for readability if embedded somewhere)
+                    + "(" + CHARS + ")" // the prefix of the placeholder
+                    + SEPARATOR // the separator between prefix and value
+                    + "(" + CHARS + ")" // the actual value of the placeholder
+                    + SPACES // arbitrary number of spaces (useful for readability if embedded somewhere)
+                    + quote(PLACEHOLDER_END); // closing double curly braces
+    private static final Pattern PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
+
+
+    public AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
+            final Map<String, String> headers) {
+
+        // check if we have to replace anything at all
+        if (authorizationContext.stream()
+                .noneMatch(authorizationSubject -> containsPlaceholder(authorizationSubject.getId()))) {
+            return authorizationContext;
+        }
+
+        final ImmutableHeadersPlaceholder headersPlaceholder = ImmutableHeadersPlaceholder.INSTANCE;
+        final List<AuthorizationSubject> subjects = authorizationContext.stream()
+                .map(AuthorizationSubject::getId)
+                .map(id -> apply(id, headers, headersPlaceholder))
+                .map(AuthorizationModelFactory::newAuthSubject)
+                .collect(Collectors.toList());
+        return AuthorizationModelFactory.newAuthContext(subjects);
+    }
+
+    public Set<Target> filterTargets(final Set<Target> targets, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+        // check if we have to replace anything at all
+        if (targets.stream().map(Target::getAddress).noneMatch(PlaceholderFilter::containsPlaceholder)) {
+            return targets;
+        }
+
+        return targets.stream()
+                .map(target -> {
+                    final String filtered =
+                            applyThingPlaceholder(target.getAddress(), thingId, unresolvedPlaceholderListener);
+                    return filtered != null ? target.withAddress(filtered) : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+
+//    Collection<String> filterAddresses(final Collection<String> addresses, final String thingId,
+//            final Consumer<String> unresolvedPlaceholderListener) {
+//
+//        // check if we have to replace anything at all
+//        if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
+//            return addresses;
+//        }
+//
+//        return filterAddressesAsMap(addresses, thingId, unresolvedPlaceholderListener).values();
+//    }
+
+    /**
+     * Apply thing placeholders to addresses and collect the result as a map.
+     *
+     * @param addresses addresses to apply placeholder substitution.
+     * @param thingId the thing ID.
+     * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
+     * @return map from successfully filtered addresses to the result of placeholder substitution.
+     */
+    public Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+
+        return addresses.stream()
+                .flatMap(address -> {
+                    final String filteredAddress =
+                            applyThingPlaceholder(address, thingId, unresolvedPlaceholderListener);
+                    return filteredAddress == null
+                            ? Stream.empty()
+                            : Stream.of(new AbstractMap.SimpleEntry<>(address, filteredAddress));
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    @Nullable
+    private String applyThingPlaceholder(final String address, final String thingId,
+            final Consumer<String> unresolvedPlaceholderListener) {
+        try {
+            return apply(address, thingId, ImmutableThingPlaceholder.INSTANCE);
+        } catch (final UnresolvedPlaceholderException e) {
+            unresolvedPlaceholderListener.accept(address);
+            return null;
+        }
+    }
+
+    public static <T> String apply(final String template, final T source, final Placeholder<T> thePlaceholder) {
+        return apply(template, source, thePlaceholder, true);
+    }
+
+    public static <T> String apply(final String template, final T source, final Placeholder<T> thePlaceholder,
+            final boolean check) {
+        final Matcher matcher = PATTERN.matcher(template);
+        final StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            final String prefix = matcher.group(1);
+            final String placeholder = matcher.group(2);
+            Stream.of(thePlaceholder)
+                    .filter(p -> p.getPrefix().equals(prefix))
+                    .filter(p -> p.supports(placeholder))
+                    .map(p -> p.apply(source, placeholder))
+                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
+                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
+                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
+        }
+        matcher.appendTail(sb);
+
+        if (check) {
+            return checkAllPlaceholdersResolved(sb.toString());
+        } else {
+            return sb.toString();
+        }
+    }
+
+    public static <T> String validate(final String template, final Placeholder<T> thePlaceholder) {
+        final Matcher matcher = PATTERN.matcher(template);
+        final StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            final String prefix = matcher.group(1);
+            final String placeholder = matcher.group(2);
+            Stream.of(thePlaceholder)
+                    .filter(p -> p.getPrefix().equals(prefix))
+                    .filter(p -> p.supports(placeholder))
+                    .map(p -> Optional.of("valid"))
+                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
+                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
+                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
+        }
+        matcher.appendTail(sb);
+
+        return checkAllPlaceholdersResolved(sb.toString());
+    }
+
+//    String apply(final String source, final Placeholder requiredPlaceHolder,
+//            final Placeholder... optionalPlaceholders) {
+//        final List<Placeholder> placeholders = new ArrayList<>(optionalPlaceholders.length + 1);
+//        placeholders.add(requiredPlaceHolder);
+//        placeholders.addAll(Arrays.asList(optionalPlaceholders));
+//        final Matcher matcher = PATTERN.matcher(source);
+//        final StringBuffer sb = new StringBuffer();
+//        while (matcher.find()) {
+//            final String prefix = matcher.group(1);
+//            final String placeholder = matcher.group(2);
+//            placeholders.stream()
+//                    .filter(p -> p.getPrefix().equals(prefix))
+//                    .filter(p -> p.supports(placeholder))
+//                    .map(p -> p.apply(placeholder))
+//                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
+//                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
+//                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
+//        }
+//        matcher.appendTail(sb);
+//        return checkAllPlaceholdersResolved(sb.toString());
+//    }
+
+    static String checkAllPlaceholdersResolved(final String s) {
+        if (containsPlaceholder(s)) {
+            throw UnresolvedPlaceholderException.newBuilder().message(s).build();
+        }
+        return s;
+    }
+
+    static boolean containsPlaceholder(final String value) {
+        return value.contains(PLACEHOLDER_START) || value.contains(PLACEHOLDER_END);
+    }
+
+}

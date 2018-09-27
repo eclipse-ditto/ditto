@@ -52,9 +52,8 @@ public final class ImmutableConnectionTest {
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
 
-    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(0, AUTHORIZATION_CONTEXT, "amqp/source1");
-    private static final Source SOURCE2 =
-            ConnectivityModelFactory.newSource(1, 1, AUTHORIZATION_CONTEXT, "amqp/source2");
+    private static final Source SOURCE1 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source1");
+    private static final Source SOURCE2 = ConnectivityModelFactory.newSource(AUTHORIZATION_CONTEXT, "amqp/source2", 1);
     private static final List<Source> SOURCES = Arrays.asList(SOURCE1, SOURCE2);
     private static final Target TARGET1 =
             ConnectivityModelFactory.newTarget("amqp/target1", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS,
@@ -129,6 +128,15 @@ public final class ImmutableConnectionTest {
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
             .build();
+
+    @Test
+    public void test() {
+        final String uri = "amqps://messaging%40tst_suite_broker_e15794b408ad43ba8905ee1ba604eb14_hub" +
+                ":We5w8dMuSHRooVJZ3p8s@35.158.186.142:5671/";
+
+        System.out.println(ConnectionUri.of(uri).toString());
+
+    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -20,9 +20,11 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 
 /**
  * Connection specification for Amqp protocol.
@@ -45,7 +47,12 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        // noop
+        if (source.getEnforcement() != null) {
+            final Enforcement enforcement = source.getEnforcement();
+            validateEnforcement(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
+            enforcement.getMatchers().forEach(matcher -> validateEnforcement(matcher,
+                    PlaceholderFactory.newThingPlaceholder(), dittoHeaders));
+        }
     }
 
     @Override

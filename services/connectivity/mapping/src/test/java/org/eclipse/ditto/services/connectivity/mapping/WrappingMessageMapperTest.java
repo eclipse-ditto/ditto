@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

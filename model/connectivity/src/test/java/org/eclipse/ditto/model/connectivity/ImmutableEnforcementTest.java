@@ -18,18 +18,18 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class ThingIdEnforcementTest {
+public class ImmutableEnforcementTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ThingIdEnforcement.class)
+        EqualsVerifier.forClass(ImmutableEnforcement.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ThingIdEnforcement.class, areImmutable());
+        assertInstancesOf(ImmutableEnforcement.class, areImmutable());
     }
 
 }

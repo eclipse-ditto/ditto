@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.MessageFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +34,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -75,7 +77,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, Signal<?>, Signal<?>> adjustHeaders;
-    private final BiConsumer<ExternalMessage, Signal<?>> thingIdEnforcer;
+    private final BiConsumer<ExternalMessage, Signal<?>> applyEnforcement;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -89,7 +91,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
-        thingIdEnforcer = new ThingIdEnforcer(log);
+        applyEnforcement = new ApplyEnforcement(log);
     }
 
     /**
@@ -143,7 +145,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
-                thingIdEnforcer.accept(messageWithAuthSubject, signal);
+                applyEnforcement.accept(messageWithAuthSubject, signal);
                 final Signal<?> adjustedSignal = adjustHeaders.apply(messageWithAuthSubject, signal);
                 startTrace(adjustedSignal);
                 // This message is important to check if a command is accepted for a specific connection, as this
@@ -214,7 +216,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         enhanceLogUtil(signal);
         log.debug("Handling outbound signal: {}", signal);
         mapToExternalMessage(signal)
-                .map(message -> new MappedOutboundSignal(outbound, message))
+                .map(message -> OutboundSignalFactory.newMappedOutboundSignal(outbound, message))
                 .ifPresent(outboundSignal -> publisherActor.forward(outboundSignal, getContext()));
     }
 
@@ -226,7 +228,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleSignal(final Signal<?> signal) {
         // map to outbound signal without authorized target (responses and errors are only sent to its origin)
         log.debug("Handling raw signal: {}", signal);
-        handleOutboundSignal(new UnmappedOutboundSignal(signal, Collections.emptySet()));
+        handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptySet()));
     }
 
     private Optional<ExternalMessage> mapToExternalMessage(final Signal<?> signal) {
@@ -310,7 +312,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                     .collect(JsonCollectors.valuesToArray())
                     .toString();
         }
-
     }
 
     static final class AdjustHeaders implements BiFunction<ExternalMessage, Signal<?>, Signal<?>> {
@@ -345,36 +346,20 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     }
 
-    static final class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
+    static final class ApplyEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
 
-        private static final String UNRESOLVED_PLACEHOLDER_MESSAGE =
-                "The placeholder '{}' was not resolved, messages may be dropped.";
-        private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
         private final DiagnosticLoggingAdapter log;
 
-        ThingIdEnforcer(final DiagnosticLoggingAdapter log) {
+        ApplyEnforcement(final DiagnosticLoggingAdapter log) {
             this.log = log;
         }
 
         @Override
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
-            externalMessage.getThingIdEnforcement().ifPresent(thingIdEnforcement -> {
-                log.debug("Thing ID Enforcement enabled: {}", thingIdEnforcement);
-                final Collection<String> filtered =
-                        placeholderFilter.filterAddresses(thingIdEnforcement.getFilters(), signal.getId(),
-                                this::logUnresolvedPlaceholder);
-                final String enforcementTarget = thingIdEnforcement.getTarget();
-                log.debug("Target '{}' must match one of {}", enforcementTarget, filtered);
-                if (!filtered.contains(enforcementTarget)) {
-                    throw thingIdEnforcement.getError(signal.getDittoHeaders());
-                }
+            externalMessage.getEnforcementFilter().ifPresent(enforcement -> {
+                log.debug("Thing ID Enforcement enabled: {}", enforcement);
+                enforcement.match(signal.getId(), signal.getDittoHeaders());
             });
         }
-
-        private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {
-            log.info(UNRESOLVED_PLACEHOLDER_MESSAGE, unresolvedPlaceholder);
-        }
-
     }
-
 }

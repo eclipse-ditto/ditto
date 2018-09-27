@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+
 import akka.actor.AbstractActor;
 
 /**

@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -332,8 +333,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor) {
         final String namePrefix = consumer.getActorNamePrefix();
         final AuthorizationContext authorizationContext = consumer.getSource().getAuthorizationContext();
+        final Enforcement enforcement = consumer.getSource().getEnforcement();
         final Props props = AmqpConsumerActor.props(consumer.getAddress(), consumer.getMessageConsumer(),
-                messageMappingProcessor, authorizationContext);
+                messageMappingProcessor, authorizationContext, enforcement);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);

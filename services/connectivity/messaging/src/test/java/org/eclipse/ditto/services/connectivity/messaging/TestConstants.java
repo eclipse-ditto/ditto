@@ -11,7 +11,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Arrays.asList;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSource;
+import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 
@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -46,6 +45,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -97,11 +97,27 @@ public class TestConstants {
 
     public static class Sources {
 
+
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
-                asList(newSource(2, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "amqp/source1"));
+                singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("amqp/source1")
+                        .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                        .consumerCount(2)
+                        .index(0)
+                        .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
-                asList(newSource(1, 0, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"),
-                        newSource(1, 1, Authorization.SOURCE_SPECIFIC_CONTEXT, "source1"));
+                asList(ConnectivityModelFactory.newSourceBuilder()
+                                .address("source1")
+                                .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                                .consumerCount(1)
+                                .index(0)
+                                .build(),
+                        ConnectivityModelFactory.newSourceBuilder()
+                                .address("source1")
+                                .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                                .consumerCount(1)
+                                .index(1)
+                                .build());
     }
 
     public static class Targets {

@@ -32,12 +32,9 @@ import javax.annotation.Nullable;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.TrustManager;
 
-public class TrustManagerFactory {
+final class TrustManagerFactory {
 
     private static final String PKIX = "PKIX";
-    private static final String TLS12 = "TLSv1.2";
-    private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
-    private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
 
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;

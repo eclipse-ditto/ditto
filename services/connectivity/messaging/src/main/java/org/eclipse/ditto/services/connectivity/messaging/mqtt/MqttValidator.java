@@ -19,6 +19,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -26,12 +27,14 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.MqttTarget;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.PlaceholderFilter;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
@@ -48,6 +51,11 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
+
+    private static final PlaceholderFilter PLACEHOLDER_FILTER = new PlaceholderFilter();
+    private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
+            " values " +
+            "are: ''{1}''.";
 
 
     /**
@@ -87,7 +95,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
         final MqttSource mqttSource = (MqttSource) source;
         validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
-        validateSourceFilters(mqttSource.getFilters(), dittoHeaders, sourceDescription);
+        validateSourceEnforcement(mqttSource.getEnforcement(), dittoHeaders, sourceDescription);
     }
 
     @Override
@@ -123,26 +131,45 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static void validateSourceFilters(final Collection<String> filters,
-            final DittoHeaders dittoHeaders,
-            final Supplier<String> sourceDescription) {
+    private static void validateSourceEnforcement(@Nullable final Enforcement enforcement,
+            final DittoHeaders dittoHeaders, final Supplier<String> sourceDescription) {
+        if (enforcement != null) {
 
-        final String dummyThingId = "namespace:name";
-        final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
-        final Map<String, String> filtersMap = placeholderFilter.filterAddressesAsMap(filters, dummyThingId, filter -> {
-            throw invalidValueForConfig(filter, "filters", sourceDescription.get())
-                    .description("Placeholder substitution failed. " +
-                            "Please check the placeholder variables against the documentation.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        });
-        filtersMap.forEach((filter, mqttTopic) ->
-                validateMqttTopic(mqttTopic, true, errorMessage ->
-                        invalidValueForConfig(filter, "filters", sourceDescription.get())
-                                .description("The filter is not a valid MQTT topic after placeholder substitution. " +
-                                        "Wildcard characters are allowed.")
+            validateEnforcementOrigin(enforcement, sourceDescription);
+
+            final String dummyThingId = "namespace:name";
+            final Map<String, String> filtersMap = PLACEHOLDER_FILTER.filterAddressesAsMap(enforcement.getMatchers(),
+                    dummyThingId, matcher -> {
+                        throw invalidValueForConfig(matcher, "matchers", sourceDescription.get())
+                                .description("Placeholder substitution failed. " +
+                                        "Please check the placeholder variables against the documentation.")
                                 .dittoHeaders(dittoHeaders)
-                                .build()));
+                                .build();
+                    });
+            filtersMap.forEach((matcher, mqttTopic) ->
+                    validateMqttTopic(mqttTopic, true, errorMessage ->
+                            invalidValueForConfig(matcher, "matchers", sourceDescription.get())
+                                    .description(
+                                            "The matcher is not a valid MQTT topic after placeholder substitution. " +
+                                                    "Wildcard characters are allowed.")
+                                    .dittoHeaders(dittoHeaders)
+                                    .build()));
+        }
+    }
+
+    private static void validateEnforcementOrigin(final Enforcement enforcement,
+            final Supplier<String> sourceDescription) {
+        try {
+            EnforcementFactoryFactory
+                    .newThingIdEnforcementFactory(enforcement, TopicPlaceholder.INSTANCE)
+                    .getFilter("dummyTopic");
+        } catch (final DittoRuntimeException e) {
+            throw invalidValueForConfig(enforcement.getInput(), "origin", sourceDescription.get())
+                    .cause(e)
+                    .description(MessageFormat.format(ERROR_DESCRIPTION, enforcement.getInput(),
+                            TopicPlaceholder.VALID_VALUES))
+                    .build();
+        }
     }
 
     /*

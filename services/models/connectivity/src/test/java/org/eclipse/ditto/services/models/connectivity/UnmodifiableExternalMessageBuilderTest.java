@@ -1,23 +1,22 @@
 /*
- * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v2.0
- * which accompanies this distribution, and is available at
- * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
+ *  All rights reserved. This program and the accompanying materials
+ *  are made available under the terms of the Eclipse Public License v2.0
+ *  which accompanies this distribution, and is available at
+ *  https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
+ *  SPDX-License-Identifier: EPL-2.0
  */
 
-package org.eclipse.ditto.model.connectivity;
-
-import static org.assertj.core.api.Assertions.assertThat;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -55,18 +54,18 @@ public class UnmodifiableExternalMessageBuilderTest {
 
         final ExternalMessage externalMessage = messageBuilder.build();
 
-        assertThat(externalMessage.getHeaders()).containsEntry("eclipse", "ditto");
-        assertThat(externalMessage.getHeaders()).containsEntry("ditto", "eclipse");
-        assertThat(externalMessage.getAuthorizationContext()).contains(authorizationContext);
-        assertThat(externalMessage.isError()).isFalse();
-        assertThat(externalMessage.isResponse()).isFalse();
+        Assertions.assertThat(externalMessage.getHeaders()).containsEntry("eclipse", "ditto");
+        Assertions.assertThat(externalMessage.getHeaders()).containsEntry("ditto", "eclipse");
+        Assertions.assertThat(externalMessage.getAuthorizationContext()).contains(authorizationContext);
+        Assertions.assertThat(externalMessage.isError()).isFalse();
+        Assertions.assertThat(externalMessage.isResponse()).isFalse();
 
         if (bytePayload) {
-            assertThat(externalMessage.getTextPayload()).isEmpty();
-            assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
+            Assertions.assertThat(externalMessage.getTextPayload()).isEmpty();
+            Assertions.assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(BYTES));
         } else {
-            assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
-            assertThat(externalMessage.getBytePayload()).isEmpty();
+            Assertions.assertThat(externalMessage.getTextPayload()).contains(PAYLOAD);
+            Assertions.assertThat(externalMessage.getBytePayload()).isEmpty();
         }
     }
 

@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -52,6 +53,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return an index to distinguish between sources that would otherwise be different
      */
     int getIndex();
+
+
+    /**
+     * @return the enforcement options that should be applied to this source
+     */
+    @Nullable
+    Enforcement getEnforcement();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -100,6 +108,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} enforcement options.
+         */
+        public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
+                JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {
