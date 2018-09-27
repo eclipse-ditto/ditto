@@ -17,7 +17,7 @@
    com.lightbend.akka.management:akka-management_2.12:jar:0.14.0:compile
    com.lightbend.akka.management:akka-management-cluster-bootstrap_2.12:jar:0.14.0:compile
    com.newmotion:akka-rabbitmq_2.12:jar:5.0.0:compile
-   com.rabbitmq:amqp-client:jar:5.2.0:compile
+   com.rabbitmq:amqp-client:jar:5.4.2:compile
    com.typesafe.akka:akka-actor_2.12:jar:2.5.13:compile
    com.typesafe.akka:akka-cluster_2.12:jar:2.5.13:compile
    com.typesafe.akka:akka-cluster-sharding_2.12:jar:2.5.13:compile
