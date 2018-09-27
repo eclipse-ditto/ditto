@@ -23,7 +23,7 @@
 |com.lightbend.akka.management|akka-management_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|0.14.0| [16727](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16727) |
 |com.newmotion|akka-rabbitmq_2.12|5.0.0| [16333](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16333) |
-|com.rabbitmq|amqp-client|5.2.0| [16319](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16319) |
+|com.rabbitmq|amqp-client|5.4.2| [17744](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=17744) |
 |com.typesafe.akka|akka-actor_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-cluster_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-cluster-sharding_2.12|2.5.13| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |

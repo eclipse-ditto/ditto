@@ -42,6 +42,7 @@
         <akka-http.version>10.1.3</akka-http.version>
         <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
+        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
@@ -51,7 +52,7 @@
         <asm.version>5.2</asm.version>
         <qpid-jms-client.version>0.36.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
-        <amqp-client.version>5.2.0</amqp-client.version>
+        <amqp-client.version>5.4.2</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
         <netty.version>4.1.27.Final</netty.version>
 
@@ -97,7 +98,6 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
-        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
     </properties>
 
     <dependencyManagement>
