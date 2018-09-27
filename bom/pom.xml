@@ -930,6 +930,7 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-legal</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
