@@ -18,7 +18,6 @@ import static java.util.Objects.requireNonNull;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
@@ -49,15 +49,12 @@ import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ShardRegion;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -184,10 +181,7 @@ public final class ConciergeRootActor extends AbstractActor {
     private static void startClusterSingletonActor(final akka.actor.ActorContext context, final String actorName,
             final Props props) {
 
-        final ClusterSingletonManagerSettings settings =
-                ClusterSingletonManagerSettings.create(context.system())
-                        .withRole(ConciergeMessagingConstants.CLUSTER_ROLE);
-        context.actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
+        ClusterUtil.startSingleton(context, ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
     }
 
     private static ActorRef startHealthCheckingActor(final ActorContext context,

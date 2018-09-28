@@ -139,6 +139,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/services/utils/persistence/mongo/assertions/*</include>
+                                <include>org/eclipse/ditto/services/utils/persistence/mongo/namespace/*</include>
                             </includes>
                         </configuration>
                     </execution>

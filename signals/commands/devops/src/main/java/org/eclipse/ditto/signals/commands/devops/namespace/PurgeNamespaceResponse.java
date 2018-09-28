@@ -32,28 +32,29 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponse;
 
 /**
- * Response whether a namespace is empty.
+ * Response to speed up namespace purge.
+ * TODO: test this.
  */
 @Immutable
-public final class QueryNamespaceEmptinessResponse
-        extends AbstractCommandResponse<QueryNamespaceEmptinessResponse>
-        implements DevOpsCommandResponse<QueryNamespaceEmptinessResponse> {
+public final class PurgeNamespaceResponse
+        extends AbstractCommandResponse<PurgeNamespaceResponse>
+        implements DevOpsCommandResponse<PurgeNamespaceResponse> {
 
     /**
      * Type of the command response.
      */
-    public static final String TYPE = DevOpsCommandResponse.TYPE_PREFIX + QueryNamespaceEmptiness.NAME;
+    public static final String TYPE = DevOpsCommandResponse.TYPE_PREFIX + PurgeNamespace.NAME;
 
     private final String resourceType;
     private final String namespace;
-    private final boolean isEmpty;
+    private final boolean isSuccessful;
 
-    private QueryNamespaceEmptinessResponse(final Builder builder) {
+    private PurgeNamespaceResponse(final Builder builder) {
 
         super(TYPE, HttpStatusCode.OK, builder.dittoHeaders);
         this.resourceType = checkNotNull(builder.resourceType, "resourceType");
         this.namespace = checkNotNull(builder.namespace, "namespace");
-        this.isEmpty = builder.isEmpty;
+        this.isSuccessful = builder.isSuccessful;
     }
 
     public static Builder newBuilder() {
@@ -70,7 +71,7 @@ public final class QueryNamespaceEmptinessResponse
                 .dittoHeaders(getDittoHeaders())
                 .resourceType(resourceType)
                 .namespace(namespace)
-                .setEmptiness(isEmpty);
+                .setSuccessful(isSuccessful);
     }
 
     /**
@@ -83,12 +84,12 @@ public final class QueryNamespaceEmptinessResponse
     /**
      * @return whether the namespace has no data.
      */
-    public boolean isEmpty() {
-        return isEmpty;
+    public boolean isSuccessful() {
+        return isSuccessful;
     }
 
     public boolean isNotEmpty() {
-        return !isEmpty;
+        return !isSuccessful;
     }
 
     @Override
@@ -97,7 +98,7 @@ public final class QueryNamespaceEmptinessResponse
 
         jsonObjectBuilder.set(JsonFields.RESOURCE_TYPE, resourceType)
                 .set(JsonFields.NAMESPACE, namespace)
-                .set(JsonFields.IS_EMPTY, isEmpty);
+                .set(JsonFields.IS_SUCCESSFUL, isSuccessful);
     }
 
     @Override
@@ -111,18 +112,18 @@ public final class QueryNamespaceEmptinessResponse
     }
 
     @Override
-    public QueryNamespaceEmptinessResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public PurgeNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return toBuilder().dittoHeaders(dittoHeaders).build();
     }
 
     @Override
     public boolean equals(final Object o) {
-        final Class<? extends QueryNamespaceEmptinessResponse> clazz = getClass();
+        final Class<? extends PurgeNamespaceResponse> clazz = getClass();
         if (clazz.isInstance(o)) {
-            final QueryNamespaceEmptinessResponse that = clazz.cast(o);
+            final PurgeNamespaceResponse that = clazz.cast(o);
             return Objects.equals(resourceType, that.resourceType) &&
                     Objects.equals(namespace, that.namespace) &&
-                    isEmpty == that.isEmpty &&
+                    isSuccessful == that.isSuccessful &&
                     super.equals(that);
         } else {
             return false;
@@ -131,7 +132,7 @@ public final class QueryNamespaceEmptinessResponse
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), resourceType, namespace, isEmpty);
+        return Objects.hash(super.hashCode(), resourceType, namespace, isSuccessful);
     }
 
     @Override
@@ -139,7 +140,7 @@ public final class QueryNamespaceEmptinessResponse
         return getClass().getSimpleName() + " [" + super.toString() +
                 ", resourceType=" + resourceType +
                 ", namespace=" + namespace +
-                ", isEmpty=" + isEmpty +
+                ", isSuccessful=" + isSuccessful +
                 "]";
     }
 
@@ -150,12 +151,12 @@ public final class QueryNamespaceEmptinessResponse
      * @param headers Ditto headers.
      * @return the deserialized response.
      */
-    public static QueryNamespaceEmptinessResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
+    public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
         return newBuilder()
                 .dittoHeaders(headers)
                 .resourceType(jsonObject.getValueOrThrow(JsonFields.RESOURCE_TYPE))
                 .namespace(jsonObject.getValueOrThrow(JsonFields.NAMESPACE))
-                .setEmptiness(jsonObject.getValueOrThrow(JsonFields.IS_EMPTY))
+                .setSuccessful(jsonObject.getValueOrThrow(JsonFields.IS_SUCCESSFUL))
                 .build();
     }
 
@@ -166,7 +167,7 @@ public final class QueryNamespaceEmptinessResponse
 
         @Nullable private String resourceType;
         @Nullable private String namespace;
-        private boolean isEmpty;
+        private boolean isSuccessful;
         private DittoHeaders dittoHeaders = DittoHeaders.empty();
 
         /**
@@ -205,23 +206,13 @@ public final class QueryNamespaceEmptinessResponse
         /**
          * Set whether the namespace is empty.
          */
-        public Builder setEmptiness(final boolean isEmpty) {
-            this.isEmpty = isEmpty;
+        public Builder setSuccessful(final boolean isEmpty) {
+            this.isSuccessful = isEmpty;
             return this;
         }
 
-        public Builder isEmpty() {
-            isEmpty = true;
-            return this;
-        }
-
-        public Builder isNotEmpty() {
-            isEmpty = false;
-            return this;
-        }
-
-        public QueryNamespaceEmptinessResponse build() {
-            return new QueryNamespaceEmptinessResponse(this);
+        public PurgeNamespaceResponse build() {
+            return new PurgeNamespaceResponse(this);
         }
     }
 
@@ -245,7 +236,7 @@ public final class QueryNamespaceEmptinessResponse
         /**
          * Whether the namespace is empty.
          */
-        public static final JsonFieldDefinition<Boolean> IS_EMPTY =
-                JsonFactory.newBooleanFieldDefinition("isEmpty");
+        public static final JsonFieldDefinition<Boolean> IS_SUCCESSFUL =
+                JsonFactory.newBooleanFieldDefinition("isSuccessful");
     }
 }

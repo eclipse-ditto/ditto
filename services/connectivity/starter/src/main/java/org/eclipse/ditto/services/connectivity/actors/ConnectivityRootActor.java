@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActo
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
@@ -59,15 +60,12 @@ import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -304,9 +302,7 @@ public final class ConnectivityRootActor extends AbstractActor {
     }
 
     private void startClusterSingletonActor(final String actorName, final Props props) {
-        final ClusterSingletonManagerSettings settings =
-                ClusterSingletonManagerSettings.create(getContext().system()).withRole(CLUSTER_ROLE);
-        getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, actorName, props);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

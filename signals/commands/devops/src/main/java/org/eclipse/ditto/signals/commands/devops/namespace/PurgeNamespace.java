@@ -22,7 +22,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 @Immutable
 public final class PurgeNamespace extends NamespaceCommand<PurgeNamespace> {
 
-    public static final String TYPE = TYPE_PREFIX + "purgeNamespace";
+    static final String NAME = "purgeNamespace";
+
+    /**
+     * Type of the command.
+     */
+    public static final String TYPE = TYPE_PREFIX + NAME;
 
     private PurgeNamespace(final String namespace, final DittoHeaders dittoHeaders) {
         super(namespace, TYPE, dittoHeaders);
