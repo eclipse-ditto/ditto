@@ -33,6 +33,8 @@
                     <exclude>DOCUMENTATION-3RD-PARTY-NOTICES</exclude>
                     <exclude>templates/**</exclude>
                     <exclude>3rd-party-dependencies/*.sh</exclude>
+                    <exclude>target/**</exclude>
+                    <exclude>.flattened-pom.xml</exclude>
                 </excludes>
             </resource>
         </resources>
