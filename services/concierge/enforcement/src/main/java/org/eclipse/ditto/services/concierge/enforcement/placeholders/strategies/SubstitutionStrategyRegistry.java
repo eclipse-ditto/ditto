@@ -61,6 +61,14 @@ public final class SubstitutionStrategyRegistry {
         final List<SubstitutionStrategy> strategies = new LinkedList<>();
 
         strategies.add(new ModifySubjectSubstitutionStrategy());
+        strategies.add(new ModifySubjectsSubstitutionStrategy());
+        strategies.add(new ModifyPolicyEntrySubstitutionStrategy());
+        strategies.add(new ModifyPolicyEntriesSubstitutionStrategy());
+        strategies.add(new ModifyPolicySubstitutionStrategy());
+        strategies.add(new CreatePolicySubstitutionStrategy());
+
+        strategies.add(new ModifyThingSubstitutionStrategy());
+        strategies.add(new CreateThingSubstitutionStrategy());
 
         return strategies;
     }
