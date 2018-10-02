@@ -11,6 +11,7 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -20,8 +21,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Resource;
+import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.junit.Before;
@@ -49,8 +52,14 @@ public abstract class AbstractSubstitutionStrategyTestBase {
             .setAttributes(JsonObject.newBuilder().set("key", "val").build())
             .build();
 
+    protected static final Iterable<Permission> ACL_PERMISSIONS = Arrays.asList(Permission.READ, Permission.WRITE);
+
     protected static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(AuthorizationSubject.newInstance(SUBJECT_ID)))
+            .build();
+
+    protected static final DittoHeaders DITTO_HEADERS_V1 = DittoHeaders.newBuilder(DITTO_HEADERS)
+            .schemaVersion(JsonSchemaVersion.V_1)
             .build();
 
     protected PlaceholderSubstitution substitution;

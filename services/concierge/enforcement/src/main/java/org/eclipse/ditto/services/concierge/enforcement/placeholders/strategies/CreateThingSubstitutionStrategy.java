@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
         requireNonNull(substitutionAlgorithm);
 
         final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+
         final JsonObject inlinePolicyJson = createThing.getInitialPolicy().orElse(null);
         final JsonObject substitutedInlinePolicyJson;
         if (inlinePolicyJson == null) {
@@ -54,10 +56,13 @@ final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
                     substituteInitialPolicy(inlinePolicyJson, substitutionAlgorithm, dittoHeaders);
         }
 
-        if (Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
+        final Thing existingThing = createThing.getThing();
+        final Thing substitutedThing = substituteThing(existingThing, substitutionAlgorithm, dittoHeaders);
+
+        if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return createThing;
         } else {
-            return CreateThing.of(createThing.getThing(), substitutedInlinePolicyJson, dittoHeaders);
+            return CreateThing.of(substitutedThing, substitutedInlinePolicyJson, dittoHeaders);
         }
     }
 

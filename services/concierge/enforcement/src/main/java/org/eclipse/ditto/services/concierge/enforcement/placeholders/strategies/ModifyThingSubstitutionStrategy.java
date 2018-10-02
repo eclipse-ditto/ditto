@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
         requireNonNull(substitutionAlgorithm);
 
         final DittoHeaders dittoHeaders = modifyThing.getDittoHeaders();
+
         final JsonObject inlinePolicyJson = modifyThing.getInitialPolicy().orElse(null);
         final JsonObject substitutedInlinePolicyJson;
         if (inlinePolicyJson == null) {
@@ -54,10 +56,13 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
                     substituteInitialPolicy(inlinePolicyJson, substitutionAlgorithm, dittoHeaders);
         }
 
-        if (Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
+        final Thing existingThing = modifyThing.getThing();
+        final Thing substitutedThing = substituteThing(existingThing, substitutionAlgorithm, dittoHeaders);
+
+        if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return modifyThing;
         } else {
-            return ModifyThing.of(modifyThing.getThingId(), modifyThing.getThing(),
+            return ModifyThing.of(modifyThing.getThingId(), substitutedThing,
                     substitutedInlinePolicyJson, dittoHeaders);
         }
     }

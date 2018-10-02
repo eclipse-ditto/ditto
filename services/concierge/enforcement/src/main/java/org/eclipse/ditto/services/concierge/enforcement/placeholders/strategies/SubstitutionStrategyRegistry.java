@@ -60,6 +60,7 @@ public final class SubstitutionStrategyRegistry {
     private static List<SubstitutionStrategy> createStrategies() {
         final List<SubstitutionStrategy> strategies = new LinkedList<>();
 
+        // replacement for policy-subject-id
         strategies.add(new ModifySubjectSubstitutionStrategy());
         strategies.add(new ModifySubjectsSubstitutionStrategy());
         strategies.add(new ModifyPolicyEntrySubstitutionStrategy());
@@ -67,6 +68,11 @@ public final class SubstitutionStrategyRegistry {
         strategies.add(new ModifyPolicySubstitutionStrategy());
         strategies.add(new CreatePolicySubstitutionStrategy());
 
+        // replacement for acl-subject-id
+        strategies.add(new ModifyAclEntrySubstitutionStrategy());
+        strategies.add(new ModifyAclSubstitutionStrategy());
+
+        // replacement for both policy-subject-id and acl-subject-id
         strategies.add(new ModifyThingSubstitutionStrategy());
         strategies.add(new CreateThingSubstitutionStrategy());
 
