@@ -28,7 +28,8 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Handles substitution for {@link org.eclipse.ditto.model.policies.SubjectId}
+ * Handles substitution for ACL {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s and
+ * Policy {@link org.eclipse.ditto.model.policies.SubjectId}s
  * inside a {@link ModifyThing} command.
  */
 final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStrategy<ModifyThing> {
