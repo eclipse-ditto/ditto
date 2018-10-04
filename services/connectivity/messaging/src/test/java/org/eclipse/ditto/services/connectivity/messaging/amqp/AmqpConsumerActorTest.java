@@ -67,6 +67,8 @@ public class AmqpConsumerActorTest {
 
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String CONNECTION_ID = "connection";
+    private static final SimpleEntry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to" +
+            "-address");
 
     private static ActorSystem actorSystem;
 
@@ -111,7 +113,6 @@ public class AmqpConsumerActorTest {
 
             final ActorRef mappingActor = setupActor(publisher.ref(), concierge.ref(), null);
 
-
             final Enforcement enforcement =
                     ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
@@ -121,8 +122,7 @@ public class AmqpConsumerActorTest {
                             TestConstants.Authorization.AUTHORIZATION_CONTEXT, enforcement));
 
             //noinspection unchecked
-            underTest.tell(
-                    getJmsMessage(TestConstants.modifyThing(), "enforcement", header),
+            underTest.tell(getJmsMessage(TestConstants.modifyThing(), "enforcement", header, REPLY_TO_HEADER),
                     sender.ref());
 
             if (isForwardedToConcierge) {
@@ -137,6 +137,7 @@ public class AmqpConsumerActorTest {
                                 outboundSignal.getExternalMessage().getTextPayload().orElse(""),
                                 outboundSignal.getSource().getDittoHeaders());
                 assertThat(exception.getErrorCode()).isEqualTo(IdEnforcementFailedException.ERROR_CODE);
+                assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
                 concierge.expectNoMessage();
             }
         }};
@@ -240,6 +241,7 @@ public class AmqpConsumerActorTest {
         }};
     }
 
+    @SafeVarargs // varargs array is not modified or passed around
     private static JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
             final Map.Entry<String, String>... headers)
             throws JMSException {

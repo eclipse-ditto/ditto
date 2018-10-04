@@ -54,8 +54,7 @@ public final class PlaceholderFilter {
                     + quote(PLACEHOLDER_END); // closing double curly braces
     private static final Pattern PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
 
-
-    public AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
+    public static AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
         // check if we have to replace anything at all
@@ -73,7 +72,7 @@ public final class PlaceholderFilter {
         return AuthorizationModelFactory.newAuthContext(subjects);
     }
 
-    public Set<Target> filterTargets(final Set<Target> targets, final String thingId,
+    public static Set<Target> filterTargets(final Set<Target> targets, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
         if (targets.stream().map(Target::getAddress).noneMatch(PlaceholderFilter::containsPlaceholder)) {
@@ -90,6 +89,7 @@ public final class PlaceholderFilter {
                 .collect(Collectors.toSet());
     }
 
+
 //    Collection<String> filterAddresses(final Collection<String> addresses, final String thingId,
 //            final Consumer<String> unresolvedPlaceholderListener) {
 //
@@ -100,7 +100,6 @@ public final class PlaceholderFilter {
 //
 //        return filterAddressesAsMap(addresses, thingId, unresolvedPlaceholderListener).values();
 //    }
-
     /**
      * Apply thing placeholders to addresses and collect the result as a map.
      *
@@ -124,7 +123,7 @@ public final class PlaceholderFilter {
     }
 
     @Nullable
-    private String applyThingPlaceholder(final String address, final String thingId,
+    private static String applyThingPlaceholder(final String address, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         try {
             return apply(address, thingId, ImmutableThingPlaceholder.INSTANCE);
@@ -181,6 +180,7 @@ public final class PlaceholderFilter {
         return checkAllPlaceholdersResolved(sb.toString());
     }
 
+
 //    String apply(final String source, final Placeholder requiredPlaceHolder,
 //            final Placeholder... optionalPlaceholders) {
 //        final List<Placeholder> placeholders = new ArrayList<>(optionalPlaceholders.length + 1);
@@ -202,7 +202,6 @@ public final class PlaceholderFilter {
 //        matcher.appendTail(sb);
 //        return checkAllPlaceholdersResolved(sb.toString());
 //    }
-
     static String checkAllPlaceholdersResolved(final String s) {
         if (containsPlaceholder(s)) {
             throw UnresolvedPlaceholderException.newBuilder().message(s).build();
@@ -210,8 +209,11 @@ public final class PlaceholderFilter {
         return s;
     }
 
-    static boolean containsPlaceholder(final String value) {
+    private static boolean containsPlaceholder(final String value) {
         return value.contains(PLACEHOLDER_START) || value.contains(PLACEHOLDER_END);
     }
 
+    private PlaceholderFilter() {
+        throw new AssertionError();
+    }
 }

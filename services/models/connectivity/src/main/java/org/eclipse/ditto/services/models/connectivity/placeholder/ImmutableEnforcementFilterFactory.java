@@ -20,7 +20,6 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
  */
 public class ImmutableEnforcementFilterFactory<O, M> implements EnforcementFilterFactory<O, M> {
 
-    private static final PlaceholderFilter FILTER = new PlaceholderFilter();
     private final Enforcement enforcement;
     private final Placeholder<O> inputFilter;
     private final Placeholder<M> matcherFilter;
@@ -42,7 +41,7 @@ public class ImmutableEnforcementFilterFactory<O, M> implements EnforcementFilte
 
     @Override
     public EnforcementFilter<M> getFilter(final O input) {
-        final String inputResolved = FILTER.apply(enforcement.getInput(), input, inputFilter);
+        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(), input, inputFilter);
         return new ImmutableEnforcementFilter<>(enforcement, matcherFilter, inputResolved);
     }
 

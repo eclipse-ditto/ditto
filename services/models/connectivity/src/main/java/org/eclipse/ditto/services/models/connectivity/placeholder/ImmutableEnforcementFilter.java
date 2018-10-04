@@ -16,9 +16,13 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 
+/**
+ * Immutable implementation of an {@link EnforcementFilter}.
+ *
+ * @param <M> the type that is required to resolve the matchers.
+ */
 public final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
 
-    private static final PlaceholderFilter FILTER = new PlaceholderFilter();
     private final Enforcement enforcement;
     private final Placeholder<M> matcherFilter;
     private final String inputValue;
@@ -34,13 +38,13 @@ public final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M>
     public void match(final M matcherSource, final DittoHeaders dittoHeaders) {
         enforcement.getMatchers()
                 .stream()
-                .map(m -> FILTER.apply(m, matcherSource, matcherFilter))
+                .map(m -> PlaceholderFilter.apply(m, matcherSource, matcherFilter))
                 .filter(resolved -> resolved.equals(inputValue))
                 .findFirst()
-                .orElseThrow(() -> getException(dittoHeaders));
+                .orElseThrow(() -> getIdEnforcementFailedException(dittoHeaders));
     }
 
-    private IdEnforcementFailedException getException(
+    private IdEnforcementFailedException getIdEnforcementFailedException(
             final DittoHeaders dittoHeaders) {
         return IdEnforcementFailedException.newBuilder(inputValue).dittoHeaders(dittoHeaders).build();
     }

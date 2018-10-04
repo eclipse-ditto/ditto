@@ -283,13 +283,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static final class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
 
-        private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
 
         @Override
         public ExternalMessage apply(final ExternalMessage externalMessage) {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
             final AuthorizationContext filteredContext =
-                    placeholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
+                    PlaceholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
             final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
             return externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
                     authSubjectsArray);
