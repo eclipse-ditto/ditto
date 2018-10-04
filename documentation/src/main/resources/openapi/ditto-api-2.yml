@@ -1868,7 +1868,7 @@ paths:
             JSON representation of the Policy.
 
 
-            Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
           required: true
           schema:
             $ref: '#/definitions/Policy'
@@ -2027,7 +2027,7 @@ paths:
             JSON representation of the Policy entries.
 
 
-            Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
           required: true
           schema:
             $ref: '#/definitions/PolicyEntries'
@@ -2134,7 +2134,7 @@ paths:
             JSON representation of the Policy entry.
 
 
-            Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
           required: true
           schema:
             $ref: '#/definitions/PolicyEntry'
@@ -2295,7 +2295,7 @@ paths:
             JSON representation of the Subjects.
 
 
-            Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
           required: true
           schema:
             $ref: '#/definitions/Subjects'
@@ -3022,7 +3022,7 @@ definitions:
           The initial Policy to create for this Thing. This will create a separate Policy entity managed by resource `/policies/{thingId}`.
 
 
-          Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+          Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
       policyId:
         type: string
         description: >-
