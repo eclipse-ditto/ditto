@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
 
 
@@ -22,6 +24,7 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
  * Simple placeholder that currently only supports {{ mqtt:topic }} as a placeholder. In the context of an incoming
  * MQTT message the placeholder is resolved with the message topic.
  */
+@Immutable
 class TopicPlaceholder implements Placeholder<String> {
 
     private static final String PREFIX = "mqtt";

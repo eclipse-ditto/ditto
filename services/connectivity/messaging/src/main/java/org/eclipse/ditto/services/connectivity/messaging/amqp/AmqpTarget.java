@@ -16,6 +16,7 @@ import javax.jms.Destination;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsTopic;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 /**
@@ -31,6 +32,7 @@ public class AmqpTarget implements PublishTarget {
     private AmqpTarget(final Destination jmsDestination) {this.jmsDestination = jmsDestination;}
 
     static AmqpTarget fromTargetAddress(final String targetAddress) {
+        ConditionChecker.argumentNotEmpty(targetAddress, "targetAddress");
         final Destination destination;
         if (targetAddress.startsWith(TOPIC_PREFIX)) {
             destination = new JmsTopic(targetAddress.replace(TOPIC_PREFIX, EMPTY_STRING));
@@ -56,7 +58,6 @@ public class AmqpTarget implements PublishTarget {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(jmsDestination);
     }
 

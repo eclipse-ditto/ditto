@@ -162,7 +162,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
-    private final PlaceholderFilter placeholdersFilter = new PlaceholderFilter();
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
@@ -401,7 +400,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
-                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
+                PlaceholderFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
                         unresolvedPlaceholder -> log.info(UNRESOLVER_PLACEHOLDERS_MESSAGE, unresolvedPlaceholder));
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);

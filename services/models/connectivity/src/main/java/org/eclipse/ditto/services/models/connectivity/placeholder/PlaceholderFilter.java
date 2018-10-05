@@ -98,7 +98,7 @@ public final class PlaceholderFilter {
      * @param unresolvedPlaceholderListener what to do if placeholder substitution fails.
      * @return map from successfully filtered addresses to the result of placeholder substitution.
      */
-    public Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
+    public static Map<String, String> filterAddressesAsMap(final Collection<String> addresses, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
 
         return addresses.stream()

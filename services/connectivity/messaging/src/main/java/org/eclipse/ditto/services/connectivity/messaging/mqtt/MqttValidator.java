@@ -52,7 +52,6 @@ public final class MqttValidator extends AbstractProtocolValidator {
     private static final Collection<String> ACCEPTED_SCHEMES =
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
 
-    private static final PlaceholderFilter PLACEHOLDER_FILTER = new PlaceholderFilter();
     private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
             " values " +
             "are: ''{1}''.";
@@ -138,7 +137,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             validateEnforcementOrigin(enforcement, sourceDescription);
 
             final String dummyThingId = "namespace:name";
-            final Map<String, String> filtersMap = PLACEHOLDER_FILTER.filterAddressesAsMap(enforcement.getMatchers(),
+            final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getMatchers(),
                     dummyThingId, matcher -> {
                         throw invalidValueForConfig(matcher, "matchers", sourceDescription.get())
                                 .description("Placeholder substitution failed. " +

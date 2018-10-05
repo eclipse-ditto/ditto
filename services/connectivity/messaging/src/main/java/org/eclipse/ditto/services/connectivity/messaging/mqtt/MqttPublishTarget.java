@@ -12,12 +12,16 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.util.Objects;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
+
 
 /**
  * An MQTT target.
  */
+@Immutable
 class MqttPublishTarget implements PublishTarget {
 
     private final String topic;
@@ -28,10 +32,6 @@ class MqttPublishTarget implements PublishTarget {
 
     private MqttPublishTarget(final String topic) {
         this.topic = ConditionChecker.argumentNotEmpty(topic, "topic");
-    }
-
-    static MqttPublishTarget fromTargetAddress(final String targetAddress) {
-        return new MqttPublishTarget(targetAddress);
     }
 
     String getTopic() {
