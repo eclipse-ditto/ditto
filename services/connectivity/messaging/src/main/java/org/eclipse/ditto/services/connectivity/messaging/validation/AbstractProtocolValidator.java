@@ -30,7 +30,6 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFil
  */
 public abstract class AbstractProtocolValidator {
 
-    private static final PlaceholderFilter PLACEHOLDER_FILTER = new PlaceholderFilter();
     private static final String ENFORCEMENT_ERROR_MESSAGE = "The placeholder ''{0}'' could not be processed " +
             "successfully by ''{1}''";
 
@@ -131,7 +130,7 @@ public abstract class AbstractProtocolValidator {
                 target.getAddress(), connection.getId());
     }
 
-    protected static <T> void validateEnforcement(final String template, final Placeholder<T> placeholder,
+    protected <T> void validateEnforcement(final String template, final Placeholder<T> placeholder,
             final DittoHeaders headers) {
         try {
             PlaceholderFilter.validate(template, placeholder);

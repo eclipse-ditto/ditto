@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -89,17 +90,6 @@ public final class PlaceholderFilter {
                 .collect(Collectors.toSet());
     }
 
-
-//    Collection<String> filterAddresses(final Collection<String> addresses, final String thingId,
-//            final Consumer<String> unresolvedPlaceholderListener) {
-//
-//        // check if we have to replace anything at all
-//        if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
-//            return addresses;
-//        }
-//
-//        return filterAddressesAsMap(addresses, thingId, unresolvedPlaceholderListener).values();
-//    }
     /**
      * Apply thing placeholders to addresses and collect the result as a map.
      *
@@ -133,12 +123,46 @@ public final class PlaceholderFilter {
         }
     }
 
-    public static <T> String apply(final String template, final T source, final Placeholder<T> thePlaceholder) {
-        return apply(template, source, thePlaceholder, true);
+    /**
+     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
+     * by applying the given {@code placeholder}
+     *
+     * @param template the template string
+     * @param value the value containing the source of the replacement that is passed to the placeholder
+     * @param thePlaceholder the placeholder to apply to given template
+     * @param <T> the input type of the placeholder
+     * @return the template string with the resolved values
+     * @throws UnresolvedPlaceholderException if {@code verifyAllPlaceholdersResolved} is true and not all
+     * placeholders were resolved
+     */
+    public static <T> String apply(final String template, final T value, final Placeholder<T> thePlaceholder) {
+        return apply(template, value, thePlaceholder, true);
     }
 
-    public static <T> String apply(final String template, final T source, final Placeholder<T> thePlaceholder,
-            final boolean check) {
+    /**
+     * Finds all placeholders ({@code {{ ... }}}) defined in the given {@code template} and tries to replace them
+     * by applying the given {@code placeholder}
+     *
+     * @param template the template string
+     * @param value the value containing the source of the replacement that is passed to the placeholder
+     * @param thePlaceholder the placeholder to apply to given template
+     * @param verifyAllPlaceholdersResolved if {@code true} this method throws an exception if there are any
+     * unresolved placeholders after apply the given placeholder
+     * @param <T> the input type of the placeholder
+     * @return the template string with the resolved values
+     * @throws UnresolvedPlaceholderException if {@code verifyAllPlaceholdersResolved} is true and not all
+     * placeholders were resolved
+     */
+    public static <T> String apply(final String template, final T value, final Placeholder<T> thePlaceholder,
+            final boolean verifyAllPlaceholdersResolved) {
+        return doApply(template, thePlaceholder, verifyAllPlaceholdersResolved,
+                placeholder -> thePlaceholder.apply(value, placeholder));
+    }
+
+    private static <T> String doApply(final String template,
+            final Placeholder<T> thePlaceholder,
+            final boolean verifyAllPlaceholdersResolved,
+            final Function<String, Optional<String>> mapper) {
         final Matcher matcher = PATTERN.matcher(template);
         final StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
@@ -147,14 +171,14 @@ public final class PlaceholderFilter {
             Stream.of(thePlaceholder)
                     .filter(p -> p.getPrefix().equals(prefix))
                     .filter(p -> p.supports(placeholder))
-                    .map(p -> p.apply(source, placeholder))
+                    .map(p -> mapper.apply(placeholder))
                     .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
                     .filter(replacement -> !PATTERN.matcher(replacement).matches())
                     .forEach(replacement -> matcher.appendReplacement(sb, replacement));
         }
         matcher.appendTail(sb);
 
-        if (check) {
+        if (verifyAllPlaceholdersResolved) {
             return checkAllPlaceholdersResolved(sb.toString());
         } else {
             return sb.toString();
@@ -162,46 +186,9 @@ public final class PlaceholderFilter {
     }
 
     public static <T> String validate(final String template, final Placeholder<T> thePlaceholder) {
-        final Matcher matcher = PATTERN.matcher(template);
-        final StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            final String prefix = matcher.group(1);
-            final String placeholder = matcher.group(2);
-            Stream.of(thePlaceholder)
-                    .filter(p -> p.getPrefix().equals(prefix))
-                    .filter(p -> p.supports(placeholder))
-                    .map(p -> Optional.of("valid"))
-                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
-                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
-                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
-        }
-        matcher.appendTail(sb);
-
-        return checkAllPlaceholdersResolved(sb.toString());
+        return doApply(template, thePlaceholder, true, placeholder -> Optional.of("dummy"));
     }
 
-
-//    String apply(final String source, final Placeholder requiredPlaceHolder,
-//            final Placeholder... optionalPlaceholders) {
-//        final List<Placeholder> placeholders = new ArrayList<>(optionalPlaceholders.length + 1);
-//        placeholders.add(requiredPlaceHolder);
-//        placeholders.addAll(Arrays.asList(optionalPlaceholders));
-//        final Matcher matcher = PATTERN.matcher(source);
-//        final StringBuffer sb = new StringBuffer();
-//        while (matcher.find()) {
-//            final String prefix = matcher.group(1);
-//            final String placeholder = matcher.group(2);
-//            placeholders.stream()
-//                    .filter(p -> p.getPrefix().equals(prefix))
-//                    .filter(p -> p.supports(placeholder))
-//                    .map(p -> p.apply(placeholder))
-//                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
-//                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
-//                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
-//        }
-//        matcher.appendTail(sb);
-//        return checkAllPlaceholdersResolved(sb.toString());
-//    }
     static String checkAllPlaceholdersResolved(final String s) {
         if (containsPlaceholder(s)) {
             throw UnresolvedPlaceholderException.newBuilder().message(s).build();
@@ -216,4 +203,5 @@ public final class PlaceholderFilter {
     private PlaceholderFilter() {
         throw new AssertionError();
     }
+
 }
