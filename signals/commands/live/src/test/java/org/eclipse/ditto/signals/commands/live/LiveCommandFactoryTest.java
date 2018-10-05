@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.live;
 
@@ -24,15 +23,29 @@ import java.util.List;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.CreateThingLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.DeleteAttributeLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.DeleteAttributesLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.DeleteFeatureLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertiesLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertyLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteThingLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributeLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyFeatureLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.ModifyFeaturePropertiesLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.ModifyFeaturePropertyLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyFeaturesLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.ModifyThingLiveCommand;
 import org.eclipse.ditto.signals.commands.live.query.RetrieveAttributeLiveCommand;
+import org.eclipse.ditto.signals.commands.live.query.RetrieveAttributesLiveCommand;
+import org.eclipse.ditto.signals.commands.live.query.RetrieveFeatureLiveCommand;
+import org.eclipse.ditto.signals.commands.live.query.RetrieveFeaturePropertiesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.query.RetrieveFeaturePropertyLiveCommand;
 import org.eclipse.ditto.signals.commands.live.query.RetrieveFeaturesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.query.RetrieveThingLiveCommand;
+import org.eclipse.ditto.signals.commands.live.query.RetrieveThingsLiveCommand;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -60,21 +73,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import org.eclipse.ditto.signals.commands.live.modify.CreateThingLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.DeleteAttributeLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.DeleteAttributesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.DeleteFeatureLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertyLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.ModifyFeaturePropertiesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.ModifyFeaturePropertyLiveCommand;
-import org.eclipse.ditto.signals.commands.live.modify.ModifyThingLiveCommand;
-import org.eclipse.ditto.signals.commands.live.query.RetrieveAttributesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.query.RetrieveFeatureLiveCommand;
-import org.eclipse.ditto.signals.commands.live.query.RetrieveFeaturePropertiesLiveCommand;
-import org.eclipse.ditto.signals.commands.live.query.RetrieveThingsLiveCommand;
 
 /**
  * Unit test for {@link LiveCommandFactory}.

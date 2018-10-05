@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
@@ -17,23 +16,22 @@ import static org.mockito.Mockito.mock;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AndCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.AnyCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactory;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.CriteriaFactoryImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.ExistsCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.FieldCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.InPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.NePredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.NorCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.OrCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.ExistsFieldExpression;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.FilterFieldExpression;
+import org.eclipse.ditto.model.query.criteria.AndCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.AnyCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
+import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.criteria.ExistsCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.InPredicateImpl;
+import org.eclipse.ditto.model.query.criteria.NePredicateImpl;
+import org.eclipse.ditto.model.query.criteria.NorCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.OrCriteriaImpl;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 import org.junit.Test;
-
 /**
  * Tests {@link CriteriaFactoryImpl}.
  */

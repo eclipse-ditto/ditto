@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
   ~
   ~ All rights reserved. This program and the accompanying materials
   ~ are made available under the terms of the Eclipse Public License v2.0
   ~ which accompanies this distribution, and is available at
   ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
   ~
-  ~ Contributors:
-  ~    Bosch Software Innovations GmbH - initial contribution
+  ~ SPDX-License-Identifier: EPL-2.0
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -165,6 +164,7 @@
 
     <modules>
         <module>bom</module>
+        <module>legal</module>
         <module>documentation</module>
         <module>json</module>
         <module>model</module>
@@ -340,6 +340,11 @@
                     <version>3.0</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>1.16</version>
+                </plugin>
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <version>1.4.1</version>
@@ -403,6 +408,8 @@
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <Bundle-RequiredExecutionEnvironment>JavaSE-1.8</Bundle-RequiredExecutionEnvironment>
+                            <Include-Resource>META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>
+                            <!--<Include-Resource>{maven-resources},META-INF=${project.build.outputDirectory}/META-INF</Include-Resource>-->
                         </instructions>
                     </configuration>
                 </plugin>
@@ -482,13 +489,30 @@
                     <tag>${project.version}</tag>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
+                    <!--
+                      Copy legal documents from "legal" module to "target/classes" folder
+                      so that we make sure to include legal docs in all modules.
+                     -->
+                    <execution>
+                        <id>copy-legal-docs</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>ditto-legal</includeArtifactIds>
+                            <excludes>NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>copy-dependencies</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
@@ -601,6 +625,74 @@
     </pluginRepositories>
 
     <profiles>
+        <profile>
+            <id>generate-custom-third-party-notices</id>
+            <activation>
+                <file>
+                    <!-- that file only exists when running the build on the root level: -->
+                    <exists>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <executions>
+                            <execution>
+                                <id>default-cli</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>add-third-party</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                                    <excludedGroups>org.eclipse.ditto.*</excludedGroups>
+                                    <includedScopes>compile</includedScopes>
+                                    <failOnMissing>true</failOnMissing>
+                                    <fileTemplate>${maven.multiModuleProjectDirectory}/legal/templates/third-party-file.ftl
+                                    </fileTemplate>
+                                    <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
+                                    <licenseMergesFile>${maven.multiModuleProjectDirectory}/legal/templates/licenses-merges-file
+                                    </licenseMergesFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>generate-third-party-licenses</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>add-third-party</id>
+                                <goals>
+                                    <goal>aggregate-add-third-party</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>./legal</outputDirectory>
+                                    <excludedGroups>org.eclipse.ditto.*</excludedGroups>
+                                    <includedScopes>compile</includedScopes>
+                                    <failOnMissing>true</failOnMissing>
+                                    <fileTemplate>./legal/templates/third-party-file.ftl</fileTemplate>
+                                    <thirdPartyFilename>NOTICE-THIRD-PARTY.md</thirdPartyFilename>
+                                    <licenseMergesFile>./legal/templates/licenses-merges-file</licenseMergesFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 
         <profile>
             <id>performRelease</id>

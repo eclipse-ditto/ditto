@@ -5,6 +5,8 @@ tags: [protocol, connectivity]
 permalink: connectivity-protocol-bindings-mqtt.html
 ---
 
+[awsiot]: https://docs.aws.amazon.com/iot/
+
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
 
@@ -39,8 +41,9 @@ For an MQTT connection:
   `{%raw%}{{ thing:namespace }}{%endraw%}` or `{%raw%}{{ thing:name }}{%endraw%}`.
 * The additional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
   can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
-  Support of any Quality of Service depends on the external MQTT broker.
-  The default value is `0` (at-most-once).
+  The default value is `2` (exactly-once).
+  Support of any Quality of Service depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
+  acknowledge subscriptions with `qos=2`.
 
 
 ```json
@@ -55,7 +58,7 @@ For an MQTT connection:
     "{%raw%}device/{{ thing:namespace }}/{{ thing:name }}{%endraw%}",
     "..."
   ],
-  "qos": 0
+  "qos": 2
 }
 ```
 
@@ -86,6 +89,35 @@ The default value is `0` (at-most-once).
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."],
   "qos": 0
+}
+```
+
+#### Filtering
+
+In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
+following parameters can additionally be provided when specifying the `topics` of a target:
+
+| Description | Topic | Filter by namespaces | Filter by RQL expression |
+|-------------|-----------------|------------------|-----------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | yes | yes |
+| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | yes | |
+| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | yes |  |
+| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | yes | yes |
+
+The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
+with `&`. You have to URL encode the filter values before using them in a configuration.
+
+For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
+would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
+`org.eclipse.ditto`:
+```json
+{
+  "address": "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
+  "topics": [
+    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
+    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
 
@@ -140,3 +172,48 @@ meaning that the messages are expected to be [Ditto Protocol](protocol-overview.
 UTF-8-coded JSON (as shown for example in the [protocol examples](protocol-examples.html)).
 If your payload does not conform to the [Ditto Protocol](protocol-overview.html) or uses any character set other
 than UTF-8, you can configure a custom [payload mapping](connectivity-mapping.html).
+
+## Client-certificate authentication
+
+Ditto supports certificate-based authentication for MQTT connections. Consult 
+[Certificates for Transport Layer Security](connectivity-tls-certificates.html)
+for how to set it up.
+
+Here is an example MQTT connection that checks the broker certificate and authenticates by a client certificate.
+
+```json
+{
+  "id": "mqtt-example-connection-124",
+  "connectionType": "mqtt",
+  "connectionStatus": "open",
+  "failoverEnabled": true,
+  "uri": "ssl://test.mosquitto.org:8884",
+  "validateCertificates": true,
+  "ca": "-----BEGIN CERTIFICATE-----\n<test.mosquitto.org certificate>\n-----END CERTIFICATE-----"
+  "credentials": {
+    "type": "client-cert",
+    "cert": "-----BEGIN CERTIFICATE-----\n<signed client certificate>\n-----END CERTIFICATE-----",
+    "key": "-----BEGIN PRIVATE KEY-----\n<client private key>\n-----END PRIVATE KEY-----"
+  },
+  "sources": [
+    {
+      "addresses": [
+        "eclipse-ditto-sandbox/#"
+      ],
+      "authorizationContext": ["ditto:inbound-auth-subject"],
+      "qos": 0,
+      "filters": []
+    }
+  ],
+  "targets": [
+    {
+      "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
+      "topics": [
+        "_/_/things/twin/events"
+      ],
+      "authorizationContext": ["ditto:outbound-auth-subject"],
+      "qos": 0
+    }
+  ]
+}
+```

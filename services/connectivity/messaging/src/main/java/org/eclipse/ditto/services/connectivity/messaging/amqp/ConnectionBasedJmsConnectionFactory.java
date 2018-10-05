@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
@@ -28,7 +27,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.jms.ConnectionFactory;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.naming.Context;
@@ -37,6 +35,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.internal.SSLContextCreator;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -70,7 +69,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         checkNotNull(exceptionListener, "Exception Listener");
 
         final Context ctx = createContext(connection);
-        final ConnectionFactory cf = (javax.jms.ConnectionFactory) ctx.lookup(connection.getId());
+        final org.apache.qpid.jms.JmsConnectionFactory cf =
+                (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId());
+
+        if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
+            cf.setSslContext(SSLContextCreator.fromConnection(connection, null).withoutClientCertificate());
+        }
 
         @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();
         jmsConnection.setExceptionListener(exceptionListener);
@@ -99,11 +103,11 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         final String baseUri = formatUri(protocol, hostname, port);
 
-        final List<String> parameters =
-                new ArrayList<>(getAmqpParameters(username == null || password == null, specificConfig));
-        final boolean securedConnection =
-                !connection.isValidateCertificates() && SECURE_AMQP_SCHEME.equalsIgnoreCase(protocol);
-        parameters.addAll(getTransportParameters(securedConnection, specificConfig));
+        final boolean anonymous = username == null || username.isEmpty() || password == null || password.isEmpty();
+        final List<String> parameters = new ArrayList<>(getAmqpParameters(anonymous, specificConfig));
+        final boolean isSecuredConnectionWithAcceptInvalidCertificates =
+                isSecuredConnection(connection) && !connection.isValidateCertificates();
+        parameters.addAll(getTransportParameters(isSecuredConnectionWithAcceptInvalidCertificates, specificConfig));
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
 
         final List<String> globalParameters =
@@ -118,6 +122,10 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         }
         LOGGER.debug("[{}] URI: {}", id, connectionUri);
         return connectionUri;
+    }
+
+    private static boolean isSecuredConnection(final Connection connection) {
+        return SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol());
     }
 
     private static String formatUri(final String protocol, final String hostname, final int port) {
@@ -142,7 +150,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .collect(Collectors.toList());
 
         jmsParams.add("jms.clientID=" + encodedId);
-        if (username != null && password != null) {
+        if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
             jmsParams.add("jms.username=" + username);
             jmsParams.add("jms.password=" + password);
         }

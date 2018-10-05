@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read;
 
@@ -27,6 +26,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceReportResult;
 import org.eclipse.ditto.services.models.thingsearch.SearchNamespaceResultEntry;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -35,8 +35,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.PolicyRestrictedSearchAggregation;
-import org.eclipse.ditto.services.thingsearch.querymodel.query.Query;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
@@ -123,7 +121,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                     list.add(entry);
                     return list;
                 })
-                .map(SearchNamespaceReportResult::new);
+                .<SearchNamespaceReportResult>map(SearchNamespaceReportResult::new);
     }
 
     @Override
@@ -135,7 +133,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return source.map(doc -> doc.get(PersistenceConstants.COUNT_RESULT_NAME))
                 .map(countResult -> (Number) countResult)
                 .map(Number::longValue) // use Number.longValue() to support both Integer and Long values
-                .orElse(Source.single(0L))
+                .orElse(Source.<Long>single(0L))
                 .mapError(handleMongoExecutionTimeExceededException())
                 .log("count");
     }

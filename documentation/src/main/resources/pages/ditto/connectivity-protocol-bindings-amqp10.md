@@ -1,7 +1,7 @@
 ---
 title: AMQP 1.0 protocol binding
 keywords: binding, protocol, amqp, amqp10
-tags: [protocol, connectivity]
+tags: [protocol, connectivity, rql]
 permalink: connectivity-protocol-bindings-amqp10.html
 ---
 
@@ -65,6 +65,36 @@ have READ permission on the Thing that is associated with a message.
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
+
+#### Filtering 
+
+In order to only consume specific events like described in [change notifications](basic-changenotifications.html), the
+following parameters can additionally be provided when specifying the `topics` of a target:
+
+| Description | Topic | Filter by namespaces | Filter by RQL expression |
+|-------------|-----------------|------------------|-----------|
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | yes | yes |
+| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | yes | |
+| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | yes |  |
+| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | yes | yes |
+
+The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
+with `&`. You have to URL encode the filter values before using them in a configuration.
+
+For example this way the connection session would register for all events in the namespace `org.eclipse.ditto` and which
+would match an attribute "counter" to be greater than 42. Additionally it would subscribe to messages in the namespace
+`org.eclipse.ditto`:
+```json
+{
+  "address": "<target>",
+  "topics": [
+    "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
+    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
 
 ### Specific configuration properties
 

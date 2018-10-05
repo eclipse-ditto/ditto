@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  *
  */
 
@@ -34,7 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -400,7 +399,7 @@ public class MqttClientActorTest {
     }
 
     private static Props mqttClientActor(final Connection connection, final ActorRef testProbe,
-            final Function<Connection, MqttConnectionFactory> factoryCreator) {
+            final BiFunction<Connection, DittoHeaders, MqttConnectionFactory> factoryCreator) {
 
         return Props.create(MqttClientActor.class, () ->
                 new MqttClientActor(connection, connection.getConnectionStatus(), testProbe, factoryCreator));

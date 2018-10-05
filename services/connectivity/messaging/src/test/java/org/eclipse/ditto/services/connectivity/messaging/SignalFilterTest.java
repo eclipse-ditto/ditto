@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  *
  */
 
@@ -135,7 +134,8 @@ public class SignalFilterTest {
                         ConnectionStatus.OPEN,
                         URI).targets(targets).build();
 
-        final Set<Target> filteredTargets = SignalFilter.filter(connection, signal(signalTopic, readSubjects));
+        final SignalFilter signalFilter = new SignalFilter(connection);
+        final Set<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
         Assertions
                 .assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);

@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.protocoladapter.examples;
 
@@ -235,7 +234,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
@@ -1500,9 +1498,6 @@ class JsonExamplesProducer {
     private void produceSearchExceptions(final Path rootPath) throws IOException {
         final Path exceptionsDir = rootPath.resolve(Paths.get("exceptions"));
         Files.createDirectories(exceptionsDir);
-
-        final InvalidFilterException invalidFilterException = InvalidFilterException.newBuilder().build();
-        writeJson(exceptionsDir.resolve(Paths.get("invalidFilterException.json")), invalidFilterException);
 
         final InvalidOptionException invalidOptionException = InvalidOptionException.newBuilder().build();
         writeJson(exceptionsDir.resolve(Paths.get("invalidOptionException.json")), invalidOptionException);

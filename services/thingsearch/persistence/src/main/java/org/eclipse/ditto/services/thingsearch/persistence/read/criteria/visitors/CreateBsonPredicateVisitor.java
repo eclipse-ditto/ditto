@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors;
 
@@ -15,8 +14,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Predicate;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.visitors.PredicateVisitor;
+import org.eclipse.ditto.model.query.criteria.Predicate;
+import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 
 import com.mongodb.client.model.Filters;
 
@@ -26,6 +25,9 @@ import com.mongodb.client.model.Filters;
 public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<String, Bson>> {
 
     private static CreateBsonPredicateVisitor instance;
+
+    private static final String LEADING_WILDCARD = "^\\Q\\E.*";
+    private static final String TRAILING_WILDCARD = ".*\\Q\\E$";
 
     private CreateBsonPredicateVisitor() {
         // only internally instantiable
@@ -81,7 +83,28 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitLike(final String value) {
-        return fieldName -> Filters.regex(fieldName, value, "");
+        // remove leading or trailing wildcard because queries like /^a/ are much faster than /^a.*$/ or /^a.*/
+        // from mongodb docs:
+        // "Additionally, while /^a/, /^a.*/, and /^a.*$/ match equivalent strings, they have different performance
+        // characteristics. All of these expressions use an index if an appropriate index exists;
+        // however, /^a.*/, and /^a.*$/ are slower. /^a/ can stop scanning after matching the prefix."
+        final String valueWithoutLeadingOrTrailingWildcard = removeLeadingOrTrailingWildcard(value);
+        return fieldName -> Filters.regex(fieldName, valueWithoutLeadingOrTrailingWildcard, "");
+    }
+
+    private static String removeLeadingOrTrailingWildcard(final String valueString) {
+        String valueWithoutLeadingOrTrailingWildcard = valueString;
+        if (valueString.startsWith(LEADING_WILDCARD)) {
+            valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard
+                    .substring(LEADING_WILDCARD.length());
+        }
+        if (valueString.endsWith(TRAILING_WILDCARD)) {
+            final int endIndex = valueWithoutLeadingOrTrailingWildcard.length() - TRAILING_WILDCARD.length();
+            if (endIndex > 0) {
+                valueWithoutLeadingOrTrailingWildcard = valueWithoutLeadingOrTrailingWildcard.substring(0, endIndex);
+            }
+        }
+        return valueWithoutLeadingOrTrailingWildcard;
     }
 
     @Override

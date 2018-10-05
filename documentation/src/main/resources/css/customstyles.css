@@ -8,6 +8,9 @@ body {
 h1,h2 {
     font-weight: lighter;
 } */
+.navbar-ditto-home {
+   white-space: nowrap;
+}
 
 a.navbar-ditto-home:hover {
     color: transparent;

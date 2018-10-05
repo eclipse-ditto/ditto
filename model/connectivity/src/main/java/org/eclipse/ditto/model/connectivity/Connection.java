@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -27,6 +26,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * Represents a connection within the Connectivity service.
@@ -92,6 +92,20 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
      * @return {@code true} if failover is enabled, else {@code false}.
      */
     boolean isFailoverEnabled();
+
+    /**
+     * Return the persisted credentials if any exist.
+     *
+     * @return the credentials or an empty optional.
+     */
+    Optional<Credentials> getCredentials();
+
+    /**
+     * Return trusted certificates in PEM format if configured.
+     *
+     * @return the trusted certificates or an empty optional.
+     */
+    Optional<String> getTrustedCertificates();
 
     /**
      * Returns the URI of this {@code Connection}.
@@ -245,6 +259,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
                         JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing credentials.
+         */
+        public static final JsonFieldDefinition<JsonObject> CREDENTIALS =
+                JsonFactory.newJsonObjectFieldDefinition("credentials", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the {@code Connection} uri.
          */
         public static final JsonFieldDefinition<String> URI =
@@ -311,6 +332,13 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          */
         public static final JsonFieldDefinition<JsonArray> TAGS =
                 JsonFactory.newJsonArrayFieldDefinition("tags", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field definition of trusted certificates.
+         */
+        public static final JsonFieldDefinition<String> TRUSTED_CERTIFICATES =
+                JsonFieldDefinition.ofString("ca", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

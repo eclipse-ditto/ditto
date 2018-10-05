@@ -1,19 +1,19 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Retrieves an enforcer by using an ID Cache and Enforcer Cache.
  */
+@SuppressWarnings("WeakerAccess")
 public final class EnforcerRetriever {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EnforcerRetriever.class);
@@ -42,6 +43,7 @@ public final class EnforcerRetriever {
      * @param idCache the ID Cache.
      * @param enforcerCache the Enforcer Cache.
      */
+    @SuppressWarnings("WeakerAccess")
     public EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
@@ -67,10 +69,11 @@ public final class EnforcerRetriever {
      * @param idCache the ID Cache.
      * @param enforcerCaches the Enforcer Caches per resource type.
      */
-    EnforcerRetriever(
+    @SuppressWarnings("WeakerAccess")
+    public EnforcerRetriever(
             final Cache<EntityId, Entry<EntityId>> idCache,
             final Map<String, Cache<EntityId, Entry<Enforcer>>> enforcerCaches) {
-        this(idCache, enforcerCaches::get);
+        this(idCache, requireNonNull(enforcerCaches)::get);
     }
 
     /**
@@ -80,9 +83,10 @@ public final class EnforcerRetriever {
      * @param consumer handler of cache lookup results.
      * @return future after retrieved cache entries are given to the consumer.
      */
+    @SuppressWarnings("WeakerAccess")
     public CompletionStage<Void> retrieve(final EntityId entityKey,
             final BiConsumer<Entry<EntityId>, Entry<Enforcer>> consumer) {
-        return idCache.get(entityKey).thenAccept(enforcerKeyEntryOptional -> {
+        return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (!enforcerKeyEntryOptional.isPresent()) {
                 // must not happen
                 LOGGER.error("Did not get id-cache value for entityKey <{}>.", entityKey);
@@ -96,12 +100,13 @@ public final class EnforcerRetriever {
                     if (enforcerCache == null) {
                         throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
                     }
-                    retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
+                    return retrieveByEnforcerKey(enforcerKey, enforcerEntry ->
                             consumer.accept(enforcerKeyEntry, enforcerEntry));
                 } else {
                     consumer.accept(enforcerKeyEntry, Entry.nonexistent());
                 }
             }
+            return CompletableFuture.completedFuture(null);
         });
     }
 
@@ -111,14 +116,16 @@ public final class EnforcerRetriever {
      * @param enforcerKey key of the enforcer.
      * @param consumer what to do with the enforcer.
      */
-    public void retrieveByEnforcerKey(final EntityId enforcerKey, final Consumer<Entry<Enforcer>> consumer) {
+    @SuppressWarnings("WeakerAccess")
+    public CompletionStage<Void> retrieveByEnforcerKey(final EntityId enforcerKey,
+            final Consumer<Entry<Enforcer>> consumer) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityId, Entry<Enforcer>> enforcerCache =
                 enforcerCacheFunction.apply(resourceType);
         if (enforcerCache == null) {
             throw new IllegalStateException("No enforcerCache for resource type: " + resourceType);
         }
-        enforcerCache.get(enforcerKey)
+        return enforcerCache.get(enforcerKey)
                 .thenAccept(enforcerEntryOptional -> {
                     if (!enforcerEntryOptional.isPresent()) {
                         // must not happen

@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
@@ -87,9 +86,10 @@ public final class GatewayAuthenticationDirective {
 
                     final Uri requestUri = requestContext.getRequest().getUri();
                     if (applicableDirective.isPresent()) {
+                        final AuthenticationProvider authenticationProvider = applicableDirective.get();
                         LOGGER.debug("Applying Authentication Directive '{}' to URI '{}'",
-                                applicableDirective.getClass().getSimpleName(), requestUri);
-                        return applicableDirective.get().authenticate(correlationId, inner);
+                                authenticationProvider.getClass().getSimpleName(), requestUri);
+                        return authenticationProvider.authenticate(correlationId, inner);
                     } else {
                         LOGGER.debug("Missing Authentication for URI '{}'. Applying unauthorizedDirective '{}'",
                                 requestUri, unauthorizedDirective);

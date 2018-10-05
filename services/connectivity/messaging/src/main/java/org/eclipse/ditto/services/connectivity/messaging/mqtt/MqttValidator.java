@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
@@ -33,6 +32,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.PlaceholderFilter;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
 import akka.stream.alpakka.mqtt.MqttQoS;
@@ -67,6 +67,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
     @Override
     public void validate(final Connection connection, final DittoHeaders dittoHeaders) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, "MQTT 3.1.1");
+        validateUriByPaho(connection, dittoHeaders);
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
@@ -204,6 +205,21 @@ public final class MqttValidator extends AbstractProtocolValidator {
             throw errorProducer.apply(e.getMessage());
         }
 
+    }
+
+    private static void validateUriByPaho(final Connection connection, final DittoHeaders dittoHeaders) {
+        try {
+            MqttConnectOptions.validateURI(connection.getUri());
+        } catch (final IllegalArgumentException e) {
+            final String location = String.format("Connection with ID ''%s''", connection.getId());
+            final String configName = Connection.JsonFields.URI.getPointer().toString();
+            final String description =
+                    "Hint: MQTT connection URI may not have trailing '/' or any other path component.";
+            throw invalidValueForConfig(connection.getUri(), configName, location)
+                    .description(description)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static ConnectionConfigurationInvalidException.Builder invalidValueForConfig(final Object value,

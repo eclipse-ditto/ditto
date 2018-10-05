@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  *
  */
 package org.eclipse.ditto.model.connectivity;
@@ -17,6 +16,9 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 
 /**
  * A mutable builder for a {@link Connection} with a fluent API.
@@ -39,6 +41,32 @@ public interface ConnectionBuilder {
      * @return this builder to allow method chaining.
      */
     ConnectionBuilder name(@Nullable String name);
+
+    /**
+     * Sets the connection credentials.
+     *
+     * @param credentials the credentials.
+     * @return this builder.
+     */
+    ConnectionBuilder credentials(@Nullable Credentials credentials);
+
+    /**
+     * Sets the connection credentials in JSON representation.
+     *
+     * @param jsonObject credentials in JSON representation.
+     * @return this builder.
+     */
+    default ConnectionBuilder credentialsFromJson(final JsonObject jsonObject) {
+        return credentials(Credentials.fromJson(jsonObject));
+    }
+
+    /**
+     * Set the trusted certificates.
+     *
+     * @param trustedCertificates the trusted certificates
+     * @return this builder
+     */
+    ConnectionBuilder trustedCertificates(@Nullable final String trustedCertificates);
 
     /**
      * Sets the URI to use in the {@code Connection}.

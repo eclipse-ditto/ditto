@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  *
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
@@ -15,6 +14,7 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 
@@ -38,9 +38,9 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     private final Connection connection;
     private final MqttConnectionSettings settings;
 
-    DefaultMqttConnectionFactory(final Connection connection) {
+    DefaultMqttConnectionFactory(final Connection connection, final DittoHeaders dittoHeaders) {
         this.connection = connection;
-        settings = MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection);
+        settings = MqttConnectionSettingsFactory.getInstance().createMqttConnectionSettings(connection, dittoHeaders);
     }
 
     @Override
@@ -49,9 +49,7 @@ final class DefaultMqttConnectionFactory implements MqttConnectionFactory {
     }
 
     @Override
-    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource,
-            final int bufferSize) {
-
+    public Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource, final int bufferSize) {
         final String clientId = connectionId() + "-source" + mqttSource.getIndex();
         final MqttSourceSettings sourceSettings =
                 MqttSourceSettings.create(settings.withClientId(clientId))

@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  *
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
@@ -17,10 +16,11 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 
@@ -55,14 +55,17 @@ final class MockMqttConnectionFactory implements MqttConnectionFactory {
         this.error = error;
     }
 
-    static Function<Connection, MqttConnectionFactory> with(final ActorRef testProbe,
+    static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> with(final ActorRef testProbe,
             final MqttMessage... messages) {
 
-        return connection -> new MockMqttConnectionFactory(connection, Arrays.asList(messages), testProbe, null);
+        return (connection, headers) ->
+                new MockMqttConnectionFactory(connection, Arrays.asList(messages), testProbe, null);
     }
 
-    static Function<Connection, MqttConnectionFactory> withError(final ActorRef testProbe, final Exception error) {
-        return connection -> new MockMqttConnectionFactory(connection, Collections.emptyList(), testProbe, error);
+    static BiFunction<Connection, DittoHeaders, MqttConnectionFactory> withError(final ActorRef testProbe,
+            final Exception error) {
+        return (connection, headers) ->
+                new MockMqttConnectionFactory(connection, Collections.emptyList(), testProbe, error);
     }
 
     @Override

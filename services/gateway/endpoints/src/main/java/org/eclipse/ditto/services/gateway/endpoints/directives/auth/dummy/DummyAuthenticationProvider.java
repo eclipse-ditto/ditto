@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth.dummy;
 
@@ -54,7 +53,8 @@ public final class DummyAuthenticationProvider implements AuthenticationProvider
 
     @Override
     public boolean isApplicable(final RequestContext context) {
-        return getRequestHeader(context, HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent();
+        return getRequestHeader(context, HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent() ||
+                context.getRequest().getUri().query().get(HttpHeader.X_DITTO_DUMMY_AUTH.getName()).isPresent();
     }
 
     @Override
@@ -76,16 +76,20 @@ public final class DummyAuthenticationProvider implements AuthenticationProvider
     public Route authenticate(final String correlationId, final Function<AuthorizationContext, Route> inner) {
         return extractRequestContext(requestContext -> enhanceLogWithCorrelationId(correlationId, () -> {
             final String dummyAuth =
-                    getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName()) //
-                            .orElseThrow(
-                                    () -> new IllegalStateException("This method must not be called if header'" +
-                                            HttpHeader.X_DITTO_DUMMY_AUTH.getName() + "' is not set"));
+                    getRequestHeader(requestContext, HttpHeader.X_DITTO_DUMMY_AUTH.getName())
+                            .orElseGet(() -> requestContext.getRequest().getUri().query()
+                                    .get(HttpHeader.X_DITTO_DUMMY_AUTH.getName())
+                                    .orElseThrow(
+                                            () -> new IllegalStateException(
+                                                    "This method must not be called if header'" +
+                                                            HttpHeader.X_DITTO_DUMMY_AUTH.getName() + "' is not set")));
 
             final List<AuthorizationSubject> authorizationSubjects = extractAuthorizationSubjects(dummyAuth);
             if (authorizationSubjects.isEmpty()) {
-                throw GatewayAuthenticationFailedException.newBuilder("Failed to extract AuthorizationSubjects from "
-                        + HttpHeader.X_DITTO_DUMMY_AUTH.getName() +
-                        " header value '" + dummyAuth + "'.").build();
+                throw GatewayAuthenticationFailedException.newBuilder(
+                        "Failed to extract AuthorizationSubjects from "
+                                + HttpHeader.X_DITTO_DUMMY_AUTH.getName() +
+                                " header value '" + dummyAuth + "'.").build();
             }
 
             final AuthorizationContext authorizationContext = AuthorizationModelFactory //

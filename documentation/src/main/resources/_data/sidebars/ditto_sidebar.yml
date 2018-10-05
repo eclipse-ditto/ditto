@@ -42,6 +42,9 @@ entries:
     - title: 0.8.0-M1 Release notes
       url: /release_notes_080-M1.html
       output: web
+    - title: 0.8.0-M2 Release notes
+      url: /release_notes_080-M2.html
+      output: web
 
   - title: Installation
     output: web
@@ -117,6 +120,9 @@ entries:
       output: web
     - title: Change notifications
       url: /basic-changenotifications.html
+      output: web
+    - title: RQL expressions
+      url: /basic-rql.html
       output: web
     - title: Search
       url: /basic-search.html
@@ -199,6 +205,9 @@ entries:
       output: web
     - title: Payload mapping
       url: /connectivity-mapping.html
+      output: web
+    - title: TLS certificates
+      url: /connectivity-tls-certificates.html
       output: web
 
 

@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.thingsearch.exceptions;
 
@@ -18,6 +17,7 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.thingsearch.ThingSearchException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
@@ -59,8 +59,8 @@ public final class ThingSearchErrorRegistry extends AbstractErrorRegistry<DittoR
         commonErrorRegistry.getTypes()
                 .forEach(type -> parseStrategies.put(type, commonErrorRegistry::parse));
 
-        parseStrategies.put(InvalidFilterException.ERROR_CODE, InvalidFilterException::fromJson);
         parseStrategies.put(InvalidOptionException.ERROR_CODE, InvalidOptionException::fromJson);
+        parseStrategies.put(InvalidNamespacesException.ERROR_CODE, InvalidNamespacesException::fromJson);
 
         return new ThingSearchErrorRegistry(parseStrategies);
     }

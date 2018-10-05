@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.model.criteria;
 
@@ -16,15 +15,14 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.model.query.criteria.Criteria;
+import org.eclipse.ditto.model.query.criteria.EqPredicateImpl;
+import org.eclipse.ditto.model.query.criteria.FieldCriteriaImpl;
+import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.Criteria;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.EqPredicateImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.criteria.FieldCriteriaImpl;
-import org.eclipse.ditto.services.thingsearch.querymodel.expression.AttributeExpressionImpl;
 import org.junit.Test;
 
 import com.mongodb.client.model.Filters;
-
 /**
  * Tests class {@link FieldCriteriaImpl}.
  */

@@ -27,7 +27,7 @@ In order to start up Ditto, you'll need
 In order to start the latest built Docker images from Docker Hub, simply execute:
 
 ```bash
-cd docker/
+cd deployment/docker/
 docker-compose up -d
 ```
 
@@ -53,7 +53,7 @@ mvn clean install -Pdocker-build-image -Ddocker.daemon.hostname=<ip/host of your
 # if you have the docker daemon running on your machine and you are running on Unix, you can also connect against the docker socket:
 mvn clean install -Pdocker-build-image -Ddocker.daemon.url=unix:///var/run/docker.sock
 
-cd docker/
+cd deployment/docker/
 # the "dev.env" file contains the SNAPSHOT number of Ditto, copy it to ".env" so that docker compose uses it:
 cp dev.env .env
 docker-compose up -d
