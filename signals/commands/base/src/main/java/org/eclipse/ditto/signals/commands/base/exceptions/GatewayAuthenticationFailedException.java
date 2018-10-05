@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -35,8 +36,8 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
 
     private static final long serialVersionUID = 2120928636274583181L;
 
-    private GatewayAuthenticationFailedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayAuthenticationFailedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.UNAUTHORIZED, dittoHeaders, message, description, cause, href);
     }
 
@@ -82,8 +83,8 @@ public final class GatewayAuthenticationFailedException extends DittoRuntimeExce
 
         @Override
         protected GatewayAuthenticationFailedException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description, final Throwable cause, final URI href) {
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayAuthenticationFailedException(dittoHeaders, message, description, cause, href);
         }
     }

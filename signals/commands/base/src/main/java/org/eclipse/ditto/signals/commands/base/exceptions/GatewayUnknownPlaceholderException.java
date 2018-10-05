@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.signals.commands.base.exceptions;
 
@@ -15,9 +14,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
-import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -42,8 +42,8 @@ public final class GatewayUnknownPlaceholderException extends DittoRuntimeExcept
 
     private static final long serialVersionUID = -8724890154457417912L;
 
-    private GatewayUnknownPlaceholderException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayUnknownPlaceholderException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -56,7 +56,7 @@ public final class GatewayUnknownPlaceholderException extends DittoRuntimeExcept
      * @return the builder.
      */
     public static Builder newBuilder(final CharSequence unknownPlaceholder,
-            final List<CharSequence> supportedPlaceholders) {
+            final Iterable<CharSequence> supportedPlaceholders) {
         return new Builder(requireNonNull(unknownPlaceholder), requireNonNull(supportedPlaceholders));
     }
 
@@ -83,19 +83,20 @@ public final class GatewayUnknownPlaceholderException extends DittoRuntimeExcept
 
         private Builder() {}
 
-        private Builder(final CharSequence issuer, final List<CharSequence> supportedPlaceHolders) {
+        private Builder(final CharSequence issuer, final Iterable<CharSequence> supportedPlaceHolders) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, requireNonNull(issuer)));
             requireNonNull(supportedPlaceHolders);
-            final String supportedPlaceHoldersStr = supportedPlaceHolders.stream()
+            final String supportedPlaceHoldersStr = StreamSupport.stream(supportedPlaceHolders.spliterator(), false)
                     .map(placeholder -> "'" + placeholder + "'")
                     .collect(Collectors.joining(", "));
             description(MessageFormat.format(DESCRIPTION_TEMPLATE, supportedPlaceHoldersStr));
         }
 
         @Override
-        protected GatewayUnknownPlaceholderException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayUnknownPlaceholderException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayUnknownPlaceholderException(dittoHeaders, message, description, cause, href);
         }
     }

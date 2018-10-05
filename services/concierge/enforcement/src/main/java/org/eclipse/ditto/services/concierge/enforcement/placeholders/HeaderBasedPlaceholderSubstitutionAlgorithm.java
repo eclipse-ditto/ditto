@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders;
 
@@ -74,7 +73,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
      * Substitutes all placeholders contained in the {@code input} based on the {@code dittoHeaders}.
      *
      * @param input the input.
-     * @param dittoHeaders the {@link DittoHeaders}, from which the headers are extracted (normally a command).
+     * @param dittoHeaders the extracted {@link DittoHeaders}.
      * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders
      * were contained in the input.
      */

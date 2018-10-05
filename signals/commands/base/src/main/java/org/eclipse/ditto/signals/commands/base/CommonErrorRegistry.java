@@ -72,11 +72,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         JsonPointerInvalidException.newBuilder().message(getMessage(jsonObject)).build(),
                         dittoHeaders));
 
-        // Fallback DittoJsonException which originated from a RuntimeException.
-        parseStrategies.put(DittoJsonException.FALLBACK_ERROR_CODE,
-                (jsonObject, dittoHeaders) -> new DittoJsonException(new RuntimeException(getMessage(jsonObject)),
-                        dittoHeaders));
-
         // other common exceptions
 
         parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
