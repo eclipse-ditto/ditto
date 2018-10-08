@@ -44,7 +44,7 @@ All microservices can communicate asynchronously in a Ditto cluster. Communicati
 [Akka remoting](https://doc.akka.io/docs/akka/current/general/remoting.html) which means that each service acts as server, 
 providing a TCP endpoint, as well as client sending data to other services.
 
-Therefore it is required that all Ditto microservices can reach each others TCP port `2551`.
+Therefore it is required that all Ditto microservices can reach each others port `2551`.
 
 Another consequence is that all messages which are send between Ditto microservices are in a way serializable and deserializable.
 All Ditto [signals](basic-signals.html) can be serialized from Java objects to JSON representation and deserialized back 

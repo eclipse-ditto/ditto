@@ -31,6 +31,9 @@
     <!-- do not print INFO cluster messages of mongo driver: -->
     <logger name="org.mongodb.driver" level="WARN"/>
 
+    <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
+    <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
+
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
 

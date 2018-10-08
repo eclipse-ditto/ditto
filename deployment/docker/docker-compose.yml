@@ -25,6 +25,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   things:
     init: true
@@ -41,6 +42,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   things-search:
     init: true
@@ -57,6 +59,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   concierge:
     init: true
@@ -73,6 +76,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   connectivity:
     init: true
@@ -90,6 +94,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   gateway:
     init: true
@@ -108,6 +113,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
+      - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
