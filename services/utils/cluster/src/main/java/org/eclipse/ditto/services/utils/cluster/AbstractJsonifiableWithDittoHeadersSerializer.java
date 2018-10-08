@@ -13,7 +13,10 @@ package org.eclipse.ditto.services.utils.cluster;
 import static java.util.Objects.requireNonNull;
 
 import java.io.NotSerializableException;
+import java.nio.BufferOverflowException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,18 +43,26 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
+
 import akka.actor.ExtendedActorSystem;
+import akka.io.BufferPool;
+import akka.io.DirectByteBufferPool;
+import akka.serialization.ByteBufferSerializer;
 import akka.serialization.SerializerWithStringManifest;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
  * {@link WithDittoHeaders}.
  */
-public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends SerializerWithStringManifest {
+public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends SerializerWithStringManifest
+        implements ByteBufferSerializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJsonifiableWithDittoHeadersSerializer.class);
 
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    private static final Charset UTF8_CHARSET = StandardCharsets.UTF_8;
 
     private static final JsonFieldDefinition<JsonObject> JSON_DITTO_HEADERS =
             JsonFactory.newJsonObjectFieldDefinition("dittoHeaders");
@@ -59,9 +70,18 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private static final JsonFieldDefinition<JsonValue> JSON_PAYLOAD =
             JsonFactory.newJsonValueFieldDefinition("payload");
 
+    private static final String CONFIG_DIRECT_BUFFER_SIZE = "akka.actor.serializers-json.direct-buffer-size";
+    private static final String CONFIG_DIRECT_BUFFER_POOL_LIMIT = "akka.actor.serializers-json.direct-buffer-pool-limit";
+
+    private static final Config FALLBACK_CONF = ConfigFactory.empty()
+            .withValue(CONFIG_DIRECT_BUFFER_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"))
+            .withValue(CONFIG_DIRECT_BUFFER_POOL_LIMIT, ConfigValueFactory.fromAnyRef("500"));
+
     private final int identifier;
     private final Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> mappingStrategies;
     private final Function<Object, String> manifestProvider;
+    private final BufferPool byteBufferPool;
+    private final Long defaultBufferSize;
 
     /**
      * Constructs a new {@code AbstractJsonifiableWithDittoHeadersSerializer} object.
@@ -76,6 +96,12 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
         mappingStrategies = new HashMap<>();
         mappingStrategies.putAll(requireNonNull(mappingStrategy.determineStrategy(), "mapping strategy"));
         this.manifestProvider = requireNonNull(manifestProvider, "manifest provider");
+
+        defaultBufferSize = actorSystem.settings().config().withFallback(FALLBACK_CONF)
+                .getBytes(CONFIG_DIRECT_BUFFER_SIZE);
+        final int maxPoolEntries = actorSystem.settings().config().withFallback(FALLBACK_CONF)
+                .getInt(CONFIG_DIRECT_BUFFER_POOL_LIMIT);
+        byteBufferPool = new DirectByteBufferPool(defaultBufferSize.intValue(), maxPoolEntries);
     }
 
     @Override
@@ -89,7 +115,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     }
 
     @Override
-    public byte[] toBinary(final Object object) {
+    public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable) {
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
@@ -108,14 +134,33 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
             jsonObjectBuilder.set(JSON_PAYLOAD, jsonValue);
 
-            return jsonObjectBuilder.build()
-                    .toString()
-                    .getBytes(UTF8_CHARSET);
+            buf.put(UTF8_CHARSET.encode(jsonObjectBuilder.build()
+                    .toString())
+            );
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
                     Jsonifiable.WithPredicate.class);
             final String error = new NotSerializableException(object.getClass().getName()).getMessage();
-            return error.getBytes(UTF8_CHARSET);
+            buf.put(UTF8_CHARSET.encode(error));
+        }
+    }
+
+    @Override
+    public byte[] toBinary(final Object object) {
+        final ByteBuffer buf = byteBufferPool.acquire();
+
+        try {
+            toBinary(object, buf);
+            buf.flip();
+            final byte[] bytes = new byte[buf.remaining()];
+            buf.get(bytes);
+            return bytes;
+        } catch (final BufferOverflowException e) {
+            LOG.error("BufferOverflow when serializing object <{}>, max buffer size was: <{}>", object,
+                    defaultBufferSize, e);
+            throw new IllegalArgumentException(e);
+        } finally {
+            byteBufferPool.release(buf);
         }
     }
 
@@ -132,13 +177,18 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     }
 
     @Override
-    public Object fromBinary(final byte[] bytes, final String manifest) {
-        final String json = new String(bytes, UTF8_CHARSET);
+    public Object fromBinary(final ByteBuffer buf, final String manifest) {
+        final String json = UTF8_CHARSET.decode(buf).toString();
         try {
             return tryToCreateKnownJsonifiableFrom(manifest, json);
         } catch (final NotSerializableException e) {
             return e;
         }
+    }
+
+    @Override
+    public Object fromBinary(final byte[] bytes, final String manifest) {
+        return fromBinary(ByteBuffer.wrap(bytes), manifest);
     }
 
     private Jsonifiable tryToCreateKnownJsonifiableFrom(final String manifest, final String json)

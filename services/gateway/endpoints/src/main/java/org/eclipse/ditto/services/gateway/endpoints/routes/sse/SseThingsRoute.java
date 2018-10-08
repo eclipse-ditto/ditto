@@ -18,12 +18,12 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
@@ -61,10 +61,8 @@ import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.sse.ServerSentEvent;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.http.scaladsl.model.sse.ServerSentEvent$;
 import akka.japi.JavaPartialFunction;
 import akka.stream.javadsl.Source;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Builder for creating Akka HTTP routes for SSE (Server Sent Events) {@code /things} routes.
@@ -192,8 +190,7 @@ public class SseThingsRoute extends AbstractRoute {
                                         thingJson::contains)) // check if the resulting JSON did contain ANY of the requested fields
                         .filter(thingJson -> !thingJson.isEmpty()) // avoid sending back empty jsonValues
                         .map(jsonValue -> ServerSentEvent.create(jsonValue.toString()))
-                        .keepAlive(FiniteDuration.apply(1, TimeUnit.SECONDS),
-                                ServerSentEvent$.MODULE$::heartbeat);
+                        .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
 
         return completeOK(sseSource, EventStreamMarshalling.toEventStream());
     }
