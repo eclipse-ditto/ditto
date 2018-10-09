@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceed
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTooManyRequestsException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayUnknownPlaceholderException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 
 /**
  * A {@link ErrorRegistry} aware of common {@link DittoRuntimeException}s.
@@ -112,8 +112,8 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                 (jsonObject, dittoHeaders) -> GatewayServiceTooManyRequestsException
                         .fromMessage(getMessage(jsonObject), dittoHeaders));
 
-        parseStrategies.put(GatewayUnknownPlaceholderException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayUnknownPlaceholderException
+        parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
+                (jsonObject, dittoHeaders) -> GatewayPlaceholderNotResolvableException
                         .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         return new CommonErrorRegistry(parseStrategies);

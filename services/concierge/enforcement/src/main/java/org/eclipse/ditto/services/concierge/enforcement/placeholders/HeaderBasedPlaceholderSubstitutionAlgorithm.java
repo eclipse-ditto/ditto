@@ -22,9 +22,10 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayUnknownPlaceholderException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 
 /**
  * An algorithm for placeholder substitution based on {@link DittoHeaders}.
@@ -82,15 +83,17 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(dittoHeaders);
 
         final Function<String, String> placeholderReplacerFunction = createReplacerFunction(dittoHeaders);
+        final Function<String, DittoRuntimeException> unresolvedPlaceholderHandler =
+                createUnresolvedPlaceholderHandler(dittoHeaders);
 
-        return Placeholders.substitute(input, placeholderReplacerFunction);
+        return Placeholders.substitute(input, placeholderReplacerFunction, unresolvedPlaceholderHandler);
     }
 
     private Function<String, String> createReplacerFunction(final DittoHeaders dittoHeaders) {
         return placeholder -> {
             final Function<DittoHeaders, String> placeholderResolver = replacementDefinitions.get(placeholder);
             if (placeholderResolver == null) {
-                throw GatewayUnknownPlaceholderException.newBuilder(placeholder, knownPlaceHolders)
+                throw GatewayPlaceholderNotResolvableException.newUnknownPlaceholderBuilder(placeholder, knownPlaceHolders)
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
@@ -101,6 +104,13 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
             }
             return replacement;
         };
+    }
+
+    private Function<String, DittoRuntimeException> createUnresolvedPlaceholderHandler(
+            final DittoHeaders dittoHeaders) {
+        return input -> GatewayPlaceholderNotResolvableException.newNotResolvablePlaceholderBuilder(input)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
 }

@@ -23,7 +23,7 @@ import java.util.function.Function;
 import org.assertj.core.api.ThrowableAssert;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayUnknownPlaceholderException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -113,7 +113,14 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     }
 
     @Test
-    public void substituteTThrowsUnknownPlaceholderExceptionWhenInputContainsUnknownLegacyPlaceholder() {
+    public void substituteThrowsPlaceholderNotResolvableWhenUnresolvedPlaceholdersRemain() {
+        final String notResolvableInput = "{{";
+        assertUnresolvedPlaceholdersRemainExceptionIsThrown(notResolvableInput,
+                () -> underTest.substitute(notResolvableInput, DITTO_HEADERS));
+    }
+
+    @Test
+    public void substituteThrowsUnknownPlaceholderExceptionWhenInputContainsUnknownLegacyPlaceholder() {
         assertUnknownPlaceholderExceptionIsThrown(UNKNOWN_REPLACER_KEY,
                 () -> underTest.substitute(UNKNOWN_LEGACY_REPLACER, DITTO_HEADERS));
     }
@@ -133,14 +140,28 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
 
     private void assertUnknownPlaceholderExceptionIsThrown(final String expectedPlaceholderKey,
             final ThrowableAssert.ThrowingCallable throwingCallable) {
-        assertThatExceptionOfType(GatewayUnknownPlaceholderException.class)
+        final String expectedMessage = "The placeholder '" + expectedPlaceholderKey + "' is " +
+                "unknown.";
+        final String expectedDescription = "Please use one of the supported placeholders: '" +
+                REPLACER_KEY_1 + "', '" + REPLACER_KEY_2 + "'.";
+        assertPlaceholderNotResolvableExceptionIsThrown(expectedMessage, expectedDescription, throwingCallable);
+    }
+
+    private void assertUnresolvedPlaceholdersRemainExceptionIsThrown(final String notResolvableInput,
+            final ThrowableAssert.ThrowingCallable throwingCallable) {
+        final String expectedMessage = "The input contains not resolvable placeholders: '" + notResolvableInput + "'.";
+        assertPlaceholderNotResolvableExceptionIsThrown(expectedMessage,
+                GatewayPlaceholderNotResolvableException.NOT_RESOLVABLE_DESCRIPTION, throwingCallable);
+    }
+
+    private void assertPlaceholderNotResolvableExceptionIsThrown(final String expectedMessage,
+            final String expectedDescription, final ThrowableAssert.ThrowingCallable throwingCallable) {
+        assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
                 .isThrownBy(throwingCallable)
                 .satisfies(e -> {
-                    assertThat(e.getMessage()).isEqualTo("The placeholder '" + expectedPlaceholderKey + "' is " +
-                           "unknown.");
-                   assertThat(e.getDescription()).contains("Please use one of the supported placeholders: '" +
-                           REPLACER_KEY_1 + "', '" + REPLACER_KEY_2 + "'.");
-                   assertThat(e.getDittoHeaders()).isEqualTo(DITTO_HEADERS);
+                    assertThat(e.getMessage()).isEqualTo(expectedMessage);
+                    assertThat(e.getDescription()).contains(expectedDescription);
+                    assertThat(e.getDittoHeaders()).isEqualTo(DITTO_HEADERS);
                 });
     }
 

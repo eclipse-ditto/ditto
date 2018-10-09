@@ -16,13 +16,13 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.junit.Test;
 
 /**
- * Unit test for {@link GatewayUnknownPlaceholderException}.
+ * Unit test for {@link GatewayPlaceholderNotResolvableException}.
  */
-public final class GatewayUnknownPlaceholderExceptionTest {
+public final class GatewayPlaceholderNotResolvableExceptionTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(GatewayUnknownPlaceholderException.class, areImmutable());
+        assertInstancesOf(GatewayPlaceholderNotResolvableException.class, areImmutable());
     }
 
 }
