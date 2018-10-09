@@ -8,11 +8,5 @@
  *
  *  SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.connectivity.placeholder;
-
-
-/**
- * A {@link Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
- */
-interface ThingPlaceholder extends Placeholder<String> {
-}
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
+package org.eclipse.ditto.services.models.connectivity;

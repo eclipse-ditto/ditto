@@ -355,9 +355,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         @Override
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
-            externalMessage.getEnforcementFilter().ifPresent(enforcement -> {
-                log.debug("Thing ID Enforcement enabled: {}", enforcement);
-                enforcement.match(signal.getId(), signal.getDittoHeaders());
+            externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
+                log.debug("Thing ID Enforcement enabled: {}", enforcementFilter);
+                enforcementFilter.match(signal.getId(), signal.getDittoHeaders());
             });
         }
     }

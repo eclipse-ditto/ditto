@@ -47,14 +47,4 @@ public class EnforcementFactoryFactory {
             final Placeholder<O> inputFilter) {
         return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, ImmutableThingPlaceholder.INSTANCE);
     }
-
-    /**
-     * Simple factory that returns a factory for noop filter.
-     *
-     * @return the new {@link EnforcementFactoryFactory}
-     */
-    public static EnforcementFilterFactory<Object, String> newNullEnforcementFactory() {
-        return inputValue -> null;
-    }
-
 }

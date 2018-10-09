@@ -26,6 +26,9 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
+/**
+ * Tests {@link ImmutableEnforcementFilter}.
+ */
 public class ImmutableEnforcementFilterTest {
 
     @Test
@@ -95,15 +98,6 @@ public class ImmutableEnforcementFilterTest {
                 "eclipse:ditto");
     }
 
-    private void testSimplePlaceholder(final String inputTemplate, final String matcherTemplate,
-            final String inputValue, final String matcherValue) {
-        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, matcherTemplate);
-        final EnforcementFilterFactory<String, String> enforcementFilterFactory =
-                EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement, SimplePlaceholder.INSTANCE);
-        final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
-        enforcementFilter.match(matcherValue, DittoHeaders.empty());
-    }
-
     @Test
     public void testDeviceIdHeaderMatchesThingId() {
         final HashMap<String, String> map = new HashMap<>();
@@ -116,6 +110,15 @@ public class ImmutableEnforcementFilterTest {
                         ImmutableHeadersPlaceholder.INSTANCE);
         final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(map);
         enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
+    }
+
+    private void testSimplePlaceholder(final String inputTemplate, final String matcherTemplate,
+            final String inputValue, final String matcherValue) {
+        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, matcherTemplate);
+        final EnforcementFilterFactory<String, String> enforcementFilterFactory =
+                EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement, SimplePlaceholder.INSTANCE);
+        final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
+        enforcementFilter.match(matcherValue, DittoHeaders.empty());
     }
 
 }
