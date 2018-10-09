@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -79,7 +80,7 @@ public final class RequestTimeoutHandlingDirective {
                                 .tag(TracingTags.STATUS_CODE, statusCode)
                                 .stop();
                         LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
-                        checkDurationWarning(stoppedTimer);
+                        checkDurationWarning(stoppedTimer, correlationId);
                         return response;
                     }, inner);
 
@@ -91,19 +92,22 @@ public final class RequestTimeoutHandlingDirective {
         });
     }
 
-    private static void checkDurationWarning(final StoppedTimer mutableTimer) {
+    private static void checkDurationWarning(final StoppedTimer mutableTimer, final String correlationId) {
         final Duration duration = mutableTimer.getDuration();
         final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
-        if (requestPath != null && requestPath.contains("/search/things") &&
-                SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.warn("Encountered slow search which took over {}ms: {}ms",
-                    SEARCH_WARN_TIMEOUT_MS.toMillis(),
-                    duration.toMillis());
-        } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.warn("Encountered slow HTTP request which took over {}ms: {}ms",
-                    HTTP_WARN_TIMEOUT_MS.toMillis(),
-                    duration.toMillis());
-        }
+
+        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
+            if (requestPath != null && requestPath.contains("/search/things") &&
+                    SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+                logger.warn("Encountered slow search which took over {}ms: {}ms",
+                        SEARCH_WARN_TIMEOUT_MS.toMillis(),
+                        duration.toMillis());
+            } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+                logger.warn("Encountered slow HTTP request which took over {}ms: {}ms",
+                        HTTP_WARN_TIMEOUT_MS.toMillis(),
+                        duration.toMillis());
+            }
+        });
     }
 
     private static HttpResponse doHandleRequestTimeout(final String correlationId, final Config config,
