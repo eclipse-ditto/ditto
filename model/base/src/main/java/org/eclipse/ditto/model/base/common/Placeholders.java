@@ -73,17 +73,17 @@ public final class Placeholders {
      * @param input the input.
      * @param placeholderReplacerFunction a function defining how a placeholder will be replaced. It must not return
      * null, instead it should throw a specific exception if a placeholder cannot be replaced.
-     * @param unresolvedPlaceholderHandler exception handler providing a exception which is thrown when placeholders
-     * remain unresolved.
+     * @param unresolvedInputHandler exception handler providing a exception which is thrown when placeholders
+     * remain unresolved, e.g. when brackets have the wrong order.
      * @return the replaced input, if the input contains placeholders; the (same) input object, if no placeholders were
      * contained in the input.
      * @throws IllegalStateException if {@code placeholderReplacerFunction} returns null
      */
     public static String substitute(final String input, final Function<String, String> placeholderReplacerFunction,
-            final Function<String, DittoRuntimeException> unresolvedPlaceholderHandler) {
+            final Function<String, DittoRuntimeException> unresolvedInputHandler) {
         requireNonNull(input);
         requireNonNull(placeholderReplacerFunction);
-        requireNonNull(unresolvedPlaceholderHandler);
+        requireNonNull(unresolvedInputHandler);
 
         final Function<String, String> legacyPlaceholderReplacerFunction =
                 LEGACY_PLACEHOLDER_CONVERTER.andThen(placeholderReplacerFunction);
@@ -94,7 +94,7 @@ public final class Placeholders {
                 substitute(maybeSubstituted, LEGACY_PLACEHOLDER_PATTERN, legacyPlaceholderReplacerFunction);
 
         if (containsAnyPlaceholder(maybeSubstituted)) {
-            throw unresolvedPlaceholderHandler.apply(input);
+            throw unresolvedInputHandler.apply(input);
         }
 
         return maybeSubstituted;

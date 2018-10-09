@@ -86,7 +86,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
      *
      * @return the builder.
      */
-    public static Builder newNotResolvablePlaceholderBuilder(final CharSequence notResolvableInput) {
+    public static Builder newNotResolvableInputBuilder(final CharSequence notResolvableInput) {
         requireNonNull(notResolvableInput);
 
         final String message = MessageFormat.format(NOT_RESOLVABLE_INPUT_MESSAGE_TEMPLATE, requireNonNull(notResolvableInput));

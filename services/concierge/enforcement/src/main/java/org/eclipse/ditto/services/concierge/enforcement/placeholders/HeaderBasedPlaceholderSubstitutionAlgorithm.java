@@ -83,10 +83,10 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(dittoHeaders);
 
         final Function<String, String> placeholderReplacerFunction = createReplacerFunction(dittoHeaders);
-        final Function<String, DittoRuntimeException> unresolvedPlaceholderHandler =
-                createUnresolvedPlaceholderHandler(dittoHeaders);
+        final Function<String, DittoRuntimeException> unresolvedInputHandler =
+                createUnresolvedInputHandler(dittoHeaders);
 
-        return Placeholders.substitute(input, placeholderReplacerFunction, unresolvedPlaceholderHandler);
+        return Placeholders.substitute(input, placeholderReplacerFunction, unresolvedInputHandler);
     }
 
     private Function<String, String> createReplacerFunction(final DittoHeaders dittoHeaders) {
@@ -106,9 +106,9 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         };
     }
 
-    private Function<String, DittoRuntimeException> createUnresolvedPlaceholderHandler(
+    private Function<String, DittoRuntimeException> createUnresolvedInputHandler(
             final DittoHeaders dittoHeaders) {
-        return input -> GatewayPlaceholderNotResolvableException.newNotResolvablePlaceholderBuilder(input)
+        return input -> GatewayPlaceholderNotResolvableException.newNotResolvableInputBuilder(input)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
