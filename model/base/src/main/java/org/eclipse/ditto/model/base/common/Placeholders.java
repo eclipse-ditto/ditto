@@ -34,7 +34,8 @@ public final class Placeholders {
     private static final String PLACEHOLDER_END = "}}";
 
     private static final String PLACEHOLDER_REGEX =
-            Pattern.quote(PLACEHOLDER_START) + " *(?<" + PLACEHOLDER_GROUP_NAME + ">\\S+) *" +
+            Pattern.quote(PLACEHOLDER_START) +
+                    " *(?<" + PLACEHOLDER_GROUP_NAME + ">([^{ ])+) *" +
                     Pattern.quote(PLACEHOLDER_END);
 
 
@@ -47,7 +48,7 @@ public final class Placeholders {
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
     private static final Pattern LEGACY_PLACEHOLDER_PATTERN = Pattern.compile(LEGACY_PLACEHOLDER_REGEX);
 
-    private static final Function<String, String> TO_LEGACY_PLACEHOLDER_CONVERTER =
+    private static final Function<String, String> LEGACY_PLACEHOLDER_CONVERTER =
             inputPlaceholder -> inputPlaceholder.replaceAll(Pattern.quote("."), ":");
 
     private Placeholders() {
@@ -85,7 +86,7 @@ public final class Placeholders {
         requireNonNull(unresolvedPlaceholderHandler);
 
         final Function<String, String> legacyPlaceholderReplacerFunction =
-                TO_LEGACY_PLACEHOLDER_CONVERTER.andThen(placeholderReplacerFunction);
+                LEGACY_PLACEHOLDER_CONVERTER.andThen(placeholderReplacerFunction);
 
         String maybeSubstituted =
                 substitute(input, PLACEHOLDER_PATTERN, placeholderReplacerFunction);

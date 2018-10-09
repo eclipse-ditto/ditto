@@ -107,6 +107,15 @@ public class PlaceholdersTest {
     }
 
     @Test
+    public void substituteReturnsReplacedWhenInputContainsMultiplePlaceholdersWithoutSpaces() {
+        final String substituted =
+                Placeholders.substitute("{{" + REPLACER_KEY_1 + "}}" + "{{" + REPLACER_KEY_2 + "}}",
+                        replacerFunction, unresolvedPlaceholderFunction);
+
+        assertThat(substituted).isEqualTo(REPLACED_1 + REPLACED_2);
+    }
+
+    @Test
     public void substituteReturnsReplacedWhenInputContainsPlaceholderWithManySpace() {
         final String substituted = Placeholders.substitute("{{    " + REPLACER_KEY_1 + "      }}",
                 replacerFunction, unresolvedPlaceholderFunction);
