@@ -150,9 +150,9 @@ public final class PlaceholderFilter {
 
             return placeholders.stream()
                     .filter(p -> p.getPrefix().equals(prefix) && p.supports(placeholderWithoutSuffix))
-                    .map(p -> p.apply(placeholderWithoutSuffix))
-                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(placeholder).build()))
-                    .findAny().orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(placeholder).build());
+                    .findAny()
+                    .flatMap(p -> p.apply(placeholderWithoutSuffix))
+                    .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(placeholder).build());
         };
 
         return Placeholders.substitute(input, placeholderReplacerFunction, UNRESOLVED_INPUT_HANDLER);
