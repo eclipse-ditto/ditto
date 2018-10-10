@@ -68,26 +68,27 @@ public final class RequestTimeoutHandlingDirective {
             final Config config = actorSystem.settings().config();
 
             return extractRequestContext(requestContext ->
-                enhanceLogWithCorrelationId(correlationId, () -> {
+                    enhanceLogWithCorrelationId(correlationId, () -> {
 
-                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                    LOGGER.debug("Started mutable timer <{}>", timer);
+                        final StartedTimer timer =
+                                TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
+                        LOGGER.debug("Started mutable timer <{}>", timer);
 
-                    final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
+                        final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
 
-                        final int statusCode = response.status().intValue();
-                        final StoppedTimer stoppedTimer = timer
-                                .tag(TracingTags.STATUS_CODE, statusCode)
-                                .stop();
-                        LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
-                        checkDurationWarning(stoppedTimer, correlationId);
-                        return response;
-                    }, inner);
+                            final int statusCode = response.status().intValue();
+                            final StoppedTimer stoppedTimer = timer
+                                    .tag(TracingTags.STATUS_CODE, statusCode)
+                                    .stop();
+                            LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
+                            checkDurationWarning(stoppedTimer, correlationId);
+                            return response;
+                        }, inner);
 
-                    return Directives.withRequestTimeoutResponse(request ->
-                                    doHandleRequestTimeout(correlationId, config, requestContext, timer),
-                            innerWithTimer);
-                })
+                        return Directives.withRequestTimeoutResponse(request ->
+                                        doHandleRequestTimeout(correlationId, config, requestContext, timer),
+                                innerWithTimer);
+                    })
             );
         });
     }
@@ -128,18 +129,20 @@ public final class RequestTimeoutHandlingDirective {
         /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
            in case of a timeout */
         final int statusCode = cre.getStatusCode().toInt();
-        final String requestMethod = request.method().name();
-        final String requestUri = request.getUri().toRelative().toString();
-        LOGGER.warn("Request {} '{}' timed out after {}", requestMethod, requestUri, duration);
-        LOGGER.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-        final String rawRequestUri = getRawRequestUri(request);
-        LOGGER.debug("Raw request URI was: {}", rawRequestUri);
 
-        timer
-                .tag(TracingTags.STATUS_CODE, statusCode)
-                .stop();
+        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
+            final String requestMethod = request.method().name();
+            final String requestUri = request.getUri().toRelative().toString();
+            logger.warn("Request {} '{}' timed out after {}", requestMethod, requestUri, duration);
+            logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
+            final String rawRequestUri = getRawRequestUri(request);
+            logger.debug("Raw request URI was: {}", rawRequestUri);
 
-        LOGGER.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            timer.tag(TracingTags.STATUS_CODE, statusCode)
+                    .stop();
+
+            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+        });
 
         /* We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
            called by akka in case of a timeout */
