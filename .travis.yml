@@ -15,12 +15,12 @@ script:
   - if [ -n "$TRAVIS_TAG" ]; then
     export IMAGE_TAG=$TRAVIS_TAG;
     docker login -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASSWORD";
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-policies:$IMAGE_TAG      -t eclipse/ditto-policies:latest .;
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG        -t eclipse/ditto-things:latest .;
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-concierge:$IMAGE_TAG     -t eclipse/ditto-concierge:latest .;
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
-    docker build -f services/Dockerfile --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-connectivity:$IMAGE_TAG  -t eclipse/ditto-connectivity:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-policies:$IMAGE_TAG      -t eclipse/ditto-policies:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things:$IMAGE_TAG        -t eclipse/ditto-things:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-things-search:$IMAGE_TAG -t eclipse/ditto-things-search:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-concierge:$IMAGE_TAG     -t eclipse/ditto-concierge:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-gateway:$IMAGE_TAG       -t eclipse/ditto-gateway:latest .;
+    docker build -f services/src/Dockerfile --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=$IMAGE_TAG   -t eclipse/ditto-connectivity:$IMAGE_TAG  -t eclipse/ditto-connectivity:latest .;
     docker push eclipse/ditto-policies:$IMAGE_TAG;
     docker push eclipse/ditto-policies:latest;
     docker push eclipse/ditto-things:$IMAGE_TAG;
