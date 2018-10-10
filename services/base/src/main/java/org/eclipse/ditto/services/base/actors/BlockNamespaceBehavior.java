@@ -11,6 +11,8 @@
  */
 package org.eclipse.ditto.services.base.actors;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -32,41 +34,41 @@ public final class BlockNamespaceBehavior {
     }
 
     /**
-     * Create a namespace-blocking behavior.
+     * Return an instance of {@code BlockNamespaceBehavior}.
      *
      * @param namespaceCache the cache to read namespaces from.
      * @return the namespace-blocking behavior.
+     * @throws NullPointerException if {@code namespaceCache} is {@code null}.
      */
     public static BlockNamespaceBehavior of(final Cache<String, Object> namespaceCache) {
-        return new BlockNamespaceBehavior(namespaceCache);
+        return new BlockNamespaceBehavior(checkNotNull(namespaceCache, "namespace cache"));
     }
 
     /**
-     * Blocks a {@code message} if it relates to an entity within a blocked namespace.
+     * Blocks a {@code signal} if it relates to an entity within a blocked namespace.
      *
-     * @param message the message to block.
-     * @return a completion stage which either completes successfully with the given {@code message} or exceptionally
+     * @param signal the signal to block.
+     * @return a completion stage which either completes successfully with the given {@code signal} or exceptionally
      * with a {@code NamespaceBlockedException}.
      */
-    public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders message) {
-        if (message instanceof WithId) {
-            final Optional<String> namespaceOptional =
-                    NamespaceCacheWriter.namespaceFromId(((WithId) message).getId());
+    public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders signal) {
+        if (signal instanceof WithId) {
+            final Optional<String> namespaceOptional = NamespaceCacheWriter.namespaceFromId(((WithId) signal).getId());
             if (namespaceOptional.isPresent()) {
                 final String namespace = namespaceOptional.get();
                 return namespaceCache.getIfPresent(namespace)
                         .thenApply(cachedNamespace -> {
                             if (cachedNamespace.isPresent()) {
                                 throw NamespaceBlockedException.newBuilder(namespace)
-                                        .dittoHeaders(message.getDittoHeaders())
+                                        .dittoHeaders(signal.getDittoHeaders())
                                         .build();
                             } else {
-                                return message;
+                                return signal;
                             }
                         });
             }
         }
-        return CompletableFuture.completedFuture(message);
+        return CompletableFuture.completedFuture(signal);
     }
 
 }
