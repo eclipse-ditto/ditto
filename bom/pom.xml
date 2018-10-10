@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2017 Bosch Software Innovations GmbH.
+  ~ Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
   ~
   ~ All rights reserved. This program and the accompanying materials
   ~ are made available under the terms of the Eclipse Public License v2.0
   ~ which accompanies this distribution, and is available at
   ~ https://www.eclipse.org/org/documents/epl-2.0/index.php
   ~
-  ~ Contributors:
-  ~    Bosch Software Innovations GmbH - initial contribution
+  ~ SPDX-License-Identifier: EPL-2.0
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -26,9 +25,9 @@
 
     <properties>
         <!-- globally set version for checking binary compatibility against -->
-        <!-- TODO: set to latest release -->
-        <!--<binary-compatibility-check.version>0.8.0-M1</binary-compatibility-check.version>-->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+        <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
+        <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally broke something -->
+        <binary-compatibility-check.version>0.8.0-M2b</binary-compatibility-check.version>
 
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.6</scala.full.version>
@@ -38,11 +37,12 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <typesafe-config.version>1.3.1</typesafe-config.version>
+        <typesafe-config.version>1.3.2</typesafe-config.version>
         <akka.version>2.5.13</akka.version>
         <akka-http.version>10.1.3</akka-http.version>
         <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
+        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
@@ -52,7 +52,7 @@
         <asm.version>5.2</asm.version>
         <qpid-jms-client.version>0.36.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
-        <amqp-client.version>5.2.0</amqp-client.version>
+        <amqp-client.version>5.4.2</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
         <netty.version>4.1.27.Final</netty.version>
 
@@ -98,7 +98,6 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
-        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
     </properties>
 
     <dependencyManagement>
@@ -447,6 +446,7 @@
                 <version>${project.version}</version>
             </dependency>
 
+
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-base</artifactId>
@@ -723,6 +723,12 @@
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-legal</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
 
             <!-- ### Testing ### -->
             <dependency>
@@ -919,6 +925,14 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-legal</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

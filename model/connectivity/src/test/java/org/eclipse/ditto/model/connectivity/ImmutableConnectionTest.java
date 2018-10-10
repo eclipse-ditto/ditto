@@ -1,13 +1,12 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -30,8 +29,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
+import org.eclipse.ditto.model.connectivity.credentials.Credentials;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -172,6 +171,30 @@ public final class ImmutableConnectionTest {
                 .isThrownBy(() -> ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, null))
                 .withMessage("The %s must not be null!", "URI")
                 .withNoCause();
+    }
+
+    @Test
+    public void getBuilderFromConnectionCoversAllFields() {
+
+        final Connection connection = ImmutableConnection.getBuilder(ID, TYPE, STATUS, URI)
+                .sources(SOURCES)
+                .targets(TARGETS)
+                .connectionStatus(ConnectionStatus.OPEN)
+                .name("connection")
+                .clientCount(5)
+                .tag("AAA")
+                .trustedCertificates("certs")
+                .processorPoolSize(8)
+                .credentials(ClientCertificateCredentials.newBuilder()
+                        .clientKey("clientkey")
+                        .clientCertificate("certificate")
+                        .build())
+                .validateCertificate(true)
+                .uri("amqps://some.amqp.org:5672")
+                .id("id")
+                .build();
+
+        assertThat(ImmutableConnection.getBuilder(connection).build()).isEqualTo(connection);
     }
 
     @Test
