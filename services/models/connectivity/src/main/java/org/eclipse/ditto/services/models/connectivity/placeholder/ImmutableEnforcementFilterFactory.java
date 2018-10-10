@@ -15,34 +15,34 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 /**
  * Factory that creates instances of EnforcementFilterFactory.
  *
- * @param <O> the input type for the input filter
- * @param <M> the input type for the matcher filter
+ * @param <I> the type required to resolve the placeholders in the input
+ * @param <M> the type required to resolve the placeholders in the filters
  */
-public class ImmutableEnforcementFilterFactory<O, M> implements EnforcementFilterFactory<O, M> {
+public class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilterFactory<I, M> {
 
     private final Enforcement enforcement;
-    private final Placeholder<O> inputFilter;
-    private final Placeholder<M> matcherFilter;
+    private final Placeholder<I> inputPlaceholder;
+    private final Placeholder<M> filterPlaceholder;
 
     /**
      * Instantiates a new {@link ImmutableEnforcementFilterFactory}.
      *
-     * @param enforcement the enforcement configuration, contains the input and matcher templates
-     * @param inputFilter the input filter that should be applied to resolve the values in the template
-     * @param matcherFilter the matcher filter that should be applied to resolve the values in the template
+     * @param enforcement the enforcement configuration, contains the input and filters templates
+     * @param inputPlaceholder the input placeholder used to resolve the values in the input template
+     * @param filterPlaceholder the filters placeholder used to resolve the values in the filters template
      */
     ImmutableEnforcementFilterFactory(final Enforcement enforcement,
-            final Placeholder<O> inputFilter,
-            final Placeholder<M> matcherFilter) {
+            final Placeholder<I> inputPlaceholder,
+            final Placeholder<M> filterPlaceholder) {
         this.enforcement = enforcement;
-        this.inputFilter = inputFilter;
-        this.matcherFilter = matcherFilter;
+        this.inputPlaceholder = inputPlaceholder;
+        this.filterPlaceholder = filterPlaceholder;
     }
 
     @Override
-    public EnforcementFilter<M> getFilter(final O input) {
-        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(), input, inputFilter);
-        return new ImmutableEnforcementFilter<>(enforcement, matcherFilter, inputResolved);
+    public EnforcementFilter<M> getFilter(final I input) {
+        final String inputResolved = PlaceholderFilter.apply(enforcement.getInput(), input, inputPlaceholder);
+        return new ImmutableEnforcementFilter<>(enforcement, filterPlaceholder, inputResolved);
     }
 
 }

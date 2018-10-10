@@ -534,58 +534,57 @@ public final class ConnectivityModelFactory {
     /**
      * New instance of {@link Enforcement} options.
      *
-     * @param input the input that is compared with the matchers
-     * @param matchers additional matchers
+     * @param input the input that is compared against the filters
+     * @param filters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newEnforcement(final String input, final Set<String> matchers) {
-        return ImmutableEnforcement.of(input, matchers);
+    public static Enforcement newEnforcement(final String input, final Set<String> filters) {
+        return ImmutableEnforcement.of(input, filters);
     }
 
     /**
      * New instance of {@link Enforcement} options.
      *
-     * @param input the input that is compared with the matchers
-     * @param requiredMatcher the required matcher
-     * @param additionalMatchers additional matchers
+     * @param input the input that is compared with the filters
+     * @param requiredFilter the required filter
+     * @param additionalFilters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newEnforcement(final String input, final String requiredMatcher,
-            final String... additionalMatchers) {
-        final HashSet<String> matchers = new HashSet<>(Collections.singletonList(requiredMatcher));
-        matchers.addAll(Arrays.asList(additionalMatchers));
-        return newEnforcement(input, matchers);
+    public static Enforcement newEnforcement(final String input, final String requiredFilter,
+            final String... additionalFilters) {
+        final HashSet<String> filters = new HashSet<>(Collections.singletonList(requiredFilter));
+        filters.addAll(Arrays.asList(additionalFilters));
+        return newEnforcement(input, filters);
     }
 
     /**
      * New instance of {@link Enforcement} options to be used with MQTT connections.
      *
-     * @param matchers the matchers
+     * @param filters the filters
      * @return the enforcement instance
      */
-    public static Enforcement newMqttEnforcement(final Set<String> matchers) {
-        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, matchers);
+    public static Enforcement newMqttEnforcement(final Set<String> filters) {
+        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, filters);
     }
 
     /**
      * New instance of {@link Enforcement} options to be used with MQTT connections.
      *
-     * @param requiredMatcher the required matcher
-     * @param additionalMatchers additional matchers
+     * @param requiredFilter the required filter
+     * @param additionalFilters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newMqttEnforcement(final String requiredMatcher, final String... additionalMatchers) {
-        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, requiredMatcher, additionalMatchers);
+    public static Enforcement newMqttEnforcement(final String requiredFilter, final String... additionalFilters) {
+        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, requiredFilter, additionalFilters);
     }
 
     /**
      * Create a copy of this object with error message set.
      *
      * @param enforcement the enforcement options
-     * @param errorMessage The error message if enforcement fails.
-     * @return a copy of this object with the error message.
+     * @return a copy of this object.
      */
-    public static Enforcement newEnforcement(final Enforcement enforcement, final String errorMessage) {
-        return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getMatchers(), errorMessage);
+    public static Enforcement newEnforcement(final Enforcement enforcement) {
+        return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getFilters());
     }
 }

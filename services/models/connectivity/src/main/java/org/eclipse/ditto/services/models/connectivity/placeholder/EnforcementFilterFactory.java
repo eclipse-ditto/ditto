@@ -14,8 +14,8 @@ package org.eclipse.ditto.services.models.connectivity.placeholder;
  * Factory that creates {@link EnforcementFilter}s. As part of the creation the input value is resolved and can
  * later be matched against other values.
  *
- * @param <I> the type from which the input value is resolved
- * @param <M> the type from which the matcher value is resolved
+ * @param <I> the type required to resolve the placeholders in the input
+ * @param <M> the type required to resolve the placeholders in the filters
  */
 public interface EnforcementFilterFactory<I, M> {
 

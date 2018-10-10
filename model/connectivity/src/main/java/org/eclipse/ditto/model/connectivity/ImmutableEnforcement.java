@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonCollectors;
@@ -26,8 +25,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -38,74 +35,41 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableEnforcement implements Enforcement {
 
     private final String input;
-    private final Set<String> matchers;
+    private final Set<String> filters;
 
-    // TODO move away from here
-    @Nullable
-    private final String errorMessage;
-
-    private ImmutableEnforcement(final String input, final Set<String> matchers, @Nullable final String errorMessage) {
+    private ImmutableEnforcement(final String input, final Set<String> filters) {
         this.input = input;
-        this.matchers = Collections.unmodifiableSet(new HashSet<>(matchers));
-        this.errorMessage = errorMessage;
+        this.filters = Collections.unmodifiableSet(new HashSet<>(filters));
     }
 
     /**
      * Create a ThingIdEnforcement with default error message.
      *
      * @param input input of the signal to apply Thing ID enforcement.
-     * @param matchers matchers to match the input against.
+     * @param filters filters to match against the input .
      * @return ThingIdEnforcement with default error message.
      */
-    static ImmutableEnforcement of(final String input, final Set<String> matchers) {
-        return new ImmutableEnforcement(input, matchers, null);
+    static ImmutableEnforcement of(final String input, final Set<String> filters) {
+        return new ImmutableEnforcement(input, filters);
     }
 
     /**
-     * Create a ThingIdEnforcement with default error message.
+     * Retrieve the string to match against filters.
      *
-     * @param input input of the signal to apply Thing ID enforcement.
-     * @param matchers matchers to match the input against.
-     * @param errorMessage The error message if enforcement fails.
-     * @return ThingIdEnforcement with default error message.
-     */
-    static ImmutableEnforcement of(final String input, final Set<String> matchers, final String errorMessage) {
-        return new ImmutableEnforcement(input, matchers, errorMessage);
-    }
-
-    /**
-     * Retrieve the string to match against matchers.
-     *
-     * @return the string that is supposed to match one of the matchers.
+     * @return the string that is supposed to match one of the filters.
      */
     public String getInput() {
         return input;
     }
 
     /**
-     * Retrieve set of matchers that are comared against the input string.
+     * Retrieve set of filters that are comared against the input string.
      * Filters contain placeholders ({@code {{ ... }}}).
      *
-     * @return the matchers.
+     * @return the filters.
      */
-    public Set<String> getMatchers() {
-        return matchers;
-    }
-
-    /**
-     * Return the error when ID enforcement fails.
-     *
-     * @param dittoHeaders Ditto headers of the signal subjected to ID enforcement.
-     * @return the error.
-     */
-    public IdEnforcementFailedException getError(final DittoHeaders dittoHeaders) {
-        final DittoRuntimeExceptionBuilder<IdEnforcementFailedException> builder;
-        if (errorMessage == null) {
-            builder = IdEnforcementFailedException.newBuilder(getInput());
-        } else {
-            builder = IdEnforcementFailedException.newBuilder().message(errorMessage);
-        }
-        return builder.dittoHeaders(dittoHeaders).build();
+    public Set<String> getFilters() {
+        return filters;
     }
 
     @Override
@@ -114,7 +78,7 @@ final class ImmutableEnforcement implements Enforcement {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
         jsonObjectBuilder.set(JsonFields.INPUT, input, predicate);
-        jsonObjectBuilder.set(JsonFields.MATCHERS, matchers.stream()
+        jsonObjectBuilder.set(JsonFields.FILTERS, filters.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
 
@@ -130,13 +94,13 @@ final class ImmutableEnforcement implements Enforcement {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Enforcement fromJson(final JsonObject jsonObject) {
-        final Set<String> readMatchers = jsonObject.getValue(JsonFields.MATCHERS)
+        final Set<String> readFilters = jsonObject.getValue(JsonFields.FILTERS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .collect(Collectors.toSet())).orElse(Collections.emptySet());
         final String readInput =
                 jsonObject.getValueOrThrow(JsonFields.INPUT);
-        return new ImmutableEnforcement(readInput, readMatchers, null);
+        return new ImmutableEnforcement(readInput, readFilters);
     }
 
     @Override
@@ -145,21 +109,19 @@ final class ImmutableEnforcement implements Enforcement {
         if (o == null || getClass() != o.getClass()) return false;
         final ImmutableEnforcement that = (ImmutableEnforcement) o;
         return Objects.equals(input, that.input) &&
-                Objects.equals(matchers, that.matchers) &&
-                Objects.equals(errorMessage, that.errorMessage);
+                Objects.equals(filters, that.filters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(input, matchers, errorMessage);
+        return Objects.hash(input, filters);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "input=" + input +
-                ", matchers=" + matchers +
-                ", errorMessage=" + errorMessage +
+                ", filters=" + filters +
                 "]";
     }
 }

@@ -52,7 +52,7 @@ public final class ImmutableMqttSourceTest {
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
                     .set(Enforcement.JsonFields.INPUT, "{{ topic }}")
-                    .set(Enforcement.JsonFields.MATCHERS, JsonFactory.newArrayBuilder().add(FILTER).build())
+                    .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(FILTER).build())
                     .build())
             .build();
 

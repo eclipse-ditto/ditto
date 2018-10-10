@@ -112,13 +112,13 @@ public class ImmutableEnforcementFilterTest {
         enforcementFilter.match("eclipse:ditto", DittoHeaders.empty());
     }
 
-    private void testSimplePlaceholder(final String inputTemplate, final String matcherTemplate,
-            final String inputValue, final String matcherValue) {
-        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, matcherTemplate);
+    private void testSimplePlaceholder(final String inputTemplate, final String filterTemplate,
+            final String inputValue, final String filterValue) {
+        final Enforcement enforcement = ConnectivityModelFactory.newEnforcement(inputTemplate, filterTemplate);
         final EnforcementFilterFactory<String, String> enforcementFilterFactory =
                 EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement, SimplePlaceholder.INSTANCE);
         final EnforcementFilter<String> enforcementFilter = enforcementFilterFactory.getFilter(inputValue);
-        enforcementFilter.match(matcherValue, DittoHeaders.empty());
+        enforcementFilter.match(filterValue, DittoHeaders.empty());
     }
 
 }

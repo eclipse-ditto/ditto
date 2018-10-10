@@ -28,7 +28,7 @@ public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<J
 
     String getInput();
 
-    Set<String> getMatchers();
+    Set<String> getFilters();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -54,15 +54,15 @@ public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<J
         /**
          * JSON field containing the input of the enforcement.
          */
-        static final JsonFieldDefinition<String> INPUT =
+        public static final JsonFieldDefinition<String> INPUT =
                 JsonFactory.newStringFieldDefinition("input", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         /**
-         * JSON field containing the {@code Source} authorization context (list of authorization subjects).
+         * JSON field containing the {@code Enforcement} filters.
          */
-        static final JsonFieldDefinition<JsonArray> MATCHERS =
-                JsonFactory.newJsonArrayFieldDefinition("matchers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+        public static final JsonFieldDefinition<JsonArray> FILTERS =
+                JsonFactory.newJsonArrayFieldDefinition("filters", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
     }
 

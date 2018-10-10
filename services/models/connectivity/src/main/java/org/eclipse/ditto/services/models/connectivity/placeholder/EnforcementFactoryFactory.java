@@ -23,20 +23,20 @@ public class EnforcementFactoryFactory {
      * {@link EnforcementFilter}s.
      *
      * @param enforcement the enforcement options containing the filter templates
-     * @param inputFilter the input filter that is applied to resolve input value
-     * @param matcherFilter the matcher filter that is applied to resolve matcher values
+     * @param inputFilter the input placeholder used to resolve the input value
+     * @param filterPlaceholder the filter placeholder used to resolve filter values
      * @param <I> the type from which the input values are resolved
-     * @param <M> the type from which the matcher values are resolved
+     * @param <M> the type from which the filter values are resolved
      * @return the new {@link EnforcementFactoryFactory}
      */
     public static <I, M> EnforcementFilterFactory<I, M> newEnforcementFactory(final Enforcement enforcement,
-            final Placeholder<I> inputFilter, final Placeholder<M> matcherFilter) {
-        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, matcherFilter);
+            final Placeholder<I> inputFilter, final Placeholder<M> filterPlaceholder) {
+        return new ImmutableEnforcementFilterFactory<>(enforcement, inputFilter, filterPlaceholder);
     }
 
     /**
      * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with a {@link ThingPlaceholder}
-     * filter for matcher values.
+     * for the filters.
      *
      * @param <O> the type from which the input values are resolved
      * @param enforcement the enforcement options

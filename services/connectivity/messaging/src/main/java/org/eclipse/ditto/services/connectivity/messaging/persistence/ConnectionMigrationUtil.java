@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 
@@ -93,7 +94,7 @@ final class ConnectionMigrationUtil {
      *       "authorizationContext" : [...],
      *       <b>"enforcement" : {
      *         "input" : "{{ mqtt:topic }}",
-     *         "matchers" : [ "{{thing:id}}", "{{thing:name}}" ]
+     *         "filters" : [ "{{thing:id}}", "{{thing:name}}" ]
      *       }</b>
      *     },
      *     {}
@@ -102,6 +103,8 @@ final class ConnectionMigrationUtil {
      * </pre>
      */
     static class MigrateSourceFilters implements Function<JsonObject, JsonObject> {
+
+        public static final String DEFAULT_MQTT_SOURCE_FILTER_INPUT = "{{ mqtt:topic }}";
 
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {
@@ -125,14 +128,16 @@ final class ConnectionMigrationUtil {
         }
 
         static JsonObject migrateSourceFilters(final JsonObject source) {
-            return source.getValue("filters")
+            return source.getValue(Enforcement.JsonFields.FILTERS)
                     .filter(JsonValue::isArray)
                     .map(JsonValue::asArray)
                     .map(a -> JsonFactory.newObjectBuilder()
-                            .set("matchers", a)
-                            .set("input", "{{ mqtt:topic }}")
+                            .set(Enforcement.JsonFields.INPUT, DEFAULT_MQTT_SOURCE_FILTER_INPUT)
+                            .set(Enforcement.JsonFields.FILTERS, a)
                             .build())
-                    .map(enforcement -> source.toBuilder().remove("filters").set("enforcement", enforcement))
+                    .map(enforcement -> source.toBuilder()
+                            .remove(Enforcement.JsonFields.FILTERS)
+                            .set(Source.JsonFields.ENFORCEMENT, enforcement))
                     .map(JsonObjectBuilder::build)
                     .orElse(source);
         }

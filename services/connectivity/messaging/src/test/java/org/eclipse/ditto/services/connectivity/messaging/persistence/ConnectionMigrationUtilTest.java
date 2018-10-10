@@ -181,8 +181,8 @@ public class ConnectionMigrationUtilTest {
         final Enforcement enforcement = migratedConnection.getSources().get(0).getEnforcement();
         // the filters field was implicitly matched against the mqtt topic
         assertThat(enforcement.getInput()).isEqualTo("{{ mqtt:topic }}");
-        assertThat(enforcement.getMatchers()).hasSize(2);
-        assertThat(enforcement.getMatchers()).contains("{{thing:id}}", "{{thing:name}}");
+        assertThat(enforcement.getFilters()).hasSize(2);
+        assertThat(enforcement.getFilters()).contains("{{thing:id}}", "{{thing:name}}");
     }
 
     @Test

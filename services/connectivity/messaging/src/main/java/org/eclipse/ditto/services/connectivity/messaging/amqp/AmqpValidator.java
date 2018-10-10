@@ -50,7 +50,7 @@ public final class AmqpValidator extends AbstractProtocolValidator {
         if (source.getEnforcement() != null) {
             final Enforcement enforcement = source.getEnforcement();
             validateEnforcement(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
-            enforcement.getMatchers().forEach(matcher -> validateEnforcement(matcher,
+            enforcement.getFilters().forEach(filterTemplate -> validateEnforcement(filterTemplate,
                     PlaceholderFactory.newThingPlaceholder(), dittoHeaders));
         }
     }

@@ -137,19 +137,19 @@ public final class MqttValidator extends AbstractProtocolValidator {
             validateEnforcementOrigin(enforcement, sourceDescription);
 
             final String dummyThingId = "namespace:name";
-            final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getMatchers(),
-                    dummyThingId, matcher -> {
-                        throw invalidValueForConfig(matcher, "matchers", sourceDescription.get())
+            final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getFilters(),
+                    dummyThingId, filter -> {
+                        throw invalidValueForConfig(filter, "filters", sourceDescription.get())
                                 .description("Placeholder substitution failed. " +
                                         "Please check the placeholder variables against the documentation.")
                                 .dittoHeaders(dittoHeaders)
                                 .build();
                     });
-            filtersMap.forEach((matcher, mqttTopic) ->
+            filtersMap.forEach((filter, mqttTopic) ->
                     validateMqttTopic(mqttTopic, true, errorMessage ->
-                            invalidValueForConfig(matcher, "matchers", sourceDescription.get())
+                            invalidValueForConfig(filter, "filters", sourceDescription.get())
                                     .description(
-                                            "The matcher is not a valid MQTT topic after placeholder substitution. " +
+                                            "The filter is not a valid MQTT topic after placeholder substitution. " +
                                                     "Wildcard characters are allowed.")
                                     .dittoHeaders(dittoHeaders)
                                     .build()));
