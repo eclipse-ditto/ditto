@@ -123,14 +123,18 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
             final Cache<String, Object> namespaceCache,
             final DevOpsConfigReader devOpsConfigReader) {
 
-        final String description = String.format("Please try again after %s.",
-                devOpsConfigReader.namespaceBlockTime().toString());
-
-        return BlockNamespaceBehavior.asPreEnforcer(namespaceCache, (namespace, msg) ->
-                NamespaceBlockedException.newBuilder(namespace)
-                        .description(description)
-                        .dittoHeaders(msg.getDittoHeaders())
-                        .build());
+        return withDittoHeaders -> BlockNamespaceBehavior.of(namespaceCache)
+                .block(withDittoHeaders)
+                .exceptionally(throwable -> {
+                    if (throwable instanceof NamespaceBlockedException) {
+                        final String description = String.format("Please try again after %s.",
+                                devOpsConfigReader.namespaceBlockTime().toString());
+                        throw ((NamespaceBlockedException) throwable).toBuilder()
+                                .description(description)
+                                .build();
+                    }
+                    return null;
+                });
     }
 
 }

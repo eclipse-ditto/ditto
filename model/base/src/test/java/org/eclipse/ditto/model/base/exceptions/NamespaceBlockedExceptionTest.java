@@ -33,7 +33,10 @@ public final class NamespaceBlockedExceptionTest {
     public void copy() {
         final NamespaceBlockedException underTest = NamespaceBlockedException.newBuilder("ns").build();
         final DittoRuntimeException copy = DittoRuntimeException.newBuilder(underTest).build();
-        assertThat(copy).isEqualTo(underTest);
+        assertThat(copy.getMessage()).isEqualTo(underTest.getMessage());
+        assertThat(copy.getDescription()).isEqualTo(underTest.getDescription());
+        assertThat(copy.getHref()).isEqualTo(underTest.getHref());
+        assertThat(copy.getDittoHeaders()).isEqualTo(underTest.getDittoHeaders());
     }
 
     @Test

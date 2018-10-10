@@ -12,7 +12,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -67,7 +67,7 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
-    private final BlockNamespaceBehavior<String> namespaceBlockingBehavior;
+    private final BlockNamespaceBehavior namespaceBlockingBehavior;
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -176,8 +176,8 @@ final class ThingsUpdater extends AbstractActor {
     private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
         final String policyId = policyEvent.getPolicyId();
-        namespaceBlockingBehavior.asPreEnforcer()
-                .apply(policyEvent)
+
+        namespaceBlockingBehavior.block(policyEvent)
                 .thenCompose(event -> thingIdsForPolicy(policyId))
                 .thenAccept(thingIds -> thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id)))
                 .exceptionally(error -> {
@@ -223,8 +223,23 @@ final class ThingsUpdater extends AbstractActor {
         final DittoHeaders dittoHeaders = getDittoHeaders.apply(message);
         final ShardedMessageEnvelope messageEnvelope = ShardedMessageEnvelope.of(id, type, jsonObject, dittoHeaders);
 
-        namespaceBlockingBehavior.acknowledgeOrForward(getContext(), shardRegion, acknowledgeBlockedNamespace(message))
-                .accept(messageEnvelope);
+        final ActorRef sender = getSender();
+        final ActorRef deadLetters = getContext().getSystem().deadLetters();
+
+        namespaceBlockingBehavior
+                .block(messageEnvelope)
+                .thenAccept(m -> shardRegion.tell(m, sender))
+                .exceptionally(throwable -> {
+                    if (!Objects.equals(sender, deadLetters)) {
+                        // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.
+                        if (message instanceof IdentifiableStreamingMessage) {
+                            final StreamAck streamAck =
+                                    StreamAck.success(((IdentifiableStreamingMessage) message).asIdentifierString());
+                            sender.tell(streamAck, getSelf());
+                        }
+                    }
+                    return null;
+                });
     }
 
     private void forwardPolicyEventToShardRegion(final PolicyEvent<?> policyEvent, final String thingId) {
@@ -235,15 +250,6 @@ final class ThingsUpdater extends AbstractActor {
 
     private void subscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         log.debug("Successfully subscribed to distributed pub/sub on topic '{}'", subscribeAck.subscribe().topic());
-    }
-
-    private static Function<String, Optional<StreamAck>> acknowledgeBlockedNamespace(final Object message) {
-        // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.
-        if (message instanceof IdentifiableStreamingMessage) {
-            return ns -> Optional.of(StreamAck.success(((IdentifiableStreamingMessage) message).asIdentifierString()));
-        } else {
-            return ns -> Optional.empty();
-        }
     }
 
 }

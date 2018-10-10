@@ -11,169 +11,62 @@
  */
 package org.eclipse.ditto.services.base.actors;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.WithId;
 
-import akka.actor.AbstractActor;
-import akka.actor.ActorRef;
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
-
 /**
- * Actor behavior that blocks messages directed toward entities in a cached namespace.
- *
- * @param <T> type of replies for blocked namespaces.
+ * Behavior that blocks messages directed toward entities in a cached namespace.
  */
-public final class BlockNamespaceBehavior<T> {
+public final class BlockNamespaceBehavior {
 
     private final Cache<String, Object> namespaceCache;
-    private final BiFunction<String, WithDittoHeaders, T> errorCreator;
 
-    private BlockNamespaceBehavior(final Cache<String, Object> namespaceCache,
-            final BiFunction<String, WithDittoHeaders, T> errorCreator) {
-
+    private BlockNamespaceBehavior(final Cache<String, Object> namespaceCache) {
         this.namespaceCache = namespaceCache;
-        this.errorCreator = errorCreator;
     }
 
     /**
      * Create a namespace-blocking behavior.
      *
      * @param namespaceCache the cache to read namespaces from.
-     * @param errorCreator creator of replies for blocked messages.
-     * @param <T> type of replies for blocked messages.
      * @return the namespace-blocking behavior.
      */
-    public static <T> BlockNamespaceBehavior<T> of(final Cache<String, Object> namespaceCache,
-            final BiFunction<String, WithDittoHeaders, T> errorCreator) {
-
-        return new BlockNamespaceBehavior<>(namespaceCache, errorCreator);
+    public static BlockNamespaceBehavior of(final Cache<String, Object> namespaceCache) {
+        return new BlockNamespaceBehavior(namespaceCache);
     }
 
     /**
-     * Create a namespace-blocking behavior that delivers the blocked namespace.
+     * Blocks a {@code message} if it relates to an entity within a blocked namespace.
      *
-     * @param namespaceCache the cache to read namespaces from.
-     * @return the namespace-blocking behavior.
+     * @param message the message to block.
+     * @return a completion stage which either completes successfully with the given {@code message} or exceptionally
+     * with a {@code NamespaceBlockedException}.
      */
-    public static BlockNamespaceBehavior<String> of(final Cache<String, Object> namespaceCache) {
-
-        return new BlockNamespaceBehavior<>(namespaceCache, (ns, msg) -> ns);
-    }
-
-    /**
-     * Create a pre-enforcer function from the cache that blocks all cached namespaces
-     *
-     * @param namespaceCache cache of namespaces.
-     * @return the pre-enforcer function that raises an exception if and only if the namespace is cached.
-     */
-    public static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> asPreEnforcer(
-            final Cache<String, Object> namespaceCache,
-            final BiFunction<String, WithDittoHeaders, DittoRuntimeException> errorCreator) {
-
-        return of(namespaceCache, errorCreator).asPreEnforcer();
-    }
-
-    /**
-     * Apply namespace-blocking behavior on a message.
-     *
-     * @param withDittoHeaders the incoming message.
-     * @return either a reply for blocked messages or the incoming message itself.
-     */
-    public CompletionStage<Either<T, WithDittoHeaders>> apply(final WithDittoHeaders withDittoHeaders) {
-        if (withDittoHeaders instanceof WithId) {
+    public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders message) {
+        if (message instanceof WithId) {
             final Optional<String> namespaceOptional =
-                    NamespaceCacheWriter.namespaceFromId(((WithId) withDittoHeaders).getId());
+                    NamespaceCacheWriter.namespaceFromId(((WithId) message).getId());
             if (namespaceOptional.isPresent()) {
-                // check namespace
                 final String namespace = namespaceOptional.get();
                 return namespaceCache.getIfPresent(namespace)
-                        .thenApply(cachedNamespace -> cachedNamespace
-                                .<Either<T, WithDittoHeaders>>map(cachedValue ->
-                                        Left.apply(errorCreator.apply(namespace, withDittoHeaders)))
-                                .orElseGet(() -> Right.apply(withDittoHeaders)));
+                        .thenApply(cachedNamespace -> {
+                            if (cachedNamespace.isPresent()) {
+                                throw NamespaceBlockedException.newBuilder(namespace)
+                                        .dittoHeaders(message.getDittoHeaders())
+                                        .build();
+                            } else {
+                                return message;
+                            }
+                        });
             }
         }
-        return CompletableFuture.completedFuture(Right.apply(withDittoHeaders));
+        return CompletableFuture.completedFuture(message);
     }
 
-    /**
-     * Use the namespace-blocking behavior as a pre-enforcer function.
-     *
-     * @return a function that attempts to block its argument. Returns a future of the argument if it is
-     * not blocked or throw a runtime exception if it is.
-     */
-    public Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> asPreEnforcer() {
-        return withDittoHeaders -> apply(withDittoHeaders).thenApply(result -> {
-            if (result.isRight()) {
-                return result.right().get();
-            } else {
-                final Object errorMessage = result.left().get();
-                if (errorMessage instanceof RuntimeException) {
-                    throw (RuntimeException) errorMessage;
-                } else {
-                    final String message = String.format("Message <%s> blocked due to <%s>",
-                            withDittoHeaders.toString(), errorMessage.toString());
-                    throw new IllegalArgumentException(message);
-                }
-            }
-        });
-    }
-
-    /**
-     * Use the namespace-blocking behavior for actor message routing.
-     *
-     * @param context context of the actor with the namespace-blocking behavior.
-     * @param forwardRecipient recipient of messages that are not blocked.
-     * @param <A> type of acknowledgement.
-     * @return a consumer of messages that replies errors to senders of blocked messages and forwards not-blocked
-     * messages to a fixed recipient.
-     */
-    public <A> Consumer<WithDittoHeaders> acknowledgeOrForward(final AbstractActor.ActorContext context,
-            final ActorRef forwardRecipient,
-            final Function<T, Optional<A>> ackMapper) {
-
-        final ActorRef deadLetters = context.system().deadLetters();
-        final ActorRef self = context.self();
-        return message -> {
-            final ActorRef sender = context.sender();
-            apply(message).thenAccept(result -> result
-                    .left().map(ackSenderUnlessDeadLetters(sender, deadLetters, self, ackMapper))
-                    .right().map(forwardMessageToRecipient(sender, forwardRecipient)));
-        };
-    }
-
-    private static <T, A> scala.Function1<T, T> ackSenderUnlessDeadLetters(final ActorRef sender,
-            final ActorRef deadLetters,
-            final ActorRef self,
-            final Function<T, Optional<A>> ackMapper) {
-
-        return message -> {
-            if (!Objects.equals(sender, deadLetters)) {
-                ackMapper.apply(message).ifPresent(ack -> {
-                    sender.tell(ack, self);
-                });
-            }
-            return message;
-        };
-    }
-
-    private static <T> scala.Function1<T, T> forwardMessageToRecipient(final ActorRef sender,
-            final ActorRef recipient) {
-        return message -> {
-            recipient.tell(message, sender);
-            return message;
-        };
-    }
 }
