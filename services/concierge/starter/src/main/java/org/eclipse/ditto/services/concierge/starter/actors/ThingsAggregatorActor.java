@@ -57,20 +57,20 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
 
-    private static final int MAX_PARALLELISM = 20;
-
     private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final ActorRef targetActor;
     private final ExecutionContext aggregatorDispatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
+    private final int maxParallelism;
     private final ActorMaterializer actorMaterializer;
 
     private ThingsAggregatorActor(final AbstractConciergeConfigReader configReader, final ActorRef targetActor) {
         this.targetActor = targetActor;
         aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         retrieveSingleThingTimeout = configReader.thingsAggregatorSingleRetrieveThingTimeout();
+        maxParallelism = configReader.thingsAggregatorMaxParallelism();
         actorMaterializer = ActorMaterializer.create(getContext());
     }
 
@@ -163,20 +163,18 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .log("command-response", log)
                 .runWith(StreamRefs.sourceRef(), actorMaterializer);
 
-        // due to https://github.com/akka/akka/issues/25469 not yet usable with Akka Artery remoting!
-
         PatternsCS.pipe(commandResponseSource, aggregatorDispatcher)
                 .to(resultReceiver);
     }
 
     private int calculateParallelism(final List<String> thingIds) {
         final int size = thingIds.size();
-        if (size < (MAX_PARALLELISM / 2)) {
+        if (size < (maxParallelism / 2)) {
             return size;
-        } else if (size < MAX_PARALLELISM) {
+        } else if (size < maxParallelism) {
             return size / 2;
         } else {
-            return MAX_PARALLELISM;
+            return maxParallelism;
         }
     }
 

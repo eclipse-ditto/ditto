@@ -73,7 +73,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private static final int DEFAULT_TEST_SNAPSHOT_THRESHOLD = 2;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 3000;
+    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
     private PolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<Event> journalTestHelper;
