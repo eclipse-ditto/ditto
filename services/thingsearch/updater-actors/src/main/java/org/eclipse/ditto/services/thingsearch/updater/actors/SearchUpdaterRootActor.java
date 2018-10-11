@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.services.base.actors.NamespaceCacheWriter;
+import org.eclipse.ditto.services.base.actors.BlockedNamespaceCacheActor;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -110,12 +110,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
-        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
+        final Cache<String, Object> namespaceCache =
+                BlockedNamespaceCacheActor.newCache(configReader.devops().namespaceBlockTime());
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME,
                 ThingsUpdater.props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, namespaceCache));
-        startChildActor(NamespaceCacheWriter.ACTOR_NAME,
-                NamespaceCacheWriter.props(namespaceCache, pubSubMediator, configReader.instanceIndex()));
+        startChildActor(BlockedNamespaceCacheActor.ACTOR_NAME,
+                BlockedNamespaceCacheActor.props(namespaceCache, pubSubMediator, configReader.instanceIndex()));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {

@@ -145,7 +145,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
     private final Materializer materializer;
-    private final ShutdownNamespaceBehavior onShutdownNamespace;
+    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     // transducer state-transition table
     private final Receive eventProcessingBehavior;
@@ -193,7 +193,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         materializer = ActorMaterializer.create(getContext());
         transactionActive = false;
         syncAttempts = 0;
-        onShutdownNamespace = ShutdownNamespaceBehavior.fromId(thingId, getSelf()).initPubSub(pubSubMediator);
+        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
         eventProcessingBehavior = createEventProcessingBehavior();
         awaitSyncResultBehavior = createAwaitSyncResultBehavior();
 
@@ -290,7 +290,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @return a new ReceiveBuilder that handles messages meaningful in all states.
      */
     private ReceiveBuilder newReceiveForAllBehaviors() {
-        return onShutdownNamespace.createReceive();
+        return shutdownNamespaceBehavior.createReceive();
     }
 
     private void scheduleCheckForThingActivity() {
@@ -355,7 +355,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private Receive createEventProcessingBehavior() {
-        return onShutdownNamespace.createReceive()
+        return shutdownNamespaceBehavior.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)

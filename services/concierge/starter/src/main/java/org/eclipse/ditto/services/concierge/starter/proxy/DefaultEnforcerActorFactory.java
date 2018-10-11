@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.base.actors.BlockNamespaceBehavior;
-import org.eclipse.ditto.services.base.actors.NamespaceCacheWriter;
+import org.eclipse.ditto.services.base.actors.BlockedNamespaceCacheActor;
 import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
@@ -84,7 +84,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl");
 
         // pre-enforcer
-        final Cache<String, Object> namespaceCache = NamespaceCacheWriter.newCache(configReader.devops());
+        final Cache<String, Object> namespaceCache =
+                BlockedNamespaceCacheActor.newCache(configReader.devops().namespaceBlockTime());
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(namespaceCache, configReader.devops());
 
@@ -108,9 +109,9 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         final Props namespaceCacheWriterProps =
-                NamespaceCacheWriter.props(namespaceCache, pubSubMediator, instanceIndex);
+                BlockedNamespaceCacheActor.props(namespaceCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
-        context.actorOf(namespaceCacheWriterProps, NamespaceCacheWriter.ACTOR_NAME);
+        context.actorOf(namespaceCacheWriterProps, BlockedNamespaceCacheActor.ACTOR_NAME);
 
         context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
                 DispatcherActorCreator.ACTOR_NAME);

@@ -1,26 +1,18 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.base.actors;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Optional;
-import java.util.concurrent.CompletionStage;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace;
@@ -32,42 +24,46 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * An actor which subscribes to DevOps namespace commands and writes the namespace cache.
+ * Actor which subscribes to {@link org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace} via Akka
+ * Pub-Sub and writes the caches the blocked namespaces in a {@link org.eclipse.ditto.services.utils.cache.Cache}.
  */
-public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
+public final class BlockedNamespaceCacheActor extends AbstractPubSubListenerActor {
 
     /**
      * Name of this actor.
      */
-    public static final String ACTOR_NAME = "namespaceCacheWriter";
-
-    private static final char NAMESPACE_SEPARATOR = ':';
+    public static final String ACTOR_NAME = "blockedNamespaceCacheActor";
 
     private final Cache<String, Object> namespaceCache;
 
-    private NamespaceCacheWriter(final Cache<String, Object> namespaceCache,
+    private BlockedNamespaceCacheActor(final Cache<String, Object> namespaceCache,
             final ActorRef pubSubMediator,
             final int instanceIndex) {
         super(pubSubMediator, Collections.singleton(BlockNamespace.TYPE), instanceIndex);
         this.namespaceCache = namespaceCache;
     }
 
-    public static Props props(final Cache<String, Object> namespaceCache,
-            final ActorRef pubSubMediator,
+    /**
+     * Creates {@code Props} for this Actor.
+     *
+     * @param namespaceCache the cache for blocked namespaces.
+     * @param pubSubMediator the akka pub-sub mediator.
+     * @param instanceIndex the instance index.
+     * @return the Props.
+     */
+    public static Props props(final Cache<String, Object> namespaceCache, final ActorRef pubSubMediator,
             final int instanceIndex) {
-
-        return Props.create(NamespaceCacheWriter.class,
-                () -> new NamespaceCacheWriter(namespaceCache, pubSubMediator, instanceIndex));
+        return Props.create(BlockedNamespaceCacheActor.class,
+                () -> new BlockedNamespaceCacheActor(namespaceCache, pubSubMediator, instanceIndex));
     }
 
     /**
      * Create a new cache for namespace blocking.
      *
-     * @param devOpsConfigReader config reader that governs namespace blocking.
+     * @param timeToBlock the duration for which a namespace should be blocked.
      * @return a new cache.
      */
-    public static Cache<String, Object> newCache(final DevOpsConfigReader devOpsConfigReader) {
-        final Duration timeToBlock = devOpsConfigReader.namespaceBlockTime();
+    public static Cache<String, Object> newCache(final Duration timeToBlock) {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(timeToBlock));
     }
 
@@ -83,10 +79,4 @@ public class NamespaceCacheWriter extends AbstractPubSubListenerActor {
         namespaceCache.put(namespace, namespace);
     }
 
-    static Optional<String> namespaceFromId(final String id) {
-        final int i = id.indexOf(NAMESPACE_SEPARATOR);
-        return i >= 0
-                ? Optional.of(id.substring(0, i))
-                : Optional.empty();
-    }
 }

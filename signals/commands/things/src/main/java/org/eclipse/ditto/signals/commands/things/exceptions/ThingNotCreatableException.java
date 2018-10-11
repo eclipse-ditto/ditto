@@ -75,7 +75,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      * @param policyId the ID of the Policy which was used when creating the Thing.
      * @return the builder.
      */
-    public static Builder newBuilderForPolicyCreationFailure(final String thingId, final String policyId) {
+    public static Builder newBuilderForPolicyExisting(final String thingId, final String policyId) {
         return new Builder(thingId, policyId, false);
     }
 

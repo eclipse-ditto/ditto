@@ -1,15 +1,16 @@
 /*
- * Copyright (c) 2017 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- * Contributors:
- *    Bosch Software Innovations GmbH - initial contribution
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.base.actors;
+
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
@@ -37,59 +38,20 @@ public final class ShutdownNamespaceBehavior {
      * Create the actor behavior from its entity ID and reference.
      *
      * @param entityId entity ID containing a namespace to react to.
+     * @param pubSubMediator Akka pub-sub mediator.
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownNamespaceBehavior fromId(final String entityId, final ActorRef self) {
-        final String namespace = NamespaceCacheWriter.namespaceFromId(entityId).orElse("");
-        return new ShutdownNamespaceBehavior(namespace, self);
-    }
+    public static ShutdownNamespaceBehavior fromId(final String entityId,
+            final ActorRef pubSubMediator, final ActorRef self) {
+        checkNotNull(entityId, "Entity ID");
+        checkNotNull(pubSubMediator, "PubSub Mediator");
+        checkNotNull(self, "Self");
 
-    /**
-     * Initialize by subscribing to {@link ShutdownNamespace}.
-     *
-     * @param pubSubMediator Akka pub-sub mediator.
-     * @return this object.
-     */
-    public ShutdownNamespaceBehavior initPubSub(final ActorRef pubSubMediator) {
-        final DistributedPubSubMediator.Subscribe subscribe =
-                new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, self);
-        pubSubMediator.tell(subscribe, self);
-        return this;
-    }
-
-    /**
-     * @return the class of shutdown messages.
-     */
-    public Class<ShutdownNamespace> shutdownClass() {
-        return ShutdownNamespace.class;
-    }
-
-    /**
-     * Process {@link ShutdownNamespace} commands and terminate self if the namespace matches.
-     *
-     * @param shutdownNamespace the command.
-     */
-    public void shutdown(final ShutdownNamespace shutdownNamespace) {
-        if (Objects.equals(namespace, shutdownNamespace.getNamespace())) {
-            self.tell(PoisonPill.getInstance(), ActorRef.noSender());
-        }
-    }
-
-    /**
-     * @return the class of subscription acknowledgements.
-     */
-    public Class<DistributedPubSubMediator.SubscribeAck> subscribeAckClass() {
-        return DistributedPubSubMediator.SubscribeAck.class;
-    }
-
-    /**
-     * Handle subscription acknowledgements by doing nothing.
-     *
-     * @param ack the acknowledgement message.
-     */
-    public void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
-        // do nothing
+        final String namespace = NamespaceReader.getInstance().fromEntityId(entityId).orElse("");
+        final ShutdownNamespaceBehavior shutdownNamespaceBehavior = new ShutdownNamespaceBehavior(namespace, self);
+        shutdownNamespaceBehavior.subscribePubSub(pubSubMediator);
+        return shutdownNamespaceBehavior;
     }
 
     /**
@@ -99,7 +61,24 @@ public final class ShutdownNamespaceBehavior {
      */
     public ReceiveBuilder createReceive() {
         return ReceiveBuilder.create()
-                .match(shutdownClass(), this::shutdown)
-                .match(subscribeAckClass(), this::subscribeAck);
+                .match(ShutdownNamespace.class, this::shutdown)
+                .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
     }
+
+    private void subscribePubSub(final ActorRef pubSubMediator) {
+        final DistributedPubSubMediator.Subscribe subscribe =
+                new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, self);
+        pubSubMediator.tell(subscribe, self);
+    }
+
+    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
+        // do nothing
+    }
+
+    private void shutdown(final ShutdownNamespace shutdownNamespace) {
+        if (Objects.equals(namespace, shutdownNamespace.getNamespace())) {
+            self.tell(PoisonPill.getInstance(), ActorRef.noSender());
+        }
+    }
+
 }

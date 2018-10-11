@@ -1237,7 +1237,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 "command which would have created a Policy for the Thing with ID '{}' " +
                 "is therefore not handled", policyId, command.getThingId());
         final ThingNotCreatableException error =
-                ThingNotCreatableException.newBuilderForPolicyCreationFailure(command.getThingId(), policyId)
+                ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingId(), policyId)
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
         replyToSender(error, sender);

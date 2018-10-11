@@ -62,7 +62,7 @@ public class PolicySupervisorActor extends AbstractActor {
     private final Duration maxBackoff;
     private final double randomFactor;
     private final SupervisorStrategy supervisorStrategy;
-    private final ShutdownNamespaceBehavior onShutdownNamespace;
+    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     private ActorRef child;
     private long restartCount;
@@ -85,7 +85,7 @@ public class PolicySupervisorActor extends AbstractActor {
         this.randomFactor = randomFactor;
         this.supervisorStrategy = supervisorStrategy;
 
-        onShutdownNamespace = ShutdownNamespaceBehavior.fromId(policyId, getSelf()).initPubSub(pubSubMediator);
+        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(policyId, pubSubMediator, getSelf());
     }
 
     /**
@@ -150,11 +150,9 @@ public class PolicySupervisorActor extends AbstractActor {
         final Collection<ReceiveStrategy<?>> receiveStrategies = initReceiveStrategies();
         final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder();
         receiveStrategies.forEach(strategyAwareReceiveBuilder::match);
-        strategyAwareReceiveBuilder.match(onShutdownNamespace.shutdownClass(), onShutdownNamespace::shutdown);
-        strategyAwareReceiveBuilder.match(onShutdownNamespace.subscribeAckClass(), onShutdownNamespace::subscribeAck);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
 
-        return strategyAwareReceiveBuilder.build();
+        return shutdownNamespaceBehavior.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
     }
 
     private Optional<ActorRef> getChild() {
