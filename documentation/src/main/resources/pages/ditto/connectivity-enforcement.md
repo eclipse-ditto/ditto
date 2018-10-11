@@ -3,7 +3,8 @@ the default mapping for ditto protocol messages. During this mapping the digital
 which Thing is accessed or modified as a result of the message. By default no sanity check is done if this target Thing 
 corresponds to the device that originally sent the message. In some use case this might be valid, but in other scenarios 
 you might want to enforce that a device only sends data to its digital twin. Note that this could also be achieved by 
-assigning a specific policy to each device and use placeholders in the authorization subject (link!), but this can get 
+assigning a specific policy to each device and use [placeholders](basic-connections.html#placeholders) in the 
+authorization subject, but this can get 
 cumbersome to maintain for a large number of devices. With an enforcement you can use a single policy for all devices 
 and still make sure that a device only modifies its associated digital twin. Enforcement is only feasible if the message
 contains the verified identity of the sending device (e.g. in a message header). This verification has to be done by the
