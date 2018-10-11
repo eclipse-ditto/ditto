@@ -42,6 +42,32 @@ inbound messages are processed. These subjects may contain placeholders, see
 }
 ```
 
+#### Enforcement
+
+{% include_relative connectivity-enforcement.md %}
+
+The following placeholders are available for the `input` field:
+
+| Placeholder    | Description  | Example   |
+|-----------|-------|---------------|
+| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device:id }}{%endraw%}`  |
+
+##### Example of an enforcement configuration for AMQP 1.0 sources
+
+Assuming a device `sensor:temperature1` pushes its telemetry data to Ditto which is stored in a Thing 
+`sensor:temperature1`. The device identity is provided in a header field `device_id`. To enforce that the device can 
+only send data to the Thing `sensor:temperature1` the following enforcement configuration can be used: 
+```json
+{
+  "enforcement": {
+    "input": "{%raw%}{{ header:device_id }}{%endraw%}",
+    "filters": [ "{%raw%}{{ thing:id }}{%endraw%}" ]
+  },
+  "addresses": [ "telemetry/hono_tenant" ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
+}
+```
+
 ### Target format
 
 An AMQP 1.0 connection requires the protocol configuration target object to have an `address` property with a source

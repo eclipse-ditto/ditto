@@ -35,16 +35,11 @@ For an MQTT connection:
 * Source `"addresses"` are MQTT topics to subscribe to. Wildcards `+` and `#` are allowed.
 * `"authorizationContext"` may _not_ contain placeholders `{%raw%}{{ header:<header-name> }}{%endraw%}` as MQTT 3.1.1
   has no application headers.
-* The additional field `"filters"` defines filters of MQTT messages by checking their topics against their payload.
-  If at least one filter is defined, then messages are dropped if their topics do not match any of the filters.
-  Filters can be specified using placeholders `{%raw%}{{ thing:id }}{%endraw%}`,
-  `{%raw%}{{ thing:namespace }}{%endraw%}` or `{%raw%}{{ thing:name }}{%endraw%}`.
-* The additional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
+* The optional field `"qos"` sets the maximum Quality of Service to request when subscribing for messages. Its value
   can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
   The default value is `2` (exactly-once).
   Support of any Quality of Service depends on the external MQTT broker; [AWS IoT][awsiot] for example does not
   acknowledge subscriptions with `qos=2`.
-
 
 ```json
 {
@@ -53,12 +48,33 @@ For an MQTT connection:
     "..."
   ],
   "authorizationContext": ["ditto:inbound-auth-subject", "..."],
-  "filters": [
-    "{%raw%}telemetry/{{ thing:id }}{%endraw%}",
-    "{%raw%}device/{{ thing:namespace }}/{{ thing:name }}{%endraw%}",
-    "..."
-  ],
   "qos": 2
+}
+```
+
+#### Enforcement
+
+{% include_relative connectivity-enforcement.md %}
+
+The following placeholders are available for the `input` field:
+
+| Placeholder    | Description  | Example   |
+|-----------|-------|---------------|
+| `{%raw%}{{ mqtt:topic }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
+
+##### Example of an enforcement configuration for MQTT sources
+
+Assuming a device `temperature1` publishes its telemetry data to an MQTT broker on topic `devices/sensors/temperature1`.
+The MQTT broker verifies that no other device is allowed to publish on this topic. To enforce that the device can 
+only send data to the Thing `sensors:temperature1` the following enforcement configuration can be used: 
+```json
+{
+  "enforcement": {
+    "input": "{%raw%}{{ mqtt:topic }}{%endraw%}",
+    "filters": [ "{%raw%}devices/{{ thing:namespace }}/{{ thing:name }}{%endraw%}" ]
+  },
+  "addresses": [ "devices/sensors/#" ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
 }
 ```
 
