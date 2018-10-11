@@ -347,8 +347,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static final class ThingIdEnforcer implements BiConsumer<ExternalMessage, Signal<?>> {
 
-        private static final String UNRESOLVED_PLACEHOLDER_MESSAGE =
-                "The placeholder '{}' was not resolved, messages may be dropped.";
         private final PlaceholderFilter placeholderFilter = new PlaceholderFilter();
         private final DiagnosticLoggingAdapter log;
 
@@ -372,7 +370,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
 
         private void logUnresolvedPlaceholder(final String unresolvedPlaceholder) {
-            log.info(UNRESOLVED_PLACEHOLDER_MESSAGE, unresolvedPlaceholder);
+            log.info("The placeholder '{}' was not resolved, messages may be dropped.", unresolvedPlaceholder);
         }
 
     }

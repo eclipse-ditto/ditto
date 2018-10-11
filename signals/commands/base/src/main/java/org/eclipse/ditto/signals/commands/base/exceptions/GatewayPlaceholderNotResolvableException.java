@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -95,16 +96,20 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     }
 
     /**
-     * Constructs a new {@link GatewayPlaceholderNotResolvableException} object with given message.
+     * Constructs a new {@code GatewayPlaceholderNotResolvableException} object with the exception message extracted
+     * from the given JSON object.
      *
-     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link GatewayPlaceholderNotResolvableException}.
+     * @return the new GatewayPlaceholderNotResolvableException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have
+     * the {@link JsonFields#MESSAGE} field.
      */
-    public static GatewayPlaceholderNotResolvableException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static GatewayPlaceholderNotResolvableException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(UNKNOWN_DESCRIPTION_TEMPLATE))
                 .build();
     }
 

@@ -32,11 +32,11 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTooManyRequestsException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceUnavailableException;
-import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 
 /**
  * A {@link ErrorRegistry} aware of common {@link DittoRuntimeException}s.
@@ -81,8 +81,7 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         // Gateway exceptions
         parseStrategies.put(GatewayAuthenticationFailedException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayAuthenticationFailedException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayAuthenticationFailedException::fromJson);
 
         parseStrategies.put(GatewayAuthenticationProviderUnavailableException.ERROR_CODE,
                 (jsonObject, dittoHeaders) -> GatewayAuthenticationProviderUnavailableException
@@ -113,8 +112,7 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         .fromMessage(getMessage(jsonObject), dittoHeaders));
 
         parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayPlaceholderNotResolvableException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayPlaceholderNotResolvableException::fromJson);
 
         return new CommonErrorRegistry(parseStrategies);
     }
