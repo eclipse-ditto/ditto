@@ -37,15 +37,15 @@ minikube start
 This is necessary for the pods to access the Kubernetes API and then build the akka cluster.
 ```bash
 cd <DITTO_PATH>
-kubectl apply -f kubernetes/pod-reader-role.yaml
+kubectl apply -f deployment/kubernetes/pod-reader-role.yaml
 ```
 
 ### Create configuration mappings
 ```bash
-kubectl create configmap nginx-conf --from-file=kubernetes/nginx/nginx.conf
-kubectl create configmap nginx-cors --from-file=kubernetes/nginx/nginx-cors.conf
-kubectl create configmap nginx-htpasswd --from-file=kubernetes/nginx/nginx.htpasswd
-kubectl create configmap nginx-index --from-file=kubernetes/nginx/index.html
+kubectl create configmap nginx-conf --from-file=deployment/kubernetes/nginx/nginx.conf
+kubectl create configmap nginx-cors --from-file=deployment/kubernetes/nginx/nginx-cors.conf
+kubectl create configmap nginx-htpasswd --from-file=deployment/kubernetes/nginx/nginx.htpasswd
+kubectl create configmap nginx-index --from-file=deployment/kubernetes/nginx/index.html
 kubectl create configmap swagger-ui-api --from-file=$PWD/documentation/src/main/resources/openapi
 ```
 
@@ -53,24 +53,24 @@ kubectl create configmap swagger-ui-api --from-file=$PWD/documentation/src/main/
 
 #### Start MongoDB
 ```bash
-kubectl apply -f kubernetes/mongodb/mongodb.yaml
+kubectl apply -f deployment/kubernetes/mongodb/mongodb.yaml
 ```
 
 #### Start Ditto services
 ```bash
-kubectl apply -f kubernetes/ditto/ditto-cluster.yaml
-# Start ditto services with an alternative version e.g. 0.1.0-SNAPSHOT
-# cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0.1.0-SNAPSHOT/ | kubectl apply -f -
+kubectl apply -f deployment/kubernetes/ditto/ditto-cluster.yaml
+# Start ditto services with an alternative version e.g. 0-SNAPSHOT
+# cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
 ```
 
 #### Start Swagger UI
 ```bash
-kubectl apply -f kubernetes/swagger/swagger.yaml
+kubectl apply -f deployment/kubernetes/swagger/swagger.yaml
 ```
 
 #### Start Reverse Proxy (nginx)
 ```bash
-kubectl apply -f kubernetes/nginx/nginx.yaml
+kubectl apply -f deployment/kubernetes/nginx/nginx.yaml
 ```
 
 ### Use Eclipse Ditto
