@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.base.assertions;
+package org.eclipse.ditto.signals.commands.base;
 
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -16,7 +16,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 /**
  * Defines constants for testing.
  */
-final class TestConstants {
+public final class TestConstants {
 
     private TestConstants() {
         throw new AssertionError();

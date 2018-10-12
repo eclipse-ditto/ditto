@@ -93,7 +93,7 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static ConnectionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return from(readMessage(jsonObject), readDescription(jsonObject).orElse(null), dittoHeaders);
+        return from(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
     }
 
     /**

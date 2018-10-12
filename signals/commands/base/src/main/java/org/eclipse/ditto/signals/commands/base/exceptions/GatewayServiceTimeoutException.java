@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -36,8 +37,8 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
 
     private static final long serialVersionUID = -858422215851104480L;
 
-    private GatewayServiceTimeoutException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayServiceTimeoutException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -77,8 +78,9 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
         }
 
         @Override
-        protected GatewayServiceTimeoutException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayServiceTimeoutException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayServiceTimeoutException(dittoHeaders, message, description, cause, href);
         }
     }

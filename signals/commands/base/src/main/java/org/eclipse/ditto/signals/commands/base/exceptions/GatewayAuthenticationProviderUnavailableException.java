@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -40,8 +41,9 @@ public final class GatewayAuthenticationProviderUnavailableException extends Dit
     private static final long serialVersionUID = 1885218428059437158L;
 
 
-    private GatewayAuthenticationProviderUnavailableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayAuthenticationProviderUnavailableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
@@ -83,7 +85,8 @@ public final class GatewayAuthenticationProviderUnavailableException extends Dit
 
         @Override
         protected GatewayAuthenticationProviderUnavailableException doBuild(final DittoHeaders dittoHeaders,
-                final String message, final String description, final Throwable cause, final URI href) {
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayAuthenticationProviderUnavailableException(dittoHeaders, message, description, cause,
                     href);
         }
