@@ -12,14 +12,12 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
-import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.jms.JMSException;
+import javax.jms.JMSRuntimeException;
 import javax.jms.MessageConsumer;
 
 import org.apache.qpid.jms.message.JmsMessage;
@@ -27,124 +25,43 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Things;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.routing.DefaultResizer;
 import akka.routing.RoundRobinPool;
-import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
  */
-public class AmqpConsumerActorTest {
+public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
 
-    private static final Config CONFIG = ConfigFactory.load("test");
     private static final String CONNECTION_ID = "connection";
-    private static final SimpleEntry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to" +
-            "-address");
 
-    private static ActorSystem actorSystem;
-
-    @Rule
-    public TestName name = new TestName();
-
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+    @Override
+    protected Props getConsumerActorProps(final ActorRef mappingActor) {
+        final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
+        return AmqpConsumerActor.props("consumer", messageConsumer, mappingActor,
+                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT);
     }
 
-    @AfterClass
-    public static void tearDown() {
-        if (actorSystem != null) {
-            TestKit.shutdownActorSystem(actorSystem, scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS),
-                    false);
-        }
-    }
-
-    @Test
-    public void testInboundMessageWithEnforcementSucceeds() throws JMSException {
-
-        testInboundMessageWithEnforcement(header("device_id", Things.THING_ID), true);
-
-    }
-
-    @Test
-    public void testInboundMessageWithEnforcementFails() throws JMSException {
-
-        testInboundMessageWithEnforcement(header("device_id", Things.ID), false);
-
-    }
-
-    private void testInboundMessageWithEnforcement(final Map.Entry<String, String> header,
-            final boolean isForwardedToConcierge) throws JMSException {
-
-        new TestKit(actorSystem) {{
-
-            final TestProbe sender = TestProbe.apply(actorSystem);
-            final TestProbe concierge = TestProbe.apply(actorSystem);
-            final TestProbe publisher = TestProbe.apply(actorSystem);
-
-            final ActorRef mappingActor = setupActor(publisher.ref(), concierge.ref(), null);
-
-            final Enforcement enforcement =
-                    ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
-
-            final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
-            final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props("consumer", messageConsumer, mappingActor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, enforcement));
-
-            //noinspection unchecked
-            underTest.tell(getJmsMessage(TestConstants.modifyThing(), "enforcement", header, REPLY_TO_HEADER),
-                    sender.ref());
-
-            if (isForwardedToConcierge) {
-                publisher.expectNoMessage();
-                final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-                assertThat(modifyThing.getThingId()).isEqualTo(Things.THING_ID);
-            } else {
-                final OutboundSignal.WithExternalMessage outboundSignal =
-                        publisher.expectMsgClass(OutboundSignal.WithExternalMessage.class);
-                final IdEnforcementFailedException exception =
-                        IdEnforcementFailedException.fromMessage(
-                                outboundSignal.getExternalMessage().getTextPayload().orElse(""),
-                                outboundSignal.getSource().getDittoHeaders());
-                assertThat(exception.getErrorCode()).isEqualTo(IdEnforcementFailedException.ERROR_CODE);
-                assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
-                concierge.expectNoMessage();
-            }
-        }};
-    }
-
-    private static AbstractMap.SimpleEntry<String, String> header(final String key, final String value) {
-        return new SimpleEntry<>(key, value);
+    @Override
+    protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header) {
+        return getJmsMessage(TestConstants.modifyThing(), "enforcement", header, REPLY_TO_HEADER);
     }
 
     @Test
@@ -243,21 +160,19 @@ public class AmqpConsumerActorTest {
 
     @SafeVarargs // varargs array is not modified or passed around
     private static JmsMessage getJmsMessage(final String plainPayload, final String correlationId,
-            final Map.Entry<String, String>... headers)
-            throws JMSException {
-        final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
-        messageFacade.setText(plainPayload);
-        messageFacade.setContentType("text/plain");
-        messageFacade.setCorrelationId(correlationId);
-        for (final Map.Entry<String, String> e : headers) {
-            messageFacade.setApplicationProperty(e.getKey(), e.getValue());
+            final Map.Entry<String, ?>... headers) {
+        try {
+            final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
+            messageFacade.setText(plainPayload);
+            messageFacade.setContentType("text/plain");
+            messageFacade.setCorrelationId(correlationId);
+            for (final Map.Entry<String, ?> e : headers) {
+                messageFacade.setApplicationProperty(e.getKey(), e.getValue());
+            }
+            return messageFacade.asJmsMessage();
+        } catch (final JMSException e) {
+            throw new JMSRuntimeException(e.getMessage(), e.getErrorCode(), e.getCause());
         }
-        return messageFacade.asJmsMessage();
-    }
-
-    private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
-                Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 
     @Test
@@ -285,5 +200,10 @@ public class AmqpConsumerActorTest {
                         .withResizer(resizer)
                         .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+    }
+
+    private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
+        return MessageMappingProcessor.of(CONNECTION_ID, mappingContext, actorSystem,
+                Mockito.mock(DiagnosticLoggingAdapter.class));
     }
 }

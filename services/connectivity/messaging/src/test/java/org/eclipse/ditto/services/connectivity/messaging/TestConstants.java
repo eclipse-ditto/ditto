@@ -19,9 +19,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
@@ -288,6 +290,10 @@ public class TestConstants {
         } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static <T> Map.Entry<String, T> header(final String key, final T value) {
+        return new AbstractMap.SimpleImmutableEntry<>(key, value);
     }
 
     public static class ConciergeForwarderActorMock extends AbstractActor {

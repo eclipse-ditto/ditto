@@ -89,7 +89,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                         0, null);
 
         filterFactory = enforcement != null ? EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement,
-                PlaceholderFactory.newHeadersPlaceholder()) : originValue -> null;
+                PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 
     /**
