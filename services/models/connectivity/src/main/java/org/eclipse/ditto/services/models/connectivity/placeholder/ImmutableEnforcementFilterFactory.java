@@ -1,14 +1,16 @@
 /*
- *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v2.0
- *  which accompanies this distribution, and is available at
- *  https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- *  SPDX-License-Identifier: EPL-2.0
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.models.connectivity.placeholder;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.Enforcement;
 
@@ -18,7 +20,8 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
  * @param <I> the type required to resolve the placeholders in the input
  * @param <M> the type required to resolve the placeholders in the filters
  */
-public class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilterFactory<I, M> {
+@Immutable
+public final class ImmutableEnforcementFilterFactory<I, M> implements EnforcementFilterFactory<I, M> {
 
     private final Enforcement enforcement;
     private final Placeholder<I> inputPlaceholder;

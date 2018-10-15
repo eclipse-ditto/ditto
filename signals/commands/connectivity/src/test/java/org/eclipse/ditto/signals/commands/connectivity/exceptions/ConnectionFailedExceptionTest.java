@@ -8,7 +8,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.signals.commands.connectivity.exceptions;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;

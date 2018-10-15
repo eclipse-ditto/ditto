@@ -8,10 +8,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging;
+package org.eclipse.ditto.services.models.connectivity.placeholder;
+
 
 /**
- * Marker interface for targets of specific client implementations (RMQ, AMQP 1.0).
+ * A {@link Placeholder} that requires a {@code String}
+ * (a {@link org.eclipse.ditto.model.connectivity.Source} {@code address}) to resolve its placeholders.
  */
-public interface PublishTarget {
+public interface SourceAddressPlaceholder extends Placeholder<String> {
 }

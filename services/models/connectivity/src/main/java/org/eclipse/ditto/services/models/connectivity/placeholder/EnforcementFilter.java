@@ -1,12 +1,12 @@
 /*
- *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v2.0
- *  which accompanies this distribution, and is available at
- *  https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- *  SPDX-License-Identifier: EPL-2.0
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.models.connectivity.placeholder;
 
@@ -30,8 +30,8 @@ public interface EnforcementFilter<M> {
      *
      * @param filterInput the source from which the the placeholders in the filters are resolved
      * @param dittoHeaders the ditto headers, required if an exception is thrown
-     * @throws org.eclipse.ditto.model.connectivity.IdEnforcementFailedException if none of the configured filters
-     * was equal to the input
+     * @throws org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException if none of the
+     * configured filters was equal to the input
      */
-    void match(M filterInput, final DittoHeaders dittoHeaders);
+    void match(M filterInput, DittoHeaders dittoHeaders);
 }

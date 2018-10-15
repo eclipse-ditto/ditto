@@ -75,7 +75,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private AddressMetric addressMetric;
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
-    private final EnforcementFilterFactory<Map<String, String>, String> filterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
@@ -88,7 +88,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
 
-        filterFactory = enforcement != null ? EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement,
+        headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                 PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 
@@ -167,7 +167,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             builder.withAuthorizationContext(authorizationContext);
             extractPayloadFromMessage(message, builder);
-            builder.withEnforcement(filterFactory.getFilter(headers));
+            builder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             final ExternalMessage externalMessage = builder.build();
             LogUtil.enhanceLogWithCorrelationId(log, externalMessage
                     .findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));

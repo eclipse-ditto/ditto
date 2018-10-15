@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
@@ -67,7 +67,7 @@ import scala.util.Either;
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
  */
-public class MqttClientActor extends BaseClientActor {
+public final class MqttClientActor extends BaseClientActor {
 
     private SharedKillSwitch consumerKillSwitch;
     private ActorRef mqttPublisherActor;
@@ -277,7 +277,7 @@ public class MqttClientActor extends BaseClientActor {
 
             final Props mqttConsumerActorProps =
                     MqttConsumerActor.props(messageMappingProcessorActor, source.getAuthorizationContext(),
-                            source.getEnforcement(),
+                            source.getEnforcement().orElse(null),
                             dryRun);
             final ActorRef mqttConsumerActor = startChildActorConflictFree(actorNamePrefix, mqttConsumerActorProps);
 
@@ -401,9 +401,6 @@ public class MqttClientActor extends BaseClientActor {
             return SinkShape.of(loadBalancer.in());
         });
     }
-
-    /*
-     */
 
     /**
      * Self message to increment published message counter.

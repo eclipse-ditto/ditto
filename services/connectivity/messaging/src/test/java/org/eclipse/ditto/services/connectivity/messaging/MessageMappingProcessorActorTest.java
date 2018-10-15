@@ -14,7 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,9 +31,9 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -93,7 +95,7 @@ public class MessageMappingProcessorActorTest {
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
         final EnforcementFilterFactory<String, String> factory =
-                EnforcementFactoryFactory.newThingIdEnforcementFactory(mqttEnforcement, new TestPlaceholder());
+                EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
         final EnforcementFilter<String> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, true);
     }
@@ -104,7 +106,7 @@ public class MessageMappingProcessorActorTest {
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
         final EnforcementFilterFactory<String, String> factory =
-                EnforcementFactoryFactory.newThingIdEnforcementFactory(mqttEnforcement, new TestPlaceholder());
+                EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
         final EnforcementFilter<String> enforcementFilter = factory.getFilter("some/invalid/target");
         testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false);
     }
@@ -136,7 +138,8 @@ public class MessageMappingProcessorActorTest {
                 final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
-                assertThat(response.getDittoRuntimeException()).isInstanceOf(IdEnforcementFailedException.class);
+                assertThat(response.getDittoRuntimeException()).isInstanceOf(
+                        ConnectionSignalIdEnforcementFailedException.class);
             }
         }};
     }
@@ -276,6 +279,11 @@ public class MessageMappingProcessorActorTest {
         @Override
         public String getPrefix() {
             return "test";
+        }
+
+        @Override
+        public List<String> getSupportedNames() {
+            return Collections.emptyList();
         }
 
         @Override

@@ -1,14 +1,13 @@
 /*
- *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v2.0
- *  which accompanies this distribution, and is available at
- *  https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- *  SPDX-License-Identifier: EPL-2.0
+ * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.models.connectivity.placeholder;
 
 import static org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder.SEPARATOR;
@@ -43,6 +42,14 @@ public final class PlaceholderFilter {
     private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
             UnresolvedPlaceholderException.newBuilder(unresolvedInput).build();
 
+    /**
+     * Apply {@link HeadersPlaceholder}s to the passed {@code authorizationContext} and return an
+     * {@link AuthorizationContext} where the placeholders were replaced.
+     *
+     * @param authorizationContext authorizationContext to apply placeholder substitution in.
+     * @param headers the headers to apply HeadersPlaceholder substitution with.
+     * @return AuthorizationContext as result of placeholder substitution.
+     */
     public static AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
@@ -53,7 +60,7 @@ public final class PlaceholderFilter {
             return authorizationContext;
         }
 
-        final ImmutableHeadersPlaceholder headersPlaceholder = ImmutableHeadersPlaceholder.INSTANCE;
+        final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
         final List<AuthorizationSubject> subjects = authorizationContext.stream()
                 .map(AuthorizationSubject::getId)
                 .map(id -> apply(id, headers, headersPlaceholder))
@@ -62,6 +69,14 @@ public final class PlaceholderFilter {
         return AuthorizationModelFactory.newAuthContext(subjects);
     }
 
+    /**
+     * Apply {@link ThingPlaceholder}s to the passed {@code targets} with the passed {@code thingId}.
+     *
+     * @param targets {@link Target}s to apply placeholder substitution in.
+     * @param thingId the thing ID.
+     * @param unresolvedPlaceholderListener callback to call with unresolved placeholders.
+     * @return Targets as result of placeholder substitution.
+     */
     public static Set<Target> filterTargets(final Set<Target> targets, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
@@ -80,7 +95,7 @@ public final class PlaceholderFilter {
     }
 
     /**
-     * Apply thing placeholders to addresses and collect the result as a map.
+     * Apply {@link ThingPlaceholder}s to addresses and collect the result as a map.
      *
      * @param addresses addresses to apply placeholder substitution.
      * @param thingId the thing ID.
@@ -105,7 +120,7 @@ public final class PlaceholderFilter {
     private static String applyThingPlaceholder(final String address, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         try {
-            return apply(address, thingId, ImmutableThingPlaceholder.INSTANCE);
+            return apply(address, thingId, PlaceholderFactory.newThingPlaceholder());
         } catch (final UnresolvedPlaceholderException e) {
             unresolvedPlaceholderListener.accept(address);
             return null;

@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -24,17 +24,27 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
+/**
+ * Holds data in order to apply enforcement of an {@code input} (e.g. a Thing ID or a source address) which must match
+ * against the passed {@code filters} (which may contain placeholders like {@code {{ thing:id }}} etc.
+ */
 public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
+    /**
+     * Retrieve the string to match against filters.
+     *
+     * @return the string that is supposed to match one of the filters.
+     */
     String getInput();
 
+    /**
+     * Retrieve set of filters that are compared against the input string.
+     * Filters contain placeholders ({@code {{ ... }}}).
+     *
+     * @return the filters.
+     */
     Set<String> getFilters();
 
-    /**
-     * Returns all non hidden marked fields of this {@code Source}.
-     *
-     * @return a JSON object representation of this Source including only non hidden marked fields.
-     */
     @Override
     default JsonObject toJson() {
         return toJson(FieldType.notHidden());
@@ -46,7 +56,7 @@ public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<J
     }
 
     /**
-     * An enumeration of the known {@code JsonField}s of a {@code Connection}.
+     * An enumeration of the known {@code JsonField}s of a {@code Enforcement}.
      */
     @Immutable
     final class JsonFields {
@@ -64,6 +74,10 @@ public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<J
         public static final JsonFieldDefinition<JsonArray> FILTERS =
                 JsonFactory.newJsonArrayFieldDefinition("filters", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 
 }

@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
@@ -18,6 +18,7 @@ import org.eclipse.ditto.model.connectivity.MqttSource;
 
 import akka.Done;
 import akka.stream.alpakka.mqtt.MqttMessage;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
@@ -39,14 +40,14 @@ public interface MqttConnectionFactory {
      * @param bufferSize maximum number of messages to keep for QoS 1 and 2.
      * @return Akka stream source that emits MQTT messages from the broker.
      */
-    Source<MqttMessage, CompletionStage<Done>> newSource(final MqttSource mqttSource, final int bufferSize);
+    Source<MqttMessage, CompletionStage<Done>> newSource(MqttSource mqttSource, int bufferSize);
 
     /**
      * Create an Akka stream sink of MQTT messages.
      *
      * @return Akka stream sink that publishes MQTT messages to the broker.
      */
-    akka.stream.javadsl.Sink<MqttMessage, CompletionStage<Done>> newSink();
+    Sink<MqttMessage, CompletionStage<Done>> newSink();
 
     /**
      * Create a default MQTT connection factory.

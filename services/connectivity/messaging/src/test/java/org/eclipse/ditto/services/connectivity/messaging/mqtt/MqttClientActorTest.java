@@ -5,10 +5,9 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -41,10 +40,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -189,7 +188,7 @@ public class MqttClientActorTest {
 
         final String payload = new String(message.payload().toByteBuffer().array(), UTF_8);
 
-        assertThat(payload).contains(IdEnforcementFailedException.ERROR_CODE);
+        assertThat(payload).contains(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
     }
 
     private TestKit testConsumeModifyThing(final Connection connection, final String publishTopic) {
@@ -293,7 +292,7 @@ public class MqttClientActorTest {
                 .index(1)
                 .consumerCount(1)
                 .addresses(TestConstants.asSet(sources))
-                .enforcement(ConnectivityModelFactory.newMqttEnforcement(filter))
+                .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(filter))
                 .qos(1)
                 .build();
     }

@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -45,7 +45,7 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @param consumerCount the consumer count
      * @return this builder
      */
-    T consumerCount(final int consumerCount);
+    T consumerCount(int consumerCount);
 
     /**
      * Sets the index of the source inside a connection.
@@ -53,7 +53,7 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @param index the index
      * @return this builder
      */
-    T index(final int index);
+    T index(int index);
 
     /**
      * Sets the {@link AuthorizationContext}.
@@ -61,7 +61,7 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @param authorizationContext the authorization context
      * @return this builder
      */
-    T authorizationContext(final AuthorizationContext authorizationContext);
+    T authorizationContext(AuthorizationContext authorizationContext);
 
     /**
      * Sets the {@link Enforcement} options, may be null if enforcement is not enabled.
@@ -69,7 +69,7 @@ public interface SourceBuilder<T extends SourceBuilder> {
      * @param enforcement the enforcement
      * @return this builder
      */
-    T enforcement(@Nullable final Enforcement enforcement);
+    T enforcement(@Nullable Enforcement enforcement);
 
     /**
      * Build the source instance.

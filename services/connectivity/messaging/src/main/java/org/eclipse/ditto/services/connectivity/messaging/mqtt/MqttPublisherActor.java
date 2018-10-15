@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
@@ -41,12 +41,18 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.alpakka.mqtt.MqttQoS;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 
-public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
+/**
+ * Responsible for publishing {@link ExternalMessage}s into an MQTT broker.
+ */
+public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
 
     static final String ACTOR_NAME = "mqttPublisher";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final ActorRef sourceActor;
     private final ActorRef mqttClientActor;
 
@@ -63,7 +69,7 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
         final Sink<MqttMessage, CompletionStage<Done>> mqttSink = factory.newSink();
 
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
-                akka.stream.javadsl.Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
+                Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
                         .map(this::countPublishedMqttMessage)
                         .toMat(mqttSink, Keep.both())
                         .run(ActorMaterializer.create(getContext()));
@@ -91,9 +97,9 @@ public class MqttPublisherActor extends BasePublisherActor<MqttPublishTarget> {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun, outbound -> {
-                    log.info("Message dropped in dryrun mode: {}", outbound);
-                })
+                .match(OutboundSignal.WithExternalMessage.class, this::isDryRun, outbound ->
+                        log.info("Message dropped in dryrun mode: {}", outbound)
+                )
                 .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
                     final ExternalMessage response = outbound.getExternalMessage();
                     final String correlationId =

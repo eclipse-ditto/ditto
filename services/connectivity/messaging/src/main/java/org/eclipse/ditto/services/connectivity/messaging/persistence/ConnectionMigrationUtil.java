@@ -93,7 +93,7 @@ final class ConnectionMigrationUtil {
      *       "addresses" : ["source1"],
      *       "authorizationContext" : [...],
      *       <b>"enforcement" : {
-     *         "input" : "{{ mqtt:topic }}",
+     *         "input" : "{{ source:address }}",
      *         "filters" : [ "{{thing:id}}", "{{thing:name}}" ]
      *       }</b>
      *     },
@@ -103,8 +103,6 @@ final class ConnectionMigrationUtil {
      * </pre>
      */
     static class MigrateSourceFilters implements Function<JsonObject, JsonObject> {
-
-        public static final String DEFAULT_MQTT_SOURCE_FILTER_INPUT = "{{ mqtt:topic }}";
 
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {
@@ -132,7 +130,7 @@ final class ConnectionMigrationUtil {
                     .filter(JsonValue::isArray)
                     .map(JsonValue::asArray)
                     .map(a -> JsonFactory.newObjectBuilder()
-                            .set(Enforcement.JsonFields.INPUT, DEFAULT_MQTT_SOURCE_FILTER_INPUT)
+                            .set(Enforcement.JsonFields.INPUT, ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)
                             .set(Enforcement.JsonFields.FILTERS, a)
                             .build())
                     .map(enforcement -> source.toBuilder()
