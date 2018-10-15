@@ -388,6 +388,7 @@
                             <skipPomModules>true</skipPomModules>
                             <htmlTitle>${project.name} :: Binary Compatibility Report</htmlTitle>
                         </parameter>
+                        <skip>true</skip>
                     </configuration>
                     <executions>
                         <execution>
