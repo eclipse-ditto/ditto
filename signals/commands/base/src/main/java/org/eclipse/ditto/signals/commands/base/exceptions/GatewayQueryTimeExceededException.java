@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -38,8 +39,8 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
 
     private static final String DEFAULT_DESCRIPTION = "Optimize the request and try again later.";
 
-    private GatewayQueryTimeExceededException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayQueryTimeExceededException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -50,6 +51,21 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
      */
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    /**
+     * Constructs a new {@code GatewayQueryTimeExceededException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayQueryTimeExceededException.
+     */
+    public static GatewayQueryTimeExceededException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
+        return new GatewayQueryTimeExceededException.Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
     }
 
     /**
@@ -76,8 +92,9 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
         }
 
         @Override
-        protected GatewayQueryTimeExceededException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayQueryTimeExceededException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayQueryTimeExceededException(dittoHeaders, message, description, cause, href);
         }
     }

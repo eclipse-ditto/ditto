@@ -105,7 +105,7 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
      */
     public static PolicyModificationInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(null), dittoHeaders);
+        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
     }
 
     /**

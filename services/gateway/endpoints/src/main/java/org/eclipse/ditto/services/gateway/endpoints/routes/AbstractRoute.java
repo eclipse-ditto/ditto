@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.utils.RequestPreProcessors;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -140,7 +139,6 @@ public abstract class AbstractRoute {
         payloadSource
                 .fold(ByteString.empty(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .map(str -> RequestPreProcessors.replacePlaceholders(str, dittoHeaders))
                 .map(requestJsonToCommandFunction)
                 .map(command -> {
                     final JsonSchemaVersion schemaVersion =

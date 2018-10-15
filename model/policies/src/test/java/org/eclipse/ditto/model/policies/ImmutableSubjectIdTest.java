@@ -71,4 +71,15 @@ public final class ImmutableSubjectIdTest {
         assertThat(underTest.getIssuer().toString()).isEqualTo("abc");
         assertThat(underTest.getSubject()).isEqualTo("def");
     }
+
+    @Test
+    public void newSubjectIdWithPlaceholderInputCreatesSubjectIdWithEmptyIssuerAndPlaceholderInputAsSubject() {
+        final String placeholderInput = "a{{ prefix:name }}z";
+        final SubjectId underTest = ImmutableSubjectId.of(placeholderInput);
+
+        assertThat(underTest.toString()).isEqualTo(placeholderInput);
+        assertThat(underTest.getIssuer().toString()).isEqualTo("");
+        assertThat(underTest.getSubject()).isEqualTo(placeholderInput);
+    }
+
 }

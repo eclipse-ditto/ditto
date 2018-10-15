@@ -29,9 +29,12 @@
     </appender>
 
     <!--<logger name="akka.actor" level="DEBUG"/>-->
+    <logger name="akka.management.cluster.bootstrap.contactpoint.HttpClusterBootstrapRoutes" level="WARN"/>
+    <logger name="akka.management.cluster.bootstrap.internal.BootstrapCoordinator" level="WARN"/>
 
     <!-- Log level for the application -->
     <logger name="org.eclipse.ditto" level="${LOG_LEVEL_APPLICATION:-INFO}"/>
+
 
     <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>

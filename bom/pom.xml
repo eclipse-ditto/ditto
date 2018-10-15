@@ -25,9 +25,9 @@
 
     <properties>
         <!-- globally set version for checking binary compatibility against -->
-        <!-- TODO: set to latest release -->
-        <!--<binary-compatibility-check.version>0.8.0-M1</binary-compatibility-check.version>-->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+        <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
+        <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally broke something -->
+        <binary-compatibility-check.version>0.8.0-M2b</binary-compatibility-check.version>
 
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.6</scala.full.version>
@@ -38,10 +38,11 @@
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
         <typesafe-config.version>1.3.2</typesafe-config.version>
-        <akka.version>2.5.13</akka.version>
-        <akka-http.version>10.1.3</akka-http.version>
+        <akka.version>2.5.17</akka.version>
+        <akka-http.version>10.1.5</akka-http.version>
         <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
+        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
         <casbah.version>3.1.1</casbah.version>
         <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
         <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
@@ -51,7 +52,7 @@
         <asm.version>5.2</asm.version>
         <qpid-jms-client.version>0.36.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.0.0</newmotion-akka-rabbitmq.version>
-        <amqp-client.version>5.2.0</amqp-client.version>
+        <amqp-client.version>5.4.2</amqp-client.version>
         <reactive-streams.version>1.0.2</reactive-streams.version>
         <netty.version>4.1.27.Final</netty.version>
 
@@ -97,7 +98,6 @@
 
         <scalatest.version>3.0.0</scalatest.version>
         <flapdoodle.version>2.0.0</flapdoodle.version>
-        <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
     </properties>
 
     <dependencyManagement>
@@ -134,6 +134,19 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
                 <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-remote_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+                <exclusions>
+                    <!-- exclude netty from akka-remote - we use aeron remoting instead -->
+                    <!-- due to license issues with the old netty version we are not allowed to use it -->
+                    <exclusion>
+                        <groupId>io.netty</groupId>
+                        <artifactId>netty</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
@@ -930,6 +943,7 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-legal</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

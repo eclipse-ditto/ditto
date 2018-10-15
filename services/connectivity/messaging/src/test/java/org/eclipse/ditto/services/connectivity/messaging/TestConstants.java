@@ -17,6 +17,8 @@ import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.AbstractMap;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -183,13 +186,22 @@ public class TestConstants {
         return "connection-" + UUID.randomUUID();
     }
 
-    public static String getUri(final ActorSystem actorSystem) {
-        final String akkaHost =
-                actorSystem.provider().getDefaultAddress().host().get();
-        final Integer akkaPort = ((Integer) actorSystem.provider()
-                .getDefaultAddress()
-                .port().get());
-        return String.format(URI_TEMPLATE, akkaHost, akkaPort);
+    public static String getUri() {
+        final ServerSocket serverSocket;
+        try {
+            serverSocket = new ServerSocket(0);
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
+        Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                final Socket clientSocket = serverSocket.accept();
+            } catch (final IOException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        final int localPort = serverSocket.getLocalPort();
+        return String.format(URI_TEMPLATE, "127.0.0.1", localPort);
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
@@ -203,7 +215,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final ConnectionStatus status, final List<Source> sources) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri(actorSystem))
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .build();
@@ -211,7 +223,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Target... targets) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri(actorSystem))
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(asSet(targets))
                 .build();

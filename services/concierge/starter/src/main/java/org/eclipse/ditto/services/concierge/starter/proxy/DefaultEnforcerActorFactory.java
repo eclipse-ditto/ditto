@@ -13,7 +13,10 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
@@ -25,6 +28,7 @@ import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
+import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.EntityId;
@@ -86,9 +90,11 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
+        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
+                PlaceholderSubstitution.newInstance();
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        null, activityCheckInterval);
+                        preEnforcer, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters

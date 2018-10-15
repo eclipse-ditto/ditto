@@ -150,7 +150,7 @@ public class PlaceholderFilterTest {
     private static String filterChain(final String template, final FilterTuple... tuples) {
         String result = template;
         for (final FilterTuple tuple : tuples) {
-            result = PlaceholderFilter.apply(result, tuple.value, tuple.placeholder, false);
+            result = PlaceholderFilter.apply(result, tuple.value, tuple.placeholder, true);
         }
         return PlaceholderFilter.checkAllPlaceholdersResolved(result);
     }

@@ -14,9 +14,12 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.model.base.common.Placeholders;
 
 /**
  * An immutable implementation of {@link SubjectId}.
@@ -28,6 +31,8 @@ final class ImmutableSubjectId implements SubjectId {
      * Ignore the Delimiter {@link #ISSUER_DELIMITER} in URLs like {@code http://}.
      */
     private static final String IGNORED_DELIMITER = "://";
+
+    private static final SubjectIssuer EMPTY_ISSUER = PoliciesModelFactory.newSubjectIssuer("");
 
     private final SubjectIssuer issuer;
     private final String subject;
@@ -64,6 +69,11 @@ final class ImmutableSubjectId implements SubjectId {
     public static SubjectId of(final CharSequence subjectIssuerWithId) {
         argumentNotEmpty(subjectIssuerWithId, "subjectIssuerWithId");
 
+        if (Placeholders.containsAnyPlaceholder(subjectIssuerWithId)) {
+            // in case of placeholders, just use the whole input as subject, use an empty issuer
+            return of(EMPTY_ISSUER, subjectIssuerWithId);
+        }
+
         final String subjectIdAsString = subjectIssuerWithId.toString();
         if (!subjectIdAsString.contains(ISSUER_DELIMITER)) {
             throw SubjectIdInvalidException.newBuilder(subjectIssuerWithId).build();
@@ -75,7 +85,8 @@ final class ImmutableSubjectId implements SubjectId {
                 : subjectIdAsString.indexOf(ISSUER_DELIMITER);
         final SubjectIssuer issuer =
                 PoliciesModelFactory.newSubjectIssuer(subjectIdAsString.substring(0, lastDelimiter));
-        final String subject = subjectIdAsString.replaceFirst(issuer.toString() + ISSUER_DELIMITER, "");
+        final String subject =
+                subjectIdAsString.replaceFirst(Pattern.quote(issuer.toString() + ISSUER_DELIMITER), "");
 
         return of(issuer, subject);
     }
@@ -125,6 +136,10 @@ final class ImmutableSubjectId implements SubjectId {
     @Override
     @Nonnull
     public String toString() {
+        if (issuer.length() == 0) {
+            return subject;
+        }
+
         return issuer + ISSUER_DELIMITER + subject;
     }
 

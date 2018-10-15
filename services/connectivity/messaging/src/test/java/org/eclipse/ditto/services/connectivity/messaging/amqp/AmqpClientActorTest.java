@@ -85,6 +85,7 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -172,7 +173,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri(actorSystem))
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri())
                 .specificConfig(specificOptions)
                 .sources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
