@@ -15,12 +15,12 @@ import org.bson.Document;
 /**
  * Representation of a namespace's content in a collection. Consists of a collection name and a filter in BSON format.
  */
-public final class NamespaceSelection {
+public final class MongoNamespaceSelection {
 
     private final String collectionName;
     private final Document filter;
 
-    private NamespaceSelection(final String collectionName, final Document filter) {
+    private MongoNamespaceSelection(final String collectionName, final Document filter) {
         this.collectionName = collectionName;
         this.filter = filter;
     }
@@ -32,8 +32,8 @@ public final class NamespaceSelection {
      * @param filter filter of documents in the namespace.
      * @return a new namespace selection.
      */
-    public static NamespaceSelection of(final String collectionName, final Document filter) {
-        return new NamespaceSelection(collectionName, filter);
+    public static MongoNamespaceSelection of(final String collectionName, final Document filter) {
+        return new MongoNamespaceSelection(collectionName, filter);
     }
 
     /**
