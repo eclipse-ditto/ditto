@@ -31,9 +31,9 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -138,7 +138,8 @@ public class MessageMappingProcessorActorTest {
                 final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
-                assertThat(response.getDittoRuntimeException()).isInstanceOf(IdEnforcementFailedException.class);
+                assertThat(response.getDittoRuntimeException()).isInstanceOf(
+                        ConnectionSignalIdEnforcementFailedException.class);
             }
         }};
     }

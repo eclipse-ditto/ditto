@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -70,7 +70,7 @@ public class ImmutableEnforcementFilterTest {
                 "eclipse:ditto");
     }
 
-    @Test(expected = IdEnforcementFailedException.class)
+    @Test(expected = ConnectionSignalIdEnforcementFailedException.class)
     public void testSimplePlaceholderPreAndPostfixFails() {
         testSimplePlaceholder(
                 "some/topic/{{  test:placeholder  }}/topic",

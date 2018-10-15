@@ -58,7 +58,7 @@ public final class MqttConsumerActor extends AbstractActor {
     private final AddressMetric addressMetric;
     private final ActorRef deadLetters;
     private final boolean dryRun;
-    @Nullable private final EnforcementFilterFactory<String, String> enforcementFilterFactory;
+    @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
@@ -73,10 +73,10 @@ public final class MqttConsumerActor extends AbstractActor {
         deadLetters = getContext().system().deadLetters();
 
         if (enforcement != null) {
-            this.enforcementFilterFactory = EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
+            this.topicEnforcementFilterFactory = EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                     PlaceholderFactory.newSourceAddressPlaceholder());
         } else {
-            enforcementFilterFactory = null;
+            topicEnforcementFilterFactory = null;
         }
     }
 
@@ -148,8 +148,8 @@ public final class MqttConsumerActor extends AbstractActor {
 
     @Nullable
     private EnforcementFilter<String> getEnforcementFilter(final String topic) {
-        if (enforcementFilterFactory != null) {
-            return enforcementFilterFactory.getFilter(topic);
+        if (topicEnforcementFilterFactory != null) {
+            return topicEnforcementFilterFactory.getFilter(topic);
         } else {
             return null;
         }

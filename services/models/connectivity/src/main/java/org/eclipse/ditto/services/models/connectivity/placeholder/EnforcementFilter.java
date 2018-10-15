@@ -30,8 +30,8 @@ public interface EnforcementFilter<M> {
      *
      * @param filterInput the source from which the the placeholders in the filters are resolved
      * @param dittoHeaders the ditto headers, required if an exception is thrown
-     * @throws org.eclipse.ditto.model.connectivity.IdEnforcementFailedException if none of the configured filters
-     * was equal to the input
+     * @throws org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException if none of the
+     * configured filters was equal to the input
      */
-    void match(M filterInput, final DittoHeaders dittoHeaders);
+    void match(M filterInput, DittoHeaders dittoHeaders);
 }

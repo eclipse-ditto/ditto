@@ -16,9 +16,9 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.he
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
@@ -100,11 +100,11 @@ public abstract class AbstractConsumerActorTest<M> {
             } else {
                 final OutboundSignal.WithExternalMessage outboundSignal =
                         publisher.expectMsgClass(OutboundSignal.WithExternalMessage.class);
-                final IdEnforcementFailedException exception =
-                        IdEnforcementFailedException.fromMessage(
+                final ConnectionSignalIdEnforcementFailedException exception =
+                        ConnectionSignalIdEnforcementFailedException.fromMessage(
                                 outboundSignal.getExternalMessage().getTextPayload().orElse(""),
                                 outboundSignal.getSource().getDittoHeaders());
-                assertThat(exception.getErrorCode()).isEqualTo(IdEnforcementFailedException.ERROR_CODE);
+                assertThat(exception.getErrorCode()).isEqualTo(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
                 assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
                 concierge.expectNoMessage();
             }

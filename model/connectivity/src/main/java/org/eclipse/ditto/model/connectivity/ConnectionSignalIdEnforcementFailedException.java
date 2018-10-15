@@ -24,10 +24,10 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Thrown if the enforcement of the Thing ID failed.
+ * Thrown if the enforcement of the Signal ID (e.g. a Thing ID) failed.
  */
 @Immutable
-public final class IdEnforcementFailedException extends DittoRuntimeException
+public final class ConnectionSignalIdEnforcementFailedException extends DittoRuntimeException
         implements ConnectivityException {
 
     /**
@@ -36,12 +36,14 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "connection.id.enforcement.failed";
 
     private static final String MESSAGE_TEMPLATE =
-            "The configured filters could not be matched against the given target of the signal with ID ''{0}''. "
-                    + "Either modify the configured filters or check if the message is sent under a wrong ID.";
+            "The configured filters could not be matched against the given target with ID ''{0}''.";
 
-    private static final long serialVersionUID = 6272495302389903822L;
+    private static final String DEFAULT_DESCRIPTION =
+            "Either modify the configured filter or ensure that the message is sent via the correct ID.";
 
-    private IdEnforcementFailedException(final DittoHeaders dittoHeaders,
+    private static final long serialVersionUID = 2672495302389903822L;
+
+    private ConnectionSignalIdEnforcementFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -51,16 +53,7 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
     }
 
     /**
-     * A mutable builder for a {@code {@link IdEnforcementFailedException }}.
-     *
-     * @return the builder.
-     */
-    public static Builder newBuilder() {
-        return new Builder();
-    }
-
-    /**
-     * A mutable builder for a {@code {@link IdEnforcementFailedException }}.
+     * A mutable builder for a {@link ConnectionSignalIdEnforcementFailedException}.
      *
      * @param target the enforcement target.
      * @return the builder.
@@ -70,13 +63,13 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
     }
 
     /**
-     * Constructs a new {@code IdEnforcementFailedException} object with given message.
+     * Constructs a new {@code ConnectionSignalIdEnforcementFailedException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new IdEnforcementFailedException.
+     * @return the new ConnectionSignalIdEnforcementFailedException.
      */
-    public static IdEnforcementFailedException fromMessage(final String message,
+    public static ConnectionSignalIdEnforcementFailedException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
 
         return new Builder()
@@ -86,43 +79,48 @@ public final class IdEnforcementFailedException extends DittoRuntimeException
     }
 
     /**
-     * Constructs a new {@code IdEnforcementFailedException} object with the exception message extracted from
-     * the given
-     * JSON object.
+     * Constructs a new {@code ConnectionSignalIdEnforcementFailedException} object with the exception message extracted from
+     * the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new IdEnforcementFailedException.
+     * @return the new ConnectionSignalIdEnforcementFailedException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
      */
-    public static IdEnforcementFailedException fromJson(final JsonObject jsonObject,
+    public static ConnectionSignalIdEnforcementFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(null))
+                .build();
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link IdEnforcementFailedException}.
+     * A mutable builder with a fluent API for a {@link ConnectionSignalIdEnforcementFailedException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<IdEnforcementFailedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionSignalIdEnforcementFailedException> {
 
         private Builder() {
+            description(DEFAULT_DESCRIPTION);
         }
 
         private Builder(final String target) {
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, target));
         }
 
         @Override
-        protected IdEnforcementFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected ConnectionSignalIdEnforcementFailedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new IdEnforcementFailedException(dittoHeaders, message, description, cause, href);
+            return new ConnectionSignalIdEnforcementFailedException(dittoHeaders, message, description, cause, href);
         }
 
     }

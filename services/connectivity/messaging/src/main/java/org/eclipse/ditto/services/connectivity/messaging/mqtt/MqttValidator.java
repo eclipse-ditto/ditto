@@ -163,7 +163,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
                     .getFilter("dummyTopic");
         } catch (final DittoRuntimeException e) {
-            throw invalidValueForConfig(enforcement.getInput(), "origin", sourceDescription.get())
+            throw invalidValueForConfig(enforcement.getInput(), "input", sourceDescription.get())
                     .cause(e)
                     .description(MessageFormat.format(ERROR_DESCRIPTION, enforcement.getInput(),
                             sourceAddressPlaceholder.getSupportedNames()))

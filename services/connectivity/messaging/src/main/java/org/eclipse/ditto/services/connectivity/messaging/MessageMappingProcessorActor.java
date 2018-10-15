@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -77,7 +78,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, Signal<?>, Signal<?>> adjustHeaders;
-    private final BiConsumer<ExternalMessage, Signal<?>> applyIdEnforcement;
+    private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -91,7 +92,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
-        applyIdEnforcement = new ApplyIdEnforcement(log);
+        applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
     }
 
     /**
@@ -145,7 +146,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
-                applyIdEnforcement.accept(messageWithAuthSubject, signal);
+                applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
                 final Signal<?> adjustedSignal = adjustHeaders.apply(messageWithAuthSubject, signal);
                 startTrace(adjustedSignal);
                 // This message is important to check if a command is accepted for a specific connection, as this
@@ -345,18 +346,23 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     }
 
-    static final class ApplyIdEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
+    /**
+     * Helper class applying the {@link org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter}
+     * of the passed in {@link ExternalMessage} by throwing a
+     * {@link ConnectionSignalIdEnforcementFailedException} if the enforcement failed.
+     */
+    static final class ApplySignalIdEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
 
         private final DiagnosticLoggingAdapter log;
 
-        ApplyIdEnforcement(final DiagnosticLoggingAdapter log) {
+        ApplySignalIdEnforcement(final DiagnosticLoggingAdapter log) {
             this.log = log;
         }
 
         @Override
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
             externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
-                log.debug("Thing ID Enforcement enabled: {}", enforcementFilter);
+                log.debug("Connection Signal ID Enforcement enabled: {}", enforcementFilter);
                 enforcementFilter.match(signal.getId(), signal.getDittoHeaders());
             });
         }

@@ -40,10 +40,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.MqttSource;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -188,7 +188,7 @@ public class MqttClientActorTest {
 
         final String payload = new String(message.payload().toByteBuffer().array(), UTF_8);
 
-        assertThat(payload).contains(IdEnforcementFailedException.ERROR_CODE);
+        assertThat(payload).contains(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
     }
 
     private TestKit testConsumeModifyThing(final Connection connection, final String publishTopic) {

@@ -70,7 +70,7 @@ only send data to the Thing `sensors:temperature1` the following enforcement con
 ```json
 {
   "enforcement": {
-    "input": "{%raw%}{{ mqtt:topic }}{%endraw%}",
+    "input": "{%raw%}{{ source:address }}{%endraw%}",
     "filters": [ "{%raw%}devices/{{ thing:namespace }}/{{ thing:name }}{%endraw%}" ]
   },
   "addresses": [ "devices/sensors/#" ],

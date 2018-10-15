@@ -74,7 +74,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     private final String sourceAddress;
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext authorizationContext;
-    private final EnforcementFilterFactory<Map<String, String>, String> enforcementFilterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
@@ -85,7 +85,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = authorizationContext;
-        enforcementFilterFactory =
+        headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                 PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
@@ -161,7 +161,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                 externalMessageBuilder.withBytes(body);
             }
             externalMessageBuilder.withAuthorizationContext(authorizationContext);
-            externalMessageBuilder.withEnforcement(enforcementFilterFactory.getFilter(headers));
+            externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final Exception e) {
