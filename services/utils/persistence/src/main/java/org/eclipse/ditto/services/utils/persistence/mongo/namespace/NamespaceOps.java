@@ -26,26 +26,6 @@ import akka.stream.javadsl.Source;
 public interface NamespaceOps<S> {
 
     /**
-     * Check if a collection has any document matching a namespace.
-     *
-     * @param selection collection-filter pair to identify documents belonging to a namespace.
-     * @return source of whether the identified documents form an empty set.
-     */
-    Source<Boolean, NotUsed> isEmpty(final S selection);
-
-    /**
-     * Check if selected documents of all given collections are empty.
-     *
-     * @param selections collection-filter pairs to identify documents belonging to a namespace.
-     * @return source of whether the identified documents form an empty set.
-     */
-    default Source<Boolean, NotUsed> areEmpty(final Collection<S> selections) {
-        return Source.from(selections)
-                .flatMapConcat(this::isEmpty)
-                .fold(true, Boolean::logicalAnd);
-    }
-
-    /**
      * Purge documents in a namespace from one collection.
      *
      * @param selection collection-filter pair to identify documents belonging to a namespace.

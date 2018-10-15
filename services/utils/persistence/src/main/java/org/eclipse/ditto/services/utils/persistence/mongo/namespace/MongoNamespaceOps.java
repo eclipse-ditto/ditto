@@ -52,15 +52,6 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
     }
 
     @Override
-    public Source<Boolean, NotUsed> isEmpty(final MongoNamespaceSelection selection) {
-        final String collection = selection.getCollectionName();
-        final Bson filter = selection.getFilter();
-        final CountOptions options = new CountOptions().limit(1);
-        return Source.fromPublisher(db.getCollection(collection).count(filter, options))
-                .map(count -> count == 0L);
-    }
-
-    @Override
     public Source<Optional<Throwable>, NotUsed> purge(final MongoNamespaceSelection selection) {
         final MongoCollection<Document> collection = db.getCollection(selection.getCollectionName());
         if (selection.isEntireCollection()) {

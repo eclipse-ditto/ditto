@@ -15,8 +15,6 @@ import java.util.Collection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
-import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptiness;
-import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptinessResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -28,7 +26,7 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Superclass of actors operating on the persistence at the level of namespaces.
- * It subscribes to the commands {@link QueryNamespaceEmptiness} and {@link PurgeNamespace} from the pub-sub mediator
+ * It subscribes to the commands {@link PurgeNamespace} from the pub-sub mediator
  * and carries them out. Instances of this actor should start as cluster singletons in order not to perform
  * identical operations multiple times on the database.
  *
@@ -78,7 +76,6 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(QueryNamespaceEmptiness.class, this::queryNamespaceEmptiness)
                 .match(PurgeNamespace.class, this::purgeNamespace)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::ignoreSubscribeAck)
                 .matchAny(message -> log.warning("unhandled: <{}>", message))
@@ -87,35 +84,11 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
 
     private void subscribeForNamespaceCommands() {
         final ActorRef self = getSelf();
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(QueryNamespaceEmptiness.TYPE, self), self);
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, self), self);
     }
 
     private void ignoreSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
         // do nothing
-    }
-
-    private void queryNamespaceEmptiness(final QueryNamespaceEmptiness command) {
-        final ActorRef sender = getSender();
-        namespaceOps.areEmpty(selectNamespace(command.getNamespace()))
-                .runWith(Sink.head(), materializer)
-                .thenAccept(setEmptiness -> {
-                    final QueryNamespaceEmptinessResponse response;
-                    if (setEmptiness) {
-                        response = QueryNamespaceEmptinessResponse.empty(command.getNamespace(), resourceType(),
-                                command.getDittoHeaders());
-                    } else {
-                        response = QueryNamespaceEmptinessResponse.notEmpty(command.getNamespace(), resourceType(),
-                                command.getDittoHeaders());
-                    }
-                    sender.tell(response, getSelf());
-                })
-                .exceptionally(error -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, command);
-                    log.error(error, "Failed: QueryNamespaceEmptiness");
-                    // Reply nothing in error case
-                    return null;
-                });
     }
 
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
