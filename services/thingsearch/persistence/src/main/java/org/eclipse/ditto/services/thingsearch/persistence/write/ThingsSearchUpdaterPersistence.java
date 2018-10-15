@@ -16,6 +16,7 @@ import java.util.Set;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.utils.persistence.mongo.namespace.NamespaceOps;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -24,7 +25,7 @@ import akka.stream.javadsl.Source;
 /**
  * The persistence for the search updater service.
  */
-public interface ThingsSearchUpdaterPersistence {
+public interface ThingsSearchUpdaterPersistence extends NamespaceOps<String> {
 
     /**
      * Inserts or updates a passed in {@link Thing}, enforcing restrictions on its properties.
