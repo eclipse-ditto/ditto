@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -80,9 +81,8 @@ final class ImmutableSource implements Source {
     }
 
     @Override
-    @Nullable
-    public Enforcement getEnforcement() {
-        return enforcement;
+    public Optional<Enforcement> getEnforcement() {
+        return Optional.ofNullable(enforcement);
     }
 
     @Override

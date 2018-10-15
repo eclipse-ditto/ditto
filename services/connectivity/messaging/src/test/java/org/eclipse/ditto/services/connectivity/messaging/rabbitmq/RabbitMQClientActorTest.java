@@ -8,7 +8,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;

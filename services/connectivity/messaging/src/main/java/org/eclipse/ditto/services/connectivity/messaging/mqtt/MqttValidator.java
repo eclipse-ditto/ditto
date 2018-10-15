@@ -34,7 +34,9 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
+import org.eclipse.ditto.services.models.connectivity.placeholder.SourceAddressPlaceholder;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttTopic;
 
@@ -53,9 +55,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             Collections.unmodifiableList(Arrays.asList("tcp", "ssl", "ws", "wss"));
 
     private static final String ERROR_DESCRIPTION = "''{0}'' is not a valid value for mqtt enforcement. Valid" +
-            " values " +
-            "are: ''{1}''.";
-
+            " values are: ''{1}''.";
 
     /**
      * Create a new {@code MqttConnectionSpec}.
@@ -94,7 +94,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
 
         final MqttSource mqttSource = (MqttSource) source;
         validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
-        validateSourceEnforcement(mqttSource.getEnforcement(), dittoHeaders, sourceDescription);
+        validateSourceEnforcement(mqttSource.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
     }
 
     @Override
@@ -108,8 +108,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     .build();
         }
 
-        final org.eclipse.ditto.model.connectivity.MqttTarget mqttTarget =
-                (org.eclipse.ditto.model.connectivity.MqttTarget) target;
+        final MqttTarget mqttTarget = (MqttTarget) target;
         validateTargetQoS(mqttTarget.getQos(), dittoHeaders, targetDescription);
     }
 
@@ -134,7 +133,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders, final Supplier<String> sourceDescription) {
         if (enforcement != null) {
 
-            validateEnforcementOrigin(enforcement, sourceDescription);
+            validateEnforcementOrigin(enforcement, sourceDescription, dittoHeaders);
 
             final String dummyThingId = "namespace:name";
             final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getFilters(),
@@ -157,16 +156,18 @@ public final class MqttValidator extends AbstractProtocolValidator {
     }
 
     private static void validateEnforcementOrigin(final Enforcement enforcement,
-            final Supplier<String> sourceDescription) {
+            final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
+        final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
-                    .newThingIdEnforcementFactory(enforcement, TopicPlaceholder.INSTANCE)
+                    .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
                     .getFilter("dummyTopic");
         } catch (final DittoRuntimeException e) {
             throw invalidValueForConfig(enforcement.getInput(), "origin", sourceDescription.get())
                     .cause(e)
                     .description(MessageFormat.format(ERROR_DESCRIPTION, enforcement.getInput(),
-                            TopicPlaceholder.VALID_VALUES))
+                            sourceAddressPlaceholder.getSupportedNames()))
+                    .dittoHeaders(dittoHeaders)
                     .build();
         }
     }

@@ -86,7 +86,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = authorizationContext;
         enforcementFilterFactory =
-                enforcement != null ? EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement,
+                enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                 PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 

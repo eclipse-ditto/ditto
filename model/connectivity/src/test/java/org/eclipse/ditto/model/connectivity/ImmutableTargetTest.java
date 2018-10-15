@@ -8,7 +8,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,6 +24,9 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
+/**
+ * Unit test for {@link ImmutableTarget}.
+ */
 public class ImmutableTargetTest {
 
     private static final String ADDRESS = "amqp/target1";

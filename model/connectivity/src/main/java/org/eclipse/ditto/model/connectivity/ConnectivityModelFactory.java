@@ -31,7 +31,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 @Immutable
 public final class ConnectivityModelFactory {
 
-    private static final String MQTT_TOPIC_ENFORCEMENT = "{{ mqtt:topic }}";
+    /**
+     * Template placeholder for {@link Source} address replacement.
+     */
+    public static final String SOURCE_ADDRESS_ENFORCEMENT = "{{ source:address }}";
 
     private ConnectivityModelFactory() {
         throw new AssertionError();
@@ -248,102 +251,6 @@ public final class ConnectivityModelFactory {
         return newSourceBuilder().address(address).authorizationContext(authorizationContext).index(index).build();
     }
 
-
-//
-//    /**
-//     * Creates a new {@link Source}.
-//     *
-//     * @param addresses the source addresses where messages are consumed from
-//     * @param consumerCount how many consumer will consume of the new {@link Source}
-//     * @param authorizationContext the authorization context
-//     * @return the created {@link Source}
-//     */
-//    public static Source newSource(final Set<String> addresses, final int consumerCount,
-//            final AuthorizationContext authorizationContext) {
-//        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0, null);
-//    }
-//
-//    /**
-//     * Creates a new {@link Source}.
-//     *
-//     * @param addresses the source addresses where messages are consumed from
-//     * @param consumerCount how many consumer will consume of the new {@link Source}
-//     * @param authorizationContext the authorization context
-//     * @param enforcement the enforcement options
-//     * @return the created {@link Source}
-//     */
-//    public static Source newSource(final Set<String> addresses, final int consumerCount,
-//            final AuthorizationContext authorizationContext, final Enforcement enforcement) {
-//        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0, enforcement);
-//    }
-//
-//    /**
-//     * Creates a new {@link Source}.
-//     *
-//     * @param index the index to distinguish between sources that would otherwise be different
-//     * @param authorizationContext the authorization context of the new {@link Source}
-//     * @param sources the sources where messages are consumed from
-//     * @return the created {@link Source}
-//     */
-//    public static Source newSource(final int index, final AuthorizationContext authorizationContext,
-//            final String... sources) {
-//        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
-//                authorizationContext, index, null);
-//    }
-//
-//    /**
-//     * Creates a new {@link Source}.
-//     *
-//     * @param consumerCount how many consumer will consume from this source
-//     * @param index the index to distinguish between sources that would otherwise be different
-//     * @param authorizationContext the authorization context of the new {@link Source}
-//     * @param sources the sources where messages are consumed from
-//     * @return the created {@link Source}
-//     */
-//    public static Source newSource(final int consumerCount, final int index,
-//            final AuthorizationContext authorizationContext,
-//            final String... sources) {
-//        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index,
-//                null);
-//    }
-//
-//    /**
-//     * Creates a new {@link MqttSource}.
-//     *
-//     * @param consumerCount how many consumer will consume from this source
-//     * @param index the index to distinguish between sources that would otherwise be different
-//     * @param authorizationContext the authorization context of the new {@link Source}
-//     * @param qos the qos value for this source
-//     * @param sources the sources where messages are consumed from
-//     * @return the created {@link Source}
-//     */
-//    public static MqttSource newFilteredMqttSource(final int consumerCount, final int index,
-//            final AuthorizationContext authorizationContext, final int qos,
-//            final String... sources) {
-//        final ImmutableSource immutableSource =
-//                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index,
-//                        enforcement);
-//        return new ImmutableMqttSource(immutableSource, qos);
-//    }
-//
-//    /**
-//     * Creates a new {@link MqttSource} without an enforcement filter.
-//     *
-//     * @param consumerCount how many consumer will consume from this source
-//     * @param index the index to distinguish between sources that would otherwise be different
-//     * @param authorizationContext the authorization context of the new {@link Source}
-//     * @param qos the qos
-//     * @param sources the sources where messages are consumed from
-//     * @return the created {@link Source}
-//     */
-//    public static MqttSource newMqttSource(final int consumerCount, final int index,
-//            final AuthorizationContext authorizationContext, final int qos, final String... sources) {
-//        final ImmutableSource immutableSource =
-//                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index,
-//                        enforcement);
-//        return new ImmutableMqttSource(immutableSource, qos);
-//    }
-
     /**
      * Creates a new {@link Target} from existing target but different address.
      *
@@ -558,24 +465,26 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * New instance of {@link Enforcement} options to be used with MQTT connections.
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
+     * {@link Source} {@code address}.
      *
      * @param filters the filters
      * @return the enforcement instance
      */
-    public static Enforcement newMqttEnforcement(final Set<String> filters) {
-        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, filters);
+    public static Enforcement newSourceAddressEnforcement(final Set<String> filters) {
+        return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, filters);
     }
 
     /**
-     * New instance of {@link Enforcement} options to be used with MQTT connections.
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
+     * {@link Source} {@code address}.
      *
      * @param requiredFilter the required filter
      * @param additionalFilters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newMqttEnforcement(final String requiredFilter, final String... additionalFilters) {
-        return newEnforcement(MQTT_TOPIC_ENFORCEMENT, requiredFilter, additionalFilters);
+    public static Enforcement newSourceAddressEnforcement(final String requiredFilter, final String... additionalFilters) {
+        return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, requiredFilter, additionalFilters);
     }
 
     /**

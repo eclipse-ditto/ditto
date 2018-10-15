@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newEnforcement;
-import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttEnforcement;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -87,14 +87,14 @@ public final class MqttValidatorTest {
         final MqttSource mqttSourceWithValidFilter =
                 ConnectivityModelFactory.newMqttSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newMqttEnforcement("things/+/{{ thing:id }}/#"))
+                        .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
                         .address("#")
                         .qos(1)
                         .build();
         final MqttSource mqttSourceWithInvalidFilter =
                 ConnectivityModelFactory.newMqttSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newMqttEnforcement("things/#/{{ thing:id }}/+"))
+                        .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
                         .address("#")
                         .qos(1)
                         .build();
@@ -128,7 +128,7 @@ public final class MqttValidatorTest {
         final MqttSource mqttSource =
                 ConnectivityModelFactory.newMqttSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(newMqttEnforcement(TestConstants.asSet("things/{{ thing:id }}")))
+                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(TestConstants.asSet("things/{{ thing:id }}")))
                         .address(source)
                         .qos(1)
                         .build();

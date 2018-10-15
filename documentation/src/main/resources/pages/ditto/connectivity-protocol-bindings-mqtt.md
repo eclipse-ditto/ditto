@@ -60,7 +60,7 @@ The following placeholders are available for the `input` field:
 
 | Placeholder    | Description  | Example   |
 |-----------|-------|---------------|
-| `{%raw%}{{ mqtt:topic }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
+| `{%raw%}{{ source:address }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
 
 ##### Example of an enforcement configuration for MQTT sources
 
@@ -128,7 +128,7 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
 `org.eclipse.ditto`:
 ```json
 {
-  "address": "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
+  "address": "eclipse-ditto-sandbox/{%raw%}{{ thing:id }}{%endraw%}",
   "topics": [
     "_/_/things/twin/events?namespaces=org.eclipse.ditto&filter=gt(attributes/counter,42)",
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
@@ -205,7 +205,7 @@ Here is an example MQTT connection that checks the broker certificate and authen
   "failoverEnabled": true,
   "uri": "ssl://test.mosquitto.org:8884",
   "validateCertificates": true,
-  "ca": "-----BEGIN CERTIFICATE-----\n<test.mosquitto.org certificate>\n-----END CERTIFICATE-----"
+  "ca": "-----BEGIN CERTIFICATE-----\n<test.mosquitto.org certificate>\n-----END CERTIFICATE-----",
   "credentials": {
     "type": "client-cert",
     "cert": "-----BEGIN CERTIFICATE-----\n<signed client certificate>\n-----END CERTIFICATE-----",

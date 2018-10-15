@@ -88,7 +88,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
 
-        filterFactory = enforcement != null ? EnforcementFactoryFactory.newThingIdEnforcementFactory(enforcement,
+        filterFactory = enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                 PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 

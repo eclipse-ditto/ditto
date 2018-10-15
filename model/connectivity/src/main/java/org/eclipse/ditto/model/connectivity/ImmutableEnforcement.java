@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -28,8 +28,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * Holds the data required to apply enforcement of Thing IDs. The target can be an arbitrary String containing the ID,
- * which must match against the passed filters (which may contain placeholders like {@code {{ thing:id }}} etc.
+ * Immutable implementation of {@link Enforcement}.
  */
 @Immutable
 final class ImmutableEnforcement implements Enforcement {
@@ -43,31 +42,22 @@ final class ImmutableEnforcement implements Enforcement {
     }
 
     /**
-     * Create a ThingIdEnforcement with default error message.
+     * Creates a new ImmutableEnforcement instance.
      *
-     * @param input input of the signal to apply Thing ID enforcement.
+     * @param input input the string to match against filters.
      * @param filters filters to match against the input .
-     * @return ThingIdEnforcement with default error message.
+     * @return new ImmutableEnforcement instance
      */
     static ImmutableEnforcement of(final String input, final Set<String> filters) {
         return new ImmutableEnforcement(input, filters);
     }
 
-    /**
-     * Retrieve the string to match against filters.
-     *
-     * @return the string that is supposed to match one of the filters.
-     */
+    @Override
     public String getInput() {
         return input;
     }
 
-    /**
-     * Retrieve set of filters that are comared against the input string.
-     * Filters contain placeholders ({@code {{ ... }}}).
-     *
-     * @return the filters.
-     */
+    @Override
     public Set<String> getFilters() {
         return filters;
     }
@@ -86,10 +76,10 @@ final class ImmutableEnforcement implements Enforcement {
     }
 
     /**
-     * Creates a new {@code Source} object from the specified JSON object.
+     * Creates a new {@code Enforcement} object from the specified JSON object.
      *
      * @param jsonObject a JSON object which provides the data for the Enforcement to be created.
-     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @return a new Enforcement which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
@@ -105,8 +95,12 @@ final class ImmutableEnforcement implements Enforcement {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ImmutableEnforcement that = (ImmutableEnforcement) o;
         return Objects.equals(input, that.input) &&
                 Objects.equals(filters, that.filters);

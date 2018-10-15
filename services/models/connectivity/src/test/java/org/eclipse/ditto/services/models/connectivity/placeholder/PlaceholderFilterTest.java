@@ -1,14 +1,13 @@
 /*
- *  Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
  *
- *  All rights reserved. This program and the accompanying materials
- *  are made available under the terms of the Eclipse Public License v2.0
- *  which accompanies this distribution, and is available at
- *  https://www.eclipse.org/org/documents/epl-2.0/index.php
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
  *
- *  SPDX-License-Identifier: EPL-2.0
+ * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.models.connectivity.placeholder;
 
 
@@ -30,8 +29,8 @@ public class PlaceholderFilterTest {
     private static final String DEVICE_ID = "device-12345";
     private static final String THING_ID = "eclipse:ditto";
 
-    private final HeadersPlaceholder headersPlaceholder = ImmutableHeadersPlaceholder.INSTANCE;
-    private final ThingPlaceholder thingPlaceholder = ImmutableThingPlaceholder.INSTANCE;
+    private final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
+    private final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
 
     private final FilterTuple[] filterChain = new FilterTuple[]{
             FilterTuple.of(HEADERS, headersPlaceholder),

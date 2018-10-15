@@ -175,12 +175,12 @@ public class ConnectionMigrationUtilTest {
         final Connection migratedConnection =
                 ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
         assertThat(migratedConnection.getSources()).hasSize(2);
-        assertThat(migratedConnection.getSources().get(0).getEnforcement()).isNotNull();
+        assertThat(migratedConnection.getSources().get(0).getEnforcement()).isPresent();
         // the second source had no filters
-        assertThat(migratedConnection.getSources().get(1).getEnforcement()).isNull();
-        final Enforcement enforcement = migratedConnection.getSources().get(0).getEnforcement();
+        assertThat(migratedConnection.getSources().get(1).getEnforcement()).isEmpty();
+        final Enforcement enforcement = migratedConnection.getSources().get(0).getEnforcement().get();
         // the filters field was implicitly matched against the mqtt topic
-        assertThat(enforcement.getInput()).isEqualTo("{{ mqtt:topic }}");
+        assertThat(enforcement.getInput()).isEqualTo("{{ source:address }}");
         assertThat(enforcement.getFilters()).hasSize(2);
         assertThat(enforcement.getFilters()).contains("{{thing:id}}", "{{thing:name}}");
     }

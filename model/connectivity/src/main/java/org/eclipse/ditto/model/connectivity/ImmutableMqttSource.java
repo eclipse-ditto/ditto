@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonField;
@@ -26,15 +27,16 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 /**
  * Extends the default {@link Source} by fields required for consuming for MQTT sources.
  */
+@Immutable
 public final class ImmutableMqttSource extends DelegateSource implements MqttSource {
 
     // user should set qos for sources. the default is qos=2 for convenience
     private static final Integer DEFAULT_QOS = 2;
     private final int qos;
 
-    private ImmutableMqttSource(final Builder builder) {
-        super(builder.delegate);
-        this.qos = builder.qos;
+    private ImmutableMqttSource(final Source delegate, final int qos) {
+        super(delegate);
+        this.qos = qos;
     }
 
     @Override
@@ -49,11 +51,11 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
      *
      * @param jsonObject a JSON object which provides the data for the Source to be created.
      * @param index the index to distinguish between sources that would otherwise be different
-     * @return a new Source which is initialised with the extracted data from {@code jsonObject}.
+     * @return a new MqttSource which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
-    public static Source fromJson(final JsonObject jsonObject, final int index) {
+    public static MqttSource fromJson(final JsonObject jsonObject, final int index) {
         final Source source = ImmutableSource.fromJson(jsonObject, index);
         final Builder builder = new Builder(source);
         final int readQos = jsonObject.getValue(MqttSource.JsonFields.QOS).orElse(DEFAULT_QOS);
@@ -67,9 +69,15 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final ImmutableMqttSource that = (ImmutableMqttSource) o;
         return qos == that.qos;
     }
@@ -154,7 +162,7 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
             if (delegate == null) {
                 delegate = delegateBuilder.build();
             }
-            return new ImmutableMqttSource(this);
+            return new ImmutableMqttSource(delegate, qos);
         }
     }
 }

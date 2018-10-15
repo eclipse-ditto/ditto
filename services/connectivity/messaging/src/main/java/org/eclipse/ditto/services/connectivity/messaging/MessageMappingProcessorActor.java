@@ -77,7 +77,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, Signal<?>, Signal<?>> adjustHeaders;
-    private final BiConsumer<ExternalMessage, Signal<?>> applyEnforcement;
+    private final BiConsumer<ExternalMessage, Signal<?>> applyIdEnforcement;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -91,7 +91,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
-        applyEnforcement = new ApplyEnforcement(log);
+        applyIdEnforcement = new ApplyIdEnforcement(log);
     }
 
     /**
@@ -145,7 +145,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
-                applyEnforcement.accept(messageWithAuthSubject, signal);
+                applyIdEnforcement.accept(messageWithAuthSubject, signal);
                 final Signal<?> adjustedSignal = adjustHeaders.apply(messageWithAuthSubject, signal);
                 startTrace(adjustedSignal);
                 // This message is important to check if a command is accepted for a specific connection, as this
@@ -345,11 +345,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     }
 
-    static final class ApplyEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
+    static final class ApplyIdEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
 
         private final DiagnosticLoggingAdapter log;
 
-        ApplyEnforcement(final DiagnosticLoggingAdapter log) {
+        ApplyIdEnforcement(final DiagnosticLoggingAdapter log) {
             this.log = log;
         }
 
