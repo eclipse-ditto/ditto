@@ -29,6 +29,9 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 
 /**
  * {@link MappingStrategy} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
@@ -41,24 +44,13 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private final ThingSearchMappingStrategy thingSearchMappingStrategy;
 
     /**
-     * Constructs a new Mapping Strategy for Gateway.
+     * Constructs a new {@code GatewayMappingStrategy} object.
      */
     public GatewayMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
         thingsMappingStrategy = new ThingsMappingStrategy();
         connectivityMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
-    }
-
-    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
-        builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
-    }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
     @Override
@@ -76,9 +68,27 @@ public final class GatewayMappingStrategy implements MappingStrategy {
 
         addMessagesStrategies(builder);
         addDevOpsStrategies(builder);
+        addNamespacesStrategies(builder);
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
+    }
+
+    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(MessageCommandRegistry.newInstance());
+        builder.add(MessageCommandResponseRegistry.newInstance());
+        builder.add(MessageErrorRegistry.newInstance());
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
+    }
+
+    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(NamespaceCommandRegistry.getInstance());
+        builder.add(NamespaceCommandResponseRegistry.getInstance());
+        builder.add(NamespaceErrorRegistry.getInstance());
     }
 
 }

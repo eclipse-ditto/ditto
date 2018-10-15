@@ -29,6 +29,7 @@
         <module>connectivity</module>
         <module>devops</module>
         <module>messages</module>
+        <module>namespaces</module>
         <module>policies</module>
         <module>enforcers</module>
         <module>things</module>

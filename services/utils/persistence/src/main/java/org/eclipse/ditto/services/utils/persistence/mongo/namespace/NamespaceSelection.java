@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
-
 import org.bson.Document;
 
 /**
@@ -62,4 +61,5 @@ public final class NamespaceSelection {
     public String toString() {
         return String.format("%s (%s)", collectionName, isEntireCollection() ? "to drop" : "to filter");
     }
+
 }

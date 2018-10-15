@@ -9,5 +9,4 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
-package org.eclipse.ditto.signals.commands.devops.namespace;
-
+package org.eclipse.ditto.signals.commands.namespaces;

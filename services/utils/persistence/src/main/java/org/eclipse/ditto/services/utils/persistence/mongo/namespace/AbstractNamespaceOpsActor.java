@@ -13,10 +13,10 @@ package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 import java.util.Collection;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.devops.namespace.PurgeNamespace;
-import org.eclipse.ditto.signals.commands.devops.namespace.PurgeNamespaceResponse;
-import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptiness;
-import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptinessResponse;
+import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
+import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
+import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptiness;
+import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptinessResponse;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
@@ -100,12 +100,14 @@ public abstract class AbstractNamespaceOpsActor extends AbstractActor {
         namespaceOps.areEmpty(selectNamespace(command.getNamespace()))
                 .runWith(Sink.head(), materializer)
                 .thenAccept(setEmptiness -> {
-                    final QueryNamespaceEmptinessResponse response = QueryNamespaceEmptinessResponse.newBuilder()
-                            .resourceType(resourceType())
-                            .setEmptiness(setEmptiness)
-                            .namespace(command.getNamespace())
-                            .dittoHeaders(command.getDittoHeaders())
-                            .build();
+                    final QueryNamespaceEmptinessResponse response;
+                    if (setEmptiness) {
+                        response = QueryNamespaceEmptinessResponse.empty(command.getNamespace(), resourceType(),
+                                command.getDittoHeaders());
+                    } else {
+                        response = QueryNamespaceEmptinessResponse.notEmpty(command.getNamespace(), resourceType(),
+                                command.getDittoHeaders());
+                    }
                     sender.tell(response, getSelf());
                 })
                 .exceptionally(error -> {
@@ -125,20 +127,18 @@ public abstract class AbstractNamespaceOpsActor extends AbstractActor {
                 .runWith(Sink.head(), materializer)
                 .thenAccept(errors -> {
                     // send response to speed up purge workflow
-                    final PurgeNamespaceResponse response = PurgeNamespaceResponse.newBuilder()
-                            .setSuccessful(errors.isEmpty())
-                            .resourceType(resourceType())
-                            .namespace(purgeNamespace.getNamespace())
-                            .dittoHeaders(purgeNamespace.getDittoHeaders())
-                            .build();
-                    sender.tell(response, getSelf());
-
-                    // log errors
-                    if (!errors.isEmpty()) {
+                    final PurgeNamespaceResponse response;
+                    if (errors.isEmpty()) {
+                        response = PurgeNamespaceResponse.successful(purgeNamespace.getNamespace(), resourceType(),
+                                purgeNamespace.getDittoHeaders());
+                    } else {
                         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
                         final String namespace = purgeNamespace.getNamespace();
                         errors.forEach(error -> log.error(error, "Error purging namespace <{}>", namespace));
+                        response = PurgeNamespaceResponse.failed(namespace, resourceType(),
+                                purgeNamespace.getDittoHeaders());
                     }
+                    sender.tell(response, getSelf());
                 })
                 .exceptionally(error -> {
                     LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
@@ -147,4 +147,5 @@ public abstract class AbstractNamespaceOpsActor extends AbstractActor {
                     return null;
                 });
     }
+
 }

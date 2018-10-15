@@ -19,10 +19,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace;
-import org.eclipse.ditto.signals.commands.devops.namespace.PurgeNamespace;
-import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptiness;
-import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
 
 /**
  * A {@link JsonParsableRegistry} aware of all {@link DevOpsCommand}s.
@@ -48,12 +44,6 @@ public final class DevOpsCommandRegistry extends AbstractJsonParsableRegistry<De
         parseStrategies.put(RetrieveStatistics.TYPE, RetrieveStatistics::fromJson);
         parseStrategies.put(RetrieveStatisticsDetails.TYPE, RetrieveStatistics::fromJson);
         parseStrategies.put(ExecutePiggybackCommand.TYPE, ExecutePiggybackCommand::fromJson);
-
-        // namespace commands
-        parseStrategies.put(BlockNamespace.TYPE, BlockNamespace::fromJson);
-        parseStrategies.put(PurgeNamespace.TYPE, PurgeNamespace::fromJson);
-        parseStrategies.put(QueryNamespaceEmptiness.TYPE, QueryNamespaceEmptiness::fromJson);
-        parseStrategies.put(ShutdownNamespace.TYPE, ShutdownNamespace::fromJson);
 
         return new DevOpsCommandRegistry(parseStrategies);
     }

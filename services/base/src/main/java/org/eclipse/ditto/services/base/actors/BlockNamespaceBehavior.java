@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.WithId;

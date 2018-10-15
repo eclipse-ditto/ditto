@@ -16,9 +16,9 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.exceptions.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.services.base.actors.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.base.actors.BlockedNamespaceCacheActor;
 import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
@@ -40,6 +40,8 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -65,19 +67,19 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final ActorRef thingsShardRegionProxy = startProxy(context.system(), configReader.cluster().numberOfShards(),
                 ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE);
 
-        final ThingEnforcementIdCacheLoader thingEnforcerIdCacheLoader =
+        final AsyncCacheLoader<EntityId, Entry<EntityId>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<EntityId>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE);
 
-        final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityId, Entry<Enforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy");
 
-        final AclEnforcerCacheLoader aclEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityId, Entry<Enforcer>> aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
         final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache =
                 CacheFactory.createCache(aclEnforcerCacheLoader, configReader.caches().enforcer(),
@@ -119,9 +121,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         return enforcerShardRegion;
     }
 
-    private Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final Cache<String, Object> namespaceCache,
-            final DevOpsConfigReader devOpsConfigReader) {
+    private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
+            final Cache<String, Object> namespaceCache, final DevOpsConfigReader devOpsConfigReader) {
 
         return withDittoHeaders -> BlockNamespaceBehavior.of(namespaceCache)
                 .block(withDittoHeaders)

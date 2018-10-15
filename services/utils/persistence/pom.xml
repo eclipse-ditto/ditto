@@ -30,6 +30,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-signals-commands-namespaces</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
             <version>${project.version}</version>
         </dependency>

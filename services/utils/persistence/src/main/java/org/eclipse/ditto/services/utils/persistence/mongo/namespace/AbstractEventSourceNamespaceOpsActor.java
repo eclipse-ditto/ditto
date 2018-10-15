@@ -105,16 +105,17 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
         return new Document().append(PID, new BsonRegularExpression(pidRegex));
     }
 
-    private String getCollectionName(final Config config, final String root, final String collectionType) {
+    private static String getCollectionName(final Config config, final String root, final String collectionType) {
         final String path = String.format("%s.overrides.%s-collection", root, collectionType);
         return config.getString(path);
     }
 
-    private String readConfig(final Config config, final String path, final String fallback) {
+    private static String readConfig(final Config config, final String path, final String fallback) {
         return config.hasPath(path) ? config.getString(path) : fallback;
     }
 
     private static String suffixBuilderPath(final String key) {
         return "akka.contrib.persistence.mongodb.mongo.suffix-builder." + key;
     }
+
 }

@@ -13,14 +13,15 @@ package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 import java.util.List;
 import java.util.Random;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.NamespaceSuffixCollectionNames;
 import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
-import org.eclipse.ditto.signals.commands.devops.namespace.PurgeNamespace;
-import org.eclipse.ditto.signals.commands.devops.namespace.PurgeNamespaceResponse;
-import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptiness;
-import org.eclipse.ditto.signals.commands.devops.namespace.QueryNamespaceEmptinessResponse;
+import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
+import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
+import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptiness;
+import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptinessResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -205,7 +206,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
             expectTerminated(actorToPurge);
 
             // purge the namespace
-            underTest.tell(PurgeNamespace.of(purgedNamespace), getRef());
+            underTest.tell(PurgeNamespace.of(purgedNamespace, DittoHeaders.empty()), getRef());
             expectMsg(purgeResponse(purgedNamespace, true));
 
             // restart the actor in the purged namespace - it should work as if its entity never existed
@@ -231,19 +232,18 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         }};
     }
 
-    private PurgeNamespaceResponse purgeResponse(final String namespace, final boolean isSuccessful) {
-        return PurgeNamespaceResponse.newBuilder()
-                .resourceType(resourceType())
-                .namespace(namespace)
-                .setSuccessful(isSuccessful)
-                .build();
+    private PurgeNamespaceResponse purgeResponse(final CharSequence namespace, final boolean isSuccessful) {
+        if (isSuccessful) {
+            return PurgeNamespaceResponse.successful(namespace, resourceType(), DittoHeaders.empty());
+        }
+        return PurgeNamespaceResponse.failed(namespace, resourceType(), DittoHeaders.empty());
     }
 
     private QueryNamespaceEmptinessResponse queryResponse(final String namespace, final boolean isEmpty) {
-        return QueryNamespaceEmptinessResponse.newBuilder()
-                .resourceType(resourceType())
-                .namespace(namespace)
-                .setEmptiness(isEmpty)
-                .build();
+        if (isEmpty) {
+            return QueryNamespaceEmptinessResponse.empty(namespace, resourceType(), DittoHeaders.empty());
+        }
+        return QueryNamespaceEmptinessResponse.notEmpty(namespace, resourceType(), DittoHeaders.empty());
     }
+
 }

@@ -15,7 +15,8 @@ import java.util.Collections;
 
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
-import org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace;
+import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
+import org.eclipse.ditto.signals.commands.namespaces.WithNamespace;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -39,6 +40,7 @@ public final class BlockedNamespaceCacheActor extends AbstractPubSubListenerActo
     private BlockedNamespaceCacheActor(final Cache<String, Object> namespaceCache,
             final ActorRef pubSubMediator,
             final int instanceIndex) {
+
         super(pubSubMediator, Collections.singleton(BlockNamespace.TYPE), instanceIndex);
         this.namespaceCache = namespaceCache;
     }
@@ -74,7 +76,7 @@ public final class BlockedNamespaceCacheActor extends AbstractPubSubListenerActo
                 .build();
     }
 
-    private void blockNamespace(final BlockNamespace blockNamespace) {
+    private void blockNamespace(final WithNamespace blockNamespace) {
         final String namespace = blockNamespace.getNamespace();
         namespaceCache.put(namespace, namespace);
     }

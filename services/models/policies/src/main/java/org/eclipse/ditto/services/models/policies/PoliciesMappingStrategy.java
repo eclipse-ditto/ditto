@@ -27,6 +27,9 @@ import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyErrorRegistry;
@@ -37,9 +40,19 @@ import org.eclipse.ditto.signals.events.policies.PolicyEventRegistry;
  */
 public final class PoliciesMappingStrategy implements MappingStrategy {
 
+    @Override
+    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addPoliciesStrategies(builder);
+        addDevOpsStrategies(builder);
+        addNamespacesStrategies(builder);
+
+        return builder.build();
+    }
+
     private static void addPoliciesStrategies(final MappingStrategiesBuilder builder) {
-        builder
-                .add(PolicyErrorRegistry.newInstance())
+        builder.add(PolicyErrorRegistry.newInstance())
                 .add(PolicyCommandRegistry.newInstance())
                 .add(PolicyCommandResponseRegistry.newInstance())
                 .add(PolicyEventRegistry.newInstance())
@@ -59,13 +72,10 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
-    @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        addPoliciesStrategies(builder);
-        addDevOpsStrategies(builder);
-
-        return builder.build();
+    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(NamespaceCommandRegistry.getInstance());
+        builder.add(NamespaceCommandResponseRegistry.getInstance());
+        builder.add(NamespaceErrorRegistry.getInstance());
     }
+
 }

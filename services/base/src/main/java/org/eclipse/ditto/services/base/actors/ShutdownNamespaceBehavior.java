@@ -42,16 +42,21 @@ public final class ShutdownNamespaceBehavior {
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownNamespaceBehavior fromId(final String entityId,
-            final ActorRef pubSubMediator, final ActorRef self) {
+    public static ShutdownNamespaceBehavior fromId(final String entityId, final ActorRef pubSubMediator,
+            final ActorRef self) {
+
         checkNotNull(entityId, "Entity ID");
-        checkNotNull(pubSubMediator, "PubSub Mediator");
+        checkNotNull(pubSubMediator, "Pub-Sub-Mediator");
         checkNotNull(self, "Self");
 
         final String namespace = NamespaceReader.getInstance().fromEntityId(entityId).orElse("");
         final ShutdownNamespaceBehavior shutdownNamespaceBehavior = new ShutdownNamespaceBehavior(namespace, self);
         shutdownNamespaceBehavior.subscribePubSub(pubSubMediator);
         return shutdownNamespaceBehavior;
+    }
+
+    private void subscribePubSub(final ActorRef pubSubMediator) {
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, self), self);
     }
 
     /**
@@ -65,20 +70,14 @@ public final class ShutdownNamespaceBehavior {
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
     }
 
-    private void subscribePubSub(final ActorRef pubSubMediator) {
-        final DistributedPubSubMediator.Subscribe subscribe =
-                new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, self);
-        pubSubMediator.tell(subscribe, self);
-    }
-
-    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
-        // do nothing
-    }
-
     private void shutdown(final ShutdownNamespace shutdownNamespace) {
         if (Objects.equals(namespace, shutdownNamespace.getNamespace())) {
             self.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
+    }
+
+    private void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
+        // do nothing
     }
 
 }

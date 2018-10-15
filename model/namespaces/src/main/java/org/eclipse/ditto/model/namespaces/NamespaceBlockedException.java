@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.base.exceptions;
+package org.eclipse.ditto.model.namespaces;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -19,6 +19,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
@@ -45,6 +47,7 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
@@ -107,5 +110,7 @@ public final class NamespaceBlockedException extends DittoRuntimeException {
 
             return new NamespaceBlockedException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }
