@@ -26,6 +26,9 @@ import akka.actor.Props;
  */
 public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsActor<String> {
 
+    /**
+     * Name of this actor.
+     */
     public static final String ACTOR_NAME = "thingsSearchNamespaceOpsActor";
 
     private ThingsSearchNamespaceOpsActor(final ActorRef pubSubMediator, final NamespaceOps<String> namespaceOps) {
