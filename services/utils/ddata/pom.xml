@@ -15,30 +15,28 @@
 
     <parent>
         <groupId>org.eclipse.ditto</groupId>
-        <artifactId>ditto-services</artifactId>
+        <artifactId>ditto-services-utils</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-services-utils</artifactId>
-    <packaging>pom</packaging>
-    <name>Eclipse Ditto :: Services :: Utils</name>
+    <artifactId>ditto-services-utils-ddata</artifactId>
+    <name>Eclipse Ditto :: Services :: Utils :: Distributed Data</name>
 
-    <modules>
-        <module>aggregator</module>
-        <module>akka</module>
-        <module>cache</module>
-        <module>cluster</module>
-        <module>conditional-headers</module>
-        <module>config</module>
-        <module>ddata</module>
-        <module>devops</module>
-        <module>health</module>
-        <module>jwt</module>
-        <module>persistence</module>
-        <module>protocol</module>
-        <module>test</module>
-        <module>tracing</module>
-        <module>metrics</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-utils-config</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-distributed-data_${scala.version}</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
