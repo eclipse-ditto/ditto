@@ -70,7 +70,8 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(ModifyThing.TYPE,
                 adaptable -> ModifyThing.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        initialPolicyForModifyThingFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        initialPolicyForModifyThingFrom(adaptable), policyIdOrPlaceholderForModifyThingFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteThing.TYPE,
                 adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -174,6 +175,14 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .map(o -> o.getValue(ModifyThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
+                .orElse(null);
+    }
+
+    private static String policyIdOrPlaceholderForModifyThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getValue()
+                .map(JsonValue::asObject)
+                .flatMap(o -> o.getValue(ModifyThing.JSON_COPY_POLICY_FROM))
+                .map(JsonValue::formatAsString)
                 .orElse(null);
     }
 

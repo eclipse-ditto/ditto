@@ -116,6 +116,33 @@ public final class DittoProtocolAdapterTest {
 
     /** */
     @Test
+    public void thingModifyCommandFromAdaptableWithPolicyToCopy() {
+        final String policyIdToCopy = "someNameSpace:someId";
+        final ModifyThing modifyThing =
+                ModifyThing.withCopiedPolicy(TestConstants.THING_ID, TestConstants.THING, policyIdToCopy,
+                        DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())
+                                .setValue(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ThingModifyCommand actualCommand = (ThingModifyCommand) underTest.fromAdaptable(adaptable);
+        assertThat(actualCommand).isEqualTo(modifyThing);
+    }
+
+    /** */
+    @Test
     public void thingModifyCommandResponseFromAdaptable() {
         final ModifyThingResponse modifyThingResponseCreated =
                 ModifyThingResponse.created(TestConstants.THING, DITTO_HEADERS_V_2);

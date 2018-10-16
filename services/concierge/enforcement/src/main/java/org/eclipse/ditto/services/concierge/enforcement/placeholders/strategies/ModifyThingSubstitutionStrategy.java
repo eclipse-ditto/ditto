@@ -49,6 +49,7 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
 
         final JsonObject inlinePolicyJson = modifyThing.getInitialPolicy().orElse(null);
         final JsonObject substitutedInlinePolicyJson;
+
         if (inlinePolicyJson == null) {
             substitutedInlinePolicyJson = null;
         } else {
@@ -62,8 +63,8 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
         if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return modifyThing;
         } else {
-            return ModifyThing.of(modifyThing.getThingId(), substitutedThing,
-                    substitutedInlinePolicyJson, dittoHeaders);
+            return ModifyThing.of(modifyThing.getThingId(), substitutedThing, substitutedInlinePolicyJson,
+                    modifyThing.getPolicyIdOrPlaceholder().orElse(null), dittoHeaders);
         }
     }
 
@@ -84,5 +85,4 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
                 substitutePolicy(existingPolicy, substitutionAlgorithm, dittoHeaders);
         return substitutedPolicy.toJson();
     }
-
 }

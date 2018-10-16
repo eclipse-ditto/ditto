@@ -192,6 +192,13 @@ public final class ThingsRoute extends AbstractRoute {
                 .orElse(null);
     }
 
+    private static String getPolicyIdOrPlaceholderToCopyPolicy(final String jsonString) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
+                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asString))
+                .orElse(null);
+    }
+
     /*
      * Describes {@code /things/<thingId>} route.
      * @return {@code /things/<thingId>} route.
@@ -212,6 +219,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThing(
                                                         createThingJsonObjectForPut(thingJson, thingId)),
                                                         createInlinePolicyJson(thingJson),
+                                                        getPolicyIdOrPlaceholderToCopyPolicy(thingJson),
                                                         dittoHeaders))
                                 )
                         ),
