@@ -25,8 +25,7 @@ import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * Actor which subscribes to {@link org.eclipse.ditto.signals.commands.devops.namespace.BlockNamespace} via Akka
- * Pub-Sub and writes the caches the blocked namespaces in a {@link org.eclipse.ditto.services.utils.cache.Cache}.
+ * Actor which updates local cache of blocked namespaces. Will be replaced.
  */
 public final class BlockedNamespaceCacheActor extends AbstractPubSubListenerActor {
 
