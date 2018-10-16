@@ -67,7 +67,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
         mappingStrategies.put(CreateThing.TYPE,
                 adaptable -> CreateThing.of(thingFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(ModifyThing.TYPE,
                 adaptable -> ModifyThing.of(thingIdFrom(adaptable), thingFrom(adaptable),
                         initialPolicyForModifyThingFrom(adaptable), policyIdOrPlaceholderForModifyThingFrom(adaptable),
@@ -171,6 +171,13 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
                 .orElse(null);
     }
 
+    private static String policyIdOrPlaceholderForCreateThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getValue()
+                .map(JsonValue::asObject)
+                .flatMap(o -> o.getValue(CreateThing.JSON_POLICY_ID_OR_PLACEHOLDER))
+                .orElse(null);
+    }
+
     private static JsonObject initialPolicyForModifyThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
@@ -181,8 +188,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     private static String policyIdOrPlaceholderForModifyThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
-                .flatMap(o -> o.getValue(ModifyThing.JSON_COPY_POLICY_FROM))
-                .map(JsonValue::formatAsString)
+                .flatMap(o -> o.getValue(ModifyThing.JSON_POLICY_ID_OR_PLACEHOLDER))
                 .orElse(null);
     }
 

@@ -200,13 +200,13 @@ public final class ThingModifyCommandAdapterTest {
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
-                                .setValue(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
+                                .set(ModifyThing.JSON_POLICY_ID_OR_PLACEHOLDER, policyIdToCopy))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final ModifyThing modifyThing =
-                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, policyIdToCopy,
+                ModifyThing.withCopiedPolicy(TestConstants.THING_ID, TestConstants.THING, policyIdToCopy,
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 

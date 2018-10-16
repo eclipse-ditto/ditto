@@ -147,13 +147,22 @@ public final class ThingsRoute extends AbstractRoute {
                         ),
                         post(() -> // POST /things
                                 extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource, thingJson ->
-                                                CreateThing.of(createThingForPost(thingJson),
-                                                        createInlinePolicyJson(thingJson), dittoHeaders))
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                thingJson -> fromThingJson(thingJson, dittoHeaders)
+                                        )
                                 )
                         )
                 )
         );
+    }
+
+    private CreateThing fromThingJson(final String thingJson, final DittoHeaders dittoHeaders) {
+        final String policyIdOrPlaceholder = getPolicyIdOrPlaceholderToCopyPolicy(thingJson);
+        if (policyIdOrPlaceholder == null) {
+            return CreateThing.of(createThingForPost(thingJson), createInlinePolicyJson(thingJson), dittoHeaders);
+        } else {
+            return CreateThing.withCopiedPolicy(createThingForPost(thingJson), policyIdOrPlaceholder, dittoHeaders);
+        }
     }
 
 
@@ -195,7 +204,6 @@ public final class ThingsRoute extends AbstractRoute {
     private static String getPolicyIdOrPlaceholderToCopyPolicy(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
-                .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asString))
                 .orElse(null);
     }
 

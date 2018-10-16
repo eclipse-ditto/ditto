@@ -16,6 +16,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.text.MessageFormat;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -186,5 +188,24 @@ public final class ModifyThingTest {
         assertThat(modifyThing.getInitialPolicy()).isNotPresent();
         assertThat(modifyThing.getPolicyIdOrPlaceholder()).isPresent();
         assertThat(modifyThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicy() {
+        final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
+        final Thing thingWithoutAclAndPolicy = TestConstants.Thing.THING.toBuilder()
+                .removeAllPermissions()
+                .removePolicyId()
+                .build();
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+
+        assertThatThrownBy(() ->
+                ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, JsonObject.newBuilder().build(),
+                        thingReference,
+                        v2Headers))
+                .isInstanceOf(PolicyIdNotAllowedException.class)
+                .hasMessage(MessageFormat.format(
+                        "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy " +
+                                "and a policy id to copy from.", TestConstants.Thing.THING_ID));
     }
 }

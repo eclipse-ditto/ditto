@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -63,15 +64,16 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
-     * Json Field definition for the optional initial "inline" policy when creating a Thing.
+     * Json Field definition for the optional feature to copy an existing policy.
      */
     public static final JsonFieldDefinition<String> JSON_POLICY_ID_OR_PLACEHOLDER =
             JsonFactory.newStringFieldDefinition("policyIdOrPlaceholder", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
-     * The name of the JSON field when a policy is copied.
+     * Json Field definition for the optional feature to copy an existing policy.
      */
-    public static final String JSON_COPY_POLICY_FROM = "_copyPolicyFrom";
+    public static final JsonFieldDefinition<String> JSON_COPY_POLICY_FROM =
+            JsonFactory.newStringFieldDefinition("_copyPolicyFrom", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
      * Json Field definition for the optional initial "inline" policy for usage in getEntity().
@@ -149,6 +151,8 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     /**
      * Returns a command for modifying a thing which is passed as argument.
+     * Only one of the arguments initialPolicy and policyIdOrPlaceholder must not be null. They are both allowed to be
+     * null, but not both to not be null at the same time.
      *
      * @param thingId the Thing's ID.
      * @param thing the {@link Thing} to modify.
@@ -161,16 +165,32 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @throws NullPointerException if any argument is {@code null}.
      * @throws PolicyIdNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command
      * was created via API version {@link JsonSchemaVersion#V_1}.
+     * @throws PolicyIdNotAllowedException if the passed {@code initialPolicy} is not null and the passed
+     * {@code policyIdOrPlaceholder} is not null.
+     * was created via API version {@link JsonSchemaVersion#V_1}.
      * @throws AclNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
      * an API version greater than {@link JsonSchemaVersion#V_1}.
      */
     public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
 
+        ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(thingId, initialPolicy, policyIdOrPlaceholder,
+                dittoHeaders);
         if (policyIdOrPlaceholder == null) {
             return of(thingId, thing, initialPolicy, dittoHeaders);
         } else {
             return withCopiedPolicy(thingId, thing, policyIdOrPlaceholder, dittoHeaders);
+        }
+    }
+
+    private static void ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(final String thingId,
+            @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
+            final DittoHeaders dittoHeaders) {
+
+        if (policyIdOrPlaceholder != null && initialPolicy != null) {
+            final String message = "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy" +
+                    " and a policy id to copy from.";
+            throw PolicyIdNotAllowedException.fromMessage(MessageFormat.format(message, thingId), dittoHeaders);
         }
     }
 
@@ -295,7 +315,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         final JsonObject withInlinePolicyThingJson =
                 getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
         final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
-                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.setValue(JSON_COPY_POLICY_FROM,
+                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_POLICY_ID_OR_PLACEHOLDER,
                         containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
 
         return Optional.of(fullThingJson);
@@ -311,7 +331,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
         }
         if (policyIdOrPlaceholder != null) {
-            jsonObjectBuilder.set(JSON_COPY_POLICY_FROM, policyIdOrPlaceholder, predicate);
+            jsonObjectBuilder.set(JSON_POLICY_ID_OR_PLACEHOLDER, policyIdOrPlaceholder, predicate);
         }
     }
 
