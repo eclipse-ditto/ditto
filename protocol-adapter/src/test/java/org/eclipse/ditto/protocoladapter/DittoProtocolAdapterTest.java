@@ -132,7 +132,7 @@ public final class DittoProtocolAdapterTest {
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden())
-                                .set(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
+                                .set(ModifyThing.JSON_POLICY_ID_OR_PLACEHOLDER, policyIdToCopy))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
