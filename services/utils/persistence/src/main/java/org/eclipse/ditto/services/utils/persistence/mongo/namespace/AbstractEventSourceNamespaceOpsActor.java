@@ -23,7 +23,7 @@ import akka.actor.ActorRef;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 
 /**
- * Superclass of actors operating on an event-sourcing persistence at the level of namespaces.
+ * Superclass of actors operating on an event-sourcing MongoDB persistence at the level of namespaces.
  */
 public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNamespaceOpsActor {
 
@@ -46,7 +46,7 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
     protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db,
             final Config config) {
 
-        super(pubSubMediator, db);
+        super(pubSubMediator, MongoNamespaceOps.of(db));
         metadata = getCollectionName(config, journalPluginId(), "metadata");
         journal = getCollectionName(config, journalPluginId(), "journal");
         snapshot = getCollectionName(config, snapshotPluginId(), "snaps");
@@ -71,33 +71,33 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
     protected abstract String snapshotPluginId();
 
     @Override
-    protected Collection<NamespaceSelection> selectNamespace(final String namespace) {
+    protected Collection<MongoNamespaceSelection> selectNamespace(final String namespace) {
         return isSuffixBuilderEnabled
                 ? selectNamespaceWithSuffixBuilder(namespace)
                 : selectNamespaceWithoutSuffixBuilder(namespace);
     }
 
-    private Collection<NamespaceSelection> selectNamespaceWithSuffixBuilder(final String namespace) {
+    private Collection<MongoNamespaceSelection> selectNamespaceWithSuffixBuilder(final String namespace) {
         return Arrays.asList(
                 selectByPid(metadata, namespace),
                 selectBySuffix(journal, namespace),
                 selectBySuffix(snapshot, namespace));
     }
 
-    private Collection<NamespaceSelection> selectNamespaceWithoutSuffixBuilder(final String namespace) {
+    private Collection<MongoNamespaceSelection> selectNamespaceWithoutSuffixBuilder(final String namespace) {
         return Arrays.asList(
                 selectByPid(metadata, namespace),
                 selectByPid(journal, namespace),
                 selectByPid(snapshot, namespace));
     }
 
-    private NamespaceSelection selectBySuffix(final String collection, final String namespace) {
+    private MongoNamespaceSelection selectBySuffix(final String collection, final String namespace) {
         final String suffixedCollection = String.format("%s%s%s", collection, suffixSeparator, namespace);
-        return NamespaceSelection.of(suffixedCollection, new Document());
+        return MongoNamespaceSelection.of(suffixedCollection, new Document());
     }
 
-    private NamespaceSelection selectByPid(final String collection, final String namespace) {
-        return NamespaceSelection.of(collection, filterByPid(namespace));
+    private MongoNamespaceSelection selectByPid(final String collection, final String namespace) {
+        return MongoNamespaceSelection.of(collection, filterByPid(namespace));
     }
 
     private Document filterByPid(final String namespace) {

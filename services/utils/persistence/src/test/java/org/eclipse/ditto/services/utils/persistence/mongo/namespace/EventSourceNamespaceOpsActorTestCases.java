@@ -20,8 +20,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilder
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
-import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptiness;
-import org.eclipse.ditto.signals.commands.namespaces.QueryNamespaceEmptinessResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -195,19 +193,13 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
             survivingActor.tell(createEntity(survivingId), getRef());
             expectMsgClass(createEntityResponseClass());
 
-            // neither namespace should be empty
-            underTest.tell(QueryNamespaceEmptiness.of(purgedNamespace), getRef());
-            expectMsg(queryResponse(purgedNamespace, false));
-            underTest.tell(QueryNamespaceEmptiness.of(survivingNamespace), getRef());
-            expectMsg(queryResponse(survivingNamespace, false));
-
             // kill the actor in the namespace to be purged to avoid write conflict
             actorToPurge.tell(PoisonPill.getInstance(), getRef());
             expectTerminated(actorToPurge);
 
             // purge the namespace
             underTest.tell(PurgeNamespace.of(purgedNamespace, DittoHeaders.empty()), getRef());
-            expectMsg(purgeResponse(purgedNamespace, true));
+            expectMsg(purgeResponse(purgedNamespace));
 
             // restart the actor in the purged namespace - it should work as if its entity never existed
             final ActorRef purgedActor = watch(startEntityActor(actorSystem, pubSubMediator, purgedId));
@@ -223,27 +215,11 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
             expectTerminated(purgedActor);
             survivingActor.tell(PoisonPill.getInstance(), getRef());
             expectTerminated(survivingActor);
-
-            // the purged namespace should stay empty and the other namespace should stay non-emnpty
-            underTest.tell(QueryNamespaceEmptiness.of(purgedNamespace), getRef());
-            expectMsg(queryResponse(purgedNamespace, true));
-            underTest.tell(QueryNamespaceEmptiness.of(survivingNamespace), getRef());
-            expectMsg(queryResponse(survivingNamespace, false));
         }};
     }
 
-    private PurgeNamespaceResponse purgeResponse(final CharSequence namespace, final boolean isSuccessful) {
-        if (isSuccessful) {
-            return PurgeNamespaceResponse.successful(namespace, resourceType(), DittoHeaders.empty());
-        }
-        return PurgeNamespaceResponse.failed(namespace, resourceType(), DittoHeaders.empty());
-    }
-
-    private QueryNamespaceEmptinessResponse queryResponse(final String namespace, final boolean isEmpty) {
-        if (isEmpty) {
-            return QueryNamespaceEmptinessResponse.empty(namespace, resourceType(), DittoHeaders.empty());
-        }
-        return QueryNamespaceEmptinessResponse.notEmpty(namespace, resourceType(), DittoHeaders.empty());
+    private PurgeNamespaceResponse purgeResponse(final CharSequence namespace) {
+        return PurgeNamespaceResponse.successful(namespace, resourceType(), DittoHeaders.empty());
     }
 
 }
