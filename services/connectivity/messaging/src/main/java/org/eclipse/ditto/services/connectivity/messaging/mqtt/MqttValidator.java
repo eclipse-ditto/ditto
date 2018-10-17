@@ -133,7 +133,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
             final DittoHeaders dittoHeaders, final Supplier<String> sourceDescription) {
         if (enforcement != null) {
 
-            validateEnforcementOrigin(enforcement, sourceDescription, dittoHeaders);
+            validateEnforcementInput(enforcement, sourceDescription, dittoHeaders);
 
             final String dummyThingId = "namespace:name";
             final Map<String, String> filtersMap = PlaceholderFilter.filterAddressesAsMap(enforcement.getFilters(),
@@ -155,7 +155,7 @@ public final class MqttValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static void validateEnforcementOrigin(final Enforcement enforcement,
+    private static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
         final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
         try {
