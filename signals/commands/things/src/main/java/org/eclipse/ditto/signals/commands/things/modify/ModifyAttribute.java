@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * This command modifies an attribute.
@@ -69,11 +70,21 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         super(TYPE, dittoHeaders);
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
-        this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
+        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
                 dittoHeaders);
+    }
+
+    private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
+        checkNotNull(pointer, "key of the attribute to be modified");
+        if (pointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(pointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return pointer;
     }
 
     /**
