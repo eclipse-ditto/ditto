@@ -93,7 +93,7 @@ public abstract class AbstractRoute {
                 protocolConfig.loadProtocolAdapterProvider(actorSystem);
 
         headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        LOGGER.info("Using headerTranslator <{}>.", headerTranslator);
+        LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
 
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc ->

@@ -10,18 +10,18 @@
  */
 package org.eclipse.ditto.services.utils.aggregator;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
@@ -38,23 +38,20 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
-import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.function.Function;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import akka.util.Timeout;
 
 /**
  * Acts as a client for {@code org.eclipse.ditto.services.concierge.starter.actors.ThingsAggregatorActor} which responds
@@ -130,10 +127,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(sourceRef ->
-                        handleSourceRef(
-                                (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
+                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
                 );
     }
 
@@ -144,33 +140,31 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(sourceRef ->
-                        handleSourceRef(
-                                (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
+                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
                 );
     }
 
     private void handleSourceRef(final SourceRef sourceRef, final List<String> thingIds,
-            final Command<?> originatingCommand, final ActorRef originatingSender,
-            final ActorMaterializer actorMaterializer) {
+            final Command<?> originatingCommand, final ActorRef originatingSender) {
 
-        final Comparator<JsonValue> comparator = (t1, t2) -> {
-            final String thingId1 = t1.asObject().getValue(Thing.JsonFields.ID).orElse(null);
-            final String thingId2 = t2.asObject().getValue(Thing.JsonFields.ID).orElse(null);
+        final Comparator<Pair<String, String>> comparator = (t1, t2) -> {
+            final String thingId1 = t1.first();
+            final String thingId2 = t2.first();
             return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
         };
 
-        final Function<Jsonifiable<?>, List<JsonValue>> firstThingListSupplier;
-        final Function<List<JsonValue>, CommandResponse<?>> overallResponseSupplier;
+        final Function<Jsonifiable<?>, Pair<String, String>> thingPairSupplier;
+        final Function<List<Pair<String, String>>, CommandResponse<?>> overallResponseSupplier;
 
         if (originatingCommand instanceof SudoRetrieveThings) {
-            firstThingListSupplier = supplyInitialThingListFromSudoRetrieveThingResponse();
+            thingPairSupplier = supplyPairFromSudoRetrieveThingResponse();
             overallResponseSupplier = supplySudoRetrieveThingsResponse(
                     originatingCommand.getDittoHeaders()
             );
         } else {
-            firstThingListSupplier = supplyInitialThingListFromRetrieveThingResponse();
+            thingPairSupplier = supplyPairFromRetrieveThingResponse();
             overallResponseSupplier = supplyRetrieveThingsResponse(
                     originatingCommand.getDittoHeaders(),
                     ((RetrieveThings) originatingCommand).getNamespace().orElse(null)
@@ -181,66 +175,86 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .tag("size", Integer.toString(thingIds.size()))
                 .build();
 
-        final CompletionStage<?> o = (CompletionStage<?>) sourceRef.getSource()
-                .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
-                .map(firstThingListSupplier)
-                .log("retrieve-thing-response", log)
-                .recover(new PFBuilder()
-                        .match(NoSuchElementException.class,
-                                nsee -> overallResponseSupplier.apply(Collections.emptyList()))
-                        .build()
-                )
-                .reduce((a, b) -> mergeLists((List<JsonValue>) a, (List<JsonValue>) b, comparator))
-                .map(overallResponseSupplier)
-                .via(stopTimer(timer))
-                .runWith(Sink.last(), actorMaterializer);
+        final CompletionStage<List<Pair<String, String>>> o =
+                (CompletionStage<List<Pair<String, String>>>) sourceRef.getSource()
+                        .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
+                        .map(param -> thingPairSupplier.apply((Jsonifiable<?>) param))
+                        .log("retrieve-thing-response", log)
+                        .recover(new PFBuilder()
+                                .match(NoSuchElementException.class,
+                                        nsee -> overallResponseSupplier.apply(Collections.emptyList()))
+                                .build()
+                        )
+                        .runWith(Sink.seq(), actorMaterializer);
 
-        PatternsCS.pipe(o, getContext().dispatcher())
+        final CompletionStage<? extends CommandResponse<?>> commandResponseCompletionStage = o
+                .thenApply(listOfPairs -> {
+                    final List<Pair<String, String>> sortedList = new ArrayList<>(listOfPairs);
+                    sortedList.sort(comparator);
+                    return listOfPairs;
+                })
+                .thenApply(overallResponseSupplier::apply)
+                .thenApply(list -> {
+                    stopTimer(timer);
+                    return list;
+                });
+
+        PatternsCS.pipe(commandResponseCompletionStage, getContext().dispatcher())
                 .to(originatingSender);
     }
 
-    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromRetrieveThingResponse() {
-        return retrieveThingResponse -> retrieveThingResponse instanceof RetrieveThingResponse ?
-                Collections.singletonList(((RetrieveThingResponse) retrieveThingResponse)
-                        .getEntity(retrieveThingResponse.getImplementedSchemaVersion())) :
-                Collections.emptyList();
+    private Function<Jsonifiable<?>, Pair<String, String>> supplyPairFromRetrieveThingResponse() {
+        return response -> {
+            if (response instanceof RetrieveThingResponse) {
+                final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) response;
+                return Pair.apply(
+                        retrieveThingResponse.getId(),
+                        retrieveThingResponse.getEntityPlainString()
+                                .orElseGet(() -> retrieveThingResponse.getEntity(
+                                        retrieveThingResponse.getImplementedSchemaVersion()).toString())
+                );
+            } else {
+                return Pair.apply(null, null);
+            }
+        };
     }
 
-    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromSudoRetrieveThingResponse() {
-        return sudoRetrieveThingResponse -> sudoRetrieveThingResponse instanceof SudoRetrieveThingResponse ?
-                Collections.singletonList(((SudoRetrieveThingResponse) sudoRetrieveThingResponse)
-                        .getEntity(sudoRetrieveThingResponse.getImplementedSchemaVersion())) :
-                Collections.emptyList();
+    private Function<Jsonifiable<?>, Pair<String, String>> supplyPairFromSudoRetrieveThingResponse() {
+        return response -> {
+            if (response instanceof SudoRetrieveThingResponse) {
+                final SudoRetrieveThingResponse retrieveThingResponse = (SudoRetrieveThingResponse) response;
+                return Pair.apply(
+                        retrieveThingResponse.getId(),
+                        retrieveThingResponse.getEntityPlainString()
+                                .orElseGet(() -> retrieveThingResponse.getEntity(
+                                        retrieveThingResponse.getImplementedSchemaVersion()).toString())
+
+                );
+            } else {
+                return Pair.apply(null, null);
+            }
+        };
     }
 
-    private Function<List<JsonValue>, CommandResponse<?>> supplyRetrieveThingsResponse(
+    private Function<List<Pair<String, String>>, CommandResponse<?>> supplyRetrieveThingsResponse(
             final DittoHeaders dittoHeaders,
             @Nullable final String namespace) {
-        return things -> RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
+        return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
+                        .map(Pair::second)
+                        .collect(Collectors.toList()),
                 namespace,
                 dittoHeaders);
     }
 
-    private Function<List<JsonValue>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
+    private Function<List<Pair<String, String>>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
             final DittoHeaders dittoHeaders) {
-        return things -> SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
+        return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
+                        .map(Pair::second)
+                        .collect(Collectors.toList()),
                 dittoHeaders);
     }
 
-    private static List<JsonValue> mergeLists(final List<JsonValue> first,
-            final List<JsonValue> second, final Comparator<JsonValue> comparator) {
-
-        final List<JsonValue> arrayList = new ArrayList<>(first);
-        arrayList.addAll(second);
-        arrayList.sort(comparator);
-
-        return arrayList;
-    }
-
-    private static Flow<CommandResponse<?>, CommandResponse<?>, NotUsed> stopTimer(final StartedTimer timer) {
-        return Flow.fromFunction(foo -> {
-            timer.stop(); // stop timer
-            return foo;
-        });
+    private static void stopTimer(final StartedTimer timer) {
+        timer.stop(); // stop timer
     }
 }

@@ -127,16 +127,22 @@ public final class HttpRequestActor extends AbstractActor {
                 .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
                     logger.debug("Got 'CommandResponse' 'WithEntity' message");
-                    final WithEntity withEntity = (WithEntity) commandResponse;
+                    final WithEntity<?> withEntity = (WithEntity<?>) commandResponse;
 
                     final HttpResponse responseWithoutHeaders = HttpResponse.create()
                             .withStatus(commandResponse.getStatusCode().toInt());
                     final HttpResponse responseWithoutBody = enhanceResponseWithExternalDittoHeaders(
                             responseWithoutHeaders, commandResponse.getDittoHeaders());
 
-                    completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
-                            withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
-                            commandResponse.getDittoHeaders()));
+                    if (withEntity.getEntityPlainString().isPresent()) {
+                        completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
+                                withEntity.getEntityPlainString().get(),
+                                commandResponse.getDittoHeaders()));
+                    } else {
+                        completeWithResult(addEntityAccordingToContentType(responseWithoutBody,
+                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
+                                commandResponse.getDittoHeaders()));
+                    }
                 })
                 .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity,
                         commandResponse -> {
@@ -214,6 +220,16 @@ public final class HttpRequestActor extends AbstractActor {
             return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entity.asString()));
         } else {
             return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entity.toString()));
+        }
+    }
+
+    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final String entityPlain,
+            final DittoHeaders dittoHeaders) {
+
+        if (hasPlainTextContentType(dittoHeaders)) {
+            return response.withEntity(CONTENT_TYPE_TEXT, ByteString.fromString(entityPlain));
+        } else {
+            return response.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(entityPlain));
         }
     }
 
