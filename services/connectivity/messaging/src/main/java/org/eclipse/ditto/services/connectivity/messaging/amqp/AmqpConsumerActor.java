@@ -237,7 +237,13 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private Map.Entry<String, String> getPropertyAsEntry(final AmqpJmsMessageFacade message, final String key) {
         try {
             log.debug("Inbound AmqpJmsMessageFacade: {}", message);
-            return new AbstractMap.SimpleImmutableEntry<>(key, message.getApplicationProperty(key).toString());
+            final Object applicationProperty = message.getApplicationProperty(key);
+            if (applicationProperty != null) {
+                return new AbstractMap.SimpleImmutableEntry<>(key, applicationProperty.toString());
+            } else {
+                log.debug("Property '{}' was null", key);
+                return null;
+            }
         } catch (final JMSException e) {
             log.debug("Property '{}' could not be read, dropping...", key);
             return null;
