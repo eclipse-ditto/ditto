@@ -147,6 +147,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     }
 
     private void handleJmsMessage(final JmsMessage message) {
+        log.debug("Inbound JmsMessage: {}", message);
         consumedMessages++;
         lastMessageConsumedAt = Instant.now();
         try {
@@ -235,6 +236,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     @Nullable
     private Map.Entry<String, String> getPropertyAsEntry(final AmqpJmsMessageFacade message, final String key) {
         try {
+            log.debug("Inbound AmqpJmsMessageFacade: {}", message);
             return new AbstractMap.SimpleImmutableEntry<>(key, message.getApplicationProperty(key).toString());
         } catch (final JMSException e) {
             log.debug("Property '{}' could not be read, dropping...", key);
