@@ -37,6 +37,12 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-distributed-data_${scala.version}</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

@@ -40,7 +40,9 @@ public final class DDataConfigReader extends AbstractConfigReader {
      */
     private static final String DITTO_CONFIG_PREFIX = "ditto-replicator-facade.";
 
-    private static final String ASK_TIMEOUT_KEY = DITTO_CONFIG_PREFIX + "ask-timeout";
+    private static final String READ_TIMEOUT_KEY = DITTO_CONFIG_PREFIX + "read-timeout";
+
+    private static final String WRITE_TIMEOUT_KEY = DITTO_CONFIG_PREFIX + "write-timeout";
 
     private static final Duration DEFAULT_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
@@ -55,6 +57,11 @@ public final class DDataConfigReader extends AbstractConfigReader {
         return new DDataConfigReader(system.settings().config().getConfig(FALLBACK_CONFIG_PATH));
     }
 
+    /**
+     * Convert this object into replicator settings.
+     *
+     * @return replicator settings.
+     */
     public ReplicatorSettings toReplicatorSettings() {
         return ReplicatorSettings.apply(config);
     }
@@ -94,21 +101,37 @@ public final class DDataConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * @return timeout of messages to the replicator.
+     * @return timeout of reads.
      */
-    public Duration askTimeout() {
-        return getIfPresent(ASK_TIMEOUT_KEY, config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+    public Duration readTimeout() {
+        return getIfPresent(READ_TIMEOUT_KEY, config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
     }
 
-
     /**
-     * Set the timeout of messages to the replicator.
+     * Set the timeout of GET-messages to the replicator.
      *
      * @param askTimeout the new timeout of messages to the replicator.
      * @return a copy of this object with a new timeout of messages to the replicator.
      */
-    public DDataConfigReader withAskTimeout(final Duration askTimeout) {
-        return with(ASK_TIMEOUT_KEY, askTimeout);
+    public DDataConfigReader withReadTimeout(final Duration askTimeout) {
+        return with(READ_TIMEOUT_KEY, askTimeout);
+    }
+
+    /**
+     * @return timeout of writes.
+     */
+    public Duration writeTimeout() {
+        return getIfPresent(WRITE_TIMEOUT_KEY, config::getDuration).orElse(DEFAULT_ASK_TIMEOUT);
+    }
+
+    /**
+     * Set the timeout of UPDATE-messages to the replicator.
+     *
+     * @param askTimeout the new timeout of messages to the replicator.
+     * @return a copy of this object with a new timeout of messages to the replicator.
+     */
+    public DDataConfigReader withWriteTimeout(final Duration askTimeout) {
+        return with(WRITE_TIMEOUT_KEY, askTimeout);
     }
 
     private DDataConfigReader with(final String configKey, final Object configValue) {
