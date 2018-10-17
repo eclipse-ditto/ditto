@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
+import javax.jms.JMSException;
 import javax.jms.MessageConsumer;
 
 import org.apache.qpid.jms.exceptions.IdConversionException;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -167,6 +169,45 @@ public class AmqpConsumerActorTest {
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(((ModifyAttribute) command).getAttributePointer()).isEqualTo(JsonPointer.of("/foo"));
             assertThat(((ModifyAttribute) command).getAttributeValue()).isEqualTo(JsonValue.of(plainPayload));
+        }};
+    }
+
+    @Test
+    public void jmsMessageWithNullPropertyAndNullContentTypeTest() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final ActorRef testActor = getTestActor();
+            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
+
+            final Props messageMappingProcessorProps =
+                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
+
+            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
+                    MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
+
+            final ActorRef underTest = actorSystem.actorOf(
+                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT));
+
+            final String correlationId = "cor-";
+            final String plainPayload =
+                    "{ \"topic\": \"com.bosch.test/testThing/things/twin/commands/modify\"," +
+                    " \"headers\":{\"device_id\":\"com.bosch.test:testThing\"}," +
+                    " \"path\": \"/features/point/properties/x\", \"value\": 42 }";
+
+            final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
+            messageFacade.setApplicationProperty("JMSXDeliveryCount", null);
+            messageFacade.setText(plainPayload);
+            messageFacade.setContentType(null);
+            messageFacade.setCorrelationId(correlationId);
+            final JmsMessage jmsMessage = messageFacade.asJmsMessage();
+            underTest.tell(jmsMessage, null);
+
+            final Command command = expectMsgClass(Command.class);
+            assertThat(command.getType()).isEqualTo(ModifyFeatureProperty.TYPE);
+            assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
+            assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
+            assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
         }};
     }
 
