@@ -183,7 +183,7 @@ public class AmqpConsumerActorTest {
                     MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
 
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
-                    MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
+                    MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
 
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
