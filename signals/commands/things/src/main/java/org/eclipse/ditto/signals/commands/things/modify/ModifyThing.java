@@ -315,7 +315,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         final JsonObject withInlinePolicyThingJson =
                 getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
         final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
-                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_POLICY_ID_OR_PLACEHOLDER,
+                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_COPY_POLICY_FROM,
                         containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
 
         return Optional.of(fullThingJson);

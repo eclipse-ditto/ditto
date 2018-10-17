@@ -174,7 +174,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     private static String policyIdOrPlaceholderForCreateThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
-                .flatMap(o -> o.getValue(CreateThing.JSON_POLICY_ID_OR_PLACEHOLDER))
+                .flatMap(o -> o.getValue(CreateThing.JSON_COPY_POLICY_FROM))
                 .orElse(null);
     }
 
@@ -188,7 +188,7 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
     private static String policyIdOrPlaceholderForModifyThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
-                .flatMap(o -> o.getValue(ModifyThing.JSON_POLICY_ID_OR_PLACEHOLDER))
+                .flatMap(o -> o.getValue(ModifyThing.JSON_COPY_POLICY_FROM))
                 .orElse(null);
     }
 

@@ -17,9 +17,11 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.text.MessageFormat;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -39,6 +41,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link ModifyThing}.
  */
 public final class ModifyThingTest {
+
+    private static final String POLICY_ID_TO_COPY = "somenamespace:somepolicyid";
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyThing.TYPE)
@@ -78,6 +82,69 @@ public final class ModifyThingTest {
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void toJsonWithPolicyIdToCopyReturnsExpected() {
+        final JsonObject expected = KNOWN_JSON.set(ModifyThing.JSON_POLICY_ID_OR_PLACEHOLDER, POLICY_ID_TO_COPY);
+        final ModifyThing underTest =
+                ModifyThing.withCopiedPolicy(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, POLICY_ID_TO_COPY,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(expected);
+    }
+
+    @Test
+    public void toJsonWithInitialPolicyIdToCopyReturnsExpected() {
+
+        final JsonObject expected = KNOWN_JSON.set(ModifyThing.JSON_INITIAL_POLICY, JsonObject.newBuilder().build());
+        final ModifyThing underTest =
+                ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, JsonObject.newBuilder().build(),
+                        TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(expected);
+    }
+
+    @Test
+    public void getEntityReturnsExpected() {
+        final JsonObject expected = TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial());
+
+        final ModifyThing underTest =
+                ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        final Optional<JsonValue> entity = underTest.getEntity();
+
+        assertThat(entity).contains(expected);
+    }
+
+    @Test
+    public void getEntityWithInitialPolicyReturnsExpected() {
+        final JsonObject expected = TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial())
+                .set(ModifyThing.JSON_INLINE_POLICY, JsonObject.newBuilder().build());
+
+        final ModifyThing underTest =
+                ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, JsonObject.newBuilder().build(),
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        final Optional<JsonValue> entity = underTest.getEntity();
+
+        assertThat(entity).contains(expected);
+    }
+
+    @Test
+    public void getEntityWithPolicyIdToCopyReturnsExpected() {
+        final JsonObject expected = TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial())
+                .set(ModifyThing.JSON_COPY_POLICY_FROM, POLICY_ID_TO_COPY);
+
+        final ModifyThing underTest =
+                ModifyThing.withCopiedPolicy(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, POLICY_ID_TO_COPY,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        final Optional<JsonValue> entity = underTest.getEntity();
+
+        assertThat(entity).contains(expected);
+    }
 
     @Test
     public void createInstanceFromValidJson() {
