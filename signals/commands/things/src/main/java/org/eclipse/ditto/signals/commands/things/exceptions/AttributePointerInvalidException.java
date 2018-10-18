@@ -47,6 +47,7 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -67,8 +68,7 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new AttributePointerInvalidException.
      */
-    public static AttributePointerInvalidException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
+    public static AttributePointerInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new AttributePointerInvalidException.Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -87,6 +87,7 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
      */
     public static AttributePointerInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
@@ -111,8 +112,10 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new AttributePointerInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

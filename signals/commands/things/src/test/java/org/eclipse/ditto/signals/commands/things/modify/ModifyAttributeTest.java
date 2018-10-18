@@ -55,7 +55,6 @@ public final class ModifyAttributeTest {
                 provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyAttribute.class)
@@ -91,13 +90,11 @@ public final class ModifyAttributeTest {
                 .withNoCause();
     }
 
-
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, KNOWN_ATTRIBUTE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -107,7 +104,6 @@ public final class ModifyAttributeTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -132,4 +128,5 @@ public final class ModifyAttributeTest {
                 JsonValue.of(sb.toString()), DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
+
 }
