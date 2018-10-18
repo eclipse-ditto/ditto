@@ -115,10 +115,10 @@ following parameters can additionally be provided when specifying the `topics` o
 
 | Description | Topic | Filter by namespaces | Filter by RQL expression |
 |-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | yes | yes |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | yes | |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | yes |  |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | yes | yes |
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
+| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
+| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
 with `&`. You have to URL encode the filter values before using them in a configuration.

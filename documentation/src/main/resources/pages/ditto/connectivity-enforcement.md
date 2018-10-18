@@ -1,11 +1,15 @@
 Messages received from external systems are mapped to Ditto internal format, either by applying some custom mapping or 
-the default mapping for ditto protocol messages. During this mapping the digital twin of the device is determined i.e. 
+the default mapping for [Ditto Protocol](protocol-overview.html) messages. 
+
+During this mapping the digital twin of the device is determined i.e. 
 which Thing is accessed or modified as a result of the message. By default no sanity check is done if this target Thing 
 corresponds to the device that originally sent the message. In some use case this might be valid, but in other scenarios 
 you might want to enforce that a device only sends data to its digital twin. Note that this could also be achieved by 
 assigning a specific policy to each device and use [placeholders](basic-connections.html#placeholders) in the 
 authorization subject, but this can get 
-cumbersome to maintain for a large number of devices. With an enforcement you can use a single policy for all devices 
+cumbersome to maintain for a large number of devices.
+
+With an enforcement you can use a single policy for all devices 
 and still make sure that a device only modifies its associated digital twin. Enforcement is only feasible if the message
 contains the verified identity of the sending device (e.g. in a message header). This verification has to be done by the
 external system e.g. by properly authenticating the devices and providing the identity in the messages sent to Ditto.

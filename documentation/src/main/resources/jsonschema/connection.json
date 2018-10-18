@@ -147,7 +147,7 @@
                 "type": "string",
                 "title": "Input value of enforcement",
                 "description": "The input value of the enforcement that should identify the origin of the message (e.g. a device id). Placeholders can be used within this field depending on the connection type. E.g. for AMQP 1.0 connections you can use `{{ header:[any-header-name] }}` to resolve the value from a message header.",
-                "examples": ["{{ header:device_id }}"]
+                "examples": ["{{ header:device_id }}", "{{ source:address }}"]
               },
               "filters": {
                 "$id": "/properties/sources/items/properties/enforcement/filters",
