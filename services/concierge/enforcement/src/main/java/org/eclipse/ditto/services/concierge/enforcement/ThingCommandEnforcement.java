@@ -146,7 +146,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
         policyIdReferencePlaceholderResolver =
-                PolicyIdReferencePlaceholderResolver.of(conciergeForwarderActor(), getAskTimeout());
+                PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskTimeout());
     }
 
     @Override
@@ -832,7 +832,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
 
         final CompletionStage<Policy> policyCompletionStage =
-                PatternsCS.ask(conciergeForwarderActor(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
+                PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
                         .thenApply(response -> {
                             if (response instanceof RetrievePolicyResponse) {
                                 return ((RetrievePolicyResponse) response).getPolicy();

@@ -98,10 +98,10 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 PlaceholderSubstitution.newInstance();
-        final ActorRef conciergeForwarderActor = getConciergeForwarderActor(context, configReader, pubSubMediator);
+        final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        preEnforcer, activityCheckInterval, conciergeForwarderActor);
+                        preEnforcer, activityCheckInterval, conciergeForwarder);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
@@ -117,7 +117,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
     }
 
 
-    private ActorRef getConciergeForwarderActor(final ActorContext actorContext,
+    private ActorRef getInternalConciergeForwarder(final ActorContext actorContext,
             final ServiceConfigReader configReader, final ActorRef pubSubMediator) {
         final ActorRef conciergeShardRegionProxy = ClusterSharding.get(actorContext.system())
                 .startProxy(ConciergeMessagingConstants.SHARD_REGION,

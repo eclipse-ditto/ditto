@@ -273,7 +273,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return context.self;
     }
 
-    protected ActorRef conciergeForwarderActor() { return context.conciergeForwarderActor;}
+    protected ActorRef conciergeForwarder() { return context.conciergeForwarder;}
 
     /**
      * Holds context information required by implementations of {@link AbstractEnforcement}.
@@ -292,26 +292,26 @@ public abstract class AbstractEnforcement<T extends Signal> {
         @Nullable
         private final ActorRef self;
 
-        private final ActorRef conciergeForwarderActor;
+        private final ActorRef conciergeForwarder;
 
         Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
-                final ActorRef conciergeForwarderActor) {
+                final ActorRef conciergeForwarder) {
 
-            this(pubSubMediator, askTimeout, conciergeForwarderActor, null, null, null);
+            this(pubSubMediator, askTimeout, conciergeForwarder, null, null, null);
         }
 
         Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
-                @Nullable final ActorRef conciergeForwarderActor,
+                @Nullable final ActorRef conciergeForwarder,
                 @Nullable final EntityId entityId,
                 @Nullable final DiagnosticLoggingAdapter log,
                 @Nullable final ActorRef self) {
             this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
-            this.conciergeForwarderActor = conciergeForwarderActor;
+            this.conciergeForwarder = conciergeForwarder;
             this.entityId = entityId;
             this.log = log;
             this.self = self;
@@ -326,7 +326,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
          */
         public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log) {
             final ActorRef contextSelf = actorContext.self();
-            return new Context(pubSubMediator, askTimeout, conciergeForwarderActor, decodeEntityId(contextSelf), log,
+            return new Context(pubSubMediator, askTimeout, conciergeForwarder, decodeEntityId(contextSelf), log,
                     contextSelf);
         }
 
