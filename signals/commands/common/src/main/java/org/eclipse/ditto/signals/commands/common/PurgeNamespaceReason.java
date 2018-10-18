@@ -59,6 +59,11 @@ final class PurgeNamespaceReason implements ShutdownReason {
         return reason.getDetails();
     }
 
+    @Override
+    public String getDetailsOrThrow() {
+        return reason.getDetailsOrThrow();
+    }
+
     /**
      * Returns the namespace to be purged.
      *

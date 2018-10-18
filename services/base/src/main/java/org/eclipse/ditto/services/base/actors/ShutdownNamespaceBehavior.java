@@ -14,7 +14,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
+import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.ShutdownReason;
+import org.eclipse.ditto.signals.commands.common.ShutdownReasonType;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -56,7 +58,7 @@ public final class ShutdownNamespaceBehavior {
     }
 
     private void subscribePubSub(final ActorRef pubSubMediator) {
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, self), self);
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, self), self);
     }
 
     /**
@@ -66,12 +68,14 @@ public final class ShutdownNamespaceBehavior {
      */
     public ReceiveBuilder createReceive() {
         return ReceiveBuilder.create()
-                .match(ShutdownNamespace.class, this::shutdown)
+                .match(Shutdown.class, this::shutdown)
                 .match(DistributedPubSubMediator.SubscribeAck.class, this::subscribeAck);
     }
 
-    private void shutdown(final ShutdownNamespace shutdownNamespace) {
-        if (Objects.equals(namespace, shutdownNamespace.getNamespace())) {
+    private void shutdown(final Shutdown shutdown) {
+        final ShutdownReason shutdownReason = shutdown.getReason();
+        if (ShutdownReasonType.Known.PURGE_NAMESPACE.equals(shutdownReason.getType()) &&
+                Objects.equals(namespace, shutdownReason.getDetailsOrThrow())) {
             self.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }

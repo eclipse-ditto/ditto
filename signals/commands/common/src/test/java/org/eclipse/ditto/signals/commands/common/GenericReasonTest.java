@@ -11,9 +11,12 @@
 package org.eclipse.ditto.signals.commands.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -74,6 +77,16 @@ public final class GenericReasonTest {
         final GenericReason underTest = GenericReason.getInstance(knownType, knownDetails);
 
         assertThat(underTest.getDetails()).contains(knownDetails);
+    }
+
+    @Test
+    public void getDetailsAndThrowThrowsExceptionReasonHasNoDetails() {
+        final GenericReason underTest = GenericReason.getInstance(knownType, null);
+
+        assertThatExceptionOfType(NoSuchElementException.class)
+                .isThrownBy(underTest::getDetailsOrThrow)
+                .withMessage("This reason does not provide details!")
+                .withNoCause();
     }
 
     @Test

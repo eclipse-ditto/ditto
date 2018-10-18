@@ -49,6 +49,15 @@ public interface ShutdownReason extends Jsonifiable.WithPredicate<JsonObject, Js
     Optional<String> getDetails();
 
     /**
+     * Returns the details of this reason if any.
+     * If this reason does not provide details an exception is thrown.
+     *
+     * @return the reason details.
+     * @throws java.util.NoSuchElementException if this reason does not provide details.
+     */
+    String getDetailsOrThrow();
+
+    /**
      * This class contains definitions for all specific fields of a {@code ShutdownReason}'s JSON representation.
      */
     @Immutable

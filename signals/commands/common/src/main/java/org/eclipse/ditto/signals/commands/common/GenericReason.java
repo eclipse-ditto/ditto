@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.common;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -63,6 +64,14 @@ final class GenericReason implements ShutdownReason {
     @Override
     public Optional<String> getDetails() {
         return Optional.ofNullable(details);
+    }
+
+    @Override
+    public String getDetailsOrThrow() {
+        if (null != details) {
+            return details;
+        }
+        throw new NoSuchElementException("This reason does not provide details!");
     }
 
     @Override

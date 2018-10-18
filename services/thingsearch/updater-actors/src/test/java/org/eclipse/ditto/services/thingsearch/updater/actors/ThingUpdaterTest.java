@@ -62,7 +62,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
-import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
+import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
@@ -231,7 +232,6 @@ public final class ThingUpdaterTest {
         expectedWrites2.add(attributeCreated2);
         expectedWrites2.add(attributeCreated3);
 
-
         when(persistenceMock.executeCombinedWrites(eq(THING_ID), eq(expectedWrites1),
                 any(), anyLong())).thenReturn
                 (successWithDelay());
@@ -245,7 +245,6 @@ public final class ThingUpdaterTest {
                 //This processing will cause that the mocked mongoDB operation to last for 500 ms
                 underTest.tell(thingCreated, getRef());
                 waitUntil().insertOrUpdate(eq(thingWithAcl), eq(thingCreated.getRevision()), eq(-1L));
-
 
                 underTest.tell(attributeCreated0, getRef());
 
@@ -494,7 +493,6 @@ public final class ThingUpdaterTest {
                         Collections.singletonList(changeEvent);
                 underTest.tell(changeEvent, getRef());
 
-
                 waitUntil().executeCombinedWrites(eq(THING_ID), eq(expectedWrites), eq(null),
                         eq(changeEvent.getRevision()));
                 // should trigger sync
@@ -588,7 +586,6 @@ public final class ThingUpdaterTest {
         };
     }
 
-    /** */
     @Test
     public void policyEventTriggersPolicyUpdate() {
         actorSystem.log().info("Logging disabled for this test because many stack traces are expected.");
@@ -758,7 +755,7 @@ public final class ThingUpdaterTest {
             final ActorRef underTest = createUninitializedThingUpdaterActor(thingsProbe.ref(), dummy);
 
             // WHEN: updater receives ThingTag with a bigger sequence number during initialization
-            ThingTag message = ThingTag.of(THING_ID, 1L);
+            final ThingTag message = ThingTag.of(THING_ID, 1L);
             underTest.tell(message, ActorRef.noSender());
 
             // THEN: sync is triggered
@@ -801,7 +798,6 @@ public final class ThingUpdaterTest {
             // THEN: write-operation is requested from the persistence
             waitUntil().insertOrUpdate(eq(thingWithAcl), eq(1L), anyLong());
         }};
-
     }
 
     @Test
@@ -916,23 +912,24 @@ public final class ThingUpdaterTest {
                 final ActorRef underTest = watch(createInitializedThingUpdaterActor());
 
                 final DistributedPubSubMediator.Subscribe subscribe =
-                        new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, underTest);
+                        new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, underTest);
                 pubSubTestProbe.expectMsg(subscribe);
                 pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 
-                underTest.tell(ShutdownNamespace.of(NAMESPACE), pubSubTestProbe.ref());
+                underTest.tell(Shutdown.getInstance(ShutdownReasonFactory.getPurgeNamespaceReason(NAMESPACE),
+                        DittoHeaders.empty()), pubSubTestProbe.ref());
                 expectTerminated(underTest);
             }
         };
 
     }
 
-    private void expectRetrievePolicyAndAnswer(
-            final Policy policy,
+    private static void expectRetrievePolicyAndAnswer(final Policy policy,
             final TestProbe policiesActor,
             final ActorRef thingsUpdater,
             final java.time.Duration timeout,
             final DittoHeaders headers) {
+
         final SudoRetrievePolicy retrievePolicy = policiesActor.expectMsgClass(
                 toScala(orDefaultTimeout(timeout)),
                 SudoRetrievePolicy.class);
@@ -957,8 +954,8 @@ public final class ThingUpdaterTest {
      * Creates a ThingUpdater initialized with schemaVersion = V_1 and sequenceNumber = 0L.
      */
     private ActorRef createInitializedThingUpdaterActor(final TestProbe thingsShardProbe,
-            final TestProbe policiesShardProbe,
-            final java.time.Duration thingsTimeout) {
+            final TestProbe policiesShardProbe, final java.time.Duration thingsTimeout) {
+
         return createInitializedThingUpdaterActor(thingsShardProbe, policiesShardProbe, thingsTimeout, V_1);
     }
 
@@ -1060,19 +1057,21 @@ public final class ThingUpdaterTest {
         return SudoRetrieveThingResponse.of(thingJson, headers);
     }
 
-    private java.time.Duration orDefaultTimeout(final java.time.Duration duration) {
+    private static java.time.Duration orDefaultTimeout(final java.time.Duration duration) {
         return duration != null ? duration : ThingUpdater.DEFAULT_THINGS_TIMEOUT;
     }
 
-    private ShardedMessageEnvelope expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe,
+    private static ShardedMessageEnvelope expectShardedSudoRetrieveThing(final TestProbe thingsShardProbe,
             final String thingId) {
+
         final ShardedMessageEnvelope envelope = thingsShardProbe.expectMsgClass(ShardedMessageEnvelope.class);
         assertThat(envelope.getType()).isEqualTo(SudoRetrieveThing.TYPE);
         assertThat(envelope.getId()).isEqualTo(thingId);
         return envelope;
     }
 
-    private scala.concurrent.duration.FiniteDuration toScala(final java.time.Duration duration) {
+    private static scala.concurrent.duration.FiniteDuration toScala(final java.time.Duration duration) {
         return scala.concurrent.duration.Duration.fromNanos(duration.toNanos());
     }
+
 }

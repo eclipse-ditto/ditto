@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
@@ -67,6 +68,7 @@ public final class GatewayMappingStrategy implements MappingStrategy {
                 jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
         addMessagesStrategies(builder);
+        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -78,6 +80,10 @@ public final class GatewayMappingStrategy implements MappingStrategy {
         builder.add(MessageCommandRegistry.newInstance());
         builder.add(MessageCommandResponseRegistry.newInstance());
         builder.add(MessageErrorRegistry.newInstance());
+    }
+
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

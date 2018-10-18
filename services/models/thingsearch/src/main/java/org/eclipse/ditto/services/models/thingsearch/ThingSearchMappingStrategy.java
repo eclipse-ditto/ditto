@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSu
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.ThingSearchSudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
@@ -58,6 +59,7 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         addThingSearchStrategies(builder);
+        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -72,6 +74,10 @@ public final class ThingSearchMappingStrategy implements MappingStrategy {
         builder.add(ThingSearchSudoCommandRegistry.newInstance());
         builder.add(ThingSearchSudoCommandResponseRegistry.newInstance());
         builder.add(StreamingRegistry.newInstance());
+    }
+
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

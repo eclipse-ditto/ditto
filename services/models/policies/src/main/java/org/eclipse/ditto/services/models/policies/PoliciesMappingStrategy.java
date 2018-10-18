@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.streaming.StreamingRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
@@ -45,6 +46,7 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         addPoliciesStrategies(builder);
+        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
         addNamespacesStrategies(builder);
 
@@ -65,6 +67,10 @@ public final class PoliciesMappingStrategy implements MappingStrategy {
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> PolicyTag.fromJson(jsonObject)))
                 .add(PolicyReferenceTag.class,
                         jsonObject -> PolicyReferenceTag.fromJson(jsonObject));  // do not replace with lambda!
+    }
+
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
     }
 
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {

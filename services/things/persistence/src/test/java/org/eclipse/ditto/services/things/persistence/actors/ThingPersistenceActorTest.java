@@ -62,7 +62,8 @@ import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.persistence.snapshotting.DittoThingSnapshotter;
 import org.eclipse.ditto.services.utils.test.Retry;
-import org.eclipse.ditto.signals.commands.devops.namespace.ShutdownNamespace;
+import org.eclipse.ditto.signals.commands.common.Shutdown;
+import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureNotAccessibleException;
@@ -1591,11 +1592,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final ActorRef underTest = watch(createSupervisorActorFor(thing.getId().get()));
 
             final DistributedPubSubMediator.Subscribe subscribe =
-                    new DistributedPubSubMediator.Subscribe(ShutdownNamespace.TYPE, underTest);
+                    new DistributedPubSubMediator.Subscribe(Shutdown.TYPE, underTest);
             pubSubTestProbe.expectMsg(subscribe);
             pubSubTestProbe.reply(new DistributedPubSubMediator.SubscribeAck(subscribe));
 
-            underTest.tell(ShutdownNamespace.of(thing.getNamespace().get()), pubSubTestProbe.ref());
+            underTest.tell(
+                    Shutdown.getInstance(ShutdownReasonFactory.getPurgeNamespaceReason(thing.getNamespace().get()),
+                            DittoHeaders.empty()), pubSubTestProbe.ref());
             expectTerminated(underTest);
         }};
     }
