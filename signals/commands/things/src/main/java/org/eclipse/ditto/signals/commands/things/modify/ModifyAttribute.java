@@ -122,7 +122,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
+     * {@link #JSON_ATTRIBUTE} contains an empty pointer.
      */
     public static ModifyAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -137,10 +137,10 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
-     * {@code attributeJsonPointer} is empty.
+     * {@link #JSON_ATTRIBUTE} contains an empty pointer.
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {
