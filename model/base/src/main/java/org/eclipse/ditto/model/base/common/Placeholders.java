@@ -47,12 +47,14 @@ public final class Placeholders {
 
     private static final String LEGACY_PLACEHOLDER_START = "${";
     private static final String LEGACY_PLACEHOLDER_END = "}";
-    private static final String LEGACY_REQUEST_SUBJECT_ID = Pattern.quote("request.subjectId");
     private static final String LEGACY_PLACEHOLDER_REGEX =
-            Pattern.quote(LEGACY_PLACEHOLDER_START)
-                    + "(?<" + PLACEHOLDER_GROUP_NAME + ">" + LEGACY_REQUEST_SUBJECT_ID + ")"
-                    + Pattern.quote(LEGACY_PLACEHOLDER_END);
+            Pattern.quote(LEGACY_PLACEHOLDER_START) + PLACEHOLDER_GROUP + Pattern.quote(LEGACY_PLACEHOLDER_END);
     private static final Pattern LEGACY_PLACEHOLDER_PATTERN = Pattern.compile(LEGACY_PLACEHOLDER_REGEX);
+
+    private static final String LEGACY_REQUEST_SUBJECT_ID = "(?<" + PLACEHOLDER_GROUP_NAME + ">" + Pattern.quote("request.subjectId") + ")";
+    private static final String LEGACY_REQUEST_SUBJECT_ID_REGEX =
+            Pattern.quote(LEGACY_PLACEHOLDER_START) + LEGACY_REQUEST_SUBJECT_ID + Pattern.quote(LEGACY_PLACEHOLDER_END);
+    private static final Pattern LEGACY_REQUEST_SUBJECT_ID_PATTERN = Pattern.compile(LEGACY_REQUEST_SUBJECT_ID_REGEX);
 
     private Placeholders() {
         throw new AssertionError();
@@ -66,9 +68,40 @@ public final class Placeholders {
      */
     public static boolean containsAnyPlaceholder(final CharSequence input) {
         requireNonNull(input);
-        final String inputStr = input.toString();
-        return inputStr.contains(PLACEHOLDER_START) || inputStr.contains(PLACEHOLDER_END) ||
-                LEGACY_PLACEHOLDER_PATTERN.matcher(input).find();
+        return containsPlaceholder(input) || containsLegacyPlaceholder(input);
+    }
+
+    /**
+     * Checks whether the given {@code input} contains any placeholder.
+     *
+     * @param input the input.
+     * @return {@code} true, if the input contains a placeholder.
+     */
+    private static boolean containsPlaceholder(final CharSequence input) {
+        requireNonNull(input);
+        return PLACEHOLDER_PATTERN.matcher(input).find();
+    }
+
+    /**
+     * Checks whether the given {@code input} contains any legacy placeholder.
+     *
+     * @param input the input.
+     * @return {@code} true, if the input contains a placeholder.
+     */
+    private static boolean containsLegacyPlaceholder(final CharSequence input) {
+        requireNonNull(input);
+        return LEGACY_PLACEHOLDER_PATTERN.matcher(input).find();
+    }
+
+    /**
+     * Checks whether the given {@code input} contains legacy request subject id placeholder.
+     *
+     * @param input the input.
+     * @return {@code} true, if the input contains a placeholder.
+     */
+    private static boolean containsLegacyRequestSubjectIdPlaceholder(final CharSequence input) {
+        requireNonNull(input);
+        return LEGACY_REQUEST_SUBJECT_ID_PATTERN.matcher(input).find();
     }
 
     /**
@@ -93,21 +126,43 @@ public final class Placeholders {
         requireNonNull(placeholderReplacerFunction);
         requireNonNull(unresolvedInputHandler);
 
-        // do not start expensive matching/replacing if there are no placeholders at all
-        if (!containsAnyPlaceholder(input)) {
+        final String substitutedStandardPlaceholder = substituteStandardPlaceholder(input, placeholderReplacerFunction,
+                unresolvedInputHandler, allowUnresolved);
+        return substituteLegacyPlaceholder(substitutedStandardPlaceholder, placeholderReplacerFunction,
+                unresolvedInputHandler, allowUnresolved);
+    }
+
+    private static String substituteLegacyPlaceholder(final String input,
+            final Function<String, Optional<String>> placeholderReplacerFunction,
+            final Function<String, DittoRuntimeException> unresolvedInputHandler, final boolean allowUnresolved) {
+        if (containsLegacyPlaceholder(input)) {
+            // for legacy placeholder we only allow request.subjectId, all other placeholders are unresolved
+            if (containsLegacyRequestSubjectIdPlaceholder(input)) {
+                final String substituted = substitute(input, LEGACY_REQUEST_SUBJECT_ID_PATTERN, placeholderReplacerFunction);
+                if (!allowUnresolved && containsLegacyPlaceholder(substituted)) {
+                    throw unresolvedInputHandler.apply(substituted);
+                } else {
+                    return substituted;
+                }
+            } else {
+                throw unresolvedInputHandler.apply(input);
+            }
+        }
+        return input;
+    }
+
+    private static String substituteStandardPlaceholder(final String input,
+            final Function<String, Optional<String>> placeholderReplacerFunction,
+            final Function<String, DittoRuntimeException> unresolvedInputHandler, final boolean allowUnresolved) {
+        if (containsPlaceholder(input)) {
+            final String substituted = substitute(input, PLACEHOLDER_PATTERN, placeholderReplacerFunction);
+            if (!allowUnresolved && containsPlaceholder(substituted)) {
+                throw unresolvedInputHandler.apply(substituted);
+            }
+            return substituted;
+        } else {
             return input;
         }
-
-        final String maybeSubstituted = substitute(input, PLACEHOLDER_PATTERN, placeholderReplacerFunction);
-        final String maybeSubstitutedWithLegacyPattern =
-                substitute(maybeSubstituted, LEGACY_PLACEHOLDER_PATTERN, placeholderReplacerFunction);
-
-        // check if the substitution really replaced all placeholders
-        if (!allowUnresolved && containsAnyPlaceholder(maybeSubstitutedWithLegacyPattern)) {
-            throw unresolvedInputHandler.apply(input);
-        }
-
-        return maybeSubstitutedWithLegacyPattern;
     }
 
     public static String substitute(final String input,
@@ -124,7 +179,8 @@ public final class Placeholders {
         while (matcher.find()) {
             final String placeholder = matcher.group(PLACEHOLDER_GROUP_NAME);
             replacerFunction.apply(placeholder)
-                    .ifPresent(replacement -> matcher.appendReplacement(lazyGet(bufferReference, StringBuffer::new), replacement));
+                    .ifPresent(replacement -> matcher.appendReplacement(lazyGet(bufferReference, StringBuffer::new),
+                            replacement));
         }
 
         if (bufferReference.get() == null) { // no match -> return original string
@@ -137,6 +193,7 @@ public final class Placeholders {
 
     /**
      * Lazily initializes the given reference using the given initializer.
+     *
      * @param reference the reference to the actual instance of type T
      * @param initializer a supplier that initializes a new instance of T
      * @param <T> the type of the instance

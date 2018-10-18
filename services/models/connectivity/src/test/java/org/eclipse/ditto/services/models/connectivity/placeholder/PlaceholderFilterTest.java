@@ -51,8 +51,6 @@ public class PlaceholderFilterTest {
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{}}", HEADERS, headersPlaceholder));
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
         assertThat(PlaceholderFilter.apply("eclipse:ditto", HEADERS, headersPlaceholder)).isEqualTo("eclipse:ditto");
         assertThat(
@@ -67,8 +65,6 @@ public class PlaceholderFilterTest {
                 () -> thingPlaceholder.apply(THING_ID, ""));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", THING_ID, thingPlaceholder));
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{}}", THING_ID, thingPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  thing:name  }} }}", THING_ID, thingPlaceholder));
         assertThat(PlaceholderFilter.apply("eclipse:ditto", THING_ID, thingPlaceholder)).isEqualTo("eclipse:ditto");

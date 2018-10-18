@@ -173,10 +173,13 @@ public class PlaceholdersTest {
     }
 
     @Test
-    public void unknownLegacyPlaceholderIsNotReplacedAndNoExceptionIsThrown() {
-        final String substituted =
-                Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, (placeholder) -> null, unresolvedInputHandler);
-        assertThat(substituted).isSameAs(UNKNOWN_LEGACY_REPLACER);
+    public void substituteThrowsForUnknownLegacyPlaceholder() {
+        assertThatExceptionOfType(DittoRuntimeException.class)
+                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, (placeholder) -> Optional.empty(),
+                        unresolvedInputHandler))
+                .withMessage(UNKNOWN_LEGACY_REPLACER)
+                .matches(e -> "test".equals(e.getErrorCode()));
+
     }
 
     @Test
@@ -184,21 +187,8 @@ public class PlaceholdersTest {
         final String nestedPlaceholder = "{{ " + REPLACER_1 + " }}";
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(nestedPlaceholder);
-
-        final String onlyStart = "a {{ b";
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(onlyStart, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(onlyStart);
-
-        final String onlyEnd = "a }} b";
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(onlyEnd, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(onlyEnd);
+                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler))
+                .withMessageContaining("{{ " + REPLACED_1 + " }}");
     }
 
     /**
@@ -243,21 +233,21 @@ public class PlaceholdersTest {
     }
 
     @Test
-    public void containsReturnsTrueWhenInputContainsPlaceholderStartOnly() {
+    public void containsReturnsFalseWhenInputContainsPlaceholderStartOnly() {
         final String input = "a{{z";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
-        assertThat(contains).isTrue();
+        assertThat(contains).isFalse();
     }
 
     @Test
-    public void containsReturnsTrueWhenInputContainsPlaceholderEndOnly() {
+    public void containsReturnsFalseWhenInputContainsPlaceholderEndOnly() {
         final String input = "a}}z";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
-        assertThat(contains).isTrue();
+        assertThat(contains).isFalse();
     }
 
     @Test
