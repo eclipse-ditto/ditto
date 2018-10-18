@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -53,7 +55,6 @@ public final class ModifyAttributeTest {
                 provided(JsonPointer.class, JsonValue.class).areAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyAttribute.class)
@@ -62,27 +63,38 @@ public final class ModifyAttributeTest {
                 .verify();
     }
 
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void tryToCreateInstanceWithNullAttribute() {
-        ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, null,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, null,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "new attribute")
+                .withNoCause();
     }
 
+    @Test
+    public void tryToCreateInstanceWithNullJsonPointer() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, null, KNOWN_ATTRIBUTE,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("The %s must not be null!", "key of the attribute to be modified")
+                .withNoCause();
 
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullJsonPointers() {
-        ModifyAttribute.of(TestConstants.Thing.THING_ID, null, KNOWN_ATTRIBUTE,
-                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
+    @Test
+    public void tryToCreateInstanceWithEmptyJsonPointer() {
+        assertThatExceptionOfType(AttributePointerInvalidException.class)
+                .isThrownBy(() -> ModifyAttribute.of(TestConstants.Thing.THING_ID, JsonPointer.empty(), KNOWN_ATTRIBUTE,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withNoCause();
+    }
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         ModifyAttribute.of(TestConstants.Thing.THING_ID, KNOWN_JSON_POINTER, KNOWN_ATTRIBUTE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -92,7 +104,6 @@ public final class ModifyAttributeTest {
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -108,7 +119,7 @@ public final class ModifyAttributeTest {
     @Test
     public void modifyTooLargeAttribute() {
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
         }
         sb.append('b');
@@ -117,4 +128,5 @@ public final class ModifyAttributeTest {
                 JsonValue.of(sb.toString()), DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
+
 }
