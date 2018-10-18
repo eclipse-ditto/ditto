@@ -24,8 +24,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility for translating Headers from external sources or to external sources.
@@ -35,8 +33,6 @@ import org.slf4j.LoggerFactory;
  */
 @Immutable
 public final class HeaderTranslator {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(HeaderTranslator.class);
 
     private final Set<String> headerKeys;
     private final Map<String, HeaderDefinition> headerDefinitionMap;
@@ -82,11 +78,7 @@ public final class HeaderTranslator {
                 builder.putHeader(key, value);
             }
         });
-        final DittoHeaders resultHeaders = builder.build();
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("fromExternalHeaders:\n in: {}\nout: {}", externalHeaders.keySet(), resultHeaders.keySet());
-        }
-        return resultHeaders;
+        return builder.build();
     }
 
     /**
@@ -103,9 +95,6 @@ public final class HeaderTranslator {
                 headers.put(key, value);
             }
         });
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("toExternalHeaders:\n in: {}\nout: {}", dittoHeaders.keySet(), headers.keySet());
-        }
         return headers;
     }
 
