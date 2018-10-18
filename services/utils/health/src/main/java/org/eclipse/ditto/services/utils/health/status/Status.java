@@ -29,10 +29,10 @@ public final class Status {
     static {
         final InputStream versionsInputStream = Status.class.getClassLoader().getResourceAsStream(VERSIONS_JSON);
         versionsJson = JsonFactory.readFrom(new Scanner(versionsInputStream).useDelimiter("\\Z").next()).asObject()
-                .setValue("hostname", ConfigUtil.getHostNameFromEnv()) //
-                .setValue("local-address", ConfigUtil.getLocalHostAddress()) //
-                .setValue("instance", ConfigUtil.instanceIdentifier()) //
-                .setValue("processor-count", Runtime.getRuntime().availableProcessors()) //
+                .setValue("hostname", ConfigUtil.getHostNameFromEnv())
+                .setValue("local-address", ConfigUtil.getLocalHostAddress())
+                .setValue("instance", ConfigUtil.instanceIdentifier())
+                .setValue("processor-count", Runtime.getRuntime().availableProcessors())
                 .setValue("total-memory", (Runtime.getRuntime().totalMemory() / 1024 / 1024) + " MB");
     }
 
