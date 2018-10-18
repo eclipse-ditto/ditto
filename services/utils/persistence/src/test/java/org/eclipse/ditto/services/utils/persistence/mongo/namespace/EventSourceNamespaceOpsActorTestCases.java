@@ -142,7 +142,7 @@ public abstract class EventSourceNamespaceOpsActorTestCases {
         // - do not attempt to join an Akka cluster
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
-                "akka.remote.netty.tcp.port=0\n" +
+                "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.contrib.persistence.mongodb.mongo.mongouri=" + mongoUriValue +
                 "ditto.services-utils-config.mongodb.uri=" + mongoUriValue;
