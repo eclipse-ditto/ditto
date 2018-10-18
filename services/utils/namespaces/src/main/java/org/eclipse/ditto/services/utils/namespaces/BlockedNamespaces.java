@@ -8,10 +8,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.ddata;
+package org.eclipse.ditto.services.utils.namespaces;
 
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+
+import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedData;
 
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;

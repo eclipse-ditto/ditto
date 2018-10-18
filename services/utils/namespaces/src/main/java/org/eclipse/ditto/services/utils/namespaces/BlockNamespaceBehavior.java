@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.base.actors;
+package org.eclipse.ditto.services.utils.namespaces;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
@@ -16,9 +16,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.signals.base.WithId;
 
 /**
@@ -26,21 +26,21 @@ import org.eclipse.ditto.signals.base.WithId;
  */
 public final class BlockNamespaceBehavior {
 
-    private final Cache<String, Object> namespaceCache;
+    private final BlockedNamespaces blockedNamespaces;
 
-    private BlockNamespaceBehavior(final Cache<String, Object> namespaceCache) {
-        this.namespaceCache = namespaceCache;
+    private BlockNamespaceBehavior(final BlockedNamespaces blockedNamespaces) {
+        this.blockedNamespaces = blockedNamespaces;
     }
 
     /**
      * Return an instance of {@code BlockNamespaceBehavior}.
      *
-     * @param namespaceCache the cache to read namespaces from.
+     * @param blockedNamespaces the cache to read namespaces from.
      * @return the namespace-blocking behavior.
      * @throws NullPointerException if {@code namespaceCache} is {@code null}.
      */
-    public static BlockNamespaceBehavior of(final Cache<String, Object> namespaceCache) {
-        return new BlockNamespaceBehavior(checkNotNull(namespaceCache, "namespace cache"));
+    public static BlockNamespaceBehavior of(final BlockedNamespaces blockedNamespaces) {
+        return new BlockNamespaceBehavior(checkNotNull(blockedNamespaces, "blocked namespaces"));
     }
 
     /**
@@ -52,12 +52,12 @@ public final class BlockNamespaceBehavior {
      */
     public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders signal) {
         if (signal instanceof WithId) {
-            final Optional<String> namespaceOptional = NamespaceReader.getInstance().fromEntityId(((WithId) signal).getId());
+            final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithId) signal).getId());
             if (namespaceOptional.isPresent()) {
                 final String namespace = namespaceOptional.get();
-                return namespaceCache.getIfPresent(namespace)
-                        .thenApply(cachedNamespace -> {
-                            if (cachedNamespace.isPresent()) {
+                return blockedNamespaces.contains(namespace)
+                        .thenApply(containsNamespace -> {
+                            if (containsNamespace != null && containsNamespace) {
                                 throw NamespaceBlockedException.newBuilder(namespace)
                                         .dittoHeaders(signal.getDittoHeaders())
                                         .build();

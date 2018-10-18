@@ -17,6 +17,7 @@ import java.util.Objects;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonType;
+import org.eclipse.ditto.model.namespaces.NamespaceReader;
 
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -51,7 +52,7 @@ public final class ShutdownNamespaceBehavior {
         checkNotNull(pubSubMediator, "Pub-Sub-Mediator");
         checkNotNull(self, "Self");
 
-        final String namespace = NamespaceReader.getInstance().fromEntityId(entityId).orElse("");
+        final String namespace = NamespaceReader.fromEntityId(entityId).orElse("");
         final ShutdownNamespaceBehavior shutdownNamespaceBehavior = new ShutdownNamespaceBehavior(namespace, self);
         shutdownNamespaceBehavior.subscribePubSub(pubSubMediator);
         return shutdownNamespaceBehavior;
@@ -83,5 +84,4 @@ public final class ShutdownNamespaceBehavior {
     private void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
         // do nothing
     }
-
 }

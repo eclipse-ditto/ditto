@@ -27,7 +27,8 @@ import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Supertype of typed interfaces for distributed data. Each instance corresponds to one distributed data object.
- * Each instance starts its own replicator so that it has its own configuration.
+ * Each instance starts its own replicator so that it can have its own configuration regarding e. g. roles of cluster
+ * members to which the data gets replicated.
  *
  * @param <R> type of replicated data.
  */
@@ -96,6 +97,13 @@ public abstract class DistributedData<R extends ReplicatedData> {
                 new Replicator.Update<>(key(), initialValue(), writeConsistency, updateFunction);
         return PatternsCS.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
                 .thenApply(this::handleUpdateResponse);
+    }
+
+    /**
+     * @return reference to the distributed data replicator.
+     */
+    public ActorRef getReplicator() {
+        return replicator;
     }
 
     private Void handleUpdateResponse(final Object reply) {

@@ -8,10 +8,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.ddata;
+package org.eclipse.ditto.services.utils.namespaces;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,8 +61,8 @@ public final class BlockedNamespacesTest {
         actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
         new TestKit(actorSystem) {{
             final BlockedNamespaces underTest = BlockedNamespaces.of(configReader.withRole("wrong-role"), actorSystem);
-            watch(underTest.replicator);
-            expectTerminated(underTest.replicator);
+            watch(underTest.getReplicator());
+            expectTerminated(underTest.getReplicator());
         }};
     }
 

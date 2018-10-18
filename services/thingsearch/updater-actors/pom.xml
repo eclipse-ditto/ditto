@@ -61,7 +61,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
+            <artifactId>ditto-services-utils-namespaces</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

@@ -20,14 +20,14 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.services.base.actors.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -75,7 +75,7 @@ final class ThingsUpdater extends AbstractActor {
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
             final int maxBulkSize,
-            final Cache<String, Object> namespaceCache) {
+            final BlockedNamespaces blockedNamespaces) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -102,7 +102,7 @@ final class ThingsUpdater extends AbstractActor {
                     self());
         }
 
-        namespaceBlockingBehavior = BlockNamespaceBehavior.of(namespaceCache);
+        namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
     }
 
     /**
@@ -113,7 +113,7 @@ final class ThingsUpdater extends AbstractActor {
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
      * actively updated
      * @param maxBulkSize maximum number of events to update in a bulk.
-     * @param namespaceCache cache of namespaces to block.
+     * @param blockedNamespaces cache of namespaces to block.
      * @return the Akka configuration Props object
      */
     static Props props(final int numberOfShards,
@@ -123,7 +123,7 @@ final class ThingsUpdater extends AbstractActor {
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
             final int maxBulkSize,
-            final Cache<String, Object> namespaceCache) {
+            final BlockedNamespaces blockedNamespaces) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
@@ -131,7 +131,7 @@ final class ThingsUpdater extends AbstractActor {
             @Override
             public ThingsUpdater create() {
                 return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, namespaceCache);
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces);
             }
         });
     }
