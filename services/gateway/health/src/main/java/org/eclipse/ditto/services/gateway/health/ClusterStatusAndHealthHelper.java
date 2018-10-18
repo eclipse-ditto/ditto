@@ -16,9 +16,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 
 import akka.actor.ActorSystem;
 import akka.pattern.PatternsCS;
-import akka.util.Timeout;
 
 /**
  * Helper for retrieving status and health information via the cluster.
@@ -109,7 +108,17 @@ final class ClusterStatusAndHealthHelper {
                                     .thenApply(statusObjects -> {
                                         final JsonObjectBuilder roleStatusBuilder = JsonFactory.newObjectBuilder();
                                         statusObjects.forEach(
-                                                subStatusObj -> subStatusObj.forEach(roleStatusBuilder::set));
+                                                subStatusObj -> {
+                                                    String key = subStatusObj.getValue("instance")
+                                                                    .map(JsonValue::asString)
+                                                            .orElse("?");
+                                                    final JsonObjectBuilder subBuilder = JsonObject.newBuilder();
+                                                    subStatusObj.forEach(subBuilder::set);
+                                                    if (roleStatusBuilder.build().contains(key)) {
+                                                        key = key + "_" + UUID.randomUUID().toString().hashCode();
+                                                    }
+                                                    roleStatusBuilder.set(key, subBuilder.build());
+                                                });
                                         return roleStatusBuilder.build();
                                     });
 
@@ -227,8 +236,7 @@ final class ClusterStatusAndHealthHelper {
                     final String addressString = selection.toSerializationFormat()
                             .substring(selection.toSerializationFormat().indexOf('@') + 1)
                             .replace(STATUS_SUPPLIER_PATH, "");
-                    return PatternsCS.ask(selection, command,
-                            Timeout.apply(healthCheckServiceTimeout.getSeconds(), TimeUnit.SECONDS))
+                    return PatternsCS.ask(selection, command, healthCheckServiceTimeout)
                             .handle((response, throwable) ->
                                     responseTransformer.apply(response, throwable, addressString))
                             .toCompletableFuture();

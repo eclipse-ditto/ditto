@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -36,8 +37,8 @@ public final class GatewayServiceUnavailableException extends DittoRuntimeExcept
 
     private static final long serialVersionUID = 1164234483383740723L;
 
-    private GatewayServiceUnavailableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayServiceUnavailableException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
@@ -77,8 +78,9 @@ public final class GatewayServiceUnavailableException extends DittoRuntimeExcept
         }
 
         @Override
-        protected GatewayServiceUnavailableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayServiceUnavailableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayServiceUnavailableException(dittoHeaders, message, description, cause, href);
         }
     }

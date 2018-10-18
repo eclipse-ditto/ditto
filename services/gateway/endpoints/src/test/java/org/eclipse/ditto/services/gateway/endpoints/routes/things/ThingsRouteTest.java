@@ -13,8 +13,10 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 import java.time.Duration;
 import java.util.UUID;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,4 +83,20 @@ public class ThingsRouteTest extends EndpointTestBase {
                 .build();
         result.assertEntity(expectedEx.toJsonString());
     }
+
+    @Test
+    public void putAttributeWithEmptyPointer() {
+        final String body = "\"bumlux\"";
+        final HttpRequest request = HttpRequest.PUT("/things/%3Adummy/attributes//")
+                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
+        final TestRouteResult result =
+                underTest.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+        final AttributePointerInvalidException expected =
+                AttributePointerInvalidException.newBuilder(JsonPointer.empty())
+                        .dittoHeaders(DittoHeaders.empty())
+                        .build();
+        result.assertEntity(expected.toJsonString());
+    }
+
 }

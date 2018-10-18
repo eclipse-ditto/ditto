@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.base.assertions;
+package org.eclipse.ditto.signals.commands.base;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 
@@ -18,7 +18,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.signals.base.JsonParsableRegistry;
-import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;

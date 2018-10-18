@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -39,8 +40,8 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = 1164235483383640723L;
 
-    private GatewayServiceTooManyRequestsException(DittoHeaders dittoHeaders, String message, String description,
-            Throwable cause, URI href) {
+    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.TOO_MANY_REQUESTS, dittoHeaders, message, description, cause, href);
     }
 
@@ -77,8 +78,9 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
             description(DEFAULT_DESCRIPTION);
         }
 
-        protected GatewayServiceTooManyRequestsException doBuild(DittoHeaders dittoHeaders, String message,
-                String description, Throwable cause, URI href) {
+        protected GatewayServiceTooManyRequestsException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayServiceTooManyRequestsException(dittoHeaders, message, description, cause, href);
         }
     }

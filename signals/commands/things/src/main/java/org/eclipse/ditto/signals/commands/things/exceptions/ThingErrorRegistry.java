@@ -94,6 +94,7 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         parseStrategies.put(AttributeNotAccessibleException.ERROR_CODE, AttributeNotAccessibleException::fromJson);
         parseStrategies.put(AttributesNotModifiableException.ERROR_CODE, AttributesNotModifiableException::fromJson);
         parseStrategies.put(AttributeNotModifiableException.ERROR_CODE, AttributeNotModifiableException::fromJson);
+        parseStrategies.put(AttributePointerInvalidException.ERROR_CODE, AttributePointerInvalidException::fromJson);
         parseStrategies.put(FeaturesNotAccessibleException.ERROR_CODE, FeaturesNotAccessibleException::fromJson);
         parseStrategies.put(FeaturesNotModifiableException.ERROR_CODE, FeaturesNotModifiableException::fromJson);
         parseStrategies.put(FeatureNotAccessibleException.ERROR_CODE, FeatureNotAccessibleException::fromJson);

@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import java.util.Optional;
+
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -19,6 +21,20 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <T> the type of the implementing class.
  */
 public interface WithEntity<T extends WithEntity> {
+
+    /**
+     * Returns the plain JSON string representation of the entity which is an
+     * optimization: WithEntity implementations may work on a plain representation, e.g. responses contain directly a
+     * plain JSON string which should be returned at API level.
+     * <p>
+     * By default, returns empty, so that not all implementing classes must be migrated at once.
+     * </p>
+     *
+     * @return the plain JSON string representation of the entity.
+     */
+    default Optional<String> getEntityPlainString() {
+        return Optional.empty();
+    }
 
     /**
      * Returns the entity as JSON.

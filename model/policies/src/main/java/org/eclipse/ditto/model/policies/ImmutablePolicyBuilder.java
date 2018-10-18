@@ -93,11 +93,11 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
 
         @SuppressWarnings("ConstantConditions")
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
-                .setId(existingPolicy.getId().orElse(null))
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
                 .setModified(existingPolicy.getModified().orElse(null));
 
+        existingPolicy.getId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
 
         return result;

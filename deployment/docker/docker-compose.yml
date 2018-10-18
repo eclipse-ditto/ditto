@@ -25,6 +25,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   things:
     init: true
@@ -41,6 +42,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   things-search:
     init: true
@@ -57,6 +59,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   concierge:
     init: true
@@ -73,6 +76,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   connectivity:
     init: true
@@ -90,6 +94,7 @@ services:
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
+      - REMOTING_IDLE_CPU_LEVEL=1
 
   gateway:
     init: true
@@ -108,14 +113,15 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
+      - REMOTING_IDLE_CPU_LEVEL=1
       - ENABLE_DUMMY_AUTH=true
       - IBM_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError
 
   swagger-ui:
     image: docker.io/swaggerapi/swagger-ui:v2.2.9
     volumes:
-       - ../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
-       - ../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
+       - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
+       - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
        - ./swagger-index.html:/usr/share/nginx/html/index.html:ro
     environment:
       - API_URL=/apidoc/openapi/ditto-api-1.yml
@@ -127,7 +133,7 @@ services:
        - ./nginx.htpasswd:/etc/nginx/nginx.htpasswd:ro
        - ./nginx-cors.conf:/etc/nginx/nginx-cors.conf:ro
        - ./index.html:/etc/nginx/html/index.html:ro
-       - ../documentation/src/main/resources/images:/etc/nginx/html/images:ro
+       - ../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
     ports:
       - "8080:80"
     depends_on:

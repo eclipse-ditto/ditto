@@ -153,7 +153,8 @@ public class MessageMappingProcessorActorTest {
     public void testUnknownPlaceholdersExpectUnresolvedPlaceholderException() {
         disableLogging(actorSystem);
 
-        final String placeholder = "{{header:unknown}}";
+        final String placeholderKey = "header:unknown";
+        final String placeholder = "{{" + placeholderKey + "}}";
         final AuthorizationContext contextWithUnknownPlaceholder = AuthorizationModelFactory.newAuthContext(
                 AuthorizationModelFactory.newAuthSubject("integration:" + placeholder));
 
@@ -164,7 +165,7 @@ public class MessageMappingProcessorActorTest {
                                     .getTextPayload()
                                     .orElseThrow(() -> new IllegalArgumentException("payload was empty")),
                             DittoHeaders.of(error.getExternalMessage().getHeaders()));
-                    assertThat(exception.getMessage()).contains(placeholder);
+                    assertThat(exception.getMessage()).contains(placeholderKey);
                 });
     }
 

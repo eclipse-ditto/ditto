@@ -27,7 +27,6 @@ import org.junit.Test;
 public class PlaceholdersFilterTest {
 
     private static final Map<String, String> HEADERS = new HashMap<>();
-    private static final String SOLUTION_ID = "solution-id";
     private static final String DEVICE_ID = "device-12345";
 
     private final PlaceholderFilter.Placeholder headersPlaceholder = PlaceholderFilter.headers(HEADERS);
@@ -35,12 +34,10 @@ public class PlaceholdersFilterTest {
     private final PlaceholderFilter underTest = new PlaceholderFilter();
 
 
-    {
-        {
-            HEADERS.put("device-id", DEVICE_ID);
-            HEADERS.put("gateway-id", "http-protocol-adapter");
-            HEADERS.put("source", "commands");
-        }
+    static {
+        HEADERS.put("device-id", DEVICE_ID);
+        HEADERS.put("gateway-id", "http-protocol-adapter");
+        HEADERS.put("source", "commands");
     }
 
     @Test
@@ -78,14 +75,6 @@ public class PlaceholdersFilterTest {
         assertThat(underTest.apply("testTargetAmqpCon4_{{thing:id}}", thingPlaceholder))
                 .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
     }
-
-    @Test
-    public void testThingPlaceholderDebug() {
-        assertThat(underTest.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", thingPlaceholder))
-                .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
-
-    }
-
 
     @Test
     public void testMultiplePlaceholders() {
