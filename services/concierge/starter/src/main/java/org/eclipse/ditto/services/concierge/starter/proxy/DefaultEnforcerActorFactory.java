@@ -128,7 +128,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         return actorContext.actorOf(
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegionProxy),
-                ConciergeForwarderActor.ACTOR_NAME);
+                "internal" + ConciergeForwarderActor.ACTOR_NAME);
     }
 
 }
