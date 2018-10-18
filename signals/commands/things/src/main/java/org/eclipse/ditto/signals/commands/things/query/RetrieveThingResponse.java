@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -145,10 +146,17 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
                             jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
                     final JsonObject extractedThing = jsonObject.getValue(JSON_THING).orElse(null);
                     final String extractedThingPlainJson = jsonObject.getValue(JSON_THING_PLAIN_JSON)
-                            .orElseGet(() -> extractedThing != null ? extractedThing.toString() : null);
+                            .orElseGet(() -> {
+                                if (null == extractedThing) {
+                                    throw JsonMissingFieldException.newBuilder()
+                                            .fieldName(JSON_THING.getPointer())
+                                            .build();
+                                }
+                                return extractedThing.toString();
+                            });
 
-                    return new RetrieveThingResponse(thingId, statusCode,
-                            extractedThing, extractedThingPlainJson, dittoHeaders);
+                    return new RetrieveThingResponse(thingId, statusCode, extractedThing, extractedThingPlainJson,
+                            dittoHeaders);
                 });
     }
 
@@ -209,9 +217,10 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveThingResponse);
+        return other instanceof RetrieveThingResponse;
     }
 
+    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
