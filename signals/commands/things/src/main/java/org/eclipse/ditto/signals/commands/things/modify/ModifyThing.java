@@ -188,9 +188,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             final DittoHeaders dittoHeaders) {
 
         if (policyIdOrPlaceholder != null && initialPolicy != null) {
-            final String message = "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy" +
-                    " and a policy id to copy from.";
-            throw PolicyIdNotAllowedException.fromMessage(MessageFormat.format(message, thingId), dittoHeaders);
+            throw PolicyIdNotAllowedException.whenCopyPolicyFromAndInlinePolicyAreSpecified(thingId, dittoHeaders);
         }
     }
 

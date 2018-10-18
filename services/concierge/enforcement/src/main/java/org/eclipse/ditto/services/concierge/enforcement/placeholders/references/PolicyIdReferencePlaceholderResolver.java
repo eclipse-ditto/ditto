@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
@@ -103,6 +104,8 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                             .build());
         } else if (response instanceof ThingErrorResponse) {
             throw ((ThingErrorResponse) response).getDittoRuntimeException();
+        } else if (response instanceof DittoRuntimeException) {
+            throw (DittoRuntimeException) response;
         } else {
             throw GatewayInternalErrorException.newBuilder().build();
         }

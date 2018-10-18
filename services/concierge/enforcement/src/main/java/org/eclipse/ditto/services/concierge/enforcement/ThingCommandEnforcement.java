@@ -822,9 +822,15 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         try {
             return policyIdCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException | TimeoutException e) {
             log(createThing).error(e, "An error occurred when trying to resolve policy id.");
             throw GatewayServiceTimeoutException.newBuilder().build();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DittoRuntimeException) {
+                throw (DittoRuntimeException) e.getCause();
+            } else {
+                throw GatewayInternalErrorException.newBuilder().cause(e.getCause()).build();
+            }
         }
     }
 
@@ -851,9 +857,15 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final DittoHeaders dittoHeaders) {
         try {
             return policyCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException | TimeoutException e) {
             log(dittoHeaders).error(e, "An error occurred when trying to retrieve policy.");
             throw GatewayServiceTimeoutException.newBuilder().build();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DittoRuntimeException) {
+                throw (DittoRuntimeException) e.getCause();
+            } else {
+                throw GatewayInternalErrorException.newBuilder().cause(e.getCause()).build();
+            }
         }
     }
 
@@ -956,7 +968,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (receivedCommand instanceof ModifyThing) {
             final ModifyThing modifyThing = (ModifyThing) receivedCommand;
             final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
-            return CreateThing.of(modifyThing.getThing(), initialPolicy, modifyThing.getDittoHeaders());
+            final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
+            return CreateThing.of(modifyThing.getThing(), initialPolicy, policyIdOrPlaceholder,
+                    modifyThing.getDittoHeaders());
         } else {
             return receivedCommand;
         }
