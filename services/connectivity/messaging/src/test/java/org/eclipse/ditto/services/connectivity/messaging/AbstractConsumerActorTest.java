@@ -15,10 +15,12 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.he
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
@@ -37,18 +39,20 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractConsumerActorTest<M> {
 
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String CONNECTION_ID = "connection";
     protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
+    private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
 
     protected static ActorSystem actorSystem;
 
     @Rule
     public TestName name = new TestName();
-    public static final Enforcement ENFORCEMENT =
+    protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
     @BeforeClass
@@ -66,12 +70,32 @@ public abstract class AbstractConsumerActorTest<M> {
 
     @Test
     public void testInboundMessageWithEnforcementSucceeds() {
-        testInboundMessageWithEnforcement(header("device_id", TestConstants.Things.THING_ID), true);
+        testInboundMessageWithEnforcement(header("device_id", TestConstants.Things.THING_ID), true, o -> {});
     }
 
     @Test
     public void testInboundMessageWithEnforcementFails() {
-        testInboundMessageWithEnforcement(header("device_id", "_invalid"), false);
+        testInboundMessageWithEnforcement(header("device_id", "_invalid"), false, outboundSignal -> {
+            final ConnectionSignalIdEnforcementFailedException exception =
+                    ConnectionSignalIdEnforcementFailedException.fromMessage(
+                            outboundSignal.getExternalMessage().getTextPayload().orElse(""),
+                            outboundSignal.getSource().getDittoHeaders());
+            assertThat(exception.getErrorCode()).isEqualTo(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
+            assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
+        });
+    }
+
+    @Test
+    public void testInboundMessageWithEnforcementFailsIfHeaderIsMissing() {
+        testInboundMessageWithEnforcement(header("some", "header"), false, outboundSignal -> {
+            final UnresolvedPlaceholderException exception =
+                    UnresolvedPlaceholderException.fromMessage(
+                            outboundSignal.getExternalMessage().getTextPayload().orElse(""),
+                            outboundSignal.getSource().getDittoHeaders());
+            assertThat(exception.getErrorCode()).isEqualTo(UnresolvedPlaceholderException.ERROR_CODE);
+            assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
+            assertThat(exception.getMessage()).contains("header:device_id");
+        });
     }
 
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor);
@@ -79,10 +103,8 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header);
 
     private void testInboundMessageWithEnforcement(final Map.Entry<String, Object> header,
-            final boolean isForwardedToConcierge) {
-
+            final boolean isForwardedToConcierge, final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
         new TestKit(actorSystem) {{
-
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
             final TestProbe publisher = TestProbe.apply(actorSystem);
@@ -94,19 +116,14 @@ public abstract class AbstractConsumerActorTest<M> {
             underTest.tell(getInboundMessage(header), sender.ref());
 
             if (isForwardedToConcierge) {
-                publisher.expectNoMessage();
+                publisher.expectNoMessage(ONE_SECOND);
                 final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
                 assertThat(modifyThing.getThingId()).isEqualTo(TestConstants.Things.THING_ID);
             } else {
+                concierge.expectNoMessage(ONE_SECOND);
                 final OutboundSignal.WithExternalMessage outboundSignal =
                         publisher.expectMsgClass(OutboundSignal.WithExternalMessage.class);
-                final ConnectionSignalIdEnforcementFailedException exception =
-                        ConnectionSignalIdEnforcementFailedException.fromMessage(
-                                outboundSignal.getExternalMessage().getTextPayload().orElse(""),
-                                outboundSignal.getSource().getDittoHeaders());
-                assertThat(exception.getErrorCode()).isEqualTo(ConnectionSignalIdEnforcementFailedException.ERROR_CODE);
-                assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
-                concierge.expectNoMessage();
+                verifyResponse.accept(outboundSignal);
             }
         }};
     }

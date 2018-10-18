@@ -35,6 +35,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -161,8 +162,9 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private void handleJmsMessage(final JmsMessage message) {
         consumedMessages++;
         lastMessageConsumedAt = Instant.now();
+        Map<String, String> headers = null;
         try {
-            final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
+            headers = extractHeadersMapFromJmsMessage(message);
             headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             builder.withAuthorizationContext(authorizationContext);
@@ -178,6 +180,11 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
+            if (headers != null) {
+                // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
+                // because we need a reply-to address to send the error response
+                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+            }
         } catch (final Exception e) {
             log.info("Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {

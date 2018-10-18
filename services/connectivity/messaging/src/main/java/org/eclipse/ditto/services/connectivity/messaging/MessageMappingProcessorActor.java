@@ -168,7 +168,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception) {
-        handleDittoRuntimeException(exception, DittoHeaders.empty());
+        handleDittoRuntimeException(exception, exception.getDittoHeaders());
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException exception,
