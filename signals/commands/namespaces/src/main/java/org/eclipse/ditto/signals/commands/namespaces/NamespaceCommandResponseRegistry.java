@@ -41,6 +41,7 @@ public final class NamespaceCommandResponseRegistry extends AbstractJsonParsable
         final Map<String, JsonParsable<NamespaceCommandResponse>> parseStrategies = new HashMap<>();
         parseStrategies.put(QueryNamespaceEmptinessResponse.TYPE, QueryNamespaceEmptinessResponse::fromJson);
         parseStrategies.put(PurgeNamespaceResponse.TYPE, PurgeNamespaceResponse::fromJson);
+        parseStrategies.put(BlockNamespaceResponse.TYPE, BlockNamespaceResponse::fromJson);
 
         return new NamespaceCommandResponseRegistry(parseStrategies);
     }

@@ -18,6 +18,7 @@ import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -51,6 +52,17 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
      */
     protected AbstractNamespaceOpsActor(final ActorRef pubSubMediator, final NamespaceOps<S> namespaceOps) {
         this.pubSubMediator = pubSubMediator;
+        this.namespaceOps = namespaceOps;
+        materializer = ActorMaterializer.create(getContext());
+    }
+
+    /**
+     * Create a new instance of this actor using the pub-sub mediator of the actor system in which it is created.
+     *
+     * @param namespaceOps namespace operations on the persistence.
+     */
+    protected AbstractNamespaceOpsActor(final NamespaceOps<S> namespaceOps) {
+        pubSubMediator = DistributedPubSub.get(getContext().system()).mediator();
         this.namespaceOps = namespaceOps;
         materializer = ActorMaterializer.create(getContext());
     }

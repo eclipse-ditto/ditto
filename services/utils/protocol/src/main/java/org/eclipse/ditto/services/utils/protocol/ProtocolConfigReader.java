@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.utils.protocol;
 import java.util.Collections;
 import java.util.List;
 
-import org.eclipse.ditto.services.base.config.AbstractConfigReader;
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

@@ -118,6 +118,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         startChildActor(BlockedNamespaceCacheActor.ACTOR_NAME,
                 BlockedNamespaceCacheActor.props(namespaceCache, pubSubMediator, configReader.instanceIndex()));
 
+        // start namespace ops actor as cluster singleton
+        startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,
+                ThingsSearchNamespaceOpsActor.props(pubSubMediator, searchUpdaterPersistence));
+
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
             final StreamConsumerSettings streamConsumerSettings = createThingsStreamConsumerSettings(config);
