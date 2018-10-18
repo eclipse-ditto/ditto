@@ -90,7 +90,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Cache<String, Object> namespaceCache =
                 BlockedNamespaceCacheActor.newCache(configReader.devops().namespaceBlockTime());
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                newPreEnforcer(namespaceCache, configReader.devops());
+                newPreEnforcer(namespaceCache, configReader.devops(), PlaceholderSubstitution.newInstance());
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
@@ -102,8 +102,6 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Duration enforcementAskTimeout = configReader.enforcement().askTimeout();
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
-        final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                PlaceholderSubstitution.newInstance();
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
                         preEnforcer, activityCheckInterval);
@@ -125,10 +123,12 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
     }
 
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final Cache<String, Object> namespaceCache, final DevOpsConfigReader devOpsConfigReader) {
+            final Cache<String, Object> namespaceCache, final DevOpsConfigReader devOpsConfigReader,
+            final PlaceholderSubstitution placeholderSubstitution) {
 
         return withDittoHeaders -> BlockNamespaceBehavior.of(namespaceCache)
                 .block(withDittoHeaders)
+                .thenCompose(placeholderSubstitution)
                 .exceptionally(throwable -> {
                     if (throwable instanceof NamespaceBlockedException) {
                         final String description = String.format("Please try again after %s.",
