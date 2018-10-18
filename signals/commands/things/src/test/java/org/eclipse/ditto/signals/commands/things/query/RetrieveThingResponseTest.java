@@ -11,6 +11,7 @@
 package org.eclipse.ditto.signals.commands.things.query;
 
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -35,13 +36,14 @@ public class RetrieveThingResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID)
-            .set(RetrieveThingResponse.JSON_THING, TestConstants.Thing.THING.toJson())
+            .set(RetrieveThingResponse.JSON_THING_PLAIN_JSON, TestConstants.Thing.THING.toJsonString())
             .build();
 
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveThingResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable(),
+                assumingFields("thing").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
 
