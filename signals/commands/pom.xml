@@ -27,6 +27,7 @@
     <modules>
         <module>base</module>
         <module>batch</module>
+        <module>common</module>
         <module>connectivity</module>
         <module>devops</module>
         <module>live</module>
