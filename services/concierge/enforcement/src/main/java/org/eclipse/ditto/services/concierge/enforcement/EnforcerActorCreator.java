@@ -70,12 +70,35 @@ public final class EnforcerActorCreator {
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Duration activityCheckInterval) {
 
+        return props(pubSubMediator, enforcementProviders, askTimeout, preEnforcer, activityCheckInterval, null);
+    }
+
+
+    /**
+     * Creates Akka configuration object Props for this EnforcerActor.
+     *
+     * @param pubSubMediator Akka pub sub mediator.
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
+     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
+     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
+     * @param conciergeForwarderActor the config reader.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final Set<EnforcementProvider<?>> enforcementProviders,
+            final Duration askTimeout,
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final Duration activityCheckInterval,
+            final ActorRef conciergeForwarderActor) {
+
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
 
         return GraphActor.partial((actorContext, log) -> {
             final AbstractEnforcement.Context enforcementContext =
-                    new AbstractEnforcement.Context(pubSubMediator, askTimeout).with(actorContext, log);
+                    new AbstractEnforcement.Context(pubSubMediator, askTimeout, conciergeForwarderActor)
+                            .with(actorContext, log);
 
             return Flow.<WithSender>create()
                     .via(ActivityChecker.ofNullable(activityCheckInterval, actorContext.self()))

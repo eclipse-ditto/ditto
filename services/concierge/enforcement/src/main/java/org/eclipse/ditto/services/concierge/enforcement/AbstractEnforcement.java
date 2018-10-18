@@ -273,6 +273,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
         return context.self;
     }
 
+    protected ActorRef conciergeForwarderActor() { return context.conciergeForwarderActor;}
+
     /**
      * Holds context information required by implementations of {@link AbstractEnforcement}.
      */
@@ -290,22 +292,26 @@ public abstract class AbstractEnforcement<T extends Signal> {
         @Nullable
         private final ActorRef self;
 
+        private final ActorRef conciergeForwarderActor;
+
         Context(
                 final ActorRef pubSubMediator,
-                final Duration askTimeout) {
+                final Duration askTimeout,
+                final ActorRef conciergeForwarderActor) {
 
-            this(pubSubMediator, askTimeout, null, null, null);
+            this(pubSubMediator, askTimeout, conciergeForwarderActor, null, null, null);
         }
 
         Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
+                @Nullable final ActorRef conciergeForwarderActor,
                 @Nullable final EntityId entityId,
                 @Nullable final DiagnosticLoggingAdapter log,
                 @Nullable final ActorRef self) {
-
             this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
+            this.conciergeForwarderActor = conciergeForwarderActor;
             this.entityId = entityId;
             this.log = log;
             this.self = self;
@@ -320,7 +326,8 @@ public abstract class AbstractEnforcement<T extends Signal> {
          */
         public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log) {
             final ActorRef contextSelf = actorContext.self();
-            return new Context(pubSubMediator, askTimeout, decodeEntityId(contextSelf), log, contextSelf);
+            return new Context(pubSubMediator, askTimeout, conciergeForwarderActor, decodeEntityId(contextSelf), log,
+                    contextSelf);
         }
 
         private static EntityId decodeEntityId(final ActorRef self) {
