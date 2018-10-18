@@ -129,7 +129,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @param thing the {@link Thing} to modify.
      * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
      * If its a placeholder it will be resolved to a policy id.
-     * Placeholder must be of the syntax: {{ ref:things/theThingId/policyId }}.
+     * Placeholder must be of the syntax: {@code {{ ref:things/<theThingId>/policyId }} }.
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
@@ -158,7 +158,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @param thing the {@link Thing} to modify.
      * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
      * If its a placeholder it will be resolved to a policy id.
-     * Placeholder must be of the syntax: {{ ref:things/theThingId/policyId }}.
+     * Placeholder must be of the syntax: {@code {{ ref:things/<theThingId>/policyId }} }.
      * @param initialPolicy the initial {@code Policy} to set for the Thing when creating it - may be null.
      * @param dittoHeaders the headers of the command.
      * @return the command.

@@ -94,7 +94,7 @@ public final class ModifyThingTest {
     }
 
     @Test
-    public void toJsonWithInitialPolicyIdToCopyReturnsExpected() {
+    public void toJsonWithInitialPolicyReturnsExpected() {
 
         final JsonObject expected = KNOWN_JSON.set(ModifyThing.JSON_INITIAL_POLICY, JsonObject.newBuilder().build());
         final ModifyThing underTest =
