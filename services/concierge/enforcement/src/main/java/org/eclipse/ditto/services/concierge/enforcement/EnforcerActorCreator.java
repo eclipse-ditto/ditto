@@ -45,52 +45,36 @@ public final class EnforcerActorCreator {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ActorRef pubSubMediator,
-            final Set<EnforcementProvider<?>> enforcementProviders,
-            final Duration askTimeout) {
-
-        return props(pubSubMediator, enforcementProviders, askTimeout, null, null);
-    }
-
-    /**
-     * Creates Akka configuration object Props for this EnforcerActor.
-     *
-     * @param pubSubMediator Akka pub sub mediator.
-     * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
-     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
+     * @param conciergeForwarder an actorRef to concierge forwarder.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable final Duration activityCheckInterval) {
-
-        return props(pubSubMediator, enforcementProviders, askTimeout, preEnforcer, activityCheckInterval, null);
-    }
-
-
-    /**
-     * Creates Akka configuration object Props for this EnforcerActor.
-     *
-     * @param pubSubMediator Akka pub sub mediator.
-     * @param enforcementProviders a set of {@link EnforcementProvider}s.
-     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
-     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
-     * @param conciergeForwarder the config reader.
-     * @return the Akka configuration Props object.
-     */
-    public static Props props(final ActorRef pubSubMediator,
-            final Set<EnforcementProvider<?>> enforcementProviders,
-            final Duration askTimeout,
-            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable final Duration activityCheckInterval,
             final ActorRef conciergeForwarder) {
+
+        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, null, null);
+    }
+
+
+    /**
+     * Creates Akka configuration object Props for this EnforcerActor.
+     *
+     * @param pubSubMediator Akka pub sub mediator.
+     * @param enforcementProviders a set of {@link EnforcementProvider}s.
+     * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
+     * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
+     * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
+     * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final ActorRef pubSubMediator,
+            final Set<EnforcementProvider<?>> enforcementProviders,
+            final Duration askTimeout,
+            final ActorRef conciergeForwarder,
+            @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
+            @Nullable final Duration activityCheckInterval
+            ) {
 
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;

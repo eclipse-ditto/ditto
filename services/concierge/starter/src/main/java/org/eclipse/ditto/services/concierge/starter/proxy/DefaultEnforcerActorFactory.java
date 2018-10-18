@@ -101,7 +101,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        preEnforcer, activityCheckInterval, conciergeForwarder);
+                        conciergeForwarder, preEnforcer, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
