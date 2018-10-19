@@ -117,6 +117,10 @@
             <artifactId>akka-slf4j_${scala.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-persistence-query_${scala.version}</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.github.scullxbones</groupId>
             <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
         </dependency>

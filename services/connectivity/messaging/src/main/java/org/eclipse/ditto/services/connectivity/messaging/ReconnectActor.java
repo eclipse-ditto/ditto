@@ -11,41 +11,28 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.services.connectivity.messaging.persistence.MongoReconnectSnapshotAdapter;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
-import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 
 import com.typesafe.config.Config;
 
-import akka.ConfigurationException;
+import akka.NotUsed;
+import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.persistence.AbstractPersistentActor;
-import akka.persistence.RecoveryCompleted;
-import akka.persistence.SnapshotOffer;
+import akka.stream.ActorMaterializer;
+import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -55,7 +42,7 @@ import scala.concurrent.duration.FiniteDuration;
  * This Actor must be created as a cluster singleton as it uses a fixed persistence id.
  * </p>
  */
-public final class ReconnectActor extends AbstractPersistentActor {
+public final class ReconnectActor extends AbstractActor {
 
     /**
      * The name of this Actor.
@@ -66,97 +53,42 @@ public final class ReconnectActor extends AbstractPersistentActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
+    private final ActorMaterializer materializer;
     private final ActorRef connectionShardRegion;
-    private final long snapshotThreshold;
-    private final SnapshotAdapter<Set<String>> snapshotAdapter;
+    private final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier;
 
-    private final Set<String> connectionIds;
+    private final Duration reconnectInitialDelay;
+    private final Duration reconnectInterval;
+    private final Duration reconnectRateFrequency;
+    private final int reconnectRateEntities;
 
-    private boolean snapshotInProgress = false;
-    private long lastSnapshotSequenceNr = -1;
-    private Duration reconnectInitialDelay;
-    private Duration reconnectInterval;
     private Cancellable reconnectCheck;
+    private boolean reconnectInProgress = false;
 
-    private ReconnectActor(final ActorRef connectionShardRegion, final ActorRef pubSubMediator) {
+    private ReconnectActor(final ActorRef connectionShardRegion,
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
         this.connectionShardRegion = connectionShardRegion;
+        this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
 
         final Config config = getContext().system().settings().config();
-        snapshotThreshold = config.getLong(ConfigKeys.Reconnect.SNAPSHOT_THRESHOLD);
-        if (snapshotThreshold < 0) {
-            throw new ConfigurationException(String.format("Config setting '%s' must be positive, but is: %d.",
-                    ConfigKeys.Reconnect.SNAPSHOT_THRESHOLD, snapshotThreshold));
-        }
-        snapshotAdapter = new MongoReconnectSnapshotAdapter(getContext().system());
+        materializer = ActorMaterializer.create(getContext().getSystem());
 
         reconnectInitialDelay = config.getDuration(ConfigKeys.Reconnect.RECONNECT_INITIAL_DELAY);
         reconnectInterval = config.getDuration(ConfigKeys.Reconnect.RECONNECT_INTERVAL);
-
-        connectionIds = new HashSet<>();
-
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionCreated.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionModified.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionOpened.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionClosed.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ConnectionDeleted.TYPE, ACTOR_NAME, getSelf()),
-                getSelf());
+        reconnectRateFrequency = config.getDuration(ConfigKeys.Reconnect.RECONNECT_RATE_FREQUENCY);
+        reconnectRateEntities = config.getInt(ConfigKeys.Reconnect.RECONNECT_RATE_ENTITIES);
     }
 
     /**
      * Creates Akka configuration object Props for this Actor.
      *
      * @param connectionShardRegion the shard region of connections.
-     * @param pubSubMediator the mediator to use for distributed pubsub.
+     * @param currentPersistenceIdsSourceSupplier supplier of persistence id sources
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ActorRef connectionShardRegion, final ActorRef pubSubMediator) {
-        return Props.create(ReconnectActor.class, connectionShardRegion, pubSubMediator);
-    }
-
-    @Override
-    public String persistenceId() {
-        return ACTOR_NAME;
-    }
-
-    @Override
-    public String journalPluginId() {
-        return "akka-contrib-mongodb-persistence-reconnect-journal";
-    }
-
-    @Override
-    public String snapshotPluginId() {
-        return "akka-contrib-mongodb-persistence-reconnect-snapshots";
-    }
-
-    @Override
-    public Receive createReceiveRecover() {
-        return ReceiveBuilder.create()
-                // # Snapshot handling
-                .match(SnapshotOffer.class, ss -> {
-                    final Set<String> fromSnapshotStore = snapshotAdapter.fromSnapshotStore(ss);
-                    log.info("Received SnapshotOffer containing connectionIds: <{}>", fromSnapshotStore);
-                    if (fromSnapshotStore != null) {
-                        connectionIds.clear();
-                        connectionIds.addAll(fromSnapshotStore);
-                    }
-                    lastSnapshotSequenceNr = ss.metadata().sequenceNr();
-                })
-                .match(ConnectionCreated.class, event -> connectionIds.add(event.getConnectionId()))
-                .match(ConnectionModified.class, this::handleConnectionModified)
-                .match(ConnectionOpened.class, event -> connectionIds.add(event.getConnectionId()))
-                .match(ConnectionClosed.class, event -> connectionIds.remove(event.getConnectionId()))
-                .match(ConnectionDeleted.class, event -> connectionIds.remove(event.getConnectionId()))
-                .match(RecoveryCompleted.class, rc -> this.handleRecoveryCompleted())
-                .matchAny(m -> log.warning("Unknown recover message: {}", m))
-                .build();
-    }
-
-    private void handleRecoveryCompleted() {
-        reconnectCheck = scheduleReconnect();
+    public static Props props(final ActorRef connectionShardRegion,
+            final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier) {
+        return Props.create(ReconnectActor.class, connectionShardRegion, currentPersistenceIdsSourceSupplier);
     }
 
     private Cancellable scheduleReconnect() {
@@ -172,49 +104,25 @@ public final class ReconnectActor extends AbstractPersistentActor {
     }
 
     @Override
-    public void postStop() {
+    public void preStart() throws Exception {
+        super.preStart();
+        reconnectCheck = scheduleReconnect();
+    }
+
+    @Override
+    public void postStop() throws Exception {
         if (null != reconnectCheck) {
             reconnectCheck.cancel();
         }
-
         super.postStop();
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(RetrieveConnectionStatusResponse.class, command -> {
-                    log.debug("Retrieved connection status response for connection {} with status: {}",
-                            command.getConnectionId(), command.getConnectionStatus());
-                    if (!ConnectionStatus.OPEN.equals(command.getConnectionStatus())) {
-                        connectionIds.remove(command.getConnectionId());
-                    }
-                })
-                .match(ConnectionNotAccessibleException.class, exception -> exception.getDittoHeaders()
-                        .getCorrelationId()
-                        .flatMap(ReconnectActor::toConnectionId)
-                        .filter(connectionIds::contains)
-                        .ifPresent(connectionId -> {
-                            // connection nonexistent, treat it as deleted
-                            final ConnectionDeleted connectionDeleted =
-                                    ConnectionDeleted.of(connectionId, exception.getDittoHeaders());
-                            persistEvent(connectionDeleted, e -> connectionIds.remove(connectionId));
-                        }))
-                .match(ConnectionCreated.class,
-                        event -> persistEvent(event, e -> connectionIds.add(e.getConnectionId())))
-                .match(ConnectionModified.class, this::handleConnectionModified)
-                .match(ConnectionOpened.class,
-                        event -> persistEvent(event, e -> connectionIds.add(e.getConnectionId())))
-                .match(ConnectionClosed.class,
-                        event -> persistEvent(event, e -> connectionIds.remove(e.getConnectionId())))
-                .match(ConnectionDeleted.class,
-                        event -> persistEvent(event, e -> connectionIds.remove(e.getConnectionId())))
-                .match(ConnectivityCommandResponse.class, connectivityCommandResponse ->
-                        log.info("Received CommandResponse: <{}>", connectivityCommandResponse))
-                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
-                        log.debug("Successfully subscribed to distributed pub/sub on topic '{}'",
-                                subscribeAck.subscribe().topic())
-                )
+                .match(RetrieveConnectionStatusResponse.class,
+                        command -> log.debug("Retrieved connection status response for connection {} with status: {}",
+                                command.getConnectionId(), command.getConnectionStatus()))
                 .matchEquals(ReconnectConnections.INSTANCE, rc -> this.handleReconnectConnections())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -222,59 +130,44 @@ public final class ReconnectActor extends AbstractPersistentActor {
                 }).build();
     }
 
-    private void handleConnectionModified(final ConnectionModified event) {
-        switch (event.getConnection().getConnectionStatus()) {
-            case OPEN:
-                connectionIds.add(event.getConnectionId());
-                break;
-            case CLOSED:
-                connectionIds.remove(event.getConnectionId());
-                break;
-            default:
-                // do nothing
+    private void handleReconnectConnections() {
+        if (reconnectInProgress) {
+            log.info("Another reconnect iteration is currently in progress. Next iteration is stated after {}.",
+                    reconnectInterval);
+        } else {
+            log.info("Sending reconnects for Connections. " +
+                    "Will be sent again after the configured Interval of {}.", reconnectInterval);
+            reconnectInProgress = true;
+            final Source<String, NotUsed> currentPersistenceIdsSource = currentPersistenceIdsSourceSupplier.get();
+            if (currentPersistenceIdsSource != null) {
+                currentPersistenceIdsSource
+                        .throttle(reconnectRateEntities, reconnectRateFrequency)
+                        .runForeach(this::reconnect, materializer)
+                        .thenRun(() -> {
+                            log.info("Sending reconnects completed.");
+                            reconnectInProgress = false;
+                        });
+            } else {
+                log.warning("Failed to create new persistence id source for connection recovery.");
+            }
         }
     }
 
-    private <E extends Event> void persistEvent(final E event, final Consumer<E> consumer) {
-        persist(event, persistedEvent -> {
-            log.info("Successfully persisted Event '{}'", persistedEvent.getType());
-            consumer.accept(persistedEvent);
-
-            // save a snapshot if there were too many changes since the last snapshot
-            if ((lastSequenceNr() - lastSnapshotSequenceNr) > snapshotThreshold) {
-                doSaveSnapshot();
-            }
-        });
-    }
-
-    private void handleReconnectConnections() {
-        log.info("Sending reconnects for {} Connections. " +
-                "Will be sent again after the configured Interval of {}.", connectionIds.size(), reconnectInterval);
-        this.connectionIds.forEach(this::reconnect);
-    }
-
-    private void reconnect(final String connectionId) {
+    private void reconnect(final String persistenceId) {
         // yes, this is intentionally a RetrieveConnectionStatus instead of OpenConnection.
         // ConnectionActor manages its own reconnection on recovery.
         // OpenConnection would set desired state to OPEN even for deleted connections.
         //
         // Save connection ID as correlation ID so that nonexistent connections are removed from the store.
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(toCorrelationId(connectionId))
-                .build();
-        log.debug("Sending a reconnect for Connection {}", connectionId);
-        connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, dittoHeaders), getSelf());
-    }
-
-    private void doSaveSnapshot() {
-        if (snapshotInProgress) {
-            log.debug("Already requested taking a Snapshot - not doing it again");
+        if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
+            final String connectionId = persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length());
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(toCorrelationId(connectionId))
+                    .build();
+            log.debug("Sending a reconnect for Connection {}", connectionId);
+            connectionShardRegion.tell(RetrieveConnectionStatus.of(connectionId, dittoHeaders), getSelf());
         } else {
-            snapshotInProgress = true;
-            log.info("Attempting to save Snapshot for '{}' ..", connectionIds);
-            // save a snapshot
-            final Object snapshotToStore = snapshotAdapter.toSnapshotStore(connectionIds);
-            saveSnapshot(snapshotToStore);
+            log.debug("Unknown persistence id '{}', ignoring.", persistenceId);
         }
     }
 
@@ -288,7 +181,7 @@ public final class ReconnectActor extends AbstractPersistentActor {
                 : Optional.empty();
     }
 
-    private enum ReconnectConnections {
+    enum ReconnectConnections {
         INSTANCE
     }
 
