@@ -10,12 +10,10 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.AbstractEventSourceNamespaceOpsActor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -29,8 +27,8 @@ public final class ThingNamespaceOpsActor extends AbstractEventSourceNamespaceOp
 
     public static final String ACTOR_NAME = "thingNamespaceOps";
 
-    private ThingNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db, final Config config) {
-        super(pubSubMediator, db, config);
+    private ThingNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
+        super(pubSubMediator, config);
     }
 
     /**
@@ -41,10 +39,7 @@ public final class ThingNamespaceOpsActor extends AbstractEventSourceNamespaceOp
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        try (final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config)) {
-            return Props.create(ThingNamespaceOpsActor.class,
-                    () -> new ThingNamespaceOpsActor(pubSubMediator, mongoClientWrapper.getDatabase(), config));
-        }
+        return Props.create(ThingNamespaceOpsActor.class, () -> new ThingNamespaceOpsActor(pubSubMediator, config));
     }
 
     @Override

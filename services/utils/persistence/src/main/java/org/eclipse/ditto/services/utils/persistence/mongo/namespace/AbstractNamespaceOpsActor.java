@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
+import java.io.Closeable;
 import java.util.Collection;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -80,6 +81,14 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
         subscribeForNamespaceCommands();
     }
 
+    @Override
+    public void postStop() throws Exception {
+        if (namespaceOps instanceof Closeable) {
+            ((Closeable) namespaceOps).close();
+        }
+        super.postStop();
+    }
+
     private void subscribeForNamespaceCommands() {
         final ActorRef self = getSelf();
         pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, self), self);
@@ -97,7 +106,7 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
         final Collection<S> namespaceSelections = selectNamespace(purgeNamespace.getNamespace());
-        log.info("Running <{}>. Affected collections: <{}>", purgeNamespace, namespaceSelections);
+        log.info("Running <{}>. Affected collections: <{}>.", purgeNamespace, namespaceSelections);
         namespaceOps.purgeAll(namespaceSelections)
                 .runWith(Sink.head(), materializer)
                 .thenAccept(errors -> {
@@ -117,7 +126,7 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
                 })
                 .exceptionally(error -> {
                     LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
-                    log.error(error, "Failed: QueryNamespaceEmptiness");
+                    log.error(error, "Failed to purge namespace <{}>!", purgeNamespace.getNamespace());
                     // Reply nothing - DB errors were converted to stream elements and handled
                     return null;
                 });

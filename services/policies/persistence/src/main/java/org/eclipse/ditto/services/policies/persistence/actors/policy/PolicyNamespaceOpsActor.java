@@ -10,12 +10,10 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.policy;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.AbstractEventSourceNamespaceOpsActor;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -29,8 +27,8 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
 
     public static final String ACTOR_NAME = "policyNamespaceOps";
 
-    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db, final Config config) {
-        super(pubSubMediator, db, config);
+    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
+        super(pubSubMediator, config);
     }
 
     /**
@@ -41,10 +39,7 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        try (final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config)) {
-            return Props.create(PolicyNamespaceOpsActor.class,
-                    () -> new PolicyNamespaceOpsActor(pubSubMediator, mongoClientWrapper.getDatabase(), config));
-        }
+        return Props.create(PolicyNamespaceOpsActor.class, () -> new PolicyNamespaceOpsActor(pubSubMediator, config));
     }
 
     @Override

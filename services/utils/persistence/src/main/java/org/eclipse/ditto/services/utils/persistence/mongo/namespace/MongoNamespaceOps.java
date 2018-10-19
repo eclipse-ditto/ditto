@@ -10,11 +10,13 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteManyModel;
@@ -29,12 +31,19 @@ import akka.stream.javadsl.Source;
 /**
  * MongoDB operations on the level of namespaces.
  */
-public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelection> {
+public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelection>, Closeable {
 
+    private final MongoClientWrapper mongoDbClientWrapper;
     private final MongoDatabase db;
 
     private MongoNamespaceOps(final MongoDatabase db) {
+        mongoDbClientWrapper = null;
         this.db = db;
+    }
+
+    private MongoNamespaceOps(final MongoClientWrapper theMongoDbClientWrapper) {
+        mongoDbClientWrapper = theMongoDbClientWrapper;
+        db = mongoDbClientWrapper.getDatabase();
     }
 
     /**
@@ -45,6 +54,17 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
      */
     public static MongoNamespaceOps of(final MongoDatabase db) {
         return new MongoNamespaceOps(db);
+    }
+
+    /**
+     * Returns an instance of {@code MongoNamespaceOps}.
+     *
+     * @param mongoDbClientWrapper provides the database to be used for operations. Will be closed with a call to #close.
+     * @return the instance.
+     * @throws NullPointerException if {@code mongoDbClientWrapper} is {@code null}.
+     */
+    public static MongoNamespaceOps of(final MongoClientWrapper mongoDbClientWrapper) {
+        return new MongoNamespaceOps(mongoDbClientWrapper);
     }
 
     @Override
@@ -63,6 +83,11 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
                     .map(result -> Optional.<Throwable>empty())
                     .recover(Match.<Throwable, Optional<Throwable>>matchAny(Optional::of).build());
         }
+    }
+
+    @Override
+    public void close() {
+        mongoDbClientWrapper.close();
     }
 
 }

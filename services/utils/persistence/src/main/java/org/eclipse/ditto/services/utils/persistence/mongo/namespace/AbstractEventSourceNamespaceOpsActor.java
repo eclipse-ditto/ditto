@@ -15,8 +15,8 @@ import java.util.Collection;
 
 import org.bson.BsonRegularExpression;
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 
-import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
@@ -40,13 +40,10 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
      * Creates a new instance of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param db database where the event journal, snapshot store and metadata are located.
      * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
      */
-    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db,
-            final Config config) {
-
-        super(pubSubMediator, MongoNamespaceOps.of(db));
+    protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final Config config) {
+        super(pubSubMediator, MongoNamespaceOps.of(MongoClientWrapper.newInstance(config)));
         metadata = getCollectionName(config, getJournalPluginId(), "metadata");
         journal = getCollectionName(config, getJournalPluginId(), "journal");
         snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");
