@@ -77,7 +77,7 @@ final class ImmutableConnection implements Connection {
         connectionStatus = checkNotNull(builder.connectionStatus, "connectionStatus");
         credentials = builder.credentials;
         trustedCertificates = builder.trustedCertificates;
-        uri = ConnectionUri.of(checkNotNull(builder.uri, "uri"));
+        uri = ConnectionUri.of(encodeSurplusAtSigns(checkNotNull(builder.uri, "uri")));
         sources = Collections.unmodifiableList(new ArrayList<>(builder.sources));
         targets = Collections.unmodifiableSet(new HashSet<>(builder.targets));
         clientCount = builder.clientCount;
@@ -233,6 +233,40 @@ final class ImmutableConnection implements Connection {
                 .orElse(Collections.emptySet());
     }
 
+    /**
+     * Encodes all but the last {@code @}-sign in a connection uri.
+     * This is needed if user or password contain an {@code @}-sign, e.g. for a Eclipse Hono
+     * connection.
+     * <br>
+     * {@code incoming: foo@tenant:bar@host.com:1234}
+     * <br>
+     * {@code outgoing: foo%40tenant:bar@host.com:1234}
+     *
+     * @param originalUri the uri to encode.
+     * @return the uri with all but the last {@code @}-sign encoded.
+     */
+    private static String encodeSurplusAtSigns(final String originalUri) {
+        String encoded = originalUri;
+        while (encoded.indexOf('@') != encoded.lastIndexOf('@')) {
+            encoded = encoded.replaceFirst("@", "%40");
+        }
+        return encoded;
+    }
+
+    /**
+     * Decodes all encoded {@code @}-signs in the connection uri.
+     * <br>
+     * {@code incoming: foo%40tenant:bar@host.com:1234}
+     * <br>
+     * {@code outgoing: foo@tenant:bar@host.com:1234}
+     *
+     * @param encodedUri the uri to decode.
+     * @return the uri with all {@code @}-signs
+     */
+    private static String decodeAtSigns(final String encodedUri) {
+        return encodedUri.replaceAll("%40", "@");
+    }
+
     @Override
     public String getId() {
         return id;
@@ -353,7 +387,7 @@ final class ImmutableConnection implements Connection {
         jsonObjectBuilder.set(JsonFields.NAME, name, predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_TYPE, connectionType.getName(), predicate);
         jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
-        jsonObjectBuilder.set(JsonFields.URI, uri.toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.URI, decodeAtSigns(uri.toString()), predicate);
         jsonObjectBuilder.set(JsonFields.SOURCES, sources.stream()
                 .sorted(Comparator.comparingInt(Source::getIndex))
                 .map(source -> source.toJson(schemaVersion, thePredicate))

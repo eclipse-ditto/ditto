@@ -46,7 +46,8 @@ public final class ImmutableConnectionTest {
     private static final String ID = "myConnectionId";
     private static final String NAME = "myConnection";
 
-    private static final String URI = "amqps://foo:bar@example.com:443";
+    private static final String URI = "amqps://foo@tenant:bar@example.com:443";
+    private static final String ENCODED_URI = "amqps://foo%40tenant:bar@example.com:443";
     private static final Credentials CREDENTIALS = ClientCertificateCredentials.newBuilder().build();
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
@@ -153,7 +154,7 @@ public final class ImmutableConnectionTest {
 
         assertThat(connection.getId()).isEqualTo(ID);
         assertThat((Object) connection.getConnectionType()).isEqualTo(TYPE);
-        assertThat(connection.getUri()).isEqualTo(URI);
+        assertThat(connection.getUri()).isEqualTo(ENCODED_URI);
         assertThat(connection.getSources()).isEqualTo(SOURCES);
     }
 
