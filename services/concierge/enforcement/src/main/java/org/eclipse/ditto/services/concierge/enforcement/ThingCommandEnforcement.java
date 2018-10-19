@@ -770,8 +770,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final ThingCommand thingCommand = transformModifyThingToCreateThing(receivedThingCommand);
         final Optional<CreateThingWithEnforcer> result;
         if (thingCommand instanceof CreateThing) {
-            final CreateThing createThing = (CreateThing) thingCommand;
-            final Optional<JsonObject> initialPolicyOptional = getInitialPolicyOrCopiedPolicy(createThing);
+            final CreateThing createThing = replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand);
+            final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
             if (initialPolicyOptional.isPresent()) {
                 result = enforceCreateThingByOwnInlinedPolicy(createThing, initialPolicyOptional.get(), sender);
             } else {
@@ -795,6 +795,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             result = Optional.empty();
         }
         return result;
+    }
+
+    private CreateThing replaceInitialPolicyWithCopiedPolicyIfPresent(final CreateThing createThing) {
+
+        final JsonObject initialPolicyOrCopiedPolicy = getInitialPolicyOrCopiedPolicy(createThing).orElse(null);
+        return CreateThing.of(createThing.getThing(), initialPolicyOrCopiedPolicy, createThing.getDittoHeaders());
     }
 
     private Optional<JsonObject> getInitialPolicyOrCopiedPolicy(final CreateThing createThing) {
