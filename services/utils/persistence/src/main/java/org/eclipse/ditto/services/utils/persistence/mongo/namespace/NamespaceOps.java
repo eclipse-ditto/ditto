@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,7 +20,7 @@ import akka.stream.javadsl.Source;
 /**
  * Persistence operations on the level of namespaces.
  *
- * @param <S> type of namespace selections
+ * @param <S> type of namespace selections.
  */
 public interface NamespaceOps<S> {
 
@@ -31,7 +30,7 @@ public interface NamespaceOps<S> {
      * @param selection collection-filter pair to identify documents belonging to a namespace.
      * @return source of any error during the purge.
      */
-    Source<Optional<Throwable>, NotUsed> purge(final S selection);
+    Source<Optional<Throwable>, NotUsed> purge(S selection);
 
     /**
      * Purge documents in a namespace from all given collections.
@@ -43,11 +42,7 @@ public interface NamespaceOps<S> {
         return Source.from(selections)
                 .flatMapConcat(this::purge)
                 .flatMapConcat(result -> result.map(Source::single).orElseGet(Source::empty))
-                .fold(new LinkedList<>(), NamespaceOps::appendToMutableList);
+                .grouped(selections.size());
     }
 
-    static <T> List<T> appendToMutableList(final List<T> xs, final T x) {
-        xs.add(x);
-        return xs;
-    }
 }
