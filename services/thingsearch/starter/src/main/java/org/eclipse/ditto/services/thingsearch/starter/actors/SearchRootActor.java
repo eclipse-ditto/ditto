@@ -84,7 +84,7 @@ public final class SearchRootActor extends AbstractActor {
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
-
+    private final MongoClientWrapper mongoDbClientWrapper;
 
     private SearchRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
             final ActorMaterializer materializer) {
@@ -96,21 +96,21 @@ public final class SearchRootActor extends AbstractActor {
                 rawConfig.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        final MongoClientWrapper mongoClientWrapper =
+        mongoDbClientWrapper =
                 MongoClientWrapper.newInstance(rawConfig, kamonCommandListener, kamonConnectionPoolListener);
 
         final StreamMetadataPersistence thingsSyncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoDbClientWrapper,
                         materializer);
 
         final StreamMetadataPersistence policiesSyncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoDbClientWrapper,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
+        final ActorRef searchActor = initializeSearchActor(configReader);
 
-        final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
-                thingsSyncPersistence, policiesSyncPersistence);
+        final ActorRef healthCheckingActor =
+                initializeHealthCheckActor(configReader, thingsSyncPersistence, policiesSyncPersistence);
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
@@ -120,12 +120,10 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final MongoClientWrapper
-            mongoClientWrapper) {
-
+    private ActorRef initializeSearchActor(final ServiceConfigReader configReader) {
         final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
-                new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
+                new MongoThingsSearchPersistence(mongoDbClientWrapper, getContext().system());
 
         final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
@@ -148,11 +146,12 @@ public final class SearchRootActor extends AbstractActor {
                 SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
     }
 
-    private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader, final MongoClientWrapper mongoClientWrapper,
+    private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
+
         final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
-                MongoReactiveHealthCheckActor.props(mongoClientWrapper));
+                MongoReactiveHealthCheckActor.props(mongoDbClientWrapper));
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
                 SearchHealthCheckingActorFactory.props(configReader, mongoHealthCheckActor, thingsSyncPersistence,
@@ -161,6 +160,7 @@ public final class SearchRootActor extends AbstractActor {
 
     private void createHealthCheckingActorHttpBinding(final HttpConfigReader httpConfig,
             final ActorRef healthCheckingActor, final ActorMaterializer materializer) {
+
         String hostname = httpConfig.getHostname();
         if (hostname.isEmpty()) {
             hostname = ConfigUtil.getLocalHostAddress();
@@ -213,6 +213,12 @@ public final class SearchRootActor extends AbstractActor {
     }
 
     @Override
+    public void postStop() throws Exception {
+        mongoDbClientWrapper.close();
+        super.postStop();
+    }
+
+    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
@@ -234,4 +240,5 @@ public final class SearchRootActor extends AbstractActor {
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
+
 }
