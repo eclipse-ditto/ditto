@@ -30,6 +30,16 @@ import scala.concurrent.duration.FiniteDuration;
 public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
 
     /**
+     * Role of cluster members to which this distributed data is replicated.
+     */
+    public static final String CLUSTER_ROLE = "blocked-namespaces-aware";
+
+    /**
+     * Name of the replicator actor.
+     */
+    public static final String ACTOR_NAME = "blockedNamespacesReplicator";
+
+    /**
      * Key of the distributed data. Should be unique among ORSets.
      */
     public static Key<ORSet<String>> KEY = ORSetKey.create("BlockedNamespaces");
@@ -42,9 +52,23 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     /**
-     * Create an instance of this distributed data.
+     * Create an instance of this distributed data with the default configuration. The provided Akka system must be a
+     * cluster member with the role {@code blocked-namespaces-aware}.
      *
-     * @param configReader the configuration.
+     * @param system the actor system where the replicator actor will be created.
+     * @return a new instance of the distributed data.
+     */
+    public static BlockedNamespaces of(final ActorSystem system) {
+        final DDataConfigReader configReader = DDataConfigReader.of(system)
+                .withRole(CLUSTER_ROLE)
+                .withName(ACTOR_NAME);
+        return new BlockedNamespaces(configReader, system);
+    }
+
+    /**
+     * Create an instance of this distributed data with special configuration.
+     *
+     * @param configReader the overriding configuration.
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
      */

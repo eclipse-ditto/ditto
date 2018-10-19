@@ -87,6 +87,7 @@ public class ThingsUpdaterTest {
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
                 ShardRegionFactory.getInstance(actorSystem)
         );
+        // create blocked namespaces cache without role and with the default replicator name
         blockedNamespaces = BlockedNamespaces.of(DDataConfigReader.of(actorSystem), actorSystem);
     }
 

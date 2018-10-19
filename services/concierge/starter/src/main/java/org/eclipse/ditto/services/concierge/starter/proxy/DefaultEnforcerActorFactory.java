@@ -41,7 +41,6 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
@@ -94,9 +93,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "acl");
 
         // pre-enforcer
-        // TODO: adjust config
-        final DDataConfigReader dDataConfigReader = DDataConfigReader.of(actorSystem);
-        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(dDataConfigReader, actorSystem);
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
                 newPreEnforcer(blockedNamespaces, configReader.devops(), PlaceholderSubstitution.newInstance());
 

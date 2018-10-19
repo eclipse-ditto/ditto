@@ -51,7 +51,10 @@ public final class DDataConfigReader extends AbstractConfigReader {
     }
 
     /**
-     * Create a distributed data configuration reader.
+     * Create a distributed data configuration reader with Akka's default options.
+     *
+     * @param system the actor system with the default distributed data configuration.
+     * @return a new config reader object.
      */
     public static DDataConfigReader of(final ActorSystem system) {
         return new DDataConfigReader(system.settings().config().getConfig(FALLBACK_CONFIG_PATH));

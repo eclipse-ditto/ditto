@@ -46,13 +46,18 @@ public final class BlockedNamespacesTest {
     }
 
     @Test
+    public void startWithDefaultConfig() throws Exception {
+        testCRUD(BlockedNamespaces.of(actorSystem), actorSystem);
+    }
+
+    @Test
     public void startWithoutRole() throws Exception {
-        testCRUD(configReader, actorSystem);
+        testCRUD(BlockedNamespaces.of(configReader, actorSystem), actorSystem);
     }
 
     @Test
     public void startWithMatchingRole() throws Exception {
-        testCRUD(configReader.withRole("ddata-aware"), actorSystem);
+        testCRUD(BlockedNamespaces.of(configReader.withRole("ddata-aware"), actorSystem), actorSystem);
     }
 
     @Test
@@ -66,10 +71,8 @@ public final class BlockedNamespacesTest {
         }};
     }
 
-    private static void testCRUD(final DDataConfigReader configReader, final ActorSystem actorSystem) throws Exception {
+    private static void testCRUD(final BlockedNamespaces underTest, final ActorSystem actorSystem) throws Exception {
         new TestKit(actorSystem) {{
-            final BlockedNamespaces underTest = BlockedNamespaces.of(configReader, actorSystem);
-
             final String namespace = "dummy.namespace";
             assertThat(underTest.contains(namespace).toCompletableFuture().get()).isFalse();
 

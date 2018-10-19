@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThings
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
-import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
@@ -83,7 +82,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        mongoDbClientWrapper = MongoClientWrapper.newInstance(config, kamonCommandListener, kamonConnectionPoolListener);
+        mongoDbClientWrapper =
+                MongoClientWrapper.newInstance(config, kamonCommandListener, kamonConnectionPoolListener);
 
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 new MongoThingsSearchUpdaterPersistence(mongoDbClientWrapper, log,
@@ -117,9 +117,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
 
-        // TODO: adjust config
-        final DDataConfigReader dDataConfigReader = DDataConfigReader.of(actorSystem);
-        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(dDataConfigReader, actorSystem);
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME,
                 ThingsUpdater.props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces));
