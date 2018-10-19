@@ -237,6 +237,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final Command command = expectMsgClass(Command.class);
             assertThat(command.getType()).isEqualTo(ModifyFeatureProperty.TYPE);
             assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
+            assertThat(command.getDittoHeaders().getContentType()).isEmpty();
+            assertThat(command.getDittoHeaders().get("JMSXDeliveryCount")).isNull();
             assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
             assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
         }};
