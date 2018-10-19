@@ -11,6 +11,7 @@
 package org.eclipse.ditto.signals.commands.things.query;
 
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -38,13 +39,14 @@ public class RetrieveThingsResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingsResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(RetrieveThingsResponse.JSON_THINGS, JsonFactory.newArray().add(TestConstants.Thing.THING.toJson()))
+            .set(RetrieveThingsResponse.JSON_THINGS_PLAIN_JSON, "[" + TestConstants.Thing.THING.toJsonString() + "]")
             .set(RetrieveThingsResponse.JSON_NAMESPACE, "example.com")
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingsResponse.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
+        assertInstancesOf(RetrieveThingsResponse.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable(),
+                assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
     @Test
@@ -82,12 +84,6 @@ public class RetrieveThingsResponseTest {
                         null, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(retrieveThingsResponse.getNamespace()).isEmpty();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void createInstanceWithInvalidNamespacesThrowsException() {
-        RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(),
-                "namespace.that.does.not.match.the.result", TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
