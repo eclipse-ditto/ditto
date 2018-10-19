@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.things.ThingIdValidator;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * This command modifies an attribute.
@@ -69,11 +70,21 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
         super(TYPE, dittoHeaders);
         ThingIdValidator.getInstance().accept(thingId, dittoHeaders);
         this.thingId = thingId;
-        this.attributePointer = checkNotNull(attributePointer, "key of the attribute to be modified");
+        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = checkNotNull(attributeValue, "new attribute");
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> attributeValue.toString().length(), () ->
                 dittoHeaders);
+    }
+
+    private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
+        checkNotNull(pointer, "key of the attribute to be modified");
+        if (pointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(pointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return pointer;
     }
 
     /**
@@ -87,9 +98,13 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@code attributeJsonPointer} is empty.
      */
-    public static ModifyAttribute of(final String thingId, final JsonPointer attributeJsonPointer,
-            final JsonValue newAttributeValue, final DittoHeaders dittoHeaders) {
+    public static ModifyAttribute of(final String thingId,
+            final JsonPointer attributeJsonPointer,
+            final JsonValue newAttributeValue,
+            final DittoHeaders dittoHeaders) {
 
         return new ModifyAttribute(attributeJsonPointer, newAttributeValue, thingId, dittoHeaders);
     }
@@ -106,6 +121,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * format.
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@link #JSON_ATTRIBUTE} contains an empty pointer.
      */
     public static ModifyAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -120,8 +137,10 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
-     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
-     * org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
+     * {@link org.eclipse.ditto.model.things.Thing#ID_REGEX}.
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
+     * {@link #JSON_ATTRIBUTE} contains an empty pointer.
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {
@@ -164,13 +183,13 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/attributes" + attributePointer;
-        return JsonPointer.of(path);
+        return JsonPointer.of("/attributes" + attributePointer);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId, predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
@@ -214,7 +233,7 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyAttribute);
+        return other instanceof ModifyAttribute;
     }
 
     @Override
