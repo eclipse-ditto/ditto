@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -39,8 +40,8 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
 
     private static final long serialVersionUID = -4550508438934221451L;
 
-    private GatewayJwtIssuerNotSupportedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayJwtIssuerNotSupportedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -85,8 +86,9 @@ public final class GatewayJwtIssuerNotSupportedException extends DittoRuntimeExc
         }
 
         @Override
-        protected GatewayJwtIssuerNotSupportedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayJwtIssuerNotSupportedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayJwtIssuerNotSupportedException(dittoHeaders, message, description, cause, href);
         }
     }

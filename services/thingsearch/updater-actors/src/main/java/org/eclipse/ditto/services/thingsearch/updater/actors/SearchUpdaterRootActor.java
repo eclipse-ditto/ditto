@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.services.base.actors.BlockedNamespaceCacheActor;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -22,8 +21,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventT
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
-import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
@@ -34,6 +34,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -70,6 +71,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final int numberOfShards = configReader.cluster().numberOfShards();
 
         final Config config = configReader.getRawConfig();
+        final ActorSystem actorSytem = getContext().getSystem();
 
         final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
                 new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
@@ -87,7 +89,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
         final Duration resetTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET);
         final CircuitBreaker circuitBreaker =
-                new CircuitBreaker(getContext().dispatcher(), getContext().system().scheduler(), maxFailures,
+                new CircuitBreaker(getContext().dispatcher(), actorSytem.scheduler(), maxFailures,
                         scala.concurrent.duration.Duration.create(callTimeout.getSeconds(), TimeUnit.SECONDS),
                         scala.concurrent.duration.Duration.create(resetTimeout.getSeconds(), TimeUnit.SECONDS));
         circuitBreaker.onOpen(() -> log.warning(
@@ -106,17 +108,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
-        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
+        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSytem);
         final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
-        final Cache<String, Object> namespaceCache =
-                BlockedNamespaceCacheActor.newCache(configReader.devops().namespaceBlockTime());
+
+        // TODO: adjust config
+        final DDataConfigReader dDataConfigReader = DDataConfigReader.of(actorSytem);
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(dDataConfigReader, actorSytem);
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME,
                 ThingsUpdater.props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, namespaceCache));
-        startChildActor(BlockedNamespaceCacheActor.ACTOR_NAME,
-                BlockedNamespaceCacheActor.props(namespaceCache, pubSubMediator, configReader.instanceIndex()));
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces));
 
         // start namespace ops actor as cluster singleton
         startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,

@@ -113,7 +113,7 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static PolicyIdMissingException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(null), dittoHeaders);
+        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_CREATE), dittoHeaders);
     }
 
     @Override

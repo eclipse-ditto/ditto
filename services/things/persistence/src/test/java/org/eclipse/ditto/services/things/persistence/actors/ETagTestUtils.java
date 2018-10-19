@@ -59,13 +59,15 @@ public abstract class ETagTestUtils {
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return RetrieveThingResponse.of(expectedThing.getId().get(), expectedJsonRepresentation, dittoHeadersWithETag);
+        return RetrieveThingResponse.of(expectedThing.getId().get(), expectedJsonRepresentation.toString(),
+                dittoHeadersWithETag);
     }
 
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
             final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return RetrieveThingResponse.of(expectedThing.getId().get(), expectedThing, dittoHeadersWithETag);
+        return RetrieveThingResponse.of(expectedThing.getId().get(),
+                expectedThing.toJsonString(dittoHeaders.getSchemaVersion().get()), dittoHeadersWithETag);
     }
 
     public static ModifyThingResponse modifyThingResponse(final Thing currentThing, final Thing modifiedThing,

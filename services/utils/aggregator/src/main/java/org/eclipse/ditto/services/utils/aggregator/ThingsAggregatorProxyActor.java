@@ -10,18 +10,22 @@
  */
 package org.eclipse.ditto.services.utils.aggregator;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
@@ -38,23 +42,19 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
-import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
-import akka.japi.function.Function;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
-import akka.util.Timeout;
 
 /**
  * Acts as a client for {@code org.eclipse.ditto.services.concierge.starter.actors.ThingsAggregatorActor} which responds
@@ -130,10 +130,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(sourceRef ->
-                        handleSourceRef(
-                                (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
+                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
                 );
     }
 
@@ -144,103 +143,167 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 rt.getThingIds().size());
 
         final ActorRef sender = getSender();
-        PatternsCS.ask(targetActor, msgToAsk, Timeout.apply(ASK_TIMEOUT, TimeUnit.SECONDS))
+        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(sourceRef ->
-                        handleSourceRef(
-                                (SourceRef) sourceRef, rt.getThingIds(), rt, sender, actorMaterializer)
+                        handleSourceRef((SourceRef) sourceRef, rt.getThingIds(), rt, sender)
                 );
     }
 
     private void handleSourceRef(final SourceRef sourceRef, final List<String> thingIds,
-            final Command<?> originatingCommand, final ActorRef originatingSender,
-            final ActorMaterializer actorMaterializer) {
-
-        final Comparator<JsonValue> comparator = (t1, t2) -> {
-            final String thingId1 = t1.asObject().getValue(Thing.JsonFields.ID).orElse(null);
-            final String thingId2 = t2.asObject().getValue(Thing.JsonFields.ID).orElse(null);
-            return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
-        };
-
-        final Function<Jsonifiable<?>, List<JsonValue>> firstThingListSupplier;
-        final Function<List<JsonValue>, CommandResponse<?>> overallResponseSupplier;
+            final Command<?> originatingCommand, final ActorRef originatingSender) {
+        final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
+        final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
+        final Function<List<PlainJson>, List<PlainJson>> plainJsonSorter = supplyPlainJsonSorter(thingIds);
 
         if (originatingCommand instanceof SudoRetrieveThings) {
-            firstThingListSupplier = supplyInitialThingListFromSudoRetrieveThingResponse();
-            overallResponseSupplier = supplySudoRetrieveThingsResponse(
-                    originatingCommand.getDittoHeaders()
-            );
+            thingPlainJsonSupplier = supplyPlainJsonFromSudoRetrieveThingResponse();
+            overallResponseSupplier = supplySudoRetrieveThingsResponse(originatingCommand.getDittoHeaders());
         } else {
-            firstThingListSupplier = supplyInitialThingListFromRetrieveThingResponse();
-            overallResponseSupplier = supplyRetrieveThingsResponse(
-                    originatingCommand.getDittoHeaders(),
-                    ((RetrieveThings) originatingCommand).getNamespace().orElse(null)
-            );
+            thingPlainJsonSupplier = supplyPlainJsonFromRetrieveThingResponse();
+            final String namespace = ((RetrieveThings) originatingCommand).getNamespace().orElse(null);
+            overallResponseSupplier = supplyRetrieveThingsResponse(originatingCommand.getDittoHeaders(), namespace);
         }
 
         final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS)
                 .tag("size", Integer.toString(thingIds.size()))
                 .build();
 
-        final CompletionStage<?> o = (CompletionStage<?>) sourceRef.getSource()
-                .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
-                .map(firstThingListSupplier)
-                .log("retrieve-thing-response", log)
-                .recover(new PFBuilder()
-                        .match(NoSuchElementException.class,
-                                nsee -> overallResponseSupplier.apply(Collections.emptyList()))
-                        .build()
-                )
-                .reduce((a, b) -> mergeLists((List<JsonValue>) a, (List<JsonValue>) b, comparator))
-                .map(overallResponseSupplier)
-                .via(stopTimer(timer))
-                .runWith(Sink.last(), actorMaterializer);
+        final CompletionStage<List<PlainJson>> o =
+                (CompletionStage<List<PlainJson>>) sourceRef.getSource()
+                        .orElse(Source.single(ThingNotAccessibleException.newBuilder("").build()))
+                        .filterNot(el -> el instanceof DittoRuntimeException)
+                        .map(param -> thingPlainJsonSupplier.apply((Jsonifiable<?>) param))
+                        .log("retrieve-thing-response", log)
+                        .recover(new PFBuilder()
+                                .match(NoSuchElementException.class,
+                                        nsee -> overallResponseSupplier.apply(Collections.emptyList()))
+                                .build()
+                        )
+                        .runWith(Sink.seq(), actorMaterializer);
 
-        PatternsCS.pipe(o, getContext().dispatcher())
-                .to(originatingSender);
+        final CompletionStage<? extends CommandResponse<?>> commandResponseCompletionStage = o
+                .thenApply(plainJsonSorter)
+                .thenApply(overallResponseSupplier::apply)
+                .thenApply(list -> {
+                    stopTimer(timer);
+                    return list;
+                });
+
+        PatternsCS.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
     }
 
-    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromRetrieveThingResponse() {
-        return retrieveThingResponse -> retrieveThingResponse instanceof RetrieveThingResponse ?
-                Collections.singletonList(((RetrieveThingResponse) retrieveThingResponse)
-                        .getEntity(retrieveThingResponse.getImplementedSchemaVersion())) :
-                Collections.emptyList();
+    private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
+        return jsonifiable -> {
+            if (jsonifiable instanceof RetrieveThingResponse) {
+                final RetrieveThingResponse response = (RetrieveThingResponse) jsonifiable;
+                final String json = response.getEntityPlainString().orElseGet(() ->
+                        response.getEntity(response.getImplementedSchemaVersion()).toString());
+                return PlainJson.of(response.getId(), json);
+            } else {
+                return null;
+            }
+        };
     }
 
-    private Function<Jsonifiable<?>, List<JsonValue>> supplyInitialThingListFromSudoRetrieveThingResponse() {
-        return sudoRetrieveThingResponse -> sudoRetrieveThingResponse instanceof SudoRetrieveThingResponse ?
-                Collections.singletonList(((SudoRetrieveThingResponse) sudoRetrieveThingResponse)
-                        .getEntity(sudoRetrieveThingResponse.getImplementedSchemaVersion())) :
-                Collections.emptyList();
+    private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromSudoRetrieveThingResponse() {
+        return jsonifiable -> {
+            if (jsonifiable instanceof SudoRetrieveThingResponse) {
+                final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
+                final String json = response.getEntityPlainString().orElseGet(() ->
+                        response.getEntity(response.getImplementedSchemaVersion()).toString());
+                return PlainJson.of(response.getId(), json);
+            } else {
+                return null;
+            }
+        };
     }
 
-    private Function<List<JsonValue>, CommandResponse<?>> supplyRetrieveThingsResponse(
+    private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<String> thingIds) {
+        return plainJsonThings -> {
+            final Comparator<PlainJson> comparator = (pj1, pj2) -> {
+                final String thingId1 = pj1.getId();
+                final String thingId2 = pj2.getId();
+                return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
+            };
+
+            final List<PlainJson> sortedList = new ArrayList<>(plainJsonThings);
+            sortedList.sort(comparator);
+            return sortedList;
+        };
+    }
+
+    private Function<List<PlainJson>, CommandResponse<?>> supplyRetrieveThingsResponse(
             final DittoHeaders dittoHeaders,
             @Nullable final String namespace) {
-        return things -> RetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                namespace,
-                dittoHeaders);
+        return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
+                .map(PlainJson::getJson)
+                .collect(Collectors.toList()), namespace, dittoHeaders);
     }
 
-    private Function<List<JsonValue>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
+    private Function<List<PlainJson>, CommandResponse<?>> supplySudoRetrieveThingsResponse(
             final DittoHeaders dittoHeaders) {
-        return things -> SudoRetrieveThingsResponse.of(things.stream().collect(JsonCollectors.valuesToArray()),
-                dittoHeaders);
+        return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
+                .map(PlainJson::getJson)
+                .collect(Collectors.toList()), dittoHeaders);
     }
 
-    private static List<JsonValue> mergeLists(final List<JsonValue> first,
-            final List<JsonValue> second, final Comparator<JsonValue> comparator) {
-
-        final List<JsonValue> arrayList = new ArrayList<>(first);
-        arrayList.addAll(second);
-        arrayList.sort(comparator);
-
-        return arrayList;
+    private static void stopTimer(final StartedTimer timer) {
+        timer.stop(); // stop timer
     }
 
-    private static Flow<CommandResponse<?>, CommandResponse<?>, NotUsed> stopTimer(final StartedTimer timer) {
-        return Flow.fromFunction(foo -> {
-            timer.stop(); // stop timer
-            return foo;
-        });
+    /**
+     * Internal representation of an entity's JSON string.
+     */
+    private static final class PlainJson {
+
+        private final String id;
+        private final String json;
+
+        private PlainJson(final String id, final String json) {
+            this.id = id;
+            this.json = json;
+        }
+
+        static PlainJson of(final String id, final String json) {
+            checkNotNull(id, "ID");
+            checkNotNull(json, "JSON");
+            return new PlainJson(id, json);
+        }
+
+        String getId() {
+            return id;
+        }
+
+        String getJson() {
+            return json;
+        }
+
+        @Override
+        public boolean equals(@Nullable final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final PlainJson plainJson = (PlainJson) o;
+            return Objects.equals(id, plainJson.id) &&
+                    Objects.equals(json, plainJson.json);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, json);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    ", id=" + id +
+                    ", json=" + json +
+                    "]";
+        }
+
     }
+
 }

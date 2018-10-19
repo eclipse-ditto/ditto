@@ -61,8 +61,8 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
      * <ul>
-     *     <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#NAMESPACE} or</li>
-     *     <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE}.</li>
+     * <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#NAMESPACE} or</li>
+     * <li>{@link org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE}.</li>
      * </ul>
      */
     public static BlockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
@@ -76,9 +76,6 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
 
     @Override
     public BlockNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        if (Objects.equals(getDittoHeaders(), dittoHeaders)) {
-            return this;
-        }
         return new BlockNamespaceResponse(getNamespace(), getResourceType(), dittoHeaders);
     }
 

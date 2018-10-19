@@ -204,7 +204,7 @@ paths:
         If no ACL is provided, a default ACL with an entry for the authorized subject with all permissions set to `true` will be created.
 
 
-        Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+        Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
 
         ### Permissions for updating an existing Thing
 
@@ -426,7 +426,7 @@ paths:
               JSON representation of the Access Control List (ACL).
 
 
-              Use the placeholder `${request.subjectId}` in order to let the backend insert the authenticated subjectId of the HTTP request.
+              Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
             required: true
             schema:
               $ref: '#/definitions/Acl'

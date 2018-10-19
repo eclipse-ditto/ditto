@@ -32,8 +32,8 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CaffeineCache;
+import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -47,7 +47,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -78,7 +77,7 @@ public class ThingsUpdaterTest {
     private ActorSystem actorSystem;
     private TestProbe shardMessageReceiver;
     private ShardRegionFactory shardRegionFactory;
-    private Cache<String, Object> namespaceCache;
+    private BlockedNamespaces blockedNamespaces;
 
     @Before
     public void setUp() {
@@ -88,7 +87,7 @@ public class ThingsUpdaterTest {
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
                 ShardRegionFactory.getInstance(actorSystem)
         );
-        namespaceCache = CaffeineCache.of(Caffeine.newBuilder());
+        blockedNamespaces = BlockedNamespaces.of(DDataConfigReader.of(actorSystem), actorSystem);
     }
 
     @After
@@ -155,7 +154,7 @@ public class ThingsUpdaterTest {
     }
 
     @Test
-    public void blockAndAcknowledgeMessagesByNamespace() {
+    public void blockAndAcknowledgeMessagesByNamespace() throws Exception {
         final PolicyEvent notBlockedPolicyEvent =
                 PolicyDeleted.of("not.blocked:policy", 8L, Instant.now(), KNOWN_HEADERS);
         final PolicyEvent blockedPolicyEvent =
@@ -165,7 +164,7 @@ public class ThingsUpdaterTest {
         final ThingTag thingTag = ThingTag.of("blocked:thing3", 11L);
         final PolicyReferenceTag refTag = PolicyReferenceTag.of("blocked:thing4", PolicyTag.of(KNOWN_POLICY_ID, 12L));
 
-        namespaceCache.asMap().put("blocked", "blocked");
+        blockedNamespaces.add("blocked").toCompletableFuture().get();
 
         new TestKit(actorSystem) {{
             when(persistence.getThingIdsForPolicy(anyString())).thenReturn(Source.single(thingIds));
@@ -218,7 +217,7 @@ public class ThingsUpdaterTest {
                 eventProcessingActive,
                 activityCheckInterval,
                 Integer.MAX_VALUE,
-                namespaceCache));
+                blockedNamespaces));
     }
 
     private ThingsSearchUpdaterPersistence waitUntil() {

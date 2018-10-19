@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -67,43 +68,47 @@ public final class RequestTimeoutHandlingDirective {
             final Config config = actorSystem.settings().config();
 
             return extractRequestContext(requestContext ->
-                enhanceLogWithCorrelationId(correlationId, () -> {
+                    enhanceLogWithCorrelationId(correlationId, () -> {
 
-                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
-                    LOGGER.debug("Started mutable timer <{}>", timer);
+                        final StartedTimer timer =
+                                TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
+                        LOGGER.debug("Started mutable timer <{}>", timer);
 
-                    final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
+                        final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
 
-                        final int statusCode = response.status().intValue();
-                        final StoppedTimer stoppedTimer = timer
-                                .tag(TracingTags.STATUS_CODE, statusCode)
-                                .stop();
-                        LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
-                        checkDurationWarning(stoppedTimer);
-                        return response;
-                    }, inner);
+                            final int statusCode = response.status().intValue();
+                            final StoppedTimer stoppedTimer = timer
+                                    .tag(TracingTags.STATUS_CODE, statusCode)
+                                    .stop();
+                            LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
+                            checkDurationWarning(stoppedTimer, correlationId);
+                            return response;
+                        }, inner);
 
-                    return Directives.withRequestTimeoutResponse(request ->
-                                    doHandleRequestTimeout(correlationId, config, requestContext, timer),
-                            innerWithTimer);
-                })
+                        return Directives.withRequestTimeoutResponse(request ->
+                                        doHandleRequestTimeout(correlationId, config, requestContext, timer),
+                                innerWithTimer);
+                    })
             );
         });
     }
 
-    private static void checkDurationWarning(final StoppedTimer mutableTimer) {
+    private static void checkDurationWarning(final StoppedTimer mutableTimer, final String correlationId) {
         final Duration duration = mutableTimer.getDuration();
         final String requestPath = mutableTimer.getTag(TracingTags.REQUEST_PATH);
-        if (requestPath != null && requestPath.contains("/search/things") &&
-                SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.warn("Encountered slow search which took over {}ms: {}ms",
-                    SEARCH_WARN_TIMEOUT_MS.toMillis(),
-                    duration.toMillis());
-        } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
-            LOGGER.warn("Encountered slow HTTP request which took over {}ms: {}ms",
-                    HTTP_WARN_TIMEOUT_MS.toMillis(),
-                    duration.toMillis());
-        }
+
+        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
+            if (requestPath != null && requestPath.contains("/search/things") &&
+                    SEARCH_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+                logger.warn("Encountered slow search which took over {}ms: {}ms",
+                        SEARCH_WARN_TIMEOUT_MS.toMillis(),
+                        duration.toMillis());
+            } else if (HTTP_WARN_TIMEOUT_MS.minus(duration).isNegative()) {
+                logger.warn("Encountered slow HTTP request which took over {}ms: {}ms",
+                        HTTP_WARN_TIMEOUT_MS.toMillis(),
+                        duration.toMillis());
+            }
+        });
     }
 
     private static HttpResponse doHandleRequestTimeout(final String correlationId, final Config config,
@@ -124,18 +129,20 @@ public final class RequestTimeoutHandlingDirective {
         /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
            in case of a timeout */
         final int statusCode = cre.getStatusCode().toInt();
-        final String requestMethod = request.method().name();
-        final String requestUri = request.getUri().toRelative().toString();
-        LOGGER.warn("Request {} '{}' timed out after {}", requestMethod, requestUri, duration);
-        LOGGER.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
-        final String rawRequestUri = getRawRequestUri(request);
-        LOGGER.debug("Raw request URI was: {}", rawRequestUri);
 
-        timer
-                .tag(TracingTags.STATUS_CODE, statusCode)
-                .stop();
+        LogUtil.logWithCorrelationId(LOGGER, correlationId, logger -> {
+            final String requestMethod = request.method().name();
+            final String requestUri = request.getUri().toRelative().toString();
+            logger.warn("Request {} '{}' timed out after {}", requestMethod, requestUri, duration);
+            logger.info("StatusCode of request {} '{}' was: {}", requestMethod, requestUri, statusCode);
+            final String rawRequestUri = getRawRequestUri(request);
+            logger.debug("Raw request URI was: {}", rawRequestUri);
 
-        LOGGER.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            timer.tag(TracingTags.STATUS_CODE, statusCode)
+                    .stop();
+
+            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+        });
 
         /* We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
            called by akka in case of a timeout */

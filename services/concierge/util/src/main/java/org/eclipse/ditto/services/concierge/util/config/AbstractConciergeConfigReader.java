@@ -24,8 +24,13 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
     private static final String PATH_CACHES = "caches";
     private static final String PATH_ENFORCEMENT = "enforcement";
 
+    private static final String PATH_PREFIX_THINGS_AGGREGATOR = "things-aggregator.";
+
     private static final String PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT =
-            "things-aggregator.single-retrieve-thing-timeout";
+            PATH_PREFIX_THINGS_AGGREGATOR + "single-retrieve-thing-timeout";
+
+    private static final String PATH_THINGS_AGGREGATOR_MAX_PARALLELISM =
+            PATH_PREFIX_THINGS_AGGREGATOR + "max-parallelism";
 
 
     protected AbstractConciergeConfigReader(final Config config, final String serviceName) {
@@ -57,6 +62,16 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
      */
     public Duration thingsAggregatorSingleRetrieveThingTimeout() {
         return config.getDuration(PATH_THINGS_AGGREGATOR_SINGLE_RETRIEVE_THING_TIMEOUT);
+    }
+
+    /**
+     * Retrieve the maximum parallelism, that is how many {@code RetrieveThing} commands can be "in flight" at the
+     * same time towards the "things" service.
+     *
+     * @return the maximum parallelism.
+     */
+    public int thingsAggregatorMaxParallelism() {
+        return config.getInt(PATH_THINGS_AGGREGATOR_MAX_PARALLELISM);
     }
 
 }

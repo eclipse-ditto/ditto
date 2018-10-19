@@ -38,6 +38,7 @@ public final class NamespaceCommandRegistry extends AbstractJsonParsableRegistry
     public static NamespaceCommandRegistry getInstance() {
         final Map<String, JsonParsable<NamespaceCommand>> parseStrategies = new HashMap<>();
         parseStrategies.put(BlockNamespace.TYPE, BlockNamespace::fromJson);
+        parseStrategies.put(UnblockNamespace.TYPE, UnblockNamespace::fromJson);
         parseStrategies.put(PurgeNamespace.TYPE, PurgeNamespace::fromJson);
         parseStrategies.put(QueryNamespaceEmptiness.TYPE, QueryNamespaceEmptiness::fromJson);
 

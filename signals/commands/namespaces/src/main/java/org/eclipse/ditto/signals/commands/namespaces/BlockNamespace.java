@@ -10,8 +10,6 @@
  */
 package org.eclipse.ditto.signals.commands.namespaces;
 
-import java.util.Objects;
-
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
@@ -65,7 +63,7 @@ public final class BlockNamespace extends AbstractNamespaceCommand<BlockNamespac
      * format.
      */
     public static BlockNamespace fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer <BlockNamespace>(TYPE, jsonObject).deserialize(() -> {
+        return new CommandJsonDeserializer<BlockNamespace>(TYPE, jsonObject).deserialize(() -> {
             final String namespace = jsonObject.getValueOrThrow(NamespaceCommand.JsonFields.NAMESPACE);
             return new BlockNamespace(namespace, dittoHeaders);
         });
@@ -73,9 +71,6 @@ public final class BlockNamespace extends AbstractNamespaceCommand<BlockNamespac
 
     @Override
     public BlockNamespace setDittoHeaders(final DittoHeaders dittoHeaders) {
-        if (Objects.equals(getDittoHeaders(), dittoHeaders)) {
-            return this;
-        }
         return new BlockNamespace(getNamespace(), dittoHeaders);
     }
 

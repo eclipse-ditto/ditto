@@ -113,7 +113,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      */
     public static ThingNotCreatableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(null), dittoHeaders);
+        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
     }
 
     /**

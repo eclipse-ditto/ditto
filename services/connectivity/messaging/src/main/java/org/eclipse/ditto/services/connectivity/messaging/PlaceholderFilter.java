@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,6 +33,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.Placeholders;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
@@ -42,19 +45,20 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
  */
 public final class PlaceholderFilter {
 
-    private static final String PLACEHOLDER_START = "{{";
-    private static final String PLACEHOLDER_END = "}}";
-    private static final String PLACEHOLDER_REGEX =
-            Pattern.quote(PLACEHOLDER_START) + " *((?:\\w|[-_])+):((?:\\w|[-_])+) *" + Pattern.quote(PLACEHOLDER_END);
-    private static final Pattern PATTERN = Pattern.compile(PLACEHOLDER_REGEX);
     private static final Pattern THING_ID_PATTERN = Pattern.compile(Thing.ID_REGEX);
+    private static final String SEPARATOR = ":";
+    private static final Function<String, DittoRuntimeException> UNRESOLVED_INPUT_HANDLER = unresolvedInput ->
+            UnresolvedPlaceholderException.newBuilder()
+                    .message("At least one placeholder could not be resolved for the input: '" +
+                            unresolvedInput + "'")
+                    .build();
 
     AuthorizationContext filterAuthorizationContext(final AuthorizationContext authorizationContext,
             final Map<String, String> headers) {
 
         // check if we have to replace anything at all
         if (authorizationContext.stream()
-                .noneMatch(authorizationSubject -> containsPlaceholder(authorizationSubject.getId()))) {
+                .noneMatch(authorizationSubject -> Placeholders.containsAnyPlaceholder(authorizationSubject.getId()))) {
             return authorizationContext;
         }
 
@@ -70,7 +74,7 @@ public final class PlaceholderFilter {
     Set<Target> filterTargets(final Set<Target> targets, final String thingId,
             final Consumer<String> unresolvedPlaceholderListener) {
         // check if we have to replace anything at all
-        if (targets.stream().map(Target::getAddress).noneMatch(PlaceholderFilter::containsPlaceholder)) {
+        if (targets.stream().map(Target::getAddress).noneMatch(Placeholders::containsAnyPlaceholder)) {
             return targets;
         }
 
@@ -89,7 +93,7 @@ public final class PlaceholderFilter {
             final Consumer<String> unresolvedPlaceholderListener) {
 
         // check if we have to replace anything at all
-        if (addresses.stream().noneMatch(PlaceholderFilter::containsPlaceholder)) {
+        if (addresses.stream().noneMatch(Placeholders::containsAnyPlaceholder)) {
             return addresses;
         }
 
@@ -130,37 +134,28 @@ public final class PlaceholderFilter {
         }
     }
 
-    String apply(final String source, final Placeholder requiredPlaceHolder,
+    String apply(final String input, final Placeholder requiredPlaceHolder,
             final Placeholder... optionalPlaceholders) {
         final List<Placeholder> placeholders = new ArrayList<>(optionalPlaceholders.length + 1);
         placeholders.add(requiredPlaceHolder);
         placeholders.addAll(Arrays.asList(optionalPlaceholders));
-        final Matcher matcher = PATTERN.matcher(source);
-        final StringBuffer sb = new StringBuffer();
-        while (matcher.find()) {
-            final String prefix = matcher.group(1);
-            final String placeholder = matcher.group(2);
-            placeholders.stream()
-                    .filter(p -> p.getPrefix().equals(prefix))
-                    .filter(p -> p.supports(placeholder))
-                    .map(p -> p.apply(placeholder))
-                    .map(o -> o.orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(matcher.group()).build()))
-                    .filter(replacement -> !PATTERN.matcher(replacement).matches())
-                    .forEach(replacement -> matcher.appendReplacement(sb, replacement));
-        }
-        matcher.appendTail(sb);
-        return checkAllPlaceholdersResolved(sb.toString());
-    }
 
-    private static String checkAllPlaceholdersResolved(final String s) {
-        if (containsPlaceholder(s)) {
-            throw UnresolvedPlaceholderException.newBuilder().message(s).build();
-        }
-        return s;
-    }
+        final Function<String, String> placeholderReplacerFunction = placeholder -> {
+            final int separatorIndex = placeholder.indexOf(SEPARATOR);
+            if (separatorIndex == -1) {
+                throw UnresolvedPlaceholderException.newBuilder(placeholder).build();
+            }
+            final String prefix = placeholder.substring(0, separatorIndex);
+            final String placeholderWithoutSuffix = placeholder.substring(separatorIndex + 1);
 
-    private static boolean containsPlaceholder(final String value) {
-        return value.contains(PLACEHOLDER_START) || value.contains(PLACEHOLDER_END);
+            return placeholders.stream()
+                    .filter(p -> p.getPrefix().equals(prefix) && p.supports(placeholderWithoutSuffix))
+                    .findAny()
+                    .flatMap(p -> p.apply(placeholderWithoutSuffix))
+                    .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(placeholder).build());
+        };
+
+        return Placeholders.substitute(input, placeholderReplacerFunction, UNRESOLVED_INPUT_HANDLER);
     }
 
     /**

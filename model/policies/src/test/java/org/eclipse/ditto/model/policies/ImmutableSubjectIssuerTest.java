@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.model.policies;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -32,6 +34,30 @@ public final class ImmutableSubjectIssuerTest {
         EqualsVerifier.forClass(ImmutableSubjectIssuer.class)
                 .usingGetClass()
                 .verify();
+    }
+
+    @Test
+    public void createSubjectIssuerWithNonEmptySubjectIssuerValue() {
+        final String nonEmpty = "my-issuer";
+
+        final SubjectIssuer emptySubjectIssuer = ImmutableSubjectIssuer.of(nonEmpty);
+
+        assertThat(emptySubjectIssuer.toString()).isEqualTo(nonEmpty);
+    }
+
+    @Test
+    public void createSubjectIssuerWithNullSubjectIssuerValueFails() {
+        assertThatExceptionOfType(NullPointerException.class)
+                .isThrownBy(() -> ImmutableSubjectIssuer.of(null));
+    }
+
+    @Test
+    public void createSubjectIssuerWithEmptySubjectIssuerValue() {
+        final String empty = "";
+
+        final SubjectIssuer emptySubjectIssuer = ImmutableSubjectIssuer.of(empty);
+
+        assertThat(emptySubjectIssuer.toString()).isEqualTo(empty);
     }
 
 }

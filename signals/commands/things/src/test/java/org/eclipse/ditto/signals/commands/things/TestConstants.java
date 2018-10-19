@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotModifiableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
@@ -331,6 +332,12 @@ public final class TestConstants {
          */
         public static final AttributeNotModifiableException ATTRIBUTE_NOT_MODIFIABLE_EXCEPTION =
                 AttributeNotModifiableException.newBuilder(THING_ID, LOCATION_ATTRIBUTE_POINTER).build();
+
+        /**
+         * A known {@code AttributePointerInvalidException}.
+         */
+        public static final AttributePointerInvalidException ATTRIBUTE_POINTER_INVALID_EXCEPTION =
+                AttributePointerInvalidException.newBuilder(LOCATION_ATTRIBUTE_POINTER).build();
 
         /**
          * A known {@code ThingUnavailableException}.

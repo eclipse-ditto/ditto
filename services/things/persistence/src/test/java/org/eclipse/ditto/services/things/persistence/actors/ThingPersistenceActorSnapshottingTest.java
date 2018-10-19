@@ -85,7 +85,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
     private static final boolean DEFAULT_TEST_SNAPSHOT_DELETE_OLD = true;
     private static final boolean DEFAULT_TEST_EVENTS_DELETE_OLD = true;
     private static final Duration VERY_LONG_DURATION = Duration.ofDays(100);
-    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 3000;
+    private static final int PERSISTENCE_ASSERT_WAIT_AT_MOST_MS = 5000;
     private static final long PERSISTENCE_ASSERT_RETRY_DELAY_MS = 500;
 
     private static final JsonFieldSelector FIELD_SELECTOR = JsonFactory.newFieldSelector(Thing.JsonFields.ATTRIBUTES,

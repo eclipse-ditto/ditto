@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.base.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -37,8 +38,8 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = -4940757644888672775L;
 
-    private GatewayMethodNotAllowedException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private GatewayMethodNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.METHOD_NOT_ALLOWED, dittoHeaders, message, description, cause, href);
     }
 
@@ -83,8 +84,9 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
         }
 
         @Override
-        protected GatewayMethodNotAllowedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected GatewayMethodNotAllowedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new GatewayMethodNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }

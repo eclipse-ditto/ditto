@@ -91,7 +91,7 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      */
     public static PolicyInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String message = readMessage(jsonObject);
-        final String description = readDescription(jsonObject).orElse(null);
+        final String description = readDescription(jsonObject).orElse(DESCRIPTION_TEMPLATE);
 
         return new Builder()
                 .message(message)
