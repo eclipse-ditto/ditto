@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -200,6 +201,47 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                         .withResizer(resizer)
                         .props(messageMappingProcessorProps),
                 MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+    }
+
+    @Test
+    public void jmsMessageWithNullPropertyAndNullContentTypeTest() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final ActorRef testActor = getTestActor();
+            final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(null);
+
+            final Props messageMappingProcessorProps =
+                    MessageMappingProcessorActor.props(testActor, testActor, mappingProcessor, CONNECTION_ID);
+
+            final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
+                    MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
+
+            final ActorRef underTest = actorSystem.actorOf(
+                    AmqpConsumerActor.props("foo123", Mockito.mock(MessageConsumer.class), processor,
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
+
+            final String correlationId = "cor-";
+            final String plainPayload =
+                    "{ \"topic\": \"com.bosch.test/testThing/things/twin/commands/modify\"," +
+                            " \"headers\":{\"device_id\":\"com.bosch.test:testThing\"}," +
+                            " \"path\": \"/features/point/properties/x\", \"value\": 42 }";
+
+            final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
+            messageFacade.setApplicationProperty("JMSXDeliveryCount", null);
+            messageFacade.setText(plainPayload);
+            messageFacade.setContentType(null);
+            messageFacade.setCorrelationId(correlationId);
+            final JmsMessage jmsMessage = messageFacade.asJmsMessage();
+            underTest.tell(jmsMessage, null);
+
+            final Command command = expectMsgClass(Command.class);
+            assertThat(command.getType()).isEqualTo(ModifyFeatureProperty.TYPE);
+            assertThat(command.getDittoHeaders().getCorrelationId()).contains(correlationId);
+            assertThat(command.getDittoHeaders().getContentType()).isEmpty();
+            assertThat(command.getDittoHeaders().get("JMSXDeliveryCount")).isNull();
+            assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
+            assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
+        }};
     }
 
     private MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
