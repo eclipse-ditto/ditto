@@ -45,22 +45,22 @@ import akka.actor.Props;
 public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
 
     @Override
-    protected String serviceName() {
+    protected String getServiceName() {
         return "policies";
     }
 
     @Override
-    protected String resourceType() {
+    protected String getResourceType() {
         return PolicyCommand.RESOURCE_TYPE;
     }
 
     @Override
-    protected List<String> supportedPrefixes() {
+    protected List<String> getSupportedPrefixes() {
         return Collections.singletonList(PolicyCommand.RESOURCE_TYPE);
     }
 
     @Override
-    protected Object createEntity(final String id) {
+    protected Object getCreateEntityCommand(final String id) {
         final Policy policy = Policy.newBuilder(id)
                 .forLabel("DUMMY")
                 .setSubject("ditto:random-subject", SubjectType.GENERATED)
@@ -71,22 +71,22 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
     }
 
     @Override
-    protected Class<?> createEntityResponseClass() {
+    protected Class<?> getCreateEntityResponseClass() {
         return CreatePolicyResponse.class;
     }
 
     @Override
-    protected Object retrieveEntity(final String id) {
+    protected Object getRetrieveEntityCommand(final String id) {
         return RetrievePolicy.of(id, DittoHeaders.empty());
     }
 
     @Override
-    protected Class<?> retrieveEntityResponseClass() {
+    protected Class<?> getRetrieveEntityResponseClass() {
         return RetrievePolicyResponse.class;
     }
 
     @Override
-    protected Class<?> entityNotAccessibleClass() {
+    protected Class<?> getEntityNotAccessibleClass() {
         return PolicyNotAccessibleException.class;
     }
 
@@ -110,4 +110,5 @@ public final class PolicyNamespaceOpsActorIT extends EventSourceNamespaceOpsActo
 
         return system.actorOf(props, id);
     }
+
 }

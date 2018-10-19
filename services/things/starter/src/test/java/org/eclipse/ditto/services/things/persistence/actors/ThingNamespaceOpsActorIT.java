@@ -38,43 +38,43 @@ import akka.actor.Props;
 public final class ThingNamespaceOpsActorIT extends EventSourceNamespaceOpsActorTestCases {
 
     @Override
-    protected String serviceName() {
+    protected String getServiceName() {
         return "things";
     }
 
     @Override
-    protected String resourceType() {
+    protected String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
     }
 
     @Override
-    protected List<String> supportedPrefixes() {
+    protected List<String> getSupportedPrefixes() {
         return Collections.singletonList(ThingCommand.RESOURCE_TYPE);
     }
 
     @Override
-    protected Object createEntity(final String id) {
+    protected Object getCreateEntityCommand(final String id) {
         final DittoHeaders headers = DittoHeaders.empty();
         return CreateThing.of(Thing.newBuilder().setId(id).setPolicyId(id).build(), null, headers);
     }
 
     @Override
-    protected Class<?> createEntityResponseClass() {
+    protected Class<?> getCreateEntityResponseClass() {
         return CreateThingResponse.class;
     }
 
     @Override
-    protected Object retrieveEntity(final String id) {
+    protected Object getRetrieveEntityCommand(final String id) {
         return RetrieveThing.of(id, DittoHeaders.empty());
     }
 
     @Override
-    protected Class<?> retrieveEntityResponseClass() {
+    protected Class<?> getRetrieveEntityResponseClass() {
         return RetrieveThingResponse.class;
     }
 
     @Override
-    protected Class<?> entityNotAccessibleClass() {
+    protected Class<?> getEntityNotAccessibleClass() {
         return ThingNotAccessibleException.class;
     }
 
