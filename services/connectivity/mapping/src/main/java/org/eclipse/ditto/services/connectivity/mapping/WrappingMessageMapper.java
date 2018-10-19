@@ -19,11 +19,11 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
 import com.typesafe.config.Config;
 
@@ -73,7 +73,7 @@ final class WrappingMessageMapper implements MessageMapper {
         if (!message.getHeaders().containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
             // if no correlation-id was provided in the ExternalMessage, generate one here:
             correlationId = UUID.randomUUID().toString();
-            enhancedMessage = ConnectivityModelFactory.newExternalMessageBuilder(message)
+            enhancedMessage = ExternalMessageFactory.newExternalMessageBuilder(message)
                     .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                             correlationId)
                     .build();
@@ -107,7 +107,7 @@ final class WrappingMessageMapper implements MessageMapper {
         final Optional<ExternalMessage> mappedOpt = delegate.map(adaptable);
 
         return mappedOpt.map(mapped -> {
-            final ExternalMessageBuilder messageBuilder = ConnectivityModelFactory.newExternalMessageBuilder(mapped);
+            final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
             messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
             adaptable.getHeaders()
                     .map(h -> h.get(ExternalMessage.REPLY_TO_HEADER))

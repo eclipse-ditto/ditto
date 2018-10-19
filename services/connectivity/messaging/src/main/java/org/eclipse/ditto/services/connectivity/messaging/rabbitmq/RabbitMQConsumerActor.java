@@ -27,14 +27,21 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import com.rabbitmq.client.BasicProperties;
@@ -69,16 +76,20 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     private final String sourceAddress;
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext authorizationContext;
+    private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     @Nullable private AddressMetric addressMetric = null;
 
     private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext) {
+    AuthorizationContext authorizationContext, @Nullable Enforcement enforcement) {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = authorizationContext;
+        headerEnforcementFilterFactory =
+                enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
+                PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 
     /**
@@ -87,17 +98,19 @@ public final class RabbitMQConsumerActor extends AbstractActor {
      * @param source the source of messages
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @param authorizationContext the authorization context of this source
+     * @param enforcement the enforcement configuration
      * @return the Akka configuration Props object.
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext) {
+    AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
                     public RabbitMQConsumerActor create() {
-                        return new RabbitMQConsumerActor(source, messageMappingProcessor, authorizationContext);
+                        return new RabbitMQConsumerActor(source, messageMappingProcessor, authorizationContext,
+                                enforcement);
                     }
                 });
     }
@@ -137,11 +150,12 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                     new String(body, StandardCharsets.UTF_8));
         }
 
+        Map<String, String> headers = null;
         try {
-            final Map<String, String> headers = extractHeadersFromMessage(properties, envelope);
+            headers = extractHeadersFromMessage(properties, envelope);
             headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder externalMessageBuilder =
-                    ConnectivityModelFactory.newExternalMessageBuilder(headers);
+                    ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
             if (shouldBeInterpretedAsText(contentType)) {
                 final String text = new String(body, MessageMappers.determineCharset(contentType));
@@ -150,8 +164,15 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                 externalMessageBuilder.withBytes(body);
             }
             externalMessageBuilder.withAuthorizationContext(authorizationContext);
+            externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             messageMappingProcessor.forward(externalMessage, getContext());
+        } catch (final DittoRuntimeException e) {
+            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
+            if (headers != null) {
+                // send response if headers were extracted successfully
+                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+            }
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage(), e);
         }

@@ -14,11 +14,11 @@ import java.util.Optional;
 
 import javax.annotation.Nonnull;
 
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 import com.typesafe.config.Config;
 

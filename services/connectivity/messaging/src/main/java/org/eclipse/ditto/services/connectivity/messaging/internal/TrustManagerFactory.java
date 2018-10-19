@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal;
 
@@ -32,12 +32,9 @@ import javax.annotation.Nullable;
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.TrustManager;
 
-public class TrustManagerFactory {
+final class TrustManagerFactory {
 
     private static final String PKIX = "PKIX";
-    private static final String TLS12 = "TLSv1.2";
-    private static final String PRIVATE_KEY_LABEL = "PRIVATE KEY";
-    private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private static final KeyStore DEFAULT_CA_KEYSTORE = loadDefaultCAKeystore();
 
     private static final CertificateFactory X509_CERTIFICATE_FACTORY;

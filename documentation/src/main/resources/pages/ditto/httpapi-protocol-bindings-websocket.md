@@ -163,10 +163,10 @@ following parameters can additionally be provided when sending the WebSocket pro
 
 | Description | Request message | Filter by namespaces | Filter by RQL expression |
 |-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | yes | yes |
-| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | yes | |
-| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | yes |  |
-| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | yes | yes |
+| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; | &#10004; |
+| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; | &#10060; |
+| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; | &#10060; |
+| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; | &#10004; |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
 with `&`.  You have to URL encode the filter values before using them in a configuration.

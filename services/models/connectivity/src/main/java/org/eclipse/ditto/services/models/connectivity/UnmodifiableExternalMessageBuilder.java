@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Mutable builder for building new instances of ExternalMessage.
@@ -32,7 +33,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private String textPayload;
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
-    @Nullable private ThingIdEnforcement thingIdEnforcement;
+    @Nullable private EnforcementFilter<String> enforcementFilter;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -47,7 +48,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.response = message.isResponse();
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
-        this.thingIdEnforcement = message.getThingIdEnforcement().orElse(null);
+        this.enforcementFilter = message.getEnforcementFilter().orElse(null);
     }
 
     /**
@@ -110,8 +111,9 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
-    public ExternalMessageBuilder withThingIdEnforcement(@Nullable final ThingIdEnforcement thingIdEnforcement) {
-        this.thingIdEnforcement = thingIdEnforcement;
+    public <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(
+            @Nullable final F enforcementFilter) {
+        this.enforcementFilter = enforcementFilter;
         return this;
     }
 
@@ -130,7 +132,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, thingIdEnforcement);
+                authorizationContext, enforcementFilter);
     }
 
 }

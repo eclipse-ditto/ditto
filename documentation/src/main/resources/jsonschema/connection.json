@@ -135,6 +135,34 @@
                 "device:{{ header:device-id }}"
               ]
             }
+          },
+          "enforcement": {
+            "$id": "/properties/sources/items/properties/enforcement",
+            "type": "object",
+            "title": "Enforcement configuration",
+            "description": "Configuration of enforcement for this source",
+            "properties": {
+              "input": {
+                "$id": "/properties/sources/items/properties/enforcement/input",
+                "type": "string",
+                "title": "Input value of enforcement",
+                "description": "The input value of the enforcement that should identify the origin of the message (e.g. a device id). Placeholders can be used within this field depending on the connection type. E.g. for AMQP 1.0 connections you can use `{{ header:[any-header-name] }}` to resolve the value from a message header.",
+                "examples": ["{{ header:device_id }}", "{{ source:address }}"]
+              },
+              "filters": {
+                "$id": "/properties/sources/items/properties/enforcement/filters",
+                "type": "array",
+                "uniqueItems": true,
+                "title": "Array of enforcement filters",
+                "description": "An array of filters. One of the defined filters must match the input value from the message otherwise the message is rejected.",
+                "items": {
+                  "$id": "/properties/sources/items/enforcement/filters/items",
+                  "type": "string",
+                  "title": "Enforcement filter string",
+                  "description": "A filter that must match the input value for a message to be accepted. You can use the placeholders `{{ thing:id }}`, `{{ thing:name }}` or `{{ thing:namespace }}` in a filter."
+                }
+              }
+            }
           }
         }
       }

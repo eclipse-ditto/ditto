@@ -25,8 +25,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -34,6 +32,8 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -274,7 +274,7 @@ public class JavaScriptMessageMapperRhinoTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put(HEADER_CORRELATION_ID, correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
-        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withText(MAPPING_INCOMING_PAYLOAD_STRING)
                 .build();
 
@@ -327,7 +327,7 @@ public class JavaScriptMessageMapperRhinoTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put(HEADER_CORRELATION_ID, correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
-        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .build();
 
 
@@ -366,7 +366,7 @@ public class JavaScriptMessageMapperRhinoTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put(HEADER_CORRELATION_ID, correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_BINARY);
-        final ExternalMessage message = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withBytes(MAPPING_INCOMING_PAYLOAD_BYTES)
                 .build();
 

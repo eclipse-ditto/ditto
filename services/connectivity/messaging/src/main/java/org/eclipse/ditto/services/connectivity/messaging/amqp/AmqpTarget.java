@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
@@ -16,12 +16,13 @@ import javax.jms.Destination;
 
 import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsTopic;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 
 /**
  * An {@link AmqpTarget} holds a JMS {@link Destination}.
  */
-public class AmqpTarget implements PublishTarget {
+public final class AmqpTarget implements PublishTarget {
 
     private static final String TOPIC_PREFIX = "topic://";
     private static final String QUEUE_PREFIX = "queue://";
@@ -31,6 +32,7 @@ public class AmqpTarget implements PublishTarget {
     private AmqpTarget(final Destination jmsDestination) {this.jmsDestination = jmsDestination;}
 
     static AmqpTarget fromTargetAddress(final String targetAddress) {
+        ConditionChecker.argumentNotEmpty(targetAddress, "targetAddress");
         final Destination destination;
         if (targetAddress.startsWith(TOPIC_PREFIX)) {
             destination = new JmsTopic(targetAddress.replace(TOPIC_PREFIX, EMPTY_STRING));
@@ -56,7 +58,6 @@ public class AmqpTarget implements PublishTarget {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(jmsDestination);
     }
 
