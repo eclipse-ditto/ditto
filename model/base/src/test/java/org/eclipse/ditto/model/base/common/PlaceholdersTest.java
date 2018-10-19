@@ -17,8 +17,10 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,11 +32,12 @@ public class PlaceholdersTest {
 
     private static final String REPLACER_KEY_1 = "my:arbitrary:replacer1";
     private static final String REPLACER_1 = "{{ " + REPLACER_KEY_1 + " }}";
-    private static final String LEGACY_REPLACER_1 = "${my.arbitrary.replacer1}";
+    private static final String LEGACY_REPLACER_KEY = "request.subjectId";
+    private static final String LEGACY_REPLACER = "${" + LEGACY_REPLACER_KEY + "}";
+    private static final String LEGACY_REPLACED = "some:subject";
     private static final String REPLACED_1 = "firstReplaced";
     private static final String REPLACER_KEY_2 = "my:arbitrary:replacer2";
     private static final String REPLACER_2 = "{{ " + REPLACER_KEY_2 + " }}";
-    private static final String LEGACY_REPLACER_2 = "${my.arbitrary.replacer2}";
     private static final String REPLACED_2 = "secondReplaced";
 
     private static final String UNKNOWN_REPLACER_KEY = "unknown:unknown";
@@ -42,7 +45,7 @@ public class PlaceholdersTest {
     private static final String UNKNOWN_LEGACY_REPLACER_KEY = "unknown.unknown";
     private static final String UNKNOWN_LEGACY_REPLACER = "${" + UNKNOWN_LEGACY_REPLACER_KEY + "}";
 
-    private Function<String, String> replacerFunction;
+    private Function<String, Optional<String>> replacerFunction;
     private Function<String, DittoRuntimeException> unresolvedInputHandler;
 
     @Before
@@ -50,7 +53,8 @@ public class PlaceholdersTest {
         final Map<String, String> replacementDefinitions = new LinkedHashMap<>();
         replacementDefinitions.put(REPLACER_KEY_1, REPLACED_1);
         replacementDefinitions.put(REPLACER_KEY_2, REPLACED_2);
-        replacerFunction = replacementDefinitions::get;
+        replacementDefinitions.put(LEGACY_REPLACER_KEY, LEGACY_REPLACED);
+        replacerFunction = input -> Optional.ofNullable(replacementDefinitions.get(input));
         unresolvedInputHandler = unresolvedInput ->
                 DittoRuntimeException.newBuilder("test", HttpStatusCode.BAD_REQUEST)
                         .message(unresolvedInput)
@@ -144,33 +148,38 @@ public class PlaceholdersTest {
     @Test
     public void substituteReturnsReplacedWhenInputContainsOnlyLegacyPlaceholder() {
         final String substituted =
-                Placeholders.substitute(LEGACY_REPLACER_1, replacerFunction, unresolvedInputHandler);
+                Placeholders.substitute(LEGACY_REPLACER, replacerFunction, unresolvedInputHandler);
 
-        assertThat(substituted).isEqualTo(REPLACED_1);
+        assertThat(substituted).isEqualTo(LEGACY_REPLACED);
     }
 
     @Test
     public void substituteReturnsReplacedInputWhenInputContainsBothNewAndLegacyPlaceholders() {
-        final String input = "a" + REPLACER_1 + "b" + LEGACY_REPLACER_2 + "c";
+        final String input = "a" + REPLACER_1 + "b" + LEGACY_REPLACER + "c";
 
         final String substituted = Placeholders.substitute(input, replacerFunction, unresolvedInputHandler);
 
-        final String expectedOutput = "a" + REPLACED_1 + "b" + REPLACED_2 + "c";
+        final String expectedOutput = "a" + REPLACED_1 + "b" + LEGACY_REPLACED + "c";
         assertThat(substituted).isEqualTo(expectedOutput);
     }
 
     @Test
     public void substituteThrowsWhenReplacerFunctionReturnsNullForPlaceholder() {
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_REPLACER, (placeholder) -> null,
-                        unresolvedInputHandler));
+        assertThatExceptionOfType(DittoRuntimeException.class)
+                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_REPLACER, (placeholder) -> Optional.empty(),
+                        unresolvedInputHandler))
+                .withMessage(UNKNOWN_REPLACER)
+                .matches(e -> "test".equals(e.getErrorCode()));
     }
 
     @Test
-    public void substituteThrowsWhenReplacerFunctionReturnsNullForLegacyPlaceholder() {
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, (placeholder) -> null,
-                        unresolvedInputHandler));
+    public void substituteThrowsForUnknownLegacyPlaceholder() {
+        assertThatExceptionOfType(DittoRuntimeException.class)
+                .isThrownBy(() -> Placeholders.substitute(UNKNOWN_LEGACY_REPLACER, (placeholder) -> Optional.empty(),
+                        unresolvedInputHandler))
+                .withMessage(UNKNOWN_LEGACY_REPLACER)
+                .matches(e -> "test".equals(e.getErrorCode()));
+
     }
 
     @Test
@@ -178,21 +187,8 @@ public class PlaceholdersTest {
         final String nestedPlaceholder = "{{ " + REPLACER_1 + " }}";
 
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(nestedPlaceholder);
-
-        final String onlyStart = "a {{ b";
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(onlyStart, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(onlyStart);
-
-        final String onlyEnd = "a }} b";
-        assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> Placeholders.substitute(onlyEnd, replacerFunction,
-                        unresolvedInputHandler))
-                .withMessageContaining(onlyEnd);
+                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, replacerFunction, unresolvedInputHandler))
+                .withMessageContaining("{{ " + REPLACED_1 + " }}");
     }
 
     /**
@@ -201,11 +197,12 @@ public class PlaceholdersTest {
      */
     @Test
     public void substituteThrowsWhenInputContainsNestedLegacyPlaceholder() {
-        final String nestedPlaceholder = "${" + LEGACY_REPLACER_1 + "}";
+        final String nestedPlaceholder = "${" + LEGACY_REPLACER + "}";
 
-        assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, (placeholder) -> null,
-                        unresolvedInputHandler));
+        assertThatExceptionOfType(DittoRuntimeException.class)
+                .isThrownBy(() -> Placeholders.substitute(nestedPlaceholder, (placeholder) -> Optional.empty(),
+                        unresolvedInputHandler))
+                .withMessage(nestedPlaceholder);
     }
 
     @Test
@@ -219,7 +216,7 @@ public class PlaceholdersTest {
 
     @Test
     public void containsReturnsTrueWhenInputContainsLegacyPlaceholder() {
-        final String input = "a" + LEGACY_REPLACER_1 + "z";
+        final String input = "a" + LEGACY_REPLACER + "z";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
@@ -228,7 +225,7 @@ public class PlaceholdersTest {
 
     @Test
     public void containsReturnsTrueWhenInputContainsBothNewAndLegacyPlaceholders() {
-        final String input = "a" + REPLACER_1 + "b" + LEGACY_REPLACER_2 + "c";
+        final String input = "a" + REPLACER_1 + "b" + LEGACY_REPLACER + "c";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
@@ -236,21 +233,21 @@ public class PlaceholdersTest {
     }
 
     @Test
-    public void containsReturnsTrueWhenInputContainsPlaceholderStartOnly() {
+    public void containsReturnsFalseWhenInputContainsPlaceholderStartOnly() {
         final String input = "a{{z";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
-        assertThat(contains).isTrue();
+        assertThat(contains).isFalse();
     }
 
     @Test
-    public void containsReturnsTrueWhenInputContainsPlaceholderEndOnly() {
+    public void containsReturnsFalseWhenInputContainsPlaceholderEndOnly() {
         final String input = "a}}z";
 
         final boolean contains = Placeholders.containsAnyPlaceholder(input);
 
-        assertThat(contains).isTrue();
+        assertThat(contains).isFalse();
     }
 
     @Test

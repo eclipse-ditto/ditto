@@ -15,11 +15,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
@@ -84,7 +84,7 @@ public class Test4ConstructJsonPayloadToDitto implements MapToDittoProtocolScena
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE);
-        externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+        externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .build();
     }
 

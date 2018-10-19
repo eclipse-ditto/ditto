@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -38,11 +39,13 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Response to a {@link SudoRetrieveThings} command.
  */
 @Immutable
+@AllValuesAreNonnullByDefault
 public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<SudoRetrieveThingsResponse> implements
         SudoCommandResponse<SudoRetrieveThingsResponse> {
 
@@ -60,12 +63,44 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
             JsonFactory.newJsonArrayFieldDefinition("payload/things", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final JsonArray things;
+    static final JsonFieldDefinition<String> JSON_THINGS_PLAIN_JSON =
+            JsonFactory.newStringFieldDefinition("payload/thingsPlainJson", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
 
-    private SudoRetrieveThingsResponse(final HttpStatusCode statusCode, final JsonArray things,
-            final DittoHeaders dittoHeaders) {
+    private final String thingsPlainJson;
+
+    @Nullable private JsonArray things;
+
+    private SudoRetrieveThingsResponse(final HttpStatusCode statusCode, @Nullable final JsonArray things,
+            final String thingsPlainJson, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
-        this.things = checkNotNull(things, "Things");
+        this.thingsPlainJson = checkNotNull(thingsPlainJson, "Things plain JSON");
+        this.things = things;
+    }
+
+    /**
+     * Creates a new instance of {@code SudoRetrieveThingsResponse}.
+     *
+     * @param thingsPlainJson the retrieved Things.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SudoRetrieveThingsResponse of(final String thingsPlainJson, final DittoHeaders dittoHeaders) {
+        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link SudoRetrieveThingsResponse} command.
+     *
+     * @param thingsPlainJson the retrieved Things.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static SudoRetrieveThingsResponse of(final List<String> thingsPlainJson, final DittoHeaders dittoHeaders) {
+        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson.stream()
+                .collect(Collectors.joining(",", "[", "]")), dittoHeaders);
     }
 
     /**
@@ -77,7 +112,7 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoRetrieveThingsResponse of(final JsonArray things, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, things, dittoHeaders);
+        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, things, things.toString(), dittoHeaders);
     }
 
     /**
@@ -91,12 +126,11 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      */
     public static SudoRetrieveThingsResponse of(final List<Thing> things, final Predicate<JsonField> predicate,
             final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingsResponse(HttpStatusCode.OK,
-                checkNotNull(things, "Things").stream() //
-                        .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
-                                predicate)) //
-                        .collect(JsonCollectors.valuesToArray()),
-                dittoHeaders);
+        final JsonArray thingsArray = checkNotNull(things, "Things").stream()
+                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
+                        predicate))
+                .collect(JsonCollectors.valuesToArray());
+        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), dittoHeaders);
     }
 
     /**
@@ -111,12 +145,11 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      */
     public static SudoRetrieveThingsResponse of(final List<Thing> things, final JsonFieldSelector fieldSelector,
             final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingsResponse(HttpStatusCode.OK,
-                checkNotNull(things, "Things").stream() //
-                        .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
-                                fieldSelector, predicate)) //
-                        .collect(JsonCollectors.valuesToArray()),
-                dittoHeaders);
+        final JsonArray thingsArray = checkNotNull(things, "Things").stream()
+                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
+                        fieldSelector, predicate))
+                .collect(JsonCollectors.valuesToArray());
+        return new SudoRetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), dittoHeaders);
     }
 
     /**
@@ -148,10 +181,13 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
     public static SudoRetrieveThingsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SudoRetrieveThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
+                .deserialize(statusCode -> {
+                    final JsonArray thingsJsonArray = jsonObject.getValue(JSON_THINGS).orElse(null);
+                    final String plainJsonString = jsonObject.getValue(JSON_THINGS_PLAIN_JSON)
+                            .orElseGet(() -> thingsJsonArray != null ? thingsJsonArray.toString() : null);
 
-                    return of(thingsJsonArray, dittoHeaders);
+                    return new SudoRetrieveThingsResponse(HttpStatusCode.OK, thingsJsonArray, plainJsonString,
+                            dittoHeaders);
                 });
     }
 
@@ -161,13 +197,26 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
      * @return the Things.
      */
     public List<Thing> getThings() {
-        return things.stream().filter(JsonValue::isObject).map(JsonValue::asObject).map(ThingsModelFactory::newThing)
-                .collect(Collectors.toList());
+        return getThingStream(lazyLoadThingsJsonArray()).collect(Collectors.toList());
+    }
+
+    private Stream<Thing> getThingStream(JsonArray thingsArray) {
+        return thingsArray.stream()
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(ThingsModelFactory::newThing);
+    }
+
+    private JsonArray lazyLoadThingsJsonArray() {
+        if (things == null) {
+            things = JsonFactory.readFrom(thingsPlainJson).asArray();
+        }
+        return things;
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return things;
+        return lazyLoadThingsJsonArray();
     }
 
     @Override
@@ -178,19 +227,19 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
 
     @Override
     public SudoRetrieveThingsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(things, dittoHeaders);
+        return of(thingsPlainJson, dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_THINGS, things, predicate);
+        jsonObjectBuilder.set(JSON_THINGS_PLAIN_JSON, thingsPlainJson, predicate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), things);
+        return Objects.hash(super.hashCode(), things, thingsPlainJson);
     }
 
     @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
@@ -203,7 +252,8 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
             return false;
         }
         final SudoRetrieveThingsResponse that = (SudoRetrieveThingsResponse) o;
-        return that.canEqual(this) && Objects.equals(things, that.things) && super.equals(that);
+        return that.canEqual(this) && Objects.equals(things, that.things)
+                && Objects.equals(thingsPlainJson, that.thingsPlainJson) && super.equals(that);
     }
 
     @Override
@@ -213,7 +263,8 @@ public final class SudoRetrieveThingsResponse extends AbstractCommandResponse<Su
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + ", thingsPlainJson=" +
+                thingsPlainJson + "]";
     }
 
 }

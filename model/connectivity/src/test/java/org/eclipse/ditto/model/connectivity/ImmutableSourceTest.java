@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 
 package org.eclipse.ditto.model.connectivity;
@@ -24,6 +24,9 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
+/**
+ * Unit test for {@link ImmutableSource}.
+ */
 public final class ImmutableSourceTest {
 
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
@@ -31,7 +34,12 @@ public final class ImmutableSourceTest {
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
     private static final Source SOURCE_WITH_AUTH_CONTEXT =
-            ConnectivityModelFactory.newSource(2, 0, ctx, AMQP_SOURCE1);
+            ConnectivityModelFactory.newSourceBuilder()
+                    .authorizationContext(ctx)
+                    .consumerCount(2)
+                    .index(0)
+                    .address(AMQP_SOURCE1)
+                    .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
@@ -54,7 +62,7 @@ public final class ImmutableSourceTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableSource.class, areImmutable(),
-                provided(AuthorizationContext.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, Enforcement.class).isAlsoImmutable());
     }
 
     @Test

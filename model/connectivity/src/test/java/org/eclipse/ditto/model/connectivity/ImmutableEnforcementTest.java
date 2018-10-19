@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 
 package org.eclipse.ditto.model.connectivity;
@@ -18,18 +18,21 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class ThingIdEnforcementTest {
+/**
+ * Unit test for {@link ImmutableEnforcement}.
+ */
+public class ImmutableEnforcementTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ThingIdEnforcement.class)
+        EqualsVerifier.forClass(ImmutableEnforcement.class)
                 .usingGetClass()
                 .verify();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ThingIdEnforcement.class, areImmutable());
+        assertInstancesOf(ImmutableEnforcement.class, areImmutable());
     }
 
 }

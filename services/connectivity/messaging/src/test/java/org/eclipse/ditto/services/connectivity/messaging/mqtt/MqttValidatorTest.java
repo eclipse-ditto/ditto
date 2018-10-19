@@ -12,6 +12,8 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newEnforcement;
+import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newSourceAddressEnforcement;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -26,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MqttSource;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.junit.Test;
@@ -82,23 +85,54 @@ public final class MqttValidatorTest {
     @Test
     public void testInvalidSourceTopicFilters() {
         final MqttSource mqttSourceWithValidFilter =
-                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
-                        "things/+/{{ thing:id }}/#", 1, "#");
+                ConnectivityModelFactory.newMqttSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newSourceAddressEnforcement("things/+/{{ thing:id }}/#"))
+                        .address("#")
+                        .qos(1)
+                        .build();
         final MqttSource mqttSourceWithInvalidFilter =
-                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
-                        "things/#/{{ thing:id }}/+", 1, "#");
+                ConnectivityModelFactory.newMqttSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newSourceAddressEnforcement("things/#/{{ thing:id }}/+"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        testInvalidSourceTopicFilters(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter);
+    }
+
+    @Test
+    public void testInvalidEnforcementOrigin() {
+
+        final MqttSource mqttSourceWithInvalidFilter =
+                ConnectivityModelFactory.newMqttSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(newEnforcement("{{ header:device_id }}", "things/{{ thing:id }}/+"))
+                        .address("#")
+                        .qos(1)
+                        .build();
+
+        testInvalidSourceTopicFilters(mqttSourceWithInvalidFilter);
+    }
+
+    private void testInvalidSourceTopicFilters(final Source... sources) {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
-                .sources(Arrays.asList(mqttSourceWithValidFilter, mqttSourceWithInvalidFilter))
+                .sources(Arrays.asList(sources))
                 .build();
-
         verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
     }
 
     private Connection connectionWithSource(final String source) {
         final MqttSource mqttSource =
-                ConnectivityModelFactory.newFilteredMqttSource(1, 0, AUTHORIZATION_CONTEXT,
-                        "things/{{ thing:id }}", 1, source);
+                ConnectivityModelFactory.newMqttSourceBuilder()
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(TestConstants.asSet("things/{{ thing:id }}")))
+                        .address(source)
+                        .qos(1)
+                        .build();
+
         return ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(mqttSource))

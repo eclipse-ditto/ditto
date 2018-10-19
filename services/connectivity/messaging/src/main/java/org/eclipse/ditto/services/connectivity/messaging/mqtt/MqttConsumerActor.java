@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
@@ -15,7 +15,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttClientA
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -23,9 +22,14 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -35,44 +39,66 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.stream.alpakka.mqtt.MqttMessage;
 
-public class MqttConsumerActor extends AbstractActor {
+/**
+ * Actor which receives message from a MQTT broker and forwards them to a {@code MessageMappingProcessorActor}.
+ */
+public final class MqttConsumerActor extends AbstractActor {
 
     static final String ACTOR_NAME_PREFIX = "mqttConsumer-";
+
+    private static final String MQTT_TOPIC_HEADER = "mqtt.topic";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext sourceAuthorizationContext;
-    private final Set<String> enforcementFilters;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     private final AddressMetric addressMetric;
     private final ActorRef deadLetters;
     private final boolean dryRun;
+    @Nullable private final EnforcementFilterFactory<String, String> topicEnforcementFilterFactory;
 
     private MqttConsumerActor(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
-            final Set<String> enforcementFilters,
+            @Nullable final Enforcement enforcement,
             final boolean dryRun) {
         this.messageMappingProcessor = messageMappingProcessor;
         this.sourceAuthorizationContext = sourceAuthorizationContext;
-        this.enforcementFilters = enforcementFilters;
         this.dryRun = dryRun;
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
         deadLetters = getContext().system().deadLetters();
+
+        if (enforcement != null) {
+            this.topicEnforcementFilterFactory = EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
+                    PlaceholderFactory.newSourceAddressPlaceholder());
+        } else {
+            topicEnforcementFilterFactory = null;
+        }
     }
 
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param messageMappingProcessor the ActorRef to the {@code MessageMappingProcessor}
+     * @param sourceAuthorizationContext the {@link AuthorizationContext} of the source
+     * @param enforcement the optional Enforcement to apply
+     * @param dryRun whether this is a dry-run/connection test or not
+     * @return the Akka configuration Props object.
+     */
     static Props props(final ActorRef messageMappingProcessor,
             final AuthorizationContext sourceAuthorizationContext,
-            final Set<String> enforcementFilters,
+            @Nullable final Enforcement enforcement,
             final boolean dryRun) {
         return Props.create(MqttConsumerActor.class, new Creator<MqttConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttConsumerActor create() {
-                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcementFilters,
+                return new MqttConsumerActor(messageMappingProcessor, sourceAuthorizationContext, enforcement,
                         dryRun);
             }
         });
@@ -81,21 +107,21 @@ public class MqttConsumerActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(MqttMessage.class, this::isDryRun, message -> {
-                    log.info("Dropping message in dryRun mode: {}", message);
-                })
+                .match(MqttMessage.class, this::isDryRun, message ->
+                        log.info("Dropping message in dryRun mode: {}", message)
+                )
                 .match(MqttMessage.class, message -> {
 
                     log.debug("Received MQTT message on topic {}: {}", message.topic(), message.payload().utf8String());
 
                     final HashMap<String, String> headers = new HashMap<>();
 
-                    headers.put("mqtt.topic", message.topic());
+                    headers.put(MQTT_TOPIC_HEADER, message.topic());
 
-                    final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+                    final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                             .withBytes(message.payload().toByteBuffer())
                             .withAuthorizationContext(sourceAuthorizationContext)
-                            .withThingIdEnforcement(getThingIdEnforcement(message))
+                            .withEnforcement(getEnforcementFilter(message.topic()))
                             .build();
 
                     lastMessageConsumedAt = Instant.now();
@@ -105,12 +131,12 @@ public class MqttConsumerActor extends AbstractActor {
                     replyStreamAck();
                 })
                 .match(RetrieveAddressMetric.class, ram -> {
-                    final AddressMetric addressMetric = ConnectivityModelFactory.newAddressMetric(
+                    final AddressMetric theAddressMetric = ConnectivityModelFactory.newAddressMetric(
                             this.addressMetric != null ? this.addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
                             this.addressMetric != null ? this.addressMetric.getStatusDetails().orElse(null) : null,
                             consumedMessages, lastMessageConsumedAt);
-                    log.debug("addressMetric: {}", addressMetric);
-                    getSender().tell(addressMetric, getSelf());
+                    log.debug("theAddressMetric: {}", theAddressMetric);
+                    getSender().tell(theAddressMetric, getSelf());
                 })
                 .match(MqttClientActor.ConsumerStreamMessage.class, this::handleConsumerStreamMessage)
                 .matchAny(unhandled -> {
@@ -121,10 +147,9 @@ public class MqttConsumerActor extends AbstractActor {
     }
 
     @Nullable
-    private ThingIdEnforcement getThingIdEnforcement(final MqttMessage message) {
-        if (enforcementFilters != null && !enforcementFilters.isEmpty()) {
-            return ThingIdEnforcement.of(message.topic(), enforcementFilters)
-                    .withErrorMessage(getIdEnforcementErrorMessage(message));
+    private EnforcementFilter<String> getEnforcementFilter(final String topic) {
+        if (topicEnforcementFilterFactory != null) {
+            return topicEnforcementFilterFactory.getFilter(topic);
         } else {
             return null;
         }
@@ -155,10 +180,5 @@ public class MqttConsumerActor extends AbstractActor {
         if (!Objects.equals(sender, deadLetters)) {
             sender.tell(STREAM_ACK, getSelf());
         }
-    }
-
-    private static String getIdEnforcementErrorMessage(final MqttMessage message) {
-        return String.format("The MQTT topic ''%s'' of the Ditto protocol message does not match any message filter " +
-                "configured for the connection.", message.topic());
     }
 }

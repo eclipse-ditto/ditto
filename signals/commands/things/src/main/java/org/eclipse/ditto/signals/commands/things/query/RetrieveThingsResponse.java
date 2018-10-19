@@ -59,20 +59,56 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             JsonFactory.newJsonArrayFieldDefinition("things", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<String> JSON_THINGS_PLAIN_JSON =
+            JsonFactory.newStringFieldDefinition("thingsPlainJson", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                    JsonSchemaVersion.V_2);
+
     static final JsonFieldDefinition<String> JSON_NAMESPACE =
             JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
     private static final String PROPERTY_NAME_THINGS = "Things";
 
-    private final JsonArray things;
+    private final String thingsPlainJson;
     @Nullable private final String namespace;
 
-    private RetrieveThingsResponse(final HttpStatusCode statusCode, final JsonArray things,
-            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    @Nullable private JsonArray things;
+
+    private RetrieveThingsResponse(final HttpStatusCode statusCode, @Nullable final JsonArray things,
+            final String thingsPlainJson, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
-        this.things = checkNotNull(things, PROPERTY_NAME_THINGS);
-        this.namespace = checkThingsNamespaces(namespace, getThingStream(things)).orElse(null);
+        this.thingsPlainJson = checkNotNull(thingsPlainJson, "Things plain JSON");
+        this.namespace = namespace;
+        this.things = things;
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThings} command.
+     *
+     * @param thingsPlainJson the retrieved Things.
+     * @param namespace the namespace of this search request
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveThingsResponse of(final List<String> thingsPlainJson, @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+        return new RetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson.stream()
+                .collect(Collectors.joining(",", "[", "]")), namespace, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThings} command.
+     *
+     * @param thingsPlainJson the retrieved Things.
+     * @param namespace the namespace of this search request
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveThingsResponse of(final String thingsPlainJson, @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+        return new RetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson, namespace, dittoHeaders);
     }
 
     /**
@@ -86,7 +122,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final JsonArray things, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, things, namespace, dittoHeaders);
+        return new RetrieveThingsResponse(HttpStatusCode.OK, things, things.toString(), namespace, dittoHeaders);
     }
 
     /**
@@ -101,10 +137,11 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final List<Thing> things, final Predicate<JsonField> predicate,
             @Nullable final String namespace, final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, PROPERTY_NAME_THINGS).stream()
+        final JsonArray thingsArray = checkNotNull(things, PROPERTY_NAME_THINGS).stream()
                 .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
                         predicate))
-                .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
+                .collect(JsonCollectors.valuesToArray());
+        return new RetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
     }
 
     /**
@@ -120,9 +157,10 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final List<Thing> things, @Nullable final JsonFieldSelector fieldSelector,
             @Nullable final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, checkNotNull(things, PROPERTY_NAME_THINGS).stream()
+        final JsonArray thingsArray = checkNotNull(things, PROPERTY_NAME_THINGS).stream()
                 .map(thing -> getJsonFields(fieldSelector, predicate, dittoHeaders, thing))
-                .collect(JsonCollectors.valuesToArray()), namespace, dittoHeaders);
+                .collect(JsonCollectors.valuesToArray());
+        return new RetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
     }
 
     private static JsonObject getJsonFields(@Nullable final JsonFieldSelector fieldSelector,
@@ -169,9 +207,12 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     public static RetrieveThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
-                    final JsonArray thingsJsonArray = jsonObject.getValueOrThrow(JSON_THINGS);
+                    final JsonArray thingsJsonArray = jsonObject.getValue(JSON_THINGS).orElse(null);
+                    final String plainJsonString = jsonObject.getValue(JSON_THINGS_PLAIN_JSON)
+                            .orElseGet(() -> thingsJsonArray != null ? thingsJsonArray.toString() : null);
                     final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
-                    return of(thingsJsonArray, namespace, dittoHeaders);
+                    return new RetrieveThingsResponse(HttpStatusCode.OK, thingsJsonArray, plainJsonString, namespace,
+                            dittoHeaders);
                 });
     }
 
@@ -191,7 +232,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @return the retrieved Things.
      */
     public List<Thing> getThings() {
-        return getThingStream(things).collect(Collectors.toList());
+        return getThingStream(lazyLoadThingsJsonArray()).collect(Collectors.toList());
     }
 
     private Stream<Thing> getThingStream(JsonArray thingsArray) {
@@ -201,9 +242,21 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
                 .map(ThingsModelFactory::newThing);
     }
 
+    private JsonArray lazyLoadThingsJsonArray() {
+        if (things == null) {
+            things = JsonFactory.readFrom(thingsPlainJson).asArray();
+        }
+        return things;
+    }
+
+    @Override
+    public Optional<String> getEntityPlainString() {
+        return Optional.of(thingsPlainJson);
+    }
+
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return things;
+        return lazyLoadThingsJsonArray();
     }
 
     @Override
@@ -214,7 +267,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
 
     @Override
     public RetrieveThingsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(things, namespace, dittoHeaders);
+        return of(thingsPlainJson, namespace, dittoHeaders);
     }
 
     @Override
@@ -226,19 +279,10 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_THINGS, things, predicate);
+        jsonObjectBuilder.set(JSON_THINGS_PLAIN_JSON, thingsPlainJson, predicate);
         if (namespace != null) {
             jsonObjectBuilder.set(JSON_NAMESPACE, namespace, predicate);
         }
-    }
-
-    private Optional<String> checkThingsNamespaces(@Nullable final String namespace, final Stream<Thing> things) {
-        if (namespace != null && things.map(Thing::getId).filter(Optional::isPresent).map(Optional::get)
-                .anyMatch(id -> !id.startsWith(namespace + ":"))) {
-            throw new IllegalArgumentException(
-                    "The provided namespace must match the namespace of the things in the result.");
-        }
-        return Optional.ofNullable(namespace);
     }
 
     @Override
@@ -256,18 +300,19 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
         }
         final RetrieveThingsResponse that = (RetrieveThingsResponse) o;
         return that.canEqual(this) && Objects.equals(things, that.things) &&
-                Objects.equals(namespace, that.namespace) && super.equals(o);
+                Objects.equals(thingsPlainJson, that.thingsPlainJson) && Objects.equals(namespace, that.namespace) &&
+                super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), things, namespace);
+        return Objects.hash(super.hashCode(), things, thingsPlainJson, namespace);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things + ", namespace=" +
-                namespace + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", things=" + things +
+                ", thingsPlainJson=" + thingsPlainJson + ", namespace=" + namespace + "]";
     }
 
 }

@@ -35,12 +35,18 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.AbstractActor;
@@ -70,9 +76,11 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private AddressMetric addressMetric;
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
+    private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext) {
+            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
+            @Nullable final Enforcement enforcement) {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
@@ -80,6 +88,9 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
+
+        headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
+                PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
     }
 
     /**
@@ -92,13 +103,15 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
      * @return the Akka configuration Props object.
      */
     static Props props(final String source, final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext) {
+            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
+            @Nullable final Enforcement enforcement) {
         return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpConsumerActor create() {
-                return new AmqpConsumerActor(source, messageConsumer, messageMappingProcessor, authorizationContext);
+                return new AmqpConsumerActor(source, messageConsumer, messageMappingProcessor, authorizationContext,
+                        enforcement);
             }
         });
     }
@@ -149,12 +162,14 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private void handleJmsMessage(final JmsMessage message) {
         consumedMessages++;
         lastMessageConsumedAt = Instant.now();
+        Map<String, String> headers = null;
         try {
-            final Map<String, String> headers = extractHeadersMapFromJmsMessage(message);
+            headers = extractHeadersMapFromJmsMessage(message);
             headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
-            final ExternalMessageBuilder builder = ConnectivityModelFactory.newExternalMessageBuilder(headers);
+            final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             builder.withAuthorizationContext(authorizationContext);
             extractPayloadFromMessage(message, builder);
+            builder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
             final ExternalMessage externalMessage = builder.build();
             LogUtil.enhanceLogWithCorrelationId(log, externalMessage
                     .findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
@@ -165,6 +180,11 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(), e.getMessage());
+            if (headers != null) {
+                // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
+                // because we need a reply-to address to send the error response
+                messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
+            }
         } catch (final Exception e) {
             log.info("Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {

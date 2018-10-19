@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
@@ -17,15 +17,21 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 
 /**
  * Protocol-specific specification for {@link org.eclipse.ditto.model.connectivity.Connection} objects.
  */
 public abstract class AbstractProtocolValidator {
+
+    private static final String ENFORCEMENT_ERROR_MESSAGE = "The placeholder ''{0}'' could not be processed " +
+            "successfully by ''{1}''";
 
     /**
      * Type of connection for which this spec applies.
@@ -122,5 +128,19 @@ public abstract class AbstractProtocolValidator {
     private static Supplier<String> targetDescription(final Target target, final Connection connection) {
         return () -> MessageFormat.format("Target of address ''{0}'' of connection ''{1}''",
                 target.getAddress(), connection.getId());
+    }
+
+    protected <T> void validateEnforcement(final String template, final Placeholder<T> placeholder,
+            final DittoHeaders headers) {
+        try {
+            PlaceholderFilter.validate(template, placeholder);
+        } catch (final DittoRuntimeException exception) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,
+                            placeholder.getClass().getSimpleName()))
+                    .cause(exception)
+                    .dittoHeaders(headers)
+                    .build();
+        }
     }
 }

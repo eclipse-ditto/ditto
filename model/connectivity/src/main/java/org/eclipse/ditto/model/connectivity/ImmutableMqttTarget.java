@@ -5,13 +5,15 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Objects;
 import java.util.function.Predicate;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -21,6 +23,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 /**
  * Extends the default {@link Target} by fields required for publishing for MQTT targets.
  */
+@Immutable
 public final class ImmutableMqttTarget extends DelegateTarget implements MqttTarget {
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
