@@ -10,17 +10,13 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 
 import org.bson.Document;
-import org.bson.conversions.Bson;
 
 import com.mongodb.client.model.BulkWriteOptions;
-import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.DeleteManyModel;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -68,4 +64,5 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
                     .recover(Match.<Throwable, Optional<Throwable>>matchAny(Optional::of).build());
         }
     }
+
 }

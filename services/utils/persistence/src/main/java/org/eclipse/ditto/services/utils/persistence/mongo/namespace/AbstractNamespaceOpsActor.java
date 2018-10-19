@@ -27,9 +27,9 @@ import akka.stream.javadsl.Sink;
 
 /**
  * Superclass of actors operating on the persistence at the level of namespaces.
- * It subscribes to the commands {@link PurgeNamespace} from the pub-sub mediator
- * and carries them out. Instances of this actor should start as cluster singletons in order not to perform
- * identical operations multiple times on the database.
+ * It subscribes to the commands {@link PurgeNamespace} from the pub-sub mediator and carries them out.
+ * Instances of this actor should start as cluster singletons in order to not perform identical operations multiple
+ * times on the database.
  *
  * @param <S> type of namespace selection for the underlying persistence.
  */
@@ -57,7 +57,7 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
     }
 
     /**
-     * Create a new instance of this actor using the pub-sub mediator of the actor system in which it is created.
+     * Creates a new instance of this actor using the pub-sub mediator of the actor system in which it is created.
      *
      * @param namespaceOps namespace operations on the persistence.
      */
@@ -66,11 +66,6 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
         this.namespaceOps = namespaceOps;
         materializer = ActorMaterializer.create(getContext());
     }
-
-    /**
-     * @return Resource type this actor operates on.
-     */
-    protected abstract String resourceType();
 
     /**
      * Get all documents in a given namespace among all collections in the database.
@@ -85,6 +80,11 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
         subscribeForNamespaceCommands();
     }
 
+    private void subscribeForNamespaceCommands() {
+        final ActorRef self = getSelf();
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, self), self);
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
@@ -94,36 +94,26 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
                 .build();
     }
 
-    private void subscribeForNamespaceCommands() {
-        final ActorRef self = getSelf();
-        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PurgeNamespace.TYPE, self), self);
-    }
-
-    private void ignoreSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
-        // do nothing
-    }
-
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
-        final ActorRef sender = getSender();
         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
         final Collection<S> namespaceSelections = selectNamespace(purgeNamespace.getNamespace());
         log.info("Running <{}>. Affected collections: <{}>", purgeNamespace, namespaceSelections);
-        namespaceOps.purgeAll(selectNamespace(purgeNamespace.getNamespace()))
+        namespaceOps.purgeAll(namespaceSelections)
                 .runWith(Sink.head(), materializer)
                 .thenAccept(errors -> {
                     // send response to speed up purge workflow
                     final PurgeNamespaceResponse response;
                     if (errors.isEmpty()) {
-                        response = PurgeNamespaceResponse.successful(purgeNamespace.getNamespace(), resourceType(),
+                        response = PurgeNamespaceResponse.successful(purgeNamespace.getNamespace(), getResourceType(),
                                 purgeNamespace.getDittoHeaders());
                     } else {
                         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
                         final String namespace = purgeNamespace.getNamespace();
                         errors.forEach(error -> log.error(error, "Error purging namespace <{}>", namespace));
-                        response = PurgeNamespaceResponse.failed(namespace, resourceType(),
+                        response = PurgeNamespaceResponse.failed(namespace, getResourceType(),
                                 purgeNamespace.getDittoHeaders());
                     }
-                    sender.tell(response, getSelf());
+                    getSender().tell(response, getSelf());
                 })
                 .exceptionally(error -> {
                     LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
@@ -131,6 +121,17 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
                     // Reply nothing - DB errors were converted to stream elements and handled
                     return null;
                 });
+    }
+
+    /**
+     * Returns the resource type this actor operates on.
+     *
+     * @return the resource type.
+     */
+    protected abstract String getResourceType();
+
+    private void ignoreSubscribeAck(final DistributedPubSubMediator.SubscribeAck subscribeAck) {
+        // do nothing
     }
 
 }

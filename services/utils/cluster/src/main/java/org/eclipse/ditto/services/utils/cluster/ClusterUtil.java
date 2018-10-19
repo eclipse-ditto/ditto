@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.utils.cluster;
 
+import javax.annotation.concurrent.Immutable;
+
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -22,6 +24,7 @@ import akka.cluster.singleton.ClusterSingletonManagerSettings;
 /**
  * Convenience methods to operate an Akka cluster.
  */
+@Immutable
 public final class ClusterUtil {
 
     /**
@@ -63,4 +66,5 @@ public final class ClusterUtil {
         final Props singletonManagerProps = ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings);
         return actorRefFactory.actorOf(singletonManagerProps, actorName);
     }
+
 }
