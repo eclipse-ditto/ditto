@@ -107,6 +107,7 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
         LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);
         final Collection<S> namespaceSelections = selectNamespace(purgeNamespace.getNamespace());
         log.info("Running <{}>. Affected collections: <{}>.", purgeNamespace, namespaceSelections);
+        final ActorRef sender = getSender();
         namespaceOps.purgeAll(namespaceSelections)
                 .runWith(Sink.head(), materializer)
                 .thenAccept(errors -> {
@@ -122,7 +123,7 @@ public abstract class AbstractNamespaceOpsActor<S> extends AbstractActor {
                         response = PurgeNamespaceResponse.failed(namespace, getResourceType(),
                                 purgeNamespace.getDittoHeaders());
                     }
-                    getSender().tell(response, getSelf());
+                    sender.tell(response, getSelf());
                 })
                 .exceptionally(error -> {
                     LogUtil.enhanceLogWithCorrelationId(log, purgeNamespace);

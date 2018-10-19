@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.namespace;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -41,8 +42,11 @@ public interface NamespaceOps<S> {
     default Source<List<Throwable>, NotUsed> purgeAll(final Collection<S> selections) {
         return Source.from(selections)
                 .flatMapConcat(this::purge)
-                .flatMapConcat(result -> result.map(Source::single).orElseGet(Source::empty))
-                .grouped(selections.size());
+                .grouped(selections.size())
+                .map(errors -> errors.stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.toList()));
     }
 
 }
