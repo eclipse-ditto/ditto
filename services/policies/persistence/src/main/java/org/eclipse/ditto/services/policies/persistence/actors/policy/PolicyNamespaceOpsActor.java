@@ -41,9 +41,10 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        final MongoDatabase db = MongoClientWrapper.newInstance(config).getDatabase();
-        return Props.create(PolicyNamespaceOpsActor.class,
-                () -> new PolicyNamespaceOpsActor(pubSubMediator, db, config));
+        try (final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config)) {
+            return Props.create(PolicyNamespaceOpsActor.class,
+                    () -> new PolicyNamespaceOpsActor(pubSubMediator, mongoClientWrapper.getDatabase(), config));
+        }
     }
 
     @Override
