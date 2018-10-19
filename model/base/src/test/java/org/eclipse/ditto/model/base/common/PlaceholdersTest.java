@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.junit.Before;
 import org.junit.Test;

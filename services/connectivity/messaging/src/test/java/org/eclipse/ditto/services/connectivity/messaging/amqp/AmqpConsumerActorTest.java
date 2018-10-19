@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -216,8 +217,8 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
                     MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
 
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT));
+                    AmqpConsumerActor.props("foo123", Mockito.mock(MessageConsumer.class), processor,
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
 
             final String correlationId = "cor-";
             final String plainPayload =
