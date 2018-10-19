@@ -29,9 +29,7 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
 
     public static final String ACTOR_NAME = "policyNamespaceOps";
 
-    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator,
-            final MongoDatabase db, final Config config) {
-
+    private PolicyNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db, final Config config) {
         super(pubSubMediator, db, config);
     }
 
@@ -49,22 +47,23 @@ public final class PolicyNamespaceOpsActor extends AbstractEventSourceNamespaceO
     }
 
     @Override
-    protected String persistenceIdPrefix() {
+    protected String getPersistenceIdPrefix() {
         return PolicyPersistenceActor.PERSISTENCE_ID_PREFIX;
     }
 
     @Override
-    protected String journalPluginId() {
+    protected String getJournalPluginId() {
         return PolicyPersistenceActor.JOURNAL_PLUGIN_ID;
     }
 
     @Override
-    protected String snapshotPluginId() {
+    protected String getSnapshotPluginId() {
         return PolicyPersistenceActor.SNAPSHOT_PLUGIN_ID;
     }
 
     @Override
-    protected String resourceType() {
+    protected String getResourceType() {
         return PolicyCommand.RESOURCE_TYPE;
     }
+
 }

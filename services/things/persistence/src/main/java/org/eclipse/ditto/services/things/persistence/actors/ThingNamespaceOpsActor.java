@@ -41,27 +41,30 @@ public final class ThingNamespaceOpsActor extends AbstractEventSourceNamespaceOp
      * @return a Props object.
      */
     public static Props props(final ActorRef pubSubMediator, final Config config) {
-        final MongoDatabase db = MongoClientWrapper.newInstance(config).getDatabase();
-        return Props.create(ThingNamespaceOpsActor.class, () -> new ThingNamespaceOpsActor(pubSubMediator, db, config));
+        try (final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config)) {
+            return Props.create(ThingNamespaceOpsActor.class,
+                    () -> new ThingNamespaceOpsActor(pubSubMediator, mongoClientWrapper.getDatabase(), config));
+        }
     }
 
     @Override
-    protected String persistenceIdPrefix() {
+    protected String getPersistenceIdPrefix() {
         return ThingPersistenceActor.PERSISTENCE_ID_PREFIX;
     }
 
     @Override
-    protected String journalPluginId() {
+    protected String getJournalPluginId() {
         return ThingPersistenceActor.JOURNAL_PLUGIN_ID;
     }
 
     @Override
-    protected String snapshotPluginId() {
+    protected String getSnapshotPluginId() {
         return ThingPersistenceActor.SNAPSHOT_PLUGIN_ID;
     }
 
     @Override
-    protected String resourceType() {
+    protected String getResourceType() {
         return ThingCommand.RESOURCE_TYPE;
     }
+
 }

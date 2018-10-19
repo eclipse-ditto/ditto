@@ -48,7 +48,7 @@ public final class ThingsSearchNamespaceOpsActor extends AbstractNamespaceOpsAct
     }
 
     @Override
-    protected String resourceType() {
+    protected String getResourceType() {
         return ThingSearchCommand.RESOURCE_TYPE;
     }
 

@@ -25,7 +25,7 @@ import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 /**
  * Superclass of actors operating on an event-sourcing MongoDB persistence at the level of namespaces.
  */
-public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNamespaceOpsActor {
+public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNamespaceOpsActor<MongoNamespaceSelection> {
 
     private static final String PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
 
@@ -37,38 +37,38 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
     private final boolean isSuffixBuilderEnabled;
 
     /**
-     * Create a new instance of this actor.
+     * Creates a new instance of this actor.
      *
      * @param pubSubMediator Akka pub-sub mediator.
-     * @param db Database where the event journal, snapshot store and metadata are located.
-     * @param config Configuration with info about the event journal, snapshot store, metadata and suffix builder.
+     * @param db database where the event journal, snapshot store and metadata are located.
+     * @param config configuration with info about the event journal, snapshot store, metadata and suffix builder.
      */
     protected AbstractEventSourceNamespaceOpsActor(final ActorRef pubSubMediator, final MongoDatabase db,
             final Config config) {
 
         super(pubSubMediator, MongoNamespaceOps.of(db));
-        metadata = getCollectionName(config, journalPluginId(), "metadata");
-        journal = getCollectionName(config, journalPluginId(), "journal");
-        snapshot = getCollectionName(config, snapshotPluginId(), "snaps");
+        metadata = getCollectionName(config, getJournalPluginId(), "metadata");
+        journal = getCollectionName(config, getJournalPluginId(), "journal");
+        snapshot = getCollectionName(config, getSnapshotPluginId(), "snaps");
         suffixSeparator = readConfig(config, suffixBuilderPath("separator"), "@");
         isSuffixBuilderEnabled = !readConfig(config, suffixBuilderPath("class"), "").trim().isEmpty();
     }
 
     /**
      * @return Akka persistence ID prefix of the resource type this actor operates on.
-     * @see AbstractNamespaceOpsActor#resourceType()
+     * @see AbstractNamespaceOpsActor#getResourceType()
      */
-    protected abstract String persistenceIdPrefix();
+    protected abstract String getPersistenceIdPrefix();
 
     /**
      * @return The journal plugin ID - namely the config key at which the event journal configuration is found.
      */
-    protected abstract String journalPluginId();
+    protected abstract String getJournalPluginId();
 
     /**
      * @return The snapshot plugin ID - namely the config key at which the snapshot store configuration is found.
      */
-    protected abstract String snapshotPluginId();
+    protected abstract String getSnapshotPluginId();
 
     @Override
     protected Collection<MongoNamespaceSelection> selectNamespace(final String namespace) {
@@ -79,7 +79,7 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
 
     private Collection<MongoNamespaceSelection> selectNamespaceWithSuffixBuilder(final String namespace) {
         return Arrays.asList(
-                selectByPid(metadata, namespace),
+                selectByPid(metadata, namespace), // collection "thingsMetadata" has no namespace suffix
                 selectBySuffix(journal, namespace),
                 selectBySuffix(snapshot, namespace));
     }
@@ -101,13 +101,12 @@ public abstract class AbstractEventSourceNamespaceOpsActor extends AbstractNames
     }
 
     private Document filterByPid(final String namespace) {
-        final String pidRegex = String.format("^%s%s:", persistenceIdPrefix(), namespace);
-        return new Document().append(PID, new BsonRegularExpression(pidRegex));
+        final String pidRegex = String.format("^%s%s:", getPersistenceIdPrefix(), namespace);
+        return new Document(PID, new BsonRegularExpression(pidRegex));
     }
 
     private static String getCollectionName(final Config config, final String root, final String collectionType) {
-        final String path = String.format("%s.overrides.%s-collection", root, collectionType);
-        return config.getString(path);
+        return config.getString(String.format("%s.overrides.%s-collection", root, collectionType));
     }
 
     private static String readConfig(final Config config, final String path, final String fallback) {
