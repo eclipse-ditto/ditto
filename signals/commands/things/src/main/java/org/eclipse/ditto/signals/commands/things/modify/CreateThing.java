@@ -12,7 +12,6 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -36,7 +35,6 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
-import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
  * This command creates a new Thing. It contains the full {@link Thing} including the Thing ID which should be used for
@@ -173,9 +171,9 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
      */
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
-
-        ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(newThing, initialPolicy, policyIdOrPlaceholder,
-                dittoHeaders);
+        final String thingId = String.valueOf(newThing.getId().orElse(null));
+        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(thingId, newThing,
+                initialPolicy, policyIdOrPlaceholder, dittoHeaders);
         if (policyIdOrPlaceholder == null) {
             return of(newThing, initialPolicy, dittoHeaders);
         } else {
@@ -189,19 +187,6 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
                     .message("Thing ID must be present in 'CreateThing' payload")
                     .dittoHeaders(dittoHeaders)
                     .build();
-        }
-    }
-
-    private static void ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(final Thing newThing,
-            @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
-            final DittoHeaders dittoHeaders) {
-
-        final String thingId = newThing.getId().orElse(null);
-
-        if (policyIdOrPlaceholder != null && initialPolicy != null) {
-            final String message = "The Thing with ID ''{0}'' could not be created as it contained an inline Policy" +
-                    " and a policy id to copy from.";
-            throw PolicyIdNotAllowedException.fromMessage(MessageFormat.format(message, thingId), dittoHeaders);
         }
     }
 

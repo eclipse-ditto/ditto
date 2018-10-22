@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -174,21 +173,13 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
 
-        ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(thingId, initialPolicy, policyIdOrPlaceholder,
+        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(thingId, thing, initialPolicy,
+                policyIdOrPlaceholder,
                 dittoHeaders);
         if (policyIdOrPlaceholder == null) {
             return of(thingId, thing, initialPolicy, dittoHeaders);
         } else {
             return withCopiedPolicy(thingId, thing, policyIdOrPlaceholder, dittoHeaders);
-        }
-    }
-
-    private static void ensurePolicyIdOrPlaceHolderIsNotDefinedIfInitialPolicyIsDefined(final String thingId,
-            @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
-            final DittoHeaders dittoHeaders) {
-
-        if (policyIdOrPlaceholder != null && initialPolicy != null) {
-            throw PolicyIdNotAllowedException.whenCopyPolicyFromAndInlinePolicyAreSpecified(thingId, dittoHeaders);
         }
     }
 
