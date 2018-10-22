@@ -13,7 +13,7 @@ package org.eclipse.ditto.services.utils.namespaces;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 
 import akka.actor.ActorSystem;
@@ -42,11 +42,11 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     /**
      * Key of the distributed data. Should be unique among ORSets.
      */
-    public static Key<ORSet<String>> KEY = ORSetKey.create("BlockedNamespaces");
+    private static final Key<ORSet<String>> KEY = ORSetKey.create("BlockedNamespaces");
 
-    private Cluster node;
+    private final Cluster node;
 
-    private BlockedNamespaces(final DDataConfigReader configReader, final ActorSystem system) {
+    private BlockedNamespaces(final DistributedDataConfigReader configReader, final ActorSystem system) {
         super(configReader, system);
         node = Cluster.get(system);
     }
@@ -59,10 +59,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return a new instance of the distributed data.
      */
     public static BlockedNamespaces of(final ActorSystem system) {
-        final DDataConfigReader configReader = DDataConfigReader.of(system)
-                .withRole(CLUSTER_ROLE)
-                .withName(ACTOR_NAME);
-        return new BlockedNamespaces(configReader, system);
+        return new BlockedNamespaces(DistributedDataConfigReader.of(system, ACTOR_NAME, CLUSTER_ROLE), system);
     }
 
     /**
@@ -71,8 +68,9 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @param configReader the overriding configuration.
      * @param system the actor system where the replicator actor will be created.
      * @return a new instance of the distributed data.
+     * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    public static BlockedNamespaces of(final DDataConfigReader configReader, final ActorSystem system) {
+    public static BlockedNamespaces of(final DistributedDataConfigReader configReader, final ActorSystem system) {
         return new BlockedNamespaces(configReader, system);
     }
 
@@ -109,16 +107,17 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
     }
 
     @Override
-    protected Key<ORSet<String>> key() {
+    protected Key<ORSet<String>> getKey() {
         return KEY;
     }
 
     @Override
-    protected ORSet<String> initialValue() {
+    protected ORSet<String> getInitialValue() {
         return ORSet.empty();
     }
 
     private Replicator.WriteConsistency writeAll() {
         return new Replicator.WriteAll(FiniteDuration.apply(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
+
 }

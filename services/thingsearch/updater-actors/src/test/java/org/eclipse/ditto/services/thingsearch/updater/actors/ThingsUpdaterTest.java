@@ -32,7 +32,7 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
@@ -62,7 +62,7 @@ import scala.concurrent.duration.FiniteDuration;
  * Test for {@link org.eclipse.ditto.services.thingsearch.updater.actors.ThingsUpdater}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class ThingsUpdaterTest {
+public final class ThingsUpdaterTest {
 
     private static final int NUMBER_OF_SHARDS = 3;
     private static final long KNOWN_REVISION = 7L;
@@ -88,7 +88,8 @@ public class ThingsUpdaterTest {
                 ShardRegionFactory.getInstance(actorSystem)
         );
         // create blocked namespaces cache without role and with the default replicator name
-        blockedNamespaces = BlockedNamespaces.of(DDataConfigReader.of(actorSystem), actorSystem);
+        blockedNamespaces =
+                BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", ""), actorSystem);
     }
 
     @After
@@ -193,12 +194,11 @@ public class ThingsUpdaterTest {
         }};
     }
 
-    private void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final String id) {
+    private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final String id) {
         final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
-        assertThat(envelope.getMessage())
-                .isEqualTo(event.toJson());
-        assertThat(envelope.getId())
-                .isEqualTo(id);
+
+        assertThat(envelope.getMessage()).isEqualTo(event.toJson());
+        assertThat(envelope.getId()).isEqualTo(id);
     }
 
     private ActorRef createThingsUpdater() {
@@ -224,4 +224,5 @@ public class ThingsUpdaterTest {
     private ThingsSearchUpdaterPersistence waitUntil() {
         return verify(persistence, Mockito.timeout(2000L));
     }
+
 }

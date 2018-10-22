@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.utils.namespaces;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.services.utils.ddata.DDataConfigReader;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,21 +24,21 @@ import akka.event.Logging;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link BlockedNamespaces}.
+ * Unit test for {@link BlockedNamespaces}.
  */
 public final class BlockedNamespacesTest {
 
     private ActorSystem actorSystem;
-    private DDataConfigReader configReader;
+    private DistributedDataConfigReader configReader;
 
     @Before
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("test.conf"));
-        configReader = DDataConfigReader.of(actorSystem);
+        configReader = DistributedDataConfigReader.of(actorSystem, "replicator", "");
     }
 
     @After
-    public void teardown() {
+    public void tearDown() {
         if (actorSystem != null) {
             TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
@@ -57,7 +57,8 @@ public final class BlockedNamespacesTest {
 
     @Test
     public void startWithMatchingRole() throws Exception {
-        testCRUD(BlockedNamespaces.of(configReader.withRole("ddata-aware"), actorSystem), actorSystem);
+        testCRUD(BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem, "replicator", "ddata-aware"),
+                actorSystem), actorSystem);
     }
 
     @Test
@@ -65,7 +66,8 @@ public final class BlockedNamespacesTest {
         // logging disabled to not print expected stacktrace; re-enable logging to debug.
         actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
         new TestKit(actorSystem) {{
-            final BlockedNamespaces underTest = BlockedNamespaces.of(configReader.withRole("wrong-role"), actorSystem);
+            final BlockedNamespaces underTest = BlockedNamespaces.of(DistributedDataConfigReader.of(actorSystem,
+                    "replicator", "wrong-role"), actorSystem);
             watch(underTest.getReplicator());
             expectTerminated(underTest.getReplicator());
         }};
@@ -83,4 +85,5 @@ public final class BlockedNamespacesTest {
             assertThat(underTest.contains(namespace).toCompletableFuture().get()).isFalse();
         }};
     }
+
 }

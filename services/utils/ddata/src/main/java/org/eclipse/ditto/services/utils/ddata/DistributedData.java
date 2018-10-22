@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.utils.ddata;
 
+import static java.util.Objects.requireNonNull;
+
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Optional;
@@ -54,31 +56,46 @@ public abstract class DistributedData<R extends ReplicatedData> {
      *
      * @param configReader specific config for this replicator.
      * @param factory creator of this replicator.
+     * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    protected DistributedData(final DDataConfigReader configReader, final ActorRefFactory factory) {
+    protected DistributedData(final DistributedDataConfigReader configReader, final ActorRefFactory factory) {
+        requireNonNull(configReader, "The DistributedDataConfigReader must not be null!");
         replicator = createReplicator(configReader, factory);
-        readTimeout = configReader.readTimeout();
-        writeTimeout = configReader.writeTimeout();
+        readTimeout = configReader.getReadTimeout();
+        writeTimeout = configReader.getWriteTimeout();
+    }
+
+    /**
+     * Create a distributed data replicator in an actor system.
+     *
+     * @param configReader distributed data configuration reader.
+     * @param factory creator of this replicator.
+     * @return reference to the created replicator.
+     */
+    private static ActorRef createReplicator(final DistributedDataConfigReader configReader,
+            final ActorRefFactory factory) {
+
+        return factory.actorOf(Replicator.props(configReader.toReplicatorSettings()), configReader.getName());
     }
 
     /**
      * @return key of the distributed collection. Should be unique among collections of the same type.
      */
-    protected abstract Key<R> key();
+    protected abstract Key<R> getKey();
 
     /**
      * @return initial value of the distributed data.
      */
-    protected abstract R initialValue();
+    protected abstract R getInitialValue();
 
     /**
-     * Retrieve the replicated data.
+     * Asynchronously retrieves the replicated data.
      *
      * @param readConsistency how many replicas to consult.
      * @return future of the replicated data that completes exceptionally on error.
      */
     public CompletionStage<Optional<R>> get(final Replicator.ReadConsistency readConsistency) {
-        final Replicator.Get<R> replicatorGet = new Replicator.Get<>(key(), readConsistency);
+        final Replicator.Get<R> replicatorGet = new Replicator.Get<>(getKey(), readConsistency);
         return PatternsCS.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
                 .thenApply(this::handleGetResponse);
     }
@@ -94,7 +111,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
             final Function<R, R> updateFunction) {
 
         final Replicator.Update<R> replicatorUpdate =
-                new Replicator.Update<>(key(), initialValue(), writeConsistency, updateFunction);
+                new Replicator.Update<>(getKey(), getInitialValue(), writeConsistency, updateFunction);
         return PatternsCS.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
                 .thenApply(this::handleUpdateResponse);
     }
@@ -112,7 +129,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.UpdateSuccess for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, key());
+                            reply, replicator, getKey());
             throw new IllegalArgumentException(errorMessage);
         }
     }
@@ -127,7 +144,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
         } else {
             final String errorMessage =
                     MessageFormat.format("Expect Replicator.GetResponse for key ''{2}'' from ''{1}'', Got: ''{0}''",
-                            reply, replicator, key());
+                            reply, replicator, getKey());
             throw new IllegalArgumentException(errorMessage);
         }
     }
@@ -148,14 +165,4 @@ public abstract class DistributedData<R extends ReplicatedData> {
         }
     }
 
-    /**
-     * Create a distributed data replicator in an actor system.
-     *
-     * @param configReader distributed data configuration reader.
-     * @param factory creator of this replicator.
-     * @return reference to the created replicator.
-     */
-    private static ActorRef createReplicator(final DDataConfigReader configReader, final ActorRefFactory factory) {
-        return factory.actorOf(Replicator.props(configReader.toReplicatorSettings()), configReader.name());
-    }
 }
