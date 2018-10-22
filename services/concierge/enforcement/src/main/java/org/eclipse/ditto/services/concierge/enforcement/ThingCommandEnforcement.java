@@ -850,9 +850,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 return ((RetrievePolicyResponse) response).getPolicy();
                             } else if (response instanceof PolicyErrorResponse) {
                                 throw ((PolicyErrorResponse) response).getDittoRuntimeException();
+                            }else if (response instanceof DittoRuntimeException) {
+                                throw (DittoRuntimeException) response;
+                            } else {
+                                throw GatewayInternalErrorException.newBuilder().build();
                             }
-
-                            throw GatewayInternalErrorException.newBuilder().build();
                         });
 
         return awaitPolicyCompletionStage(policyCompletionStage, dittoHeaders);
