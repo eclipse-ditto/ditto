@@ -44,10 +44,10 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
                     "the id of the policy or a reference placeholder to the policy id as '_copyPolicyFrom'.";
 
     private static final String COPY_POLICY_FROM_WITH_INLINE_POLICY_MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' " +
-            "could not be modified as it contained an inline Policy and a policy id to copy from.";
+            "could not be created/modified as it contained an inline Policy and a policy id to copy from.";
 
     private static final String COPY_POLICY_FROM_WITH_POLICY_ID_MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' " +
-            "could not be modified as it contained a policy id to use and a policy id to copy from.";
+            "could not be created/modified as it contained a policy id to use and a policy id to copy from.";
 
 
     private static final long serialVersionUID = 4511420390758955872L;

@@ -156,10 +156,11 @@ public final class CreateThingTest {
     }
 
     @Test
-    public void initializeWithCopiedPolicyAndWithInitialPolicyNull() {
+    public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
+        final Thing thing = TestConstants.Thing.THING.setPolicyId(null);
         final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
         final CreateThing createThing =
-                CreateThing.of(TestConstants.Thing.THING, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
+                CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(createThing.getInitialPolicy()).isNotPresent();
         assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
@@ -174,7 +175,7 @@ public final class CreateThingTest {
                         TestConstants.EMPTY_DITTO_HEADERS))
                 .isInstanceOf(PolicyIdNotAllowedException.class)
                 .hasMessage(MessageFormat.format(
-                        "The Thing with ID ''{0}'' could not be created as it contained an inline Policy " +
-                                "and a policy id to copy from.", TestConstants.Thing.THING_ID));
+                        "The Thing with ID ''{0}'' could not be created/modified as it contained an inline " +
+                                "Policy and a policy id to copy from.", TestConstants.Thing.THING_ID));
     }
 }
