@@ -148,23 +148,15 @@ public final class ThingsRoute extends AbstractRoute {
                         post(() -> // POST /things
                                 extractDataBytes(payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                thingJson -> fromThingJson(thingJson, dittoHeaders)
+                                                thingJson -> CreateThing.of(createThingForPost(thingJson),
+                                                        createInlinePolicyJson(thingJson), getCopyPolicyFrom(thingJson),
+                                                        dittoHeaders)
                                         )
                                 )
                         )
                 )
         );
     }
-
-    private CreateThing fromThingJson(final String thingJson, final DittoHeaders dittoHeaders) {
-        final String policyIdOrPlaceholder = getCopyPolicyFrom(thingJson);
-        if (policyIdOrPlaceholder == null) {
-            return CreateThing.of(createThingForPost(thingJson), createInlinePolicyJson(thingJson), dittoHeaders);
-        } else {
-            return CreateThing.withCopiedPolicy(createThingForPost(thingJson), policyIdOrPlaceholder, dittoHeaders);
-        }
-    }
-
 
     private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return parameter(ThingsParameter.IDS.toString(), idsString ->
