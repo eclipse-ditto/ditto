@@ -272,7 +272,7 @@ public final class ModifyThingTest {
                         v2Headers))
                 .isInstanceOf(PolicyIdNotAllowedException.class)
                 .hasMessage(MessageFormat.format(
-                        "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy " +
-                                "and a policy id to copy from.", TestConstants.Thing.THING_ID));
+                        "The Thing with ID ''{0}'' could not be created/modified as it contained an inline " +
+                                "Policy and a policy id to copy from.", TestConstants.Thing.THING_ID));
     }
 }
