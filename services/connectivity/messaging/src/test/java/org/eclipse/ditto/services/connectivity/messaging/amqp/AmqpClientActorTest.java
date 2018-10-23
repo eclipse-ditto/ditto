@@ -67,6 +67,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.UnmappedOutboundSignal;
+import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -99,7 +100,7 @@ import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AmqpClientActorTest {
+public class AmqpClientActorTest extends WithMockServers {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
@@ -171,7 +172,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri())
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .specificConfig(specificOptions)
                 .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0,
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT, "source1")))
@@ -518,7 +519,8 @@ public class AmqpClientActorTest {
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final UnmappedOutboundSignal outboundSignal = new UnmappedOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget("target", TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
+                    singleton(ConnectivityModelFactory.newTarget("target",
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 
@@ -538,7 +540,8 @@ public class AmqpClientActorTest {
                     "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
 
             final Source source =
-                    ConnectivityModelFactory.newSource(1, 0, TestConstants.Authorization.AUTHORIZATION_CONTEXT, sourceWithSpecialCharacters, sourceWithUnicodeCharacters);
+                    ConnectivityModelFactory.newSource(1, 0, TestConstants.Authorization.AUTHORIZATION_CONTEXT,
+                            sourceWithSpecialCharacters, sourceWithUnicodeCharacters);
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =

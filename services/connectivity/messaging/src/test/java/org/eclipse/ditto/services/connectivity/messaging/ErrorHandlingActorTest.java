@@ -36,7 +36,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests error handling behaviour of {@link ConnectionActor}.
  */
-public class ErrorHandlingActorTest {
+public class ErrorHandlingActorTest extends WithMockServers {
 
     private static ActorSystem actorSystem;
     private static ActorRef conciergeForwarder;
