@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,12 +58,14 @@ import com.rabbitmq.client.impl.DefaultExceptionHandler;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Scheduler;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.FI;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.PatternsCS;
 import scala.Option;
+import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -273,9 +276,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             log.info("Established RMQ connection: {}", rmqConnection);
                             return null;
                         });
-                rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
 
+                rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
                 rmqPublisherActor = startRmqPublisherActor().orElse(null);
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
                 // create publisher channel
                 final ActorRef finalRmqPublisherActor = rmqPublisherActor;
@@ -292,11 +300,17 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         }),
                         Option.apply(PUBLISHER_CHANNEL));
 
+
+                final Scheduler scheduler = getContext().system().scheduler();
+                final ExecutionContext dispatcher = getContext().dispatcher();
                 PatternsCS.ask(rmqConnectionActor, createChannel, askTimeoutMillis()).handle((reply, throwable) -> {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
                     } else {
-                        future.complete(new Status.Success("channel created"));
+                        // Waiting for Exceptionhandler rabbitMQExceptionHandler
+                        scheduler.scheduleOnce(Duration.ofSeconds(1L),
+                                () -> future.complete(new Status.Success("channel created")),
+                                dispatcher);
                     }
                     return null;
                 });
@@ -306,6 +320,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             future.complete(new Status.Success("already connected"));
         }
         return future;
+
     }
 
     private static void createConsumerChannelAndNotifySelf(final Status.Status status,
