@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
@@ -80,13 +81,14 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
         if (resolveEntityReferenceStrategy == null) {
             final String referencedEntityType = referencePlaceholder.getReferencedEntityType().name();
-            LOGGER.info(
+            LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.info(
                     "Could not find a placeholder replacement strategy for entity type <{}> in supported entity types: {}",
-                    referencedEntityType, supportedEntityTypeNames);
+                    referencedEntityType, supportedEntityTypeNames));
             throw notSupportedException(referencedEntityType, dittoHeaders);
         }
 
-        LOGGER.debug("Will resolve entity reference for placeholder: <{}>", referencePlaceholder);
+        LogUtil.logWithCorrelationId(LOGGER, dittoHeaders,
+                log -> log.debug("Will resolve entity reference for placeholder: <{}>", referencePlaceholder));
         return resolveEntityReferenceStrategy.handleEntityPolicyIdReference(referencePlaceholder, dittoHeaders);
     }
 
@@ -105,31 +107,38 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     private String handleRetrieveThingResponse(final Object response,
             final ReferencePlaceholder referencePlaceholder,
             final DittoHeaders dittoHeaders) {
+
         if (response instanceof RetrieveThingResponse) {
-            return ((RetrieveThingResponse) response).getThing()
-                    .getPolicyId()
-                    .orElseThrow(() -> GatewayPlaceholderReferenceUnknownFieldException.fromUnknownFieldAndEntityId(
-                            referencePlaceholder.getReferencedFieldSelector().toString(),
-                            referencePlaceholder.getReferencedEntityId())
-                            .build());
+
+            final JsonValue entity = ((RetrieveThingResponse) response).getEntity();
+            if (!entity.isObject()) {
+                LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log ->
+                        log.error("Expected RetrieveThingResponse to contain a JsonObject as Entity but was: {}",
+                                entity));
+                throw GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
+            }
+            return entity.asObject()
+                    .getValue(JsonFieldDefinition.ofString(referencePlaceholder.getReferencedField()))
+                    .orElseThrow(() -> unknownFieldException(referencePlaceholder, dittoHeaders));
+
         } else if (response instanceof ThingErrorResponse) {
-            LOGGER.info(
+            LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.info(
                     "Got ThingErrorResponse when waiting on RetrieveThingResponse when resolving policy id placeholder reference <{}>: {}",
                     referencePlaceholder,
-                    response);
+                    response));
             throw ((ThingErrorResponse) response).getDittoRuntimeException();
         } else if (response instanceof DittoRuntimeException) {
             // ignore warning that second argument isn't used. Runtime exceptions will have their stacktrace printed
             // in the logs according to https://www.slf4j.org/faq.html#paramException
-            LOGGER.info(
+            LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.info(
                     "Got Exception when waiting on RetrieveThingResponse when resolving policy id placeholder reference <{}>",
                     referencePlaceholder,
-                    response);
+                    response));
             throw (DittoRuntimeException) response;
         } else {
-            LOGGER.error(
+            LogUtil.logWithCorrelationId(LOGGER, dittoHeaders, log -> log.error(
                     "Did not retrieve expected RetrieveThingResponse when resolving policy id placeholder reference <{}>: {}",
-                    referencePlaceholder, response);
+                    referencePlaceholder, response));
             throw GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders).build();
         }
     }
