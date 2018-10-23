@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.signals.commands.base.exceptions;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -53,7 +53,7 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     }
 
     /**
-     * A mutable builder for a {@link GatewayPlaceholderReferenceNotSupportedException} for an unsupported referenced
+     * A mutable builder for a {@code GatewayPlaceholderReferenceNotSupportedException} for an unsupported referenced
      * entity type.
      *
      * @param unsupportedEntityType the unknown placeholder.
@@ -62,10 +62,10 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
      */
     public static Builder fromUnsupportedEntityType(final CharSequence unsupportedEntityType,
             final Set<CharSequence> supportedEntityTypes) {
-        requireNonNull(unsupportedEntityType);
-        requireNonNull(supportedEntityTypes);
+        checkNotNull(unsupportedEntityType, "unsupportedEntityType");
+        checkNotNull(supportedEntityTypes, "supportedEntityTypes");
 
-        final String message = MessageFormat.format(MESSAGE_TEMPLATE, requireNonNull(unsupportedEntityType));
+        final String message = MessageFormat.format(MESSAGE_TEMPLATE, unsupportedEntityType);
         final String supportedEntitiesStr = supportedEntityTypes.stream()
                 .map(supportedEntityType -> "'" + supportedEntityType + "'")
                 .collect(Collectors.joining(", "));
@@ -75,12 +75,12 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     }
 
     /**
-     * Constructs a new {@code GatewayPlaceholderNotResolvableException} object with the exception message extracted
+     * Constructs a new {@code GatewayPlaceholderReferenceNotSupportedException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayPlaceholderNotResolvableException.
+     * @return the new {@code GatewayPlaceholderReferenceNotSupportedException}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have
      * the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
@@ -94,7 +94,7 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayPlaceholderReferenceNotSupportedException}.
+     * A mutable builder with a fluent API for a {@code GatewayPlaceholderReferenceNotSupportedException}.
      */
     @NotThreadSafe
     public static final class Builder
@@ -104,8 +104,8 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
 
         private Builder(final String message, final String description) {
             this();
-            message(requireNonNull(message));
-            description(requireNonNull(description));
+            message(checkNotNull(message, "message"));
+            description(checkNotNull(description, "description"));
         }
 
         @Override
@@ -115,5 +115,7 @@ public final class GatewayPlaceholderReferenceNotSupportedException extends Ditt
             return new GatewayPlaceholderReferenceNotSupportedException(dittoHeaders, message, description, cause,
                     href);
         }
+
     }
+
 }

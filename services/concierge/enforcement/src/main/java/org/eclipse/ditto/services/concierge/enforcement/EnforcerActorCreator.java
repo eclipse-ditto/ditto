@@ -63,9 +63,9 @@ public final class EnforcerActorCreator {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
+     * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
-     * @param conciergeForwarder an actorRef to concierge forwarder.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -73,8 +73,7 @@ public final class EnforcerActorCreator {
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
-            @Nullable final Duration activityCheckInterval
-            ) {
+            @Nullable final Duration activityCheckInterval) {
 
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcerFunction =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedFuture;
@@ -92,4 +91,5 @@ public final class EnforcerActorCreator {
                             .collect(Collectors.toList())));
         });
     }
+
 }

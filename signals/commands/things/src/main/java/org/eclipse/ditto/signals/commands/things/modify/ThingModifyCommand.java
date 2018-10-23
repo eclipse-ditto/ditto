@@ -45,6 +45,7 @@ public interface ThingModifyCommand<T extends ThingModifyCommand> extends ThingC
      * @param initialPolicy the initial policy of the thing.
      * @param policyIdOrPlaceholder the policy id to copy.
      * @param dittoHeaders the ditto headers.
+     * @throws PolicyIdNotAllowedException if the validation fails.
      */
     static void ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(final String thingId,
             final Thing thing, @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
@@ -58,4 +59,5 @@ public interface ThingModifyCommand<T extends ThingModifyCommand> extends ThingC
             }
         }
     }
+
 }

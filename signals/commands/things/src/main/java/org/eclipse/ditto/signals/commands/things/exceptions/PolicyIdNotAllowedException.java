@@ -40,7 +40,7 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
     private static final String DEFAULT_DESCRIPTION =
             "If you want to use an existing Policy, specify it as 'policyId' in the Thing JSON. If you want to create" +
                     " a Thing with inline Policy, no Policy ID is allowed as it will be created with the Thing ID." +
-                    "If you want to create a Thing with a new Policy copied from another Thing, specify the either " +
+                    " If you want to create a Thing with a new Policy copied from another Thing, specify either " +
                     "the id of the policy or a reference placeholder to the policy id as '_copyPolicyFrom'.";
 
     private static final String COPY_POLICY_FROM_WITH_INLINE_POLICY_MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' " +

@@ -238,6 +238,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
             );
         }
+
     }
 
     /**
@@ -808,18 +809,24 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
         final Optional<String> policyId = createThing.getPolicyIdOrPlaceholder()
                 .flatMap(ReferencePlaceholder::fromCharSequence)
-                .map(referencePlaceholder -> policyIdReferencePlaceholderResolver.resolve(referencePlaceholder,
-                        dittoHeaders))
+                .map(referencePlaceholder -> {
+                    log(createThing).debug(
+                            "CreateThing command contains a reference placeholder for the policy it wants to copy: {}",
+                            referencePlaceholder);
+                    return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder, dittoHeaders);
+                })
                 .map(policyIdCompletionStage -> awaitPolicyIdCompletionStage(policyIdCompletionStage, createThing))
                 .map(Optional::of)
                 .orElse(createThing.getPolicyIdOrPlaceholder());
 
         if (policyId.isPresent()) {
+            log(dittoHeaders).debug("CreateThing command wants to use a copy of Policy <{}>", policyId.get());
             final Policy policy = retrievePolicyWithEnforcement(policyId.get(), dittoHeaders);
             final JsonObject jsonPolicyWithoutId = policy.toJson(JsonSchemaVersion.V_2).remove("policyId");
             return Optional.of(jsonPolicyWithoutId);
         }
 
+        log(dittoHeaders).debug("CreateThing command did not contain a policy that should be copied.");
         return createThing.getInitialPolicy();
     }
 
@@ -830,18 +837,20 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             return policyIdCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException | TimeoutException e) {
             log(createThing).error(e, "An error occurred when trying to resolve policy id.");
-            throw GatewayServiceTimeoutException.newBuilder().build();
+            throw GatewayServiceTimeoutException.newBuilder().dittoHeaders(createThing.getDittoHeaders()).build();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof DittoRuntimeException) {
                 throw (DittoRuntimeException) e.getCause();
             } else {
-                throw GatewayInternalErrorException.newBuilder().cause(e.getCause()).build();
+                throw GatewayInternalErrorException.newBuilder()
+                        .dittoHeaders(createThing.getDittoHeaders())
+                        .cause(e.getCause())
+                        .build();
             }
         }
     }
 
     private Policy retrievePolicyWithEnforcement(final String policyId, final DittoHeaders dittoHeaders) {
-
 
         final CompletionStage<Policy> policyCompletionStage =
                 PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
@@ -850,9 +859,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 return ((RetrievePolicyResponse) response).getPolicy();
                             } else if (response instanceof PolicyErrorResponse) {
                                 throw ((PolicyErrorResponse) response).getDittoRuntimeException();
-                            }else if (response instanceof DittoRuntimeException) {
+                            } else if (response instanceof DittoRuntimeException) {
                                 throw (DittoRuntimeException) response;
                             } else {
+                                log(dittoHeaders).error(
+                                        "Got an unexpected response while retrieving a Policy that should be copied" +
+                                                " during Thing creation: {}", response);
                                 throw GatewayInternalErrorException.newBuilder().build();
                             }
                         });
@@ -1333,4 +1345,5 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
                         .build());
     }
+
 }

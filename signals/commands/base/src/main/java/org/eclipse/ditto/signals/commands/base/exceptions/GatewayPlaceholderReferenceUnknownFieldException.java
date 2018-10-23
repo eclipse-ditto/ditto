@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.signals.commands.base.exceptions;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * This exception indicates that a request contains a reference placeholder which references an unsupported entity type.
+ * This exception indicates that a request contains a reference placeholder which references an unknown field on the referenced entity.
  */
 @Immutable
 public final class GatewayPlaceholderReferenceUnknownFieldException extends DittoRuntimeException
@@ -39,9 +39,9 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
 
     private static final String MESSAGE_TEMPLATE = "The referenced entity did not contain the expected field: ''{0}''.";
     private static final String DESCRIPTION_TEMPLATE =
-            "Please verify that you specify a valid field of the referenced entity with id: {0}.";
+            "Please verify that you specified a valid field of the referenced entity with id: {0}.";
     private static final String DESCRIPTION_WITHOUT_ENTITY_ID =
-            "Please verify that you specify a valid field of the referenced entity.";
+            "Please verify that you specified a valid field of the referenced entity.";
 
     private static final long serialVersionUID = 3721639494927413912L;
 
@@ -52,7 +52,7 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     }
 
     /**
-     * A mutable builder for a {@link GatewayPlaceholderReferenceUnknownFieldException} for an unsupported referenced
+     * A mutable builder for a {@code GatewayPlaceholderReferenceUnknownFieldException} for an unsupported referenced
      * entity type.
      *
      * @param unknownField the unknown field.
@@ -61,8 +61,8 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
      */
     public static Builder fromUnknownFieldAndEntityId(final CharSequence unknownField,
             final CharSequence referencedEntityId) {
-        requireNonNull(unknownField);
-        requireNonNull(referencedEntityId);
+        checkNotNull(unknownField, "unknownField");
+        checkNotNull(referencedEntityId, "referencedEntityId");
 
         final String message = MessageFormat.format(MESSAGE_TEMPLATE, unknownField);
         final String description = MessageFormat.format(DESCRIPTION_TEMPLATE, referencedEntityId);
@@ -71,12 +71,12 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     }
 
     /**
-     * Constructs a new {@code GatewayPlaceholderNotResolvableException} object with the exception message extracted
+     * Constructs a new {@code GatewayPlaceholderReferenceUnknownFieldException} object with the exception message extracted
      * from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new GatewayPlaceholderNotResolvableException.
+     * @return the new {@code GatewayPlaceholderReferenceUnknownFieldException}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have
      * the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
@@ -90,7 +90,7 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link GatewayPlaceholderReferenceUnknownFieldException}.
+     * A mutable builder with a fluent API for a {@code GatewayPlaceholderReferenceUnknownFieldException}.
      */
     @NotThreadSafe
     public static final class Builder
@@ -100,8 +100,8 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
 
         private Builder(final String message, final String description) {
             this();
-            message(requireNonNull(message));
-            description(requireNonNull(description));
+            message(checkNotNull(message, "message"));
+            description(checkNotNull(description, "description"));
         }
 
         @Override
@@ -111,5 +111,7 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
             return new GatewayPlaceholderReferenceUnknownFieldException(dittoHeaders, message, description, cause,
                     href);
         }
+
     }
+
 }

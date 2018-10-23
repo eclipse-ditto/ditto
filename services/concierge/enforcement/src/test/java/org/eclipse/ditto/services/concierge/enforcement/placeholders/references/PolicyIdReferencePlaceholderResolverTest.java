@@ -20,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,24 +47,18 @@ public class PolicyIdReferencePlaceholderResolverTest {
     private TestProbe conciergeForwarderActorProbe;
     private PolicyIdReferencePlaceholderResolver sut;
 
+    @AfterClass
+    public static void stopActorSystem() {
+        if (null != actorSystem) {
+            actorSystem.terminate();
+        }
+    }
+
     @Before
     public void setup() {
         conciergeForwarderActorProbe = TestProbe.apply(actorSystem);
         sut = PolicyIdReferencePlaceholderResolver.of(conciergeForwarderActorProbe.testActor(),
                 Duration.ofSeconds(5));
-    }
-
-    @Test
-    public void resolvePolicyIdFromThingSendsRetrieveThing() {
-        final ReferencePlaceholder referencePlaceholder =
-                ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:myThing/policyId }}")
-                        .orElseThrow(IllegalStateException::new);
-
-        sut.resolve(referencePlaceholder, DittoHeaders.empty());
-
-        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
-        assertThat(retrieveThing.getThingId()).isEqualTo("namespace:myThing");
-        assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
     }
 
     @Test
@@ -80,6 +77,27 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of("namespace:myThing",
                 Thing.newBuilder().setPolicyId("namespace:myPolicy").build(), DittoHeaders.empty()));
+
+        assertThat(policyIdCS.toCompletableFuture().get(1, TimeUnit.SECONDS)).isEqualTo("namespace:myPolicy");
+    }
+
+    @Test
+    public void resolvePolicyIdFromThingAttributeReturnsPolicyId()
+            throws InterruptedException, ExecutionException, TimeoutException {
+
+        final ReferencePlaceholder referencePlaceholder =
+                ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:myThing/attributes/policyId }}")
+                        .orElseThrow(IllegalStateException::new);
+
+        final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
+
+        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        assertThat(retrieveThing.getThingId()).isEqualTo("namespace:myThing");
+        assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
+
+        conciergeForwarderActorProbe.reply(RetrieveThingResponse.of("namespace:myThing",
+                Thing.newBuilder().setAttribute(JsonPointer.of("policyId"), JsonValue.of("namespace:myPolicy")).build(),
+                DittoHeaders.empty()));
 
         assertThat(policyIdCS.toCompletableFuture().get(1, TimeUnit.SECONDS)).isEqualTo("namespace:myPolicy");
     }
