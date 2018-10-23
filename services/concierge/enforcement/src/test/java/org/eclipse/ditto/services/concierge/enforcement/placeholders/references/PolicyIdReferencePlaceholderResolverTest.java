@@ -15,10 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -62,8 +60,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
     }
 
     @Test
-    public void resolvePolicyIdFromThingReturnsPolicyId()
-            throws InterruptedException, ExecutionException, TimeoutException {
+    public void resolvePolicyIdFromThingReturnsPolicyId() {
 
         final ReferencePlaceholder referencePlaceholder =
                 ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:myThing/policyId }}")
@@ -78,12 +75,15 @@ public class PolicyIdReferencePlaceholderResolverTest {
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of("namespace:myThing",
                 Thing.newBuilder().setPolicyId("namespace:myPolicy").build(), DittoHeaders.empty()));
 
-        assertThat(policyIdCS.toCompletableFuture().get(1, TimeUnit.SECONDS)).isEqualTo("namespace:myPolicy");
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .isCompletedWithValue("namespace:myPolicy");
     }
 
     @Test
-    public void resolvePolicyIdFromThingAttributeReturnsPolicyId()
-            throws InterruptedException, ExecutionException, TimeoutException {
+    public void resolvePolicyIdFromThingAttributeReturnsPolicyId() {
 
         final ReferencePlaceholder referencePlaceholder =
                 ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:myThing/attributes/policyId }}")
@@ -99,7 +99,37 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 Thing.newBuilder().setAttribute(JsonPointer.of("policyId"), JsonValue.of("namespace:myPolicy")).build(),
                 DittoHeaders.empty()));
 
-        assertThat(policyIdCS.toCompletableFuture().get(1, TimeUnit.SECONDS)).isEqualTo("namespace:myPolicy");
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .isCompletedWithValue("namespace:myPolicy");
+    }
+
+
+    @Test
+    public void resolvePolicyIdFromThingAttributeFailsIfFieldIsNotFound() {
+
+        final ReferencePlaceholder referencePlaceholder =
+                ReferencePlaceholder.fromCharSequence("{{ ref:things/namespace:myThing/attributes/policyId }}")
+                        .orElseThrow(IllegalStateException::new);
+
+        final CompletionStage<String> policyIdCS = sut.resolve(referencePlaceholder, DittoHeaders.empty());
+
+        final RetrieveThing retrieveThing = conciergeForwarderActorProbe.expectMsgClass(RetrieveThing.class);
+        assertThat(retrieveThing.getThingId()).isEqualTo("namespace:myThing");
+        assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("/attributes/policyId"));
+
+        conciergeForwarderActorProbe.reply(RetrieveThingResponse.of("namespace:myThing",
+                Thing.newBuilder().build(),
+                DittoHeaders.empty()));
+
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .hasFailedWithThrowableThat()
+                .isInstanceOf(GatewayPlaceholderReferenceUnknownFieldException.class);
     }
 
     @Test
@@ -118,8 +148,12 @@ public class PolicyIdReferencePlaceholderResolverTest {
         conciergeForwarderActorProbe.reply(RetrieveThingResponse.of("namespace:myThing",
                 Thing.newBuilder().build(), DittoHeaders.empty()));
 
-        policyIdCS.toCompletableFuture().whenComplete((response, error) -> assertThat(error).isInstanceOf(
-                GatewayPlaceholderReferenceUnknownFieldException.class));
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .hasFailedWithThrowableThat()
+                .isInstanceOf(GatewayPlaceholderReferenceUnknownFieldException.class);
     }
 
     @Test
@@ -137,7 +171,13 @@ public class PolicyIdReferencePlaceholderResolverTest {
 
         final DittoRuntimeException dre = ThingNotAccessibleException.newBuilder("namespace:myThing").build();
         conciergeForwarderActorProbe.reply(ThingErrorResponse.of(dre));
-        policyIdCS.toCompletableFuture().whenComplete((response, error) -> assertThat(error).isSameAs(dre));
+
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .hasFailedWithThrowableThat()
+                .isEqualTo(dre);
     }
 
     @Test
@@ -154,8 +194,13 @@ public class PolicyIdReferencePlaceholderResolverTest {
         assertThat(retrieveThing.getSelectedFields()).contains(JsonFieldSelector.newInstance("policyId"));
 
         conciergeForwarderActorProbe.reply("someThingUnexpected");
-        policyIdCS.toCompletableFuture()
-                .whenComplete((response, error) -> assertThat(error).isInstanceOf(GatewayInternalErrorException.class));
+
+        Awaitility.await()
+                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .until(() -> policyIdCS.toCompletableFuture().isDone());
+        assertThat(policyIdCS.toCompletableFuture())
+                .hasFailedWithThrowableThat()
+                .isInstanceOf(GatewayInternalErrorException.class);
     }
 
 }
