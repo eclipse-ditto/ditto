@@ -36,6 +36,7 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
 
     private static final String MESSAGE_TEMPLATE =
             "The message payload size of ''{0}'' kB exceeds the maximal allowed size of ''{1}'' kB.";
+
     private static final String DEFAULT_DESCRIPTION = "Reduce the message payload in the bounds of the specified limit";
 
     private static final long serialVersionUID = -2530157640888612975L;

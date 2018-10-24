@@ -62,9 +62,9 @@ public final class UnknownPathException extends DittoRuntimeException {
      * @return the new UnknownPathException.
      */
     public static UnknownPathException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -79,12 +79,16 @@ public final class UnknownPathException extends DittoRuntimeException {
      * DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static UnknownPathException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link UnknownPathException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnknownPathException> {

@@ -60,9 +60,9 @@ public final class UnknownEventException extends DittoRuntimeException {
      * @return the new UnknownEventException.
      */
     public static UnknownEventException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -77,12 +77,16 @@ public final class UnknownEventException extends DittoRuntimeException {
      * DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static UnknownEventException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link UnknownEventException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnknownEventException> {

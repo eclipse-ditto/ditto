@@ -81,7 +81,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         return new MessageFormatInvalidException.Builder(validationErrors);
     }
 
-
     @Override
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
         jsonObjectBuilder.set(VALIDATION_ERRORS, null != validationErrors ? validationErrors : JsonFactory.nullArray(),

@@ -89,6 +89,7 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

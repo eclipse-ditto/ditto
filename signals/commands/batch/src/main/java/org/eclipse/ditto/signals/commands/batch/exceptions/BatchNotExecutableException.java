@@ -116,6 +116,8 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
                 .commandCorrelationId(commandCorrelationId)
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_TEMPLATE))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

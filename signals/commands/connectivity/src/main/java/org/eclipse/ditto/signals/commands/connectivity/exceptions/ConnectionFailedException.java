@@ -73,7 +73,6 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      */
     public static ConnectionFailedException from(final String message, @Nullable final String description,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -93,7 +92,12 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static ConnectionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return from(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

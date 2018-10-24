@@ -71,11 +71,12 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
      */
     public static ConnectionSignalIllegalException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final Builder builder = new Builder();
-        builder.message(readMessage(jsonObject));
-        readDescription(jsonObject).ifPresent(builder::description);
-        builder.dittoHeaders(dittoHeaders);
-        return builder.build();
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(null))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

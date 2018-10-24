@@ -69,7 +69,6 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      */
     public static CommandNotSupportedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -88,7 +87,12 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
      * JsonFields#MESSAGE} field.
      */
     public static CommandNotSupportedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return  new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

@@ -60,9 +60,9 @@ public final class UnknownCommandException extends DittoRuntimeException {
      * @return the new UnknownCommandException.
      */
     public static UnknownCommandException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -77,12 +77,16 @@ public final class UnknownCommandException extends DittoRuntimeException {
      * DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static UnknownCommandException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link UnknownCommandException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnknownCommandException> {

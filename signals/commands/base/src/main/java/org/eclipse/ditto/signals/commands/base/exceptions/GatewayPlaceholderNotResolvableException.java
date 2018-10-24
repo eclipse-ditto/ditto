@@ -110,6 +110,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(UNKNOWN_DESCRIPTION_TEMPLATE))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

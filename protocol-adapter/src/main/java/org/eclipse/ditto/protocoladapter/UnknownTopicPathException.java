@@ -70,9 +70,9 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * @return the new UnknownTopicPathException.
      */
     public static UnknownTopicPathException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -87,12 +87,16 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * JsonFields#MESSAGE} field.
      */
     public static UnknownTopicPathException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link UnknownTopicPathException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnknownTopicPathException> {

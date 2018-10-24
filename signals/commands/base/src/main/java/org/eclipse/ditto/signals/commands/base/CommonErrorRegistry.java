@@ -58,6 +58,7 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
     public static CommonErrorRegistry newInstance() {
         final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
 
+        // exceptions in package
         parseStrategies.put(JsonParseException.ERROR_CODE, (jsonObject, dittoHeaders) -> new DittoJsonException(
                 JsonParseException.newBuilder().message(getMessage(jsonObject)).build(), dittoHeaders));
 
@@ -74,13 +75,22 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         JsonPointerInvalidException.newBuilder().message(getMessage(jsonObject)).build(),
                         dittoHeaders));
 
-        // other common exceptions
-        parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
-        parseStrategies.put(CommandNotSupportedException.ERROR_CODE, CommandNotSupportedException::fromJson);
-        parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
-        parseStrategies.put(InvalidRqlExpressionException.ERROR_CODE, InvalidRqlExpressionException::fromJson);
+        // exceptions in package org.eclipse.ditto.model.base.exceptions
+        parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE,
+                DittoHeaderInvalidException::fromJson);
 
-        // Gateway exceptions
+        parseStrategies.put(InvalidRqlExpressionException.ERROR_CODE,
+                InvalidRqlExpressionException::fromJson);
+
+        // exception in package org.eclipse.ditto.signals.commands.base
+        parseStrategies.put(CommandNotSupportedException.
+                ERROR_CODE, CommandNotSupportedException::fromJson);
+
+        // exception in package org.eclipse.ditto.signals.base
+        parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE,
+                JsonTypeNotParsableException::fromJson);
+
+        // exceptions in package org.eclipse.ditto.signals.commands.base.exceptions
         parseStrategies.put(GatewayAuthenticationFailedException.ERROR_CODE,
                 GatewayAuthenticationFailedException::fromJson);
 
@@ -99,20 +109,20 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
         parseStrategies.put(GatewayMethodNotAllowedException.ERROR_CODE,
                 GatewayMethodNotAllowedException::fromJson);
 
+        parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
+                GatewayPlaceholderNotResolvableException::fromJson);
+
         parseStrategies.put(GatewayQueryTimeExceededException.ERROR_CODE,
                 GatewayQueryTimeExceededException::fromJson);
 
         parseStrategies.put(GatewayServiceTimeoutException.ERROR_CODE,
                 GatewayServiceTimeoutException::fromJson);
 
-        parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
-                GatewayServiceUnavailableException::fromJson);
-
         parseStrategies.put(GatewayServiceTooManyRequestsException.ERROR_CODE,
                 GatewayServiceTooManyRequestsException::fromJson);
 
-        parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
-                GatewayPlaceholderNotResolvableException::fromJson);
+        parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
+                GatewayServiceUnavailableException::fromJson);
 
         return new CommonErrorRegistry(parseStrategies);
     }
