@@ -14,9 +14,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 
 /**
@@ -41,22 +41,17 @@ public interface ThingModifyCommand<T extends ThingModifyCommand> extends ThingC
      * thing is not null.
      *
      * @param thingId the thing id.
-     * @param thing the thing to modify/create.
      * @param initialPolicy the initial policy of the thing.
      * @param policyIdOrPlaceholder the policy id to copy.
      * @param dittoHeaders the ditto headers.
      * @throws PolicyIdNotAllowedException if the validation fails.
      */
-    static void ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(final String thingId,
-            final Thing thing, @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
+    static void ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(final String thingId,
+            @Nullable final JsonObject initialPolicy, @Nullable final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
 
-        if (policyIdOrPlaceholder != null) {
-            if (initialPolicy != null) {
-                throw PolicyIdNotAllowedException.forCopyPolicyFromWithInlinePolicy(thingId, dittoHeaders);
-            } else if (thing.getPolicyId().isPresent()) {
-                throw PolicyIdNotAllowedException.forCopyPolicyFromWithPolicyId(thingId, dittoHeaders);
-            }
+        if (policyIdOrPlaceholder != null && initialPolicy != null) {
+            throw PoliciesConflictingException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
         }
     }
 

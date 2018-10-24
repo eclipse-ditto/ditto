@@ -13,7 +13,6 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -24,32 +23,31 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingException;
 
 /**
- * Thrown if a Thing cannot be modified because it contained a Policy ID and a Policy or a Policy with ID.
+ * Thrown if a Thing cannot be modified because it contained a Policy.
  */
-public final class PolicyIdNotAllowedException extends DittoRuntimeException implements ThingException {
+public class PoliciesConflictingException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.notallowed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.conflicting";
 
     private static final String MESSAGE_TEMPLATE =
-            "The Thing with ID ''{0}'' could not be modified as it contained an inline Policy with an ID or a Policy " +
-                    "ID and a Policy";
+            "The Thing with ID ''{0}'' could not be created as it contained an inline Policy as well as a policyID " +
+                    "to copy.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "If you want to use an existing Policy, specify it as 'policyId' in the Thing JSON. If you want to create" +
-                    " a Thing with inline Policy, no Policy ID is allowed as it will be created with the Thing ID.";
+            "Please either define an inline Policy or define a policy to copy, but not both.";
 
-    private static final long serialVersionUID = 4511420390758955872L;
+    private static final long serialVersionUID = -2552393404785421837L;
 
-    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private PoliciesConflictingException(final DittoHeaders dittoHeaders, final String message,
+            final String description, final Throwable cause, final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code PolicyIdNotAllowedException}.
+     * A mutable builder for a {@code PolicyNotAllowedException}.
      *
      * @param thingId the ID of the thing.
      * @return the builder.
@@ -59,13 +57,13 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
     }
 
     /**
-     * Constructs a new {@code PolicyIdNotAllowedException} object with the given exception message.
+     * Constructs a new {@code PolicyNotAllowedException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyIdNotAllowedException.
+     * @return the new PolicyNotAllowedException.
      */
-    public static PolicyIdNotAllowedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
+    public static PoliciesConflictingException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -73,25 +71,25 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
     }
 
     /**
-     * Constructs a new {@code PolicyIdNotAllowedException} object with the exception message extracted from the
+     * Constructs a new {@link PoliciesConflictingException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new PolicyIdNotAllowedException.
+     * @return the new PolicyNotAllowedException.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
-    public static PolicyIdNotAllowedException fromJson(final JsonObject jsonObject,
+    public static PoliciesConflictingException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return fromMessage(readMessage(jsonObject), dittoHeaders);
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link PolicyIdNotAllowedException}.
+     * A mutable builder with a fluent API for a {@link PoliciesConflictingException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdNotAllowedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PoliciesConflictingException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -103,9 +101,10 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
         }
 
         @Override
-        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
-            return new PolicyIdNotAllowedException(dittoHeaders, message, description, cause, href);
+        protected PoliciesConflictingException doBuild(final DittoHeaders dittoHeaders, final String message,
+                final String description, final Throwable cause, final URI href) {
+            return new PoliciesConflictingException(dittoHeaders, message, description, cause, href);
         }
     }
+
 }

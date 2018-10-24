@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.junit.Test;
 
@@ -270,9 +271,9 @@ public final class ModifyThingTest {
                 ModifyThing.of(TestConstants.Thing.THING_ID, thingWithoutAclAndPolicy, JsonObject.newBuilder().build(),
                         thingReference,
                         v2Headers))
-                .isInstanceOf(PolicyIdNotAllowedException.class)
+                .isInstanceOf(PoliciesConflictingException.class)
                 .hasMessage(MessageFormat.format(
-                        "The Thing with ID ''{0}'' could not be created/modified as it contained an inline " +
-                                "Policy and a policy id to copy from.", TestConstants.Thing.THING_ID));
+                        "The Thing with ID ''{0}'' could not be created as it contained an inline " +
+                                "Policy as well as a policyID to copy.", TestConstants.Thing.THING_ID));
     }
 }
