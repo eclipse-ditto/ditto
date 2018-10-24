@@ -15,10 +15,12 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
@@ -36,11 +38,8 @@ import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Actor which restarts a {@link ConnectionActor} with status
- * {@link ConnectionStatus#OPEN} automatically on startup.
- * <p>
- * This Actor must be created as a cluster singleton as it uses a fixed persistence id.
- * </p>
+ * Actor which wakes up {@link ConnectionActor}s automatically on startup. The {@link ConnectionActor} then
+ * decides if the connection will be opened or stay closed depending on the persisted connection status.
  */
 public final class ReconnectActor extends AbstractActor {
 
@@ -123,6 +122,16 @@ public final class ReconnectActor extends AbstractActor {
                 .match(RetrieveConnectionStatusResponse.class,
                         command -> log.debug("Retrieved connection status response for connection {} with status: {}",
                                 command.getConnectionId(), command.getConnectionStatus()))
+                .match(ConnectionNotAccessibleException.class,
+                        exception -> log.debug("Received ConnectionNotAccessibleException for connection {} " +
+                                        "(most likely, the connection was deleted): {}",
+                                exception.getDittoHeaders().getCorrelationId().orElse("<unknown>"),
+                                exception.getMessage()))
+                .match(DittoRuntimeException.class,
+                        exception -> log.debug("Received {} for connection {} : {}",
+                                exception.getClass().getSimpleName(),
+                                exception.getDittoHeaders().getCorrelationId().orElse("<unknown>"),
+                                exception.getMessage()))
                 .matchEquals(ReconnectConnections.INSTANCE, rc -> this.handleReconnectConnections())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -132,11 +141,11 @@ public final class ReconnectActor extends AbstractActor {
 
     private void handleReconnectConnections() {
         if (reconnectInProgress) {
-            log.info("Another reconnect iteration is currently in progress. Next iteration is stated after {}.",
+            log.info("Another reconnect iteration is currently in progress. Next iteration will be started after {}.",
                     reconnectInterval);
         } else {
-            log.info("Sending reconnects for Connections. " +
-                    "Will be sent again after the configured Interval of {}.", reconnectInterval);
+            log.info("Sending reconnects for Connections. Will be sent again after the configured Interval of {}.",
+                    reconnectInterval);
             reconnectInProgress = true;
             final Source<String, NotUsed> currentPersistenceIdsSource = currentPersistenceIdsSourceSupplier.get();
             if (currentPersistenceIdsSource != null) {
