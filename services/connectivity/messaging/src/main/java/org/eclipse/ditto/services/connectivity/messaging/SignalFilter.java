@@ -54,7 +54,7 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
  * <li>removing those targets that are not allowed to read a signal</li>
  * </ul>
  */
-class SignalFilter {
+final class SignalFilter {
 
     private final Connection connection;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
