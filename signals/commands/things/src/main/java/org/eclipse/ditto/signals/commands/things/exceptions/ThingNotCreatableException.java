@@ -42,11 +42,16 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             "The Thing with ID ''{0}'' could not be created with " +
                     "implicit Policy as the Policy with ID ''{1}'' is already existing.";
 
-    private static final String DEFAULT_DESCRIPTION =
+    private static final String DEFAULT_DESCRIPTION_NOT_EXISTING =
             "Check if the ID of the Policy you created the Thing with is correct and that the Policy is existing.";
 
     private static final String DEFAULT_DESCRIPTION_POLICY_EXISTING =
             "If you want to use the existing Policy, specify it as 'policyId' in the Thing JSON you create.";
+
+    private static final String DEFAULT_DESCRIPTION_GENERIC =
+            "Either check if the ID of the Policy you created the Thing with is correct and that the " +
+                    "Policy is existing or If you want to use the existing Policy, specify it as 'policyId' " +
+                    "in the Thing JSON you create.";
 
     private static final long serialVersionUID = 2153912949789822362L;
 
@@ -113,7 +118,12 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      */
     public static ThingNotCreatableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_GENERIC))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -123,9 +133,13 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotCreatableException> {
 
+        private Builder() {
+            description(DEFAULT_DESCRIPTION_GENERIC);
+        }
+
         private Builder(final boolean policyMissing) {
             if (policyMissing) {
-                description(DEFAULT_DESCRIPTION);
+                description(DEFAULT_DESCRIPTION_NOT_EXISTING);
             } else {
                 description(DEFAULT_DESCRIPTION_POLICY_EXISTING);
             }

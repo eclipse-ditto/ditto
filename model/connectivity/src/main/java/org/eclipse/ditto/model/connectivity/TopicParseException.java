@@ -80,7 +80,6 @@ public final class TopicParseException extends DittoRuntimeException implements 
      */
     public static TopicParseException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -99,8 +98,12 @@ public final class TopicParseException extends DittoRuntimeException implements 
      */
     public static TopicParseException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

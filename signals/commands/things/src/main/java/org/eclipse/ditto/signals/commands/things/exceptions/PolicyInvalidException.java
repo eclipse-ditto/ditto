@@ -90,13 +90,11 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      * JsonFields#MESSAGE} field.
      */
     public static PolicyInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final String message = readMessage(jsonObject);
-        final String description = readDescription(jsonObject).orElse(DESCRIPTION_TEMPLATE);
-
         return new Builder()
-                .message(message)
-                .description(description)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DESCRIPTION_TEMPLATE))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

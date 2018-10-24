@@ -72,7 +72,6 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-
         return fromMessage(message, null, dittoHeaders);
     }
 
@@ -86,7 +85,6 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromMessage(final String message, final String description,
             final DittoHeaders dittoHeaders) {
-
         final DittoRuntimeExceptionBuilder<PolicyEntryModificationInvalidException> builder =
                 new PolicyEntryModificationInvalidException.Builder()
                         .dittoHeaders(dittoHeaders)
@@ -109,8 +107,12 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

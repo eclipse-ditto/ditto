@@ -85,7 +85,12 @@ public final class AttributeNotAccessibleException extends DittoRuntimeException
      */
     public static AttributeNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

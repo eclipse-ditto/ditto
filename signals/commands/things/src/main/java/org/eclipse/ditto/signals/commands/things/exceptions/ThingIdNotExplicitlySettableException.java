@@ -38,13 +38,14 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
             "It is not allowed to provide a Thing ID in the request body for "
                     + "method POST. The method POST will generate the Thing ID by itself.";
 
-    private static final String DEFAULT_DESCRIPTION_POST = "To provide your own Thing ID use a PUT request instead.";
+    private static final String DEFAULT_DESCRIPTION_POST =
+            "To provide your own Thing ID use a PUT request instead.";
 
     private static final String MESSAGE_TEMPLATE_PUT =
-            "The Thing ID in the request body is not equal to the Thing ID in " + "the request URL.";
+            "The Thing ID in the request body is not equal to the Thing ID in the request URL.";
 
     private static final String DEFAULT_DESCRIPTION_PUT =
-            "Either delete the Thing ID from the request body or use the " + "same Thing ID as in the request URL.";
+            "Either delete the Thing ID from the request body or use the same Thing ID as in the request URL.";
 
     private static final long serialVersionUID = 5477658033219182854L;
 
@@ -91,7 +92,23 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      */
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        final String message = readMessage(jsonObject);
+        if (MESSAGE_TEMPLATE_POST.equalsIgnoreCase(message)) {
+            return new Builder(true)
+                    .dittoHeaders(dittoHeaders)
+                    .message(message)
+                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_POST))
+                    .href(readHRef(jsonObject).orElse(null))
+                    .build();
+        }
+        else {
+            return new Builder(false)
+                    .dittoHeaders(dittoHeaders)
+                    .message(message)
+                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_PUT))
+                    .href(readHRef(jsonObject).orElse(null))
+                    .build();
+        }
     }
 
     /**

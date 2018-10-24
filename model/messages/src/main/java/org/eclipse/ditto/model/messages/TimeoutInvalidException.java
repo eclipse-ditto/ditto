@@ -93,10 +93,13 @@ public final class TimeoutInvalidException extends DittoRuntimeException impleme
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static TimeoutInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final Builder builder = new Builder();
-        builder.loadJson(jsonObject);
-        builder.dittoHeaders(dittoHeaders);
-        return builder.build();
+        return new Builder()
+                .loadJson(jsonObject)
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

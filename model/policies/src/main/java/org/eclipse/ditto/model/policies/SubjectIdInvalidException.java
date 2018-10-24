@@ -81,7 +81,6 @@ public final class SubjectIdInvalidException extends DittoRuntimeException imple
      */
     public static SubjectIdInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .message(message)
                 .dittoHeaders(dittoHeaders)
@@ -100,7 +99,12 @@ public final class SubjectIdInvalidException extends DittoRuntimeException imple
      * JsonFields#MESSAGE} field.
      */
     public static SubjectIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     @Override

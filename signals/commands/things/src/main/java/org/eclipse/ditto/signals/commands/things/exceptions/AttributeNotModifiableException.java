@@ -68,7 +68,7 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      */
     public static AttributeNotModifiableException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new AttributeNotModifiableException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
@@ -86,7 +86,12 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
      */
     public static AttributeNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

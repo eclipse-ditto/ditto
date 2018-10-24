@@ -40,8 +40,7 @@ public class PolicyInvalidExceptionTest {
                     JsonField.isValueNonNull())
             .set(DittoRuntimeException.JsonFields.HREF,
                     TestConstants.Thing.POLICY_INVALID_EXCEPTION.getHref()
-                            .map(URI::toString)
-                            .orElse(null),
+                            .map(URI::toString).orElse(null),
                     JsonField.isValueNonNull())
             .build();
 

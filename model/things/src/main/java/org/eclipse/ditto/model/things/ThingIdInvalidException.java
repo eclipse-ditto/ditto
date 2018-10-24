@@ -77,9 +77,9 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @return the new ThingIdInvalidException.
      */
     public static ThingIdInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -93,7 +93,12 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
     public static ThingIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(DittoRuntimeException.readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

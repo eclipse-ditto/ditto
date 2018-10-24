@@ -66,9 +66,12 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
      */
     public static MessagePayloadSizeTooLargeException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new MessagePayloadSizeTooLargeException.Builder()
+        return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

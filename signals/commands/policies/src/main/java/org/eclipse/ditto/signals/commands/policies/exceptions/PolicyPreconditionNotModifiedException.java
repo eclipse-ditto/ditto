@@ -66,6 +66,21 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
     }
 
     /**
+     * Constructs a new {@code PolicyPreconditionNotModifiedException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new PolicyPreconditionNotModifiedException.
+     */
+    public static PolicyPreconditionNotModifiedException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
+    }
+
+    /**
      * Constructs a new {@link PolicyPreconditionNotModifiedException} object with the exception message extracted from
      * the given JSON object.
      *
@@ -78,16 +93,11 @@ public final class PolicyPreconditionNotModifiedException extends DittoRuntimeEx
      */
     public static PolicyPreconditionNotModifiedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    private static PolicyPreconditionNotModifiedException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

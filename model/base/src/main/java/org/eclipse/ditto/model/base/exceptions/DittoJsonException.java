@@ -74,7 +74,7 @@ public final class DittoJsonException extends DittoRuntimeException {
     }
 
     /**
-     * Executes the given Function. Executes the given Supplier. An occurring {@link JsonRuntimeException},
+     * Executes the given Function. An occurring {@link JsonRuntimeException},
      * {@code IllegalArgumentException} or {@code NullPointerException} is caught, wrapped and re-thrown as
      * {@code DittoJsonException}.
      *

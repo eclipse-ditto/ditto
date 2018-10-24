@@ -34,10 +34,10 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "id.notsettable";
 
-    private static final String MESSAGE_TEMPLATE_PUT =
+    private static final String MESSAGE_TEMPLATE =
             "The Policy ID in the request body is not equal to the Policy ID in the request URL.";
 
-    private static final String DEFAULT_DESCRIPTION_PUT =
+    private static final String DEFAULT_DESCRIPTION =
             "Either delete the Policy ID from the request body or use the same Policy ID as in the request URL.";
 
 
@@ -84,7 +84,12 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
      */
     public static PolicyIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -95,8 +100,8 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdNotExplicitlySettableException> {
 
         private Builder() {
-            message(MESSAGE_TEMPLATE_PUT);
-            description(DEFAULT_DESCRIPTION_PUT);
+            message(MESSAGE_TEMPLATE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override

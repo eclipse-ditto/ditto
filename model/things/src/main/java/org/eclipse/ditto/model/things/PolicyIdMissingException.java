@@ -36,7 +36,6 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.id.missing";
 
-
     private static final String MESSAGE_TEMPLATE_UPDATE =
             "The schema version of the Thing with ID ''{0}'' does not allow an update on schema version ''{1}'' " +
                     "without providing a policy id";
@@ -53,23 +52,17 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     private static final String DEFAULT_DESCRIPTION_CREATE =
             "You need to specify a policy id.";
 
+    private static final String DEFAULT_DESCRIPTION_GENERIC =
+            "Either you need to specific a PolicyId or when updating " +
+                    "a schema version 1 Thing using a higher schema version API, you need to add a policyId. " +
+                    "Be aware that this will convert the Thing to the higher schema version, thus removing all ACL " +
+                    "information from it.";
+
     private static final long serialVersionUID = -2640894758584381867L;
 
     private PolicyIdMissingException(final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
-    }
-
-    private static PolicyIdMissingException fromMessage(final String message, @Nullable final String description,
-            final DittoHeaders dittoHeaders) {
-        final DittoRuntimeExceptionBuilder<PolicyIdMissingException> exceptionBuilder = new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message);
-        if (description != null) {
-            return exceptionBuilder.description(description).build();
-        } else {
-            return exceptionBuilder.build();
-        }
     }
 
     /**
@@ -100,7 +93,6 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
                 .build();
     }
 
-
     /**
      * Constructs a new {@code PolicyIdMissingException} object with the exception message and description extracted
      * from the given JSON object.
@@ -113,7 +105,12 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
      * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static PolicyIdMissingException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_CREATE), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_GENERIC))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     @Override

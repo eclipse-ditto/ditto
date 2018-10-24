@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -80,7 +81,13 @@ public final class PolicyConflictException extends DittoRuntimeException impleme
      * JsonFields#MESSAGE} field.
      */
     public static PolicyConflictException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        final Optional<URI> uri = readHRef(jsonObject);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(uri.orElse(null))
+                .build();
     }
 
     /**

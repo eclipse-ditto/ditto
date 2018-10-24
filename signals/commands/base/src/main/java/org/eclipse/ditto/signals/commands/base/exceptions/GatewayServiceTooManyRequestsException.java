@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -46,13 +47,6 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
     }
 
     /**
-     * A mutable builder for a {@code GatewayServiceTooManyRequestsException}.
-     *
-     * @return the builder.
-     */
-    public static Builder newBuilder() { return new Builder(); }
-
-    /**
      * Constructs a new {@code GatewayServiceTooManyRequestsException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
@@ -64,6 +58,33 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
+                .build();
+    }
+
+    /**
+     * A mutable builder for a {@code GatewayServiceTooManyRequestsException}.
+     *
+     * @return the builder.
+     */
+    public static Builder newBuilder() { return new Builder(); }
+
+    /**
+     * Constructs a new {@code GatewayServiceTooManyRequestsException} object with the exception message extracted from the given
+     * JSON object.
+     *
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayServiceTooManyRequestsException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
+     */
+    public static GatewayServiceTooManyRequestsException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

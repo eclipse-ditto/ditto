@@ -120,6 +120,9 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

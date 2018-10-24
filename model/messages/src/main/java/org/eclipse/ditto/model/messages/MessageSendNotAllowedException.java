@@ -92,10 +92,12 @@ public final class MessageSendNotAllowedException extends DittoRuntimeException 
      */
     public static MessageSendNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

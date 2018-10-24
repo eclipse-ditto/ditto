@@ -89,8 +89,12 @@ public final class PolicyEntryNotModifiableException extends DittoRuntimeExcepti
      */
     public static PolicyEntryNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

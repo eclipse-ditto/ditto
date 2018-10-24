@@ -62,22 +62,30 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
      */
     public static GatewayQueryTimeExceededException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new GatewayQueryTimeExceededException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
     }
 
     /**
-     * Deserialize a new {@code GatewayQueryTimeExceededException} object.
+     * Constructs a new {@code GatewayQueryTimeExceededException} object with the exception message extracted from the given
+     * JSON object.
      *
-     * @param json the json object. It is ignored because this object has no state.
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayQueryTimeExceededException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
      */
-    public static GatewayQueryTimeExceededException fromJson(final JsonObject json,
+    public static GatewayQueryTimeExceededException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new Builder().dittoHeaders(dittoHeaders).build();
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

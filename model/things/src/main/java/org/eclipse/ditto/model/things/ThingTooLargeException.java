@@ -69,6 +69,9 @@ public final class ThingTooLargeException extends DittoRuntimeException implemen
         return new ThingTooLargeException.Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

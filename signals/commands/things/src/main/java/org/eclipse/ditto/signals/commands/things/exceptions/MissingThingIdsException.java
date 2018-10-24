@@ -60,8 +60,8 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
      *
      * @return the builder.
      */
-    public static MissingThingIdsException.Builder newBuilder() {
-        return new MissingThingIdsException.Builder();
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**
@@ -75,9 +75,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
      * JsonFields#MESSAGE} field.
      */
     public static MissingThingIdsException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new MissingThingIdsException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
     /**

@@ -64,7 +64,7 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
      */
     public static FeaturesNotModifiableException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new FeaturesNotModifiableException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
@@ -82,7 +82,12 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
      */
     public static FeaturesNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

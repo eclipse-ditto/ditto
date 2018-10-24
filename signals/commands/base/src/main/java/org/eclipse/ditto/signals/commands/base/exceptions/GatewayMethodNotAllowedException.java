@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -65,6 +66,26 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
+                .build();
+    }
+
+    /**
+     * Constructs a new {@code GatewayMethodNotAllowedException} object with the exception message extracted from the given
+     * JSON object.
+     *
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayMethodNotAllowedException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
+     */
+    public static GatewayMethodNotAllowedException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

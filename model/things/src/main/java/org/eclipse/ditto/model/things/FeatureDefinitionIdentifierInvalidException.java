@@ -77,7 +77,6 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
      */
     public static FeatureDefinitionIdentifierInvalidException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -96,8 +95,12 @@ public final class FeatureDefinitionIdentifierInvalidException extends DittoRunt
      */
     public static FeatureDefinitionIdentifierInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(DittoRuntimeException.readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**

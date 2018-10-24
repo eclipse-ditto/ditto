@@ -31,6 +31,8 @@ import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
@@ -73,7 +75,6 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         dittoHeaders));
 
         // other common exceptions
-
         parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
         parseStrategies.put(CommandNotSupportedException.ERROR_CODE, CommandNotSupportedException::fromJson);
         parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
@@ -84,32 +85,31 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                 GatewayAuthenticationFailedException::fromJson);
 
         parseStrategies.put(GatewayAuthenticationProviderUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayAuthenticationProviderUnavailableException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayAuthenticationProviderUnavailableException::fromJson);
 
         parseStrategies.put(GatewayInternalErrorException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayInternalErrorException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayInternalErrorException::fromJson);
+
+        parseStrategies.put(GatewayJwtInvalidException.ERROR_CODE,
+                GatewayJwtInvalidException::fromJson);
+
+        parseStrategies.put(GatewayJwtIssuerNotSupportedException.ERROR_CODE,
+                GatewayJwtIssuerNotSupportedException::fromJson);
 
         parseStrategies.put(GatewayMethodNotAllowedException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayMethodNotAllowedException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayMethodNotAllowedException::fromJson);
 
         parseStrategies.put(GatewayQueryTimeExceededException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayQueryTimeExceededException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayQueryTimeExceededException::fromJson);
 
         parseStrategies.put(GatewayServiceTimeoutException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTimeoutException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayServiceTimeoutException::fromJson);
 
         parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceUnavailableException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayServiceUnavailableException::fromJson);
 
         parseStrategies.put(GatewayServiceTooManyRequestsException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTooManyRequestsException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayServiceTooManyRequestsException::fromJson);
 
         parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
                 GatewayPlaceholderNotResolvableException::fromJson);
