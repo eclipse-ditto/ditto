@@ -279,11 +279,6 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
                 rmqConnectionActor = startChildActorConflictFree(RMQ_CONNECTION_ACTOR_NAME, props);
                 rmqPublisherActor = startRmqPublisherActor().orElse(null);
-                try {
-                    TimeUnit.SECONDS.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
 
                 // create publisher channel
                 final ActorRef finalRmqPublisherActor = rmqPublisherActor;
@@ -307,7 +302,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
                     if (throwable != null) {
                         future.complete(new Status.Failure(throwable));
                     } else {
-                        // Waiting for Exceptionhandler rabbitMQExceptionHandler
+                        // waiting for "final RabbitMQExceptionHandler rabbitMQExceptionHandler" to get its chance to
+                        // complete the future with an Exception before we report Status.Success right now
+                        // so delay this by 1 second --
+                        // with Java 9 this could be done more elegant with "orTimeout" or "completeOnTimeout" methods:
                         scheduler.scheduleOnce(Duration.ofSeconds(1L),
                                 () -> future.complete(new Status.Success("channel created")),
                                 dispatcher);
