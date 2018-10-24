@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -166,8 +165,7 @@ public final class ReconnectActor extends AbstractActor {
         // yes, this is intentionally a RetrieveConnectionStatus instead of OpenConnection.
         // ConnectionActor manages its own reconnection on recovery.
         // OpenConnection would set desired state to OPEN even for deleted connections.
-        //
-        // Save connection ID as correlation ID so that nonexistent connections are removed from the store.
+
         if (persistenceId.startsWith(ConnectionActor.PERSISTENCE_ID_PREFIX)) {
             final String connectionId = persistenceId.substring(ConnectionActor.PERSISTENCE_ID_PREFIX.length());
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
