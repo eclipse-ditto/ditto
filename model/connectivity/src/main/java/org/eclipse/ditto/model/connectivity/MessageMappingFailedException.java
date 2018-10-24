@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
 /**
- * Thrown if the mapping of an arbitrary {@link ExternalMessage} failed.
+ * Thrown if the mapping of an arbitrary {@code ExternalMessage} failed.
  */
 @Immutable
 public final class MessageMappingFailedException extends DittoRuntimeException implements ConnectivityException {

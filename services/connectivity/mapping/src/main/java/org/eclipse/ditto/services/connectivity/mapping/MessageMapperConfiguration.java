@@ -15,8 +15,8 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 /**
  * Configuration properties for a {@link MessageMapper}.

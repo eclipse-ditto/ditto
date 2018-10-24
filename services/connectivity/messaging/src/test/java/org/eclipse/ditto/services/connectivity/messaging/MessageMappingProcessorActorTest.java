@@ -17,7 +17,9 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.di
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -30,14 +32,20 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
-import org.eclipse.ditto.model.connectivity.IdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
-import org.eclipse.ditto.model.connectivity.ThingIdEnforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilterFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
@@ -84,31 +92,39 @@ public class MessageMappingProcessorActorTest {
 
     @Test
     public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessed() {
-        final ThingIdEnforcement thingIdEnforcement = ThingIdEnforcement
-                .of("mqtt/topic/my/thing", Collections.singleton("mqtt/topic/{{ thing:namespace }}/{{ thing:name }}"));
-        testExternalMessageInDittoProtocolIsProcessed(thingIdEnforcement, true);
+        final Enforcement mqttEnforcement =
+                ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
+                        "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
+        final EnforcementFilterFactory<String, String> factory =
+                EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
+        final EnforcementFilter<String> enforcementFilter = factory.getFilter("mqtt/topic/my/thing");
+        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, true);
     }
 
     @Test
     public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessedExpectErrorResponse() {
         disableLogging(actorSystem);
-        final ThingIdEnforcement thingIdEnforcement = ThingIdEnforcement
-                .of("some/invalid/target", Collections.singleton("mqtt/topic/{{ thing:namespace }}/{{ thing:name }}"));
-        testExternalMessageInDittoProtocolIsProcessed(thingIdEnforcement, false);
+        final Enforcement mqttEnforcement =
+                ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
+                        "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
+        final EnforcementFilterFactory<String, String> factory =
+                EnforcementFactoryFactory.newEnforcementFilterFactory(mqttEnforcement, new TestPlaceholder());
+        final EnforcementFilter<String> enforcementFilter = factory.getFilter("some/invalid/target");
+        testExternalMessageInDittoProtocolIsProcessed(enforcementFilter, false);
     }
 
-    private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final ThingIdEnforcement thingIdEnforcement,
+    private void testExternalMessageInDittoProtocolIsProcessed(@Nullable final EnforcementFilter<String> enforcement,
             final boolean expectSuccess) {
         new TestKit(actorSystem) {{
             final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(getRef());
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
             final ExternalMessage externalMessage =
-                    ConnectivityModelFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
+                    ExternalMessageFactory.newExternalMessageBuilder(modifyCommand.getDittoHeaders())
                             .withText(ProtocolFactory
                                     .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
                                     .toJsonString())
                             .withAuthorizationContext(AUTHORIZATION_CONTEXT)
-                            .withThingIdEnforcement(thingIdEnforcement)
+                            .withEnforcement(enforcement)
                             .build();
 
             messageMappingProcessorActor.tell(externalMessage, getRef());
@@ -121,10 +137,11 @@ public class MessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(
                         AUTHORIZATION_CONTEXT);
             } else {
-                final MappedOutboundSignal errorResponse = expectMsgClass(MappedOutboundSignal.class);
+                final OutboundSignal errorResponse = expectMsgClass(OutboundSignal.WithExternalMessage.class);
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
-                assertThat(response.getDittoRuntimeException()).isInstanceOf(IdEnforcementFailedException.class);
+                assertThat(response.getDittoRuntimeException()).isInstanceOf(
+                        ConnectionSignalIdEnforcementFailedException.class);
             }
         }};
     }
@@ -159,7 +176,7 @@ public class MessageMappingProcessorActorTest {
                 AuthorizationModelFactory.newAuthSubject("integration:" + placeholder));
 
         testMessageMapping(UUID.randomUUID().toString(), contextWithUnknownPlaceholder,
-                MappedOutboundSignal.class, error -> {
+                OutboundSignal.WithExternalMessage.class, error -> {
                     final UnresolvedPlaceholderException exception = UnresolvedPlaceholderException.fromMessage(
                             error.getExternalMessage()
                                     .getTextPayload()
@@ -181,7 +198,7 @@ public class MessageMappingProcessorActorTest {
             headers.put("content-type", "application/json");
             final ModifyAttribute modifyCommand = ModifyAttribute.of("my:thing", JsonPointer.of("foo"),
                     JsonValue.of(42), DittoHeaders.empty());
-            final ExternalMessage externalMessage = ConnectivityModelFactory.newExternalMessageBuilder(headers)
+            final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                     .withText(ProtocolFactory
                             .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
                             .toJsonString())
@@ -259,5 +276,28 @@ public class MessageMappingProcessorActorTest {
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
         return ModifyAttribute.of("my:thing", JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
+    }
+
+    private static class TestPlaceholder implements Placeholder<String> {
+
+        @Override
+        public String getPrefix() {
+            return "test";
+        }
+
+        @Override
+        public List<String> getSupportedNames() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean supports(final String name) {
+            return true;
+        }
+
+        @Override
+        public Optional<String> apply(final String source, final String name) {
+            return Optional.of(source);
+        }
     }
 }

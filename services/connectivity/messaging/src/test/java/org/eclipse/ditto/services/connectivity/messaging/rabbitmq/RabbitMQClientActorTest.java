@@ -8,7 +8,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -99,7 +98,7 @@ public class RabbitMQClientActorTest {
     @Test
     public void invalidTargetFormatThrowsConnectionConfigurationInvalidException() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("ditto", ConnectionType.AMQP_091,
-                ConnectionStatus.OPEN, TestConstants.getUri())
+                ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .targets(Collections.singleton(ConnectivityModelFactory.newTarget("exchangeOnly",
                         TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)))
                 .build();

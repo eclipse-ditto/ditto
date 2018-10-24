@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.policies.SubjectIssuer.GOOGLE;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
@@ -47,6 +48,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.testkit.TestProbe;
 
 public class TestSetup {
 
@@ -78,6 +80,8 @@ public class TestSetup {
             final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer) {
 
+        final ActorRef conciergeForwarder =
+                new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
         final Duration askTimeout = CONFIG.caches().askTimeout();
 
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
@@ -101,8 +105,12 @@ public class TestSetup {
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                preEnforcer, null);
+                conciergeForwarder, preEnforcer, null);
         return system.actorOf(props, THING + ":" + THING_ID);
+    }
+
+    private static String createUniqueName(final String prefix) {
+        return prefix + UUID.randomUUID().toString();
     }
 
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {

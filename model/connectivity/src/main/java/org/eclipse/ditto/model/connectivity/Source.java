@@ -5,11 +5,12 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -52,6 +53,11 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * @return an index to distinguish between sources that would otherwise be different
      */
     int getIndex();
+
+    /**
+     * @return the enforcement options that should be applied to this source
+     */
+    Optional<Enforcement> getEnforcement();
 
     /**
      * Returns all non hidden marked fields of this {@code Source}.
@@ -100,6 +106,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} enforcement options.
+         */
+        public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
+                JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

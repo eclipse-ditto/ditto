@@ -33,6 +33,8 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationP
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceNotSupportedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTooManyRequestsException;
@@ -113,6 +115,12 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
 
         parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
                 GatewayPlaceholderNotResolvableException::fromJson);
+
+        parseStrategies.put(GatewayPlaceholderReferenceNotSupportedException.ERROR_CODE,
+                GatewayPlaceholderReferenceNotSupportedException::fromJson);
+
+        parseStrategies.put(GatewayPlaceholderReferenceUnknownFieldException.ERROR_CODE,
+                GatewayPlaceholderReferenceUnknownFieldException::fromJson);
 
         return new CommonErrorRegistry(parseStrategies);
     }

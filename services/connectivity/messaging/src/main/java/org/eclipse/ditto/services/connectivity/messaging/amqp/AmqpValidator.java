@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 
 /**
  * Connection specification for Amqp protocol.
@@ -45,7 +46,12 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        // noop
+
+        source.getEnforcement().ifPresent(enforcement -> {
+            validateEnforcement(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
+            enforcement.getFilters().forEach(filterTemplate -> validateEnforcement(filterTemplate,
+                    PlaceholderFactory.newThingPlaceholder(), dittoHeaders));
+        });
     }
 
     @Override

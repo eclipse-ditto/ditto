@@ -14,10 +14,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.junit.Test;
 
 /**

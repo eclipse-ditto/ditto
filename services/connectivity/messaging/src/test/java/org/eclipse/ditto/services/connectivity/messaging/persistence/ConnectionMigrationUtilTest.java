@@ -31,8 +31,10 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionMigrationUtil.MigrateAuthorizationContexts;
 import org.junit.Test;
 
 /**
@@ -45,6 +47,7 @@ public class ConnectionMigrationUtilTest {
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
     private static final ConnectionStatus STATUS = ConnectionStatus.OPEN;
     private static final String URI = "amqps://foo:bar@example.com:443";
+    private static final String LEGACY_FIELD_FILTERS = "filters";
 
     private static final AuthorizationContext AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("mySolutionId:mySubject"));
@@ -52,10 +55,13 @@ public class ConnectionMigrationUtilTest {
     private static final AuthorizationContext ALT_AUTHORIZATION_CONTEXT = AuthorizationContext.newInstance(
             AuthorizationSubject.newInstance("altSolution:customSubject"));
 
+    private static final JsonArray FILTERS =
+            JsonFactory.newArrayBuilder().add("{{thing:id}}").add("{{thing:name}}").build();
     private static final JsonObject SOURCE1_JSON = JsonObject
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add("amqp/source1").build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(LEGACY_FIELD_FILTERS, FILTERS)
             .build();
     private static final JsonObject SOURCE2_JSON = JsonObject
             .newBuilder()
@@ -124,7 +130,8 @@ public class ConnectionMigrationUtilTest {
     @Test
     public void migrateConnectionWithGlobalAuthorizationContext() {
 
-        final Connection migratedConnection = ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
         assertThat(migratedConnection.getId()).isEqualTo(ID);
         assertThat(migratedConnection.getName()).contains(NAME);
         assertThat((Object) migratedConnection.getConnectionType()).isEqualTo(TYPE);
@@ -140,13 +147,13 @@ public class ConnectionMigrationUtilTest {
 
         final JsonObjectBuilder builder = KNOWN_CONNECTION_JSON.toBuilder();
         builder.set(Connection.JsonFields.SOURCES,
-                ConnectionMigrationUtil.migrateSources(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
+                MigrateAuthorizationContexts.migrateSources(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
                         .getAuthorizationSubjectIds()
                         .stream()
                         .map(JsonValue::of)
                         .collect(JsonCollectors.valuesToArray())).get());
         builder.set(Connection.JsonFields.TARGETS,
-                ConnectionMigrationUtil.migrateTargets(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
+                MigrateAuthorizationContexts.migrateTargets(KNOWN_CONNECTION_JSON, ALT_AUTHORIZATION_CONTEXT
                         .getAuthorizationSubjectIds()
                         .stream()
                         .map(JsonValue::of)
@@ -161,5 +168,28 @@ public class ConnectionMigrationUtilTest {
                 assertThat(source.getAuthorizationContext()).isEqualTo(ALT_AUTHORIZATION_CONTEXT));
         migratedConnection.getTargets().forEach(target ->
                 assertThat(target.getAuthorizationContext()).isEqualTo(ALT_AUTHORIZATION_CONTEXT));
+    }
+
+    @Test
+    public void migrateSourceWithFilters() {
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(KNOWN_CONNECTION_JSON);
+        assertThat(migratedConnection.getSources()).hasSize(2);
+        assertThat(migratedConnection.getSources().get(0).getEnforcement()).isPresent();
+        // the second source had no filters
+        assertThat(migratedConnection.getSources().get(1).getEnforcement()).isEmpty();
+        final Enforcement enforcement = migratedConnection.getSources().get(0).getEnforcement().get();
+        // the filters field was implicitly matched against the mqtt topic
+        assertThat(enforcement.getInput()).isEqualTo("{{ source:address }}");
+        assertThat(enforcement.getFilters()).hasSize(2);
+        assertThat(enforcement.getFilters()).contains("{{thing:id}}", "{{thing:name}}");
+    }
+
+    @Test
+    public void migrateSourcesWithoutFiltersJsonIsNotTouched() {
+        final JsonObject noFilters = KNOWN_CONNECTION_JSON.toBuilder().set(Connection.JsonFields.SOURCES,
+                JsonArray.newBuilder().add(SOURCE1_JSON.toBuilder().remove(LEGACY_FIELD_FILTERS).build(),
+                        SOURCE2_JSON).build()).build();
+        assertThat(ConnectionMigrationUtil.MigrateSourceFilters.migrateSourceFilters(noFilters)).isSameAs(noFilters);
     }
 }

@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
@@ -68,7 +69,7 @@ import akka.testkit.javadsl.TestKit;
  * Unit test for {@link ConnectionActor}.
  */
 @SuppressWarnings("NullableProblems")
-public final class ConnectionActorTest {
+public final class ConnectionActorTest extends WithMockServers {
 
     private static ActorSystem actorSystem;
     private static ActorRef pubSubMediator;
@@ -520,14 +521,12 @@ public final class ConnectionActorTest {
             // create connection
             underTest.tell(createConnection, getRef());
             final Object o = expectMsgAnyClassOf(Object.class);
-            System.out.println(o);
-            //CreateConnectionResponse.of(createConnection.getConnection(), DittoHeaders.empty()));
 
             underTest.tell(signal, getRef());
 
             if (isForwarded) {
-                final UnmappedOutboundSignal unmappedOutboundSignal =
-                        probe.expectMsgClass(UnmappedOutboundSignal.class);
+                final OutboundSignal unmappedOutboundSignal =
+                        probe.expectMsgClass(OutboundSignal.class);
                 assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
                 assertThat(unmappedOutboundSignal.getTargets()).isEqualTo(Collections.singleton(expectedTarget));
             } else {

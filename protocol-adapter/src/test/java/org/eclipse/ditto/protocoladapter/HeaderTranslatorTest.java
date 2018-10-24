@@ -40,4 +40,14 @@ public final class HeaderTranslatorTest {
         assertThat(underTest.fromExternalHeaders(externalHeaders)).isEqualTo(expectedHeaders);
     }
 
+    @Test
+    public void testNullValues() {
+        final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
+
+        final Map<String, String> externalHeaders = new HashMap<>();
+        externalHeaders.put("nullValueHeader", null);
+
+        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEmpty();
+    }
+
 }
