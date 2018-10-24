@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 
 package org.eclipse.ditto.model.connectivity;
@@ -24,6 +24,9 @@ import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
+/**
+ * Unit test for {@link ImmutableMqttSource}.
+ */
 public final class ImmutableMqttSourceTest {
 
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
@@ -31,16 +34,29 @@ public final class ImmutableMqttSourceTest {
 
     private static final String AMQP_SOURCE1 = "amqp/source1";
     private static final String FILTER = "topic/{{ thing.id }}";
-    private static final Source SOURCE =
-            ConnectivityModelFactory.newFilteredMqttSource(2, 0, ctx, FILTER, 1, AMQP_SOURCE1);
+
+    private static final Enforcement enforcement = ConnectivityModelFactory.newEnforcement("{{ topic }}", FILTER);
+
+    private static final MqttSource MQTT_SOURCE = ConnectivityModelFactory
+            .newMqttSourceBuilder()
+            .authorizationContext(ctx)
+            .address(AMQP_SOURCE1)
+            .enforcement(enforcement)
+            .consumerCount(2)
+            .index(0)
+            .qos(1)
+            .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
             .set(MqttSource.JsonFields.QOS, 1)
-            .set(MqttSource.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(FILTER).build())
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Source.JsonFields.ENFORCEMENT, JsonFactory.newObjectBuilder()
+                    .set(Enforcement.JsonFields.INPUT, "{{ topic }}")
+                    .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(FILTER).build())
+                    .build())
             .build();
 
     @Test
@@ -58,14 +74,14 @@ public final class ImmutableMqttSourceTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = SOURCE.toJson();
+        final JsonObject actual = MQTT_SOURCE.toJson();
         assertThat(actual).isEqualTo(SOURCE_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
         final Source actual = ImmutableMqttSource.fromJson(SOURCE_JSON, 0);
-        assertThat(actual).isEqualTo(SOURCE);
+        assertThat(actual).isEqualTo(MQTT_SOURCE);
     }
 
 }

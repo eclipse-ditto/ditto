@@ -10,8 +10,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import static org.eclipse.ditto.model.connectivity.ImmutableSource.DEFAULT_CONSUMER_COUNT;
-
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,6 +30,11 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
  */
 @Immutable
 public final class ConnectivityModelFactory {
+
+    /**
+     * Template placeholder for {@link Source} address replacement.
+     */
+    public static final String SOURCE_ADDRESS_ENFORCEMENT = "{{ source:address }}";
 
     private ConnectivityModelFactory() {
         throw new AssertionError();
@@ -212,101 +215,40 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new ExternalMessageBuilder initialized with the passed {@code headers}.
-     *
-     * @param headers the headers to initialize the builder with.
-     * @return the builder.
+     * @return new source builder
      */
-    public static ExternalMessageBuilder newExternalMessageBuilder(final Map<String, String> headers) {
-        return new UnmodifiableExternalMessageBuilder(headers);
+    public static SourceBuilder newSourceBuilder() {
+        return new ImmutableSource.Builder();
     }
 
     /**
-     * Creates a new ExternalMessageBuilder based on the passed existing {@code externalMessage}.
-     *
-     * @param externalMessage the ExternalMessage initialize the builder with.
-     * @return the builder.
+     * @return new source builder
      */
-    public static ExternalMessageBuilder newExternalMessageBuilder(final ExternalMessage externalMessage) {
-        return new UnmodifiableExternalMessageBuilder(externalMessage);
+    public static MqttSourceBuilder newMqttSourceBuilder() {
+        return new ImmutableMqttSource.Builder();
     }
 
     /**
      * Creates a new {@link Source}.
      *
-     * @param addresses the source addresses where messages are consumed from
-     * @param consumerCount how many consumer will consume of the new {@link Source}
      * @param authorizationContext the authorization context
+     * @param address the source address where messages are consumed from
      * @return the created {@link Source}
      */
-    public static Source newSource(final Set<String> addresses, final int consumerCount,
-            final AuthorizationContext authorizationContext) {
-        return new ImmutableSource(addresses, consumerCount, authorizationContext, 0);
+    public static Source newSource(final AuthorizationContext authorizationContext, final String address) {
+        return newSourceBuilder().address(address).authorizationContext(authorizationContext).build();
     }
-
     /**
      * Creates a new {@link Source}.
      *
-     * @param index the index to distinguish between sources that would otherwise be different
-     * @param authorizationContext the authorization context of the new {@link Source}
-     * @param sources the sources where messages are consumed from
+     * @param authorizationContext the authorization context
+     * @param address the source address where messages are consumed from
+     * @param index the index inside the connection
      * @return the created {@link Source}
      */
-    public static Source newSource(final int index, final AuthorizationContext authorizationContext,
-            final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), DEFAULT_CONSUMER_COUNT,
-                authorizationContext, index);
-    }
-
-    /**
-     * Creates a new {@link Source}.
-     *
-     * @param consumerCount how many consumer will consume from this source
-     * @param index the index to distinguish between sources that would otherwise be different
-     * @param authorizationContext the authorization context of the new {@link Source}
-     * @param sources the sources where messages are consumed from
-     * @return the created {@link Source}
-     */
-    public static Source newSource(final int consumerCount, final int index,
-            final AuthorizationContext authorizationContext,
-            final String... sources) {
-        return new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index
-        );
-    }
-
-    /**
-     * Creates a new {@link MqttSource}.
-     *
-     * @param consumerCount how many consumer will consume from this source
-     * @param index the index to distinguish between sources that would otherwise be different
-     * @param authorizationContext the authorization context of the new {@link Source}
-     * @param filter the enforcement filter that should be applied
-     * @param qos the qos value for this source
-     * @param sources the sources where messages are consumed from
-     * @return the created {@link Source}
-     */
-    public static MqttSource newFilteredMqttSource(final int consumerCount, final int index,
-            final AuthorizationContext authorizationContext, final String filter, final int qos,
-            final String... sources) {
-        final ImmutableSource immutableSource =
-                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
-        return new ImmutableMqttSource(immutableSource, qos, Collections.singleton(filter));
-    }
-
-    /**
-     * Creates a new {@link MqttSource} without an enforcement filter.
-     *
-     * @param consumerCount how many consumer will consume from this source
-     * @param index the index to distinguish between sources that would otherwise be different
-     * @param authorizationContext the authorization context of the new {@link Source}
-     * @param sources the sources where messages are consumed from
-     * @return the created {@link Source}
-     */
-    public static MqttSource newMqttSource(final int consumerCount, final int index,
-            final AuthorizationContext authorizationContext, final int qos, final String... sources) {
-        final ImmutableSource immutableSource =
-                new ImmutableSource(new HashSet<>(Arrays.asList(sources)), consumerCount, authorizationContext, index);
-        return new ImmutableMqttSource(immutableSource, qos, Collections.emptySet());
+    public static Source newSource(final AuthorizationContext authorizationContext, final String address,
+            final int index) {
+        return newSourceBuilder().address(address).authorizationContext(authorizationContext).index(index).build();
     }
 
     /**
@@ -324,8 +266,8 @@ public final class ConnectivityModelFactory {
      * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
-     * @param topics the FilteredTopics for which this target will receive signals
      * @param authorizationContext the authorization context of the new {@link Target}
+     * @param topics the FilteredTopics for which this target will receive signals
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
@@ -494,5 +436,64 @@ public final class ConnectivityModelFactory {
      */
     public static FilteredTopic newFilteredTopic(final String topicString) {
         return ImmutableFilteredTopic.fromString(topicString);
+    }
+
+    /**
+     * New instance of {@link Enforcement} options.
+     *
+     * @param input the input that is compared against the filters
+     * @param filters additional filters
+     * @return the enforcement instance
+     */
+    public static Enforcement newEnforcement(final String input, final Set<String> filters) {
+        return ImmutableEnforcement.of(input, filters);
+    }
+
+    /**
+     * New instance of {@link Enforcement} options.
+     *
+     * @param input the input that is compared with the filters
+     * @param requiredFilter the required filter
+     * @param additionalFilters additional filters
+     * @return the enforcement instance
+     */
+    public static Enforcement newEnforcement(final String input, final String requiredFilter,
+            final String... additionalFilters) {
+        final HashSet<String> filters = new HashSet<>(Collections.singletonList(requiredFilter));
+        filters.addAll(Arrays.asList(additionalFilters));
+        return newEnforcement(input, filters);
+    }
+
+    /**
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
+     * {@link Source} {@code address}.
+     *
+     * @param filters the filters
+     * @return the enforcement instance
+     */
+    public static Enforcement newSourceAddressEnforcement(final Set<String> filters) {
+        return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, filters);
+    }
+
+    /**
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
+     * {@link Source} {@code address}.
+     *
+     * @param requiredFilter the required filter
+     * @param additionalFilters additional filters
+     * @return the enforcement instance
+     */
+    public static Enforcement newSourceAddressEnforcement(final String requiredFilter, final String... additionalFilters) {
+        return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, requiredFilter, additionalFilters);
+    }
+
+    /**
+     * Create a copy of this object with error message set.
+     *
+     * @param enforcement the enforcement options
+     * @return a copy of this object.
+     */
+    public static Enforcement newEnforcement(final Enforcement enforcement) {
+        return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getFilters());
     }
 }

@@ -8,7 +8,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static java.util.Collections.singleton;
@@ -26,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -66,8 +64,10 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.UnmappedOutboundSignal;
+import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -174,8 +174,11 @@ public class AmqpClientActorTest extends WithMockServers {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
                 ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .specificConfig(specificOptions)
-                .sources(Collections.singletonList(ConnectivityModelFactory.newSource(1, 0,
-                        TestConstants.Authorization.AUTHORIZATION_CONTEXT, "source1")))
+                .sources(singletonList(
+                        ConnectivityModelFactory.newSourceBuilder()
+                                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                .address("source1")
+                                .build()))
                 .build();
 
         final ThrowableAssert.ThrowingCallable props1 =
@@ -391,7 +394,7 @@ public class AmqpClientActorTest extends WithMockServers {
     public void testConsumeMessageAndExpectForwardToConciergeForwarder() throws JMSException {
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
+                        Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     @Test
@@ -407,12 +410,12 @@ public class AmqpClientActorTest extends WithMockServers {
                 c -> {
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForSourceContext.set(true);
                     }
                     if (c.getDittoHeaders()
                             .getAuthorizationContext()
-                            .equals(TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT)) {
+                            .equals(Authorization.SOURCE_SPECIFIC_CONTEXT)) {
                         messageReceivedForGlobalContext.set(true);
                     }
                 });
@@ -427,7 +430,7 @@ public class AmqpClientActorTest extends WithMockServers {
                         TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT);
         testConsumeMessageAndExpectForwardToConciergeForwarder(connection, 1,
                 c -> assertThat(c.getDittoHeaders().getAuthorizationContext()).isEqualTo(
-                        TestConstants.Authorization.SOURCE_SPECIFIC_CONTEXT));
+                        Authorization.SOURCE_SPECIFIC_CONTEXT));
     }
 
     private void testConsumeMessageAndExpectForwardToConciergeForwarder(final Connection connection,
@@ -518,9 +521,9 @@ public class AmqpClientActorTest extends WithMockServers {
             expectMsg(CONNECTED_SUCCESS);
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
-            final UnmappedOutboundSignal outboundSignal = new UnmappedOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget("target",
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
+            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
+                    singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT,
+                            Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 
@@ -539,9 +542,11 @@ public class AmqpClientActorTest extends WithMockServers {
                     "\uD83D\uDE05\uD83D\uDE06\uD83D\uDE07\uD83D\uDE08\uD83D\uDE09\uD83D\uDE0A\uD83D\uDE0B\uD83D\uDE0C" +
                     "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
 
-            final Source source =
-                    ConnectivityModelFactory.newSource(1, 0, TestConstants.Authorization.AUTHORIZATION_CONTEXT,
-                            sourceWithSpecialCharacters, sourceWithUnicodeCharacters);
+            final Source source = ConnectivityModelFactory.newSourceBuilder()
+                    .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                    .address(sourceWithSpecialCharacters)
+                    .address(sourceWithUnicodeCharacters)
+                    .build();
 
             final String connectionId = createRandomConnectionId();
             final Connection connectionWithSpecialCharacters =
@@ -592,7 +597,7 @@ public class AmqpClientActorTest extends WithMockServers {
                     (Answer<Session>) invocationOnMock -> {
                         try {
                             Thread.sleep(15000);
-                        } catch (InterruptedException e) {
+                        } catch (final InterruptedException e) {
                             e.printStackTrace();
                         }
                         return mockSession;

@@ -26,3 +26,9 @@ Organized via [Meetup](https://www.meetup.com/IoT-Hessen/events/248886802/) by D
 The slides can be found here: [2018_05_23-meetup-iot-hessen](slides/2018_05_23-meetup-iot-hessen/index.html).
 
 The code of the showed live demo can be found in our [ditto-examples](https://github.com/eclipse/ditto-examples/tree/master/octopus-via-hono).
+
+## 22.10.2018 EclipseCon Europe 2018 in Ludwigsburg
+
+Topic: Project status update of Eclipse Ditto
+
+The slides can be found here: [2018_10_22-eclipse-iot-wg-f2f-ludwigsburg](slides/2018_10_22-eclipse-iot-wg-f2f-ludwigsburg/index.html).

@@ -34,7 +34,8 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
 
     private static final String REPLACER_KEY_1 = "my:arbitrary:replacer1";
     private static final String REPLACER_1 = "{{ " + REPLACER_KEY_1 + " }}";
-    private static final String LEGACY_REPLACER_1 = "${my.arbitrary.replacer1}";
+    private static final String LEGACY_REPLACER_KEY = "request.subjectId";
+    private static final String LEGACY_REPLACER = "${" + LEGACY_REPLACER_KEY + "}";
     private static final String REPLACED_1 = "firstReplaced";
     private static final String REPLACER_KEY_2 = "my:arbitrary:replacer2";
     private static final String REPLACED_2 = "secondReplaced";
@@ -53,6 +54,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
         final Map<String, Function<DittoHeaders, String>> replacementDefinitions = new LinkedHashMap<>();
         replacementDefinitions.put(REPLACER_KEY_1, (dittoHeaders -> REPLACED_1));
         replacementDefinitions.put(REPLACER_KEY_2, (dittoHeaders -> REPLACED_2));
+        replacementDefinitions.put(LEGACY_REPLACER_KEY, (dittoHeaders -> REPLACED_1));
 
         underTest = HeaderBasedPlaceholderSubstitutionAlgorithm.newInstance(replacementDefinitions);
     }
@@ -101,7 +103,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     @Test
     public void substituteReturnsReplacedWhenInputContainsLegacyPlaceholder() {
         final String substituted =
-                underTest.substitute(LEGACY_REPLACER_1, DITTO_HEADERS);
+                underTest.substitute(LEGACY_REPLACER, DITTO_HEADERS);
 
         assertThat(substituted).isEqualTo(REPLACED_1);
     }
@@ -113,48 +115,44 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     }
 
     @Test
-    public void substituteThrowsPlaceholderNotResolvableWhenUnresolvedPlaceholdersRemain() {
+    public void partialPlaceholdersRemain() {
         final String notResolvableInput = "{{";
-        assertUnresolvedPlaceholdersRemainExceptionIsThrown(notResolvableInput,
-                () -> underTest.substitute(notResolvableInput, DITTO_HEADERS));
+        assertThat(underTest.substitute(notResolvableInput, DITTO_HEADERS)).isEqualTo(notResolvableInput);
     }
 
     @Test
-    public void substituteThrowsUnknownPlaceholderExceptionWhenInputContainsUnknownLegacyPlaceholder() {
-        assertUnknownPlaceholderExceptionIsThrown(UNKNOWN_REPLACER_KEY,
+    public void unknownLegacyPlaceholderThrowsException() {
+        assertUnresolvedPlaceholdersRemainExceptionIsThrown(UNKNOWN_LEGACY_REPLACER,
                 () -> underTest.substitute(UNKNOWN_LEGACY_REPLACER, DITTO_HEADERS));
     }
 
     /**
-     * Nesting legacy-placeholders does not work, but at least if fails with an understandable exception. And
+     * Nesting legacy-placeholders does not work, but at least it fails with an understandable exception. And
      * legacy-placeholders should not be used anyway.
      */
     @Test
-    public void substituteThrowsWhenWhenInputContainsNestedLegacyPlaceholder() {
-        final String nestedPlaceholder = "${" + LEGACY_REPLACER_1 + "}";
-
-        assertUnknownPlaceholderExceptionIsThrown("${" + REPLACER_KEY_1 + "}",
+    public void inputContainsNestedLegacyPlaceholderThrowsException() {
+        final String nestedPlaceholder = "${" + LEGACY_REPLACER + "}";
+        assertUnresolvedPlaceholdersRemainExceptionIsThrown("${" + REPLACED_1 + "}",
                 () -> underTest.substitute(nestedPlaceholder, DITTO_HEADERS));
     }
 
-
     private void assertUnknownPlaceholderExceptionIsThrown(final String expectedPlaceholderKey,
             final ThrowableAssert.ThrowingCallable throwingCallable) {
-        final String expectedMessage = "The placeholder '" + expectedPlaceholderKey + "' is " +
-                "unknown.";
+        final String expectedMessage = "The placeholder '" + expectedPlaceholderKey + "' is unknown.";
         final String expectedDescription = "Please use one of the supported placeholders: '" +
-                REPLACER_KEY_1 + "', '" + REPLACER_KEY_2 + "'.";
-        assertPlaceholderNotResolvableExceptionIsThrown(expectedMessage, expectedDescription, throwingCallable);
+                REPLACER_KEY_1 + "', '" + REPLACER_KEY_2 + "', '" + LEGACY_REPLACER_KEY + "'.";
+        assertGatewayPlaceholderNotResolvableExceptionIsThrown(expectedMessage, expectedDescription, throwingCallable);
     }
 
     private void assertUnresolvedPlaceholdersRemainExceptionIsThrown(final String notResolvableInput,
             final ThrowableAssert.ThrowingCallable throwingCallable) {
         final String expectedMessage = "The input contains not resolvable placeholders: '" + notResolvableInput + "'.";
-        assertPlaceholderNotResolvableExceptionIsThrown(expectedMessage,
+        assertGatewayPlaceholderNotResolvableExceptionIsThrown(expectedMessage,
                 GatewayPlaceholderNotResolvableException.NOT_RESOLVABLE_DESCRIPTION, throwingCallable);
     }
 
-    private void assertPlaceholderNotResolvableExceptionIsThrown(final String expectedMessage,
+    private void assertGatewayPlaceholderNotResolvableExceptionIsThrown(final String expectedMessage,
             final String expectedDescription, final ThrowableAssert.ThrowingCallable throwingCallable) {
         assertThatExceptionOfType(GatewayPlaceholderNotResolvableException.class)
                 .isThrownBy(throwingCallable)

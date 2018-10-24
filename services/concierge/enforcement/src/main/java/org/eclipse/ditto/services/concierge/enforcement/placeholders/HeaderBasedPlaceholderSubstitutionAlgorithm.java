@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import javax.annotation.concurrent.Immutable;
@@ -82,14 +83,13 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
         requireNonNull(input);
         requireNonNull(dittoHeaders);
 
-        final Function<String, String> placeholderReplacerFunction = createReplacerFunction(dittoHeaders);
-        final Function<String, DittoRuntimeException> unresolvedInputHandler =
-                createUnresolvedInputHandler(dittoHeaders);
+        final Function<String, Optional<String>> placeholderReplacerFunction = createReplacerFunction(dittoHeaders);
+        final Function<String, DittoRuntimeException> unresolvedInputHandler = createUnresolvedInputHandler(dittoHeaders);
 
         return Placeholders.substitute(input, placeholderReplacerFunction, unresolvedInputHandler);
     }
 
-    private Function<String, String> createReplacerFunction(final DittoHeaders dittoHeaders) {
+    private Function<String, Optional<String>> createReplacerFunction(final DittoHeaders dittoHeaders) {
         return placeholder -> {
             final Function<DittoHeaders, String> placeholderResolver = replacementDefinitions.get(placeholder);
             if (placeholderResolver == null) {
@@ -97,12 +97,7 @@ public final class HeaderBasedPlaceholderSubstitutionAlgorithm {
                         .dittoHeaders(dittoHeaders)
                         .build();
             }
-            final String replacement = placeholderResolver.apply(dittoHeaders);
-            if (replacement == null) {
-                throw new IllegalStateException("Currently not supported: All resolvers have to return a non-null " +
-                        "result!");
-            }
-            return replacement;
+            return Optional.ofNullable(placeholderResolver.apply(dittoHeaders));
         };
     }
 

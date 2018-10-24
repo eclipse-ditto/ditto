@@ -52,7 +52,7 @@ import akka.japi.Creator;
  * WARNING: This actor blocks! Start with its own dispatcher!
  * </p>
  */
-public class JMSConnectionHandlingActor extends AbstractActor {
+public final class JMSConnectionHandlingActor extends AbstractActor {
 
     /**
      * The Actor name prefix.

@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.connectivity.messaging.PublishTarget;
 /**
  * A RabbitMQ target has an exchange and an optional routing key.
  */
-class RabbitMQTarget implements PublishTarget {
+final class RabbitMQTarget implements PublishTarget {
 
     private final String exchange;
     @Nullable private final String routingKey;
