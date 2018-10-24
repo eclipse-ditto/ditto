@@ -10,8 +10,6 @@
  */
 package org.eclipse.ditto.signals.commands.namespaces;
 
-import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;

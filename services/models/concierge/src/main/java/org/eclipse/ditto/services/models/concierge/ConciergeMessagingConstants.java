@@ -18,11 +18,13 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ConciergeMessagingConstants {
 
+    private static final String USER_PATH = "/user";
+
     /**
      * Path of the concierge root actor.
      */
     @SuppressWarnings("squid:S1075")
-    public static final String ROOT_ACTOR_PATH = "/user/conciergeRoot";
+    public static final String ROOT_ACTOR_PATH = USER_PATH + "/conciergeRoot";
 
     /**
      * Path of the concierge dispatcher actor.
@@ -38,6 +40,11 @@ public final class ConciergeMessagingConstants {
      * Path of the batchSupervisor actor.
      */
     public static final String BATCH_SUPERVISOR_ACTOR_PATH = ROOT_ACTOR_PATH + "/batchSupervisor/singleton";
+
+    /**
+     * Path of the blocked-namespace-updater as a root-level cluster singleton.
+     */
+    public static final String BLOCKED_NAMESPACE_UPDATER_PATH = USER_PATH + "/blockedNamespacesUpdater";
 
     /**
      * Name of the shard region for authorization entities.

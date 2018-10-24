@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.utils.namespaces;
 
+import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
+
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespaceResponse;
@@ -32,12 +34,20 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
      */
     public static final String ACTOR_NAME = "blockedNamespacesUpdater";
 
+    /**
+     * Path of this actor as a root-level cluster singleton.
+     */
+    public static final String SINGLETON_PATH = "";
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final BlockedNamespaces blockedNamespaces;
 
-    private BlockedNamespacesUpdater(final BlockedNamespaces blockedNamespaces) {
+    private BlockedNamespacesUpdater(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
         this.blockedNamespaces = blockedNamespaces;
+
+        // register self for pub-sub on restart
+        pubSubMediator.tell(new Put(getSelf()), getSelf());
     }
 
     /**
@@ -46,8 +56,9 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
      * @param blockedNamespaces the cache for blocked namespaces.
      * @return the Props.
      */
-    public static Props props(final BlockedNamespaces blockedNamespaces) {
-        return Props.create(BlockedNamespacesUpdater.class, () -> new BlockedNamespacesUpdater(blockedNamespaces));
+    public static Props props(final BlockedNamespaces blockedNamespaces, final ActorRef pubSubMediator) {
+        return Props.create(BlockedNamespacesUpdater.class,
+                () -> new BlockedNamespacesUpdater(blockedNamespaces, pubSubMediator));
     }
 
     @Override

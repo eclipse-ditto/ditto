@@ -39,6 +39,10 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-namespaces</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-cluster-tools_${scala.version}</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe.akka</groupId>
