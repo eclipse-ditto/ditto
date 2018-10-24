@@ -19,9 +19,13 @@
         <version>${revision}</version>
     </parent>
 
-
     <artifactId>ditto-services-models-connectivity</artifactId>
     <name>Eclipse Ditto :: Services :: Models :: Connectivity</name>
+
+    <properties>
+        <!-- deactivate binary comp check for this module only for now -->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+    </properties>
 
     <dependencies>
         <!-- ### Compile ### -->

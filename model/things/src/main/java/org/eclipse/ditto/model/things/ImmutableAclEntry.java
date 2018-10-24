@@ -201,12 +201,12 @@ final class ImmutableAclEntry implements AclEntry {
     public static AclEntry fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
 
-        return jsonObject.stream() //
-                .filter(field -> !Objects.equals(field.getKey(), JsonSchemaVersion.getJsonKey())) //
-                .findFirst() //
-                .map(field -> ImmutableAclEntry.of(field.getKey(), field.getValue())) //
-                .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder() //
-                        .message("The JSON object is either empty or contains only fields with the schema version.") //
+        return jsonObject.stream()
+                .filter(field -> !Objects.equals(field.getKey(), JsonSchemaVersion.getJsonKey()))
+                .findFirst()
+                .map(field -> ImmutableAclEntry.of(field.getKey(), field.getValue()))
+                .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
+                        .message("The JSON object for 'aclEntry' is missing.")
                         .build()));
     }
 

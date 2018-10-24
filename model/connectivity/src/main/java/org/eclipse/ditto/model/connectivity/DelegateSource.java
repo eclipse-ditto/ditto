@@ -5,15 +5,17 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 
 /**
  * Abstract class that delegates to an existing {@link Source}. Used to extend the default fields of a {@link Source}
@@ -23,8 +25,8 @@ abstract class DelegateSource implements Source {
 
     protected final Source delegate;
 
-    protected DelegateSource(final Source delegate) {
-        this.delegate = delegate;
+    DelegateSource(final Source delegate) {
+        this.delegate = ConditionChecker.checkNotNull(delegate, "delegate");
     }
 
     @Override
@@ -45,6 +47,11 @@ abstract class DelegateSource implements Source {
     @Override
     public int getIndex() {
         return delegate.getIndex();
+    }
+
+    @Override
+    public Optional<Enforcement> getEnforcement() {
+        return delegate.getEnforcement();
     }
 
     @Override

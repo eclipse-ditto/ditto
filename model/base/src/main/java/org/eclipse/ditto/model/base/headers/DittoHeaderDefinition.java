@@ -33,7 +33,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "auth-subjects"}, Java type: {@link JsonArray}.
      * </p>
      */
-    AUTHORIZATION_SUBJECTS("auth-subjects", JsonArray.class, false, true),
+    AUTHORIZATION_SUBJECTS("auth-subjects", JsonArray.class, false, false),
 
     /**
      * Header definition for correlation Id value.

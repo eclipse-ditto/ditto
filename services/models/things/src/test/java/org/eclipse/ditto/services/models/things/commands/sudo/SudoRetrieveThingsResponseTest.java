@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -44,10 +45,10 @@ public final class SudoRetrieveThingsResponseTest {
             .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingsResponse.TYPE)
             .set(SudoCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
 
-            .set(SudoRetrieveThingsResponse.JSON_THINGS,
+            .set(SudoRetrieveThingsResponse.JSON_THINGS_PLAIN_JSON,
                     KNOWN_THINGS.stream()
                             .map(thing -> thing.toJson(FieldType.notHidden()))
-                            .collect(JsonCollectors.valuesToArray()))
+                            .collect(JsonCollectors.valuesToArray()).toString())
             .build();
 
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
@@ -58,7 +59,8 @@ public final class SudoRetrieveThingsResponseTest {
         assertInstancesOf(SudoRetrieveThingsResponse.class,
                 areImmutable(),
                 provided(Thing.class).isAlsoImmutable(),
-                assumingFields("things").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("things").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
     /** */
@@ -97,8 +99,10 @@ public final class SudoRetrieveThingsResponseTest {
     /** */
     @Test
     public void createInstanceFromJson() {
-        final SudoRetrieveThingsResponse response = SudoRetrieveThingsResponse.of(KNOWN_THINGS, FieldType.notHidden(),
-                EMPTY_DITTO_HEADERS);
+        final SudoRetrieveThingsResponse response =
+                SudoRetrieveThingsResponse.of(KNOWN_THINGS.stream().map(Thing::toJsonString).collect(
+                        Collectors.joining(",", "[", "]")),
+                        EMPTY_DITTO_HEADERS);
 
         final SudoRetrieveThingsResponse responseFromJson =
                 SudoRetrieveThingsResponse.fromJson(response.toJson(), EMPTY_DITTO_HEADERS);

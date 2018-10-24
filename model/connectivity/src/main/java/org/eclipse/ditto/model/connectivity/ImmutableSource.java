@@ -5,8 +5,8 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- * SPDX-License-Identifier: EPL-2.0
  *
+ * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.model.connectivity;
 
@@ -14,11 +14,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -39,19 +42,22 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableSource implements Source {
 
-    static final int DEFAULT_CONSUMER_COUNT = 1;
+    private static final int DEFAULT_CONSUMER_COUNT = 1;
+    private static final int DEFAULT_INDEX = 0;
 
     private final Set<String> addresses;
     private final int consumerCount;
     private final int index;
     private final AuthorizationContext authorizationContext;
+    @Nullable private final Enforcement enforcement;
 
-    ImmutableSource(final Set<String> addresses, final int consumerCount,
-            final AuthorizationContext authorizationContext, final int index) {
-        this.addresses = Collections.unmodifiableSet(new HashSet<>(addresses));
-        this.consumerCount = consumerCount;
-        this.index = index;
-        this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
+    private ImmutableSource(final Builder builder) {
+        this.addresses = Collections.unmodifiableSet(
+                new HashSet<>(ConditionChecker.checkNotNull(builder.addresses, "addresses")));
+        this.consumerCount = builder.consumerCount;
+        this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
+        this.index = builder.index;
+        this.enforcement = builder.enforcement;
     }
 
     @Override
@@ -75,6 +81,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Optional<Enforcement> getEnforcement() {
+        return Optional.ofNullable(enforcement);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -90,6 +101,10 @@ final class ImmutableSource implements Source {
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()), predicate);
+        }
+
+        if (enforcement != null) {
+            jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -121,7 +136,16 @@ final class ImmutableSource implements Source {
         final AuthorizationContext readAuthorizationContext =
                 AuthorizationModelFactory.newAuthContext(authorizationSubjects);
 
-        return new ImmutableSource(readSources, readConsumerCount, readAuthorizationContext, index);
+        final Enforcement readEnforcement =
+                jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
+
+        return new Builder()
+                .addresses(readSources)
+                .authorizationContext(readAuthorizationContext)
+                .consumerCount(readConsumerCount)
+                .index(index)
+                .enforcement(readEnforcement)
+                .build();
     }
 
     @Override
@@ -132,12 +156,13 @@ final class ImmutableSource implements Source {
         return consumerCount == that.consumerCount &&
                 Objects.equals(addresses, that.addresses) &&
                 Objects.equals(index, that.index) &&
+                Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, consumerCount, authorizationContext);
+        return Objects.hash(index, addresses, consumerCount, authorizationContext, enforcement);
     }
 
     @Override
@@ -147,6 +172,69 @@ final class ImmutableSource implements Source {
                 ", addresses=" + addresses +
                 ", consumerCount=" + consumerCount +
                 ", authorizationContext=" + authorizationContext +
+                ", enforcement=" + enforcement +
                 "]";
+    }
+
+    /**
+     * Builder for {@code ImmutableSource}.
+     */
+    @NotThreadSafe
+    static final class Builder implements SourceBuilder<SourceBuilder> {
+
+        // required but changeable:
+        @Nullable private Set<String> addresses = new HashSet<>();
+        @Nullable private AuthorizationContext authorizationContext;
+
+        // optional:
+        @Nullable private Enforcement enforcement;
+
+        // optional with default:
+        private int index = DEFAULT_INDEX;
+        private int consumerCount = DEFAULT_CONSUMER_COUNT;
+
+        @Override
+        public SourceBuilder addresses(final Set<String> addresses) {
+            this.addresses = ConditionChecker.checkNotEmpty(addresses, "addresses");
+            return this;
+        }
+
+        @Override
+        public SourceBuilder address(final String address) {
+            if (this.addresses == null) {
+                this.addresses = new HashSet<>();
+            }
+            this.addresses.add(address);
+            return this;
+        }
+
+        @Override
+        public SourceBuilder consumerCount(final int consumerCount) {
+            this.consumerCount = consumerCount;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder index(final int index) {
+            this.index = index;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder authorizationContext(final AuthorizationContext authorizationContext) {
+            this.authorizationContext = ConditionChecker.checkNotNull(authorizationContext, "authorizationContext");
+            return this;
+        }
+
+        @Override
+        public SourceBuilder enforcement(@Nullable final Enforcement enforcement) {
+            this.enforcement = enforcement;
+            return this;
+        }
+
+        @Override
+        public Source build() {
+            return new ImmutableSource(this);
+        }
     }
 }

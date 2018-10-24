@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
@@ -85,6 +86,8 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
         parseStrategies.put(ConnectionFailedException.ERROR_CODE, ConnectionFailedException::fromJson);
         parseStrategies.put(ConnectionConflictException.ERROR_CODE, ConnectionConflictException::fromJson);
         parseStrategies.put(ConnectionSignalIllegalException.ERROR_CODE, ConnectionSignalIllegalException::fromJson);
+        parseStrategies.put(ConnectionSignalIdEnforcementFailedException.ERROR_CODE,
+                ConnectionSignalIdEnforcementFailedException::fromJson);
 
         return new ConnectivityErrorRegistry(parseStrategies);
     }

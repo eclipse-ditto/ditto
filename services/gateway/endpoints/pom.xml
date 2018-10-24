@@ -22,11 +22,6 @@
     <artifactId>ditto-services-gateway-endpoints</artifactId>
     <name>Eclipse Ditto :: Services :: Gateway :: Endpoints</name>
 
-    <properties>
-        <the.build.timestamp>${maven.build.timestamp}</the.build.timestamp>
-        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

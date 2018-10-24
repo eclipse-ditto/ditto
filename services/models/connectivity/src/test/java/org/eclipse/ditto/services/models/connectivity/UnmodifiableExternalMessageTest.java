@@ -5,21 +5,20 @@
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
  * https://www.eclipse.org/org/documents/epl-2.0/index.php
- *  
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
-
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 import org.junit.Test;
+import org.mutabilitydetector.unittesting.AllowedReason;
+import org.mutabilitydetector.unittesting.MutabilityAssert;
+import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -32,9 +31,10 @@ public final class UnmodifiableExternalMessageTest {
     public void assertImmutability() {
         // The field "bytePayload" is mutable.
         // Assume the user never modifies it.
-        assertInstancesOf(UnmodifiableExternalMessage.class, areImmutable(),
-                assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
-                provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class).areAlsoImmutable());
+        MutabilityAssert.assertInstancesOf(UnmodifiableExternalMessage.class, MutabilityMatchers.areImmutable(),
+                AllowedReason.assumingFields("bytePayload").areNotModifiedAndDoNotEscape(),
+                AllowedReason.provided(ByteBuffer.class, AuthorizationContext.class, Adaptable.class,
+                        EnforcementFilter.class).areAlsoImmutable());
     }
 
     @Test

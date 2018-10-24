@@ -48,6 +48,9 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectionConfigReader;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -159,7 +162,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private long lastSnapshotSequenceNr = -1L;
     private boolean snapshotInProgress = false;
-    private final PlaceholderFilter placeholdersFilter = new PlaceholderFilter();
 
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
@@ -398,12 +400,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
         // forward to client actor if topic was subscribed and there are targets that are authorized to read
         final Set<Target> filteredTargets =
-                placeholdersFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
+                PlaceholderFilter.filterTargets(subscribedAndAuthorizedTargets, signal.getId(),
                         unresolvedPlaceholder -> log.info(UNRESOLVED_PLACEHOLDERS_MESSAGE, unresolvedPlaceholder));
 
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
-        final OutboundSignal outbound = new UnmappedOutboundSignal(signal, filteredTargets);
+        final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, filteredTargets);
         clientActorRouter.tell(outbound, getSelf());
     }
 

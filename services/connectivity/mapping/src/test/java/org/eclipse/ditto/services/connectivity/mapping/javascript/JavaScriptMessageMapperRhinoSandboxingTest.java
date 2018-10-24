@@ -16,12 +16,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ExternalMessage;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -113,7 +113,7 @@ public class JavaScriptMessageMapperRhinoSandboxingTest {
         final Map<String, String> headers = new HashMap<>();
         headers.put("correlation-id", correlationId);
         headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "text/plain");
-        return ConnectivityModelFactory.newExternalMessageBuilder(headers)
+        return ExternalMessageFactory.newExternalMessageBuilder(headers)
                 .withText("what's up?")
                 .build();
     }

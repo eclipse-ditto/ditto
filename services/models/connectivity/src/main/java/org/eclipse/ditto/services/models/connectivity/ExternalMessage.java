@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
  * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)
@@ -112,9 +113,9 @@ public interface ExternalMessage {
     Optional<AuthorizationContext> getAuthorizationContext();
 
     /**
-     * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwie
+     * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwise
      */
-    Optional<ThingIdEnforcement> getThingIdEnforcement();
+    Optional<EnforcementFilter<String>> getEnforcementFilter();
 
     /**
      * The known payload types of ExternalMessages.

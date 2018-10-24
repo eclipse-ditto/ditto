@@ -60,7 +60,8 @@ final class ImmutableResource implements Resource {
                 .map(JsonValue::asObject)
                 .map(object -> wrapJsonRuntimeException(() -> ImmutableEffectedPermissions.fromJson(object)))
                 .orElseThrow(() -> new DittoJsonException(JsonParseException.newBuilder()
-                        .message("The JSON object is either empty or contains only fields with the schema version.")
+                        .message("The JSON object for the 'permissions' (grant/revoke) of the 'resource' '" +
+                                resourceKey + "' is missing or not an object.")
                         .build()));
 
         return of(resourceKey, effectedPermissions);
@@ -99,7 +100,7 @@ final class ImmutableResource implements Resource {
                 .findFirst()
                 .map(field -> of(ResourceKey.newInstance(field.getKeyName()), field.getValue()))
                 .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
-                        .message("The JSON object is either empty or contains only fields with the schema version.")
+                        .message("The JSON object for the 'resource' is missing.")
                         .build()));
     }
 

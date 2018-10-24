@@ -194,7 +194,7 @@
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
-        <binary-compatibility-check.version>0.8.0-M1</binary-compatibility-check.version>
+        <binary-compatibility-check.version>${project.version}</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
