@@ -44,7 +44,7 @@ public final class ConciergeMessagingConstants {
     /**
      * Path of the blocked-namespace-updater as a root-level cluster singleton.
      */
-    public static final String BLOCKED_NAMESPACE_UPDATER_PATH = USER_PATH + "/blockedNamespacesUpdater";
+    public static final String BLOCKED_NAMESPACES_UPDATER_PATH = USER_PATH + "/blockedNamespacesUpdater";
 
     /**
      * Name of the shard region for authorization entities.
