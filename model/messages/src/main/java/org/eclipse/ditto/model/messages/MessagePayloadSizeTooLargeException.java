@@ -41,8 +41,11 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
 
     private static final long serialVersionUID = -2530157640888612975L;
 
-    private MessagePayloadSizeTooLargeException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private MessagePayloadSizeTooLargeException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.REQUEST_ENTITY_TOO_LARGE, dittoHeaders, message, description, cause, href);
     }
 
@@ -94,7 +97,9 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
         @Override
         protected MessagePayloadSizeTooLargeException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MessagePayloadSizeTooLargeException(dittoHeaders, message, description, cause, href);
         }
     }

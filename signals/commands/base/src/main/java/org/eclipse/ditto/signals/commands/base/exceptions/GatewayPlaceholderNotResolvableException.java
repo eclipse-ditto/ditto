@@ -51,8 +51,11 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
     private static final long serialVersionUID = -8724890154457417912L;
 
-    private GatewayPlaceholderNotResolvableException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayPlaceholderNotResolvableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -131,7 +134,9 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
         @Override
         protected GatewayPlaceholderNotResolvableException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayPlaceholderNotResolvableException(dittoHeaders, message, description, cause, href);
         }

@@ -16,6 +16,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Collection;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -49,8 +50,11 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
 
     private static final long serialVersionUID = -4503670096839743360L;
 
-    private PolicyInvalidException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private PolicyInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -128,8 +132,11 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
         }
 
         @Override
-        protected PolicyInvalidException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyInvalidException(dittoHeaders, message, description, cause, href);
         }
     }

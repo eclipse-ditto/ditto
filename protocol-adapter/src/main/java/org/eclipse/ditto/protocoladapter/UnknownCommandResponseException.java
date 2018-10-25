@@ -13,6 +13,7 @@ package org.eclipse.ditto.protocoladapter;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -37,8 +38,11 @@ public final class UnknownCommandResponseException extends DittoRuntimeException
 
     private static final long serialVersionUID = 3886410099324151406L;
 
-    private UnknownCommandResponseException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private UnknownCommandResponseException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -104,8 +108,11 @@ public final class UnknownCommandResponseException extends DittoRuntimeException
         }
 
         @Override
-        protected UnknownCommandResponseException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected UnknownCommandResponseException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new UnknownCommandResponseException(dittoHeaders, message, description, cause, href);
         }
     }

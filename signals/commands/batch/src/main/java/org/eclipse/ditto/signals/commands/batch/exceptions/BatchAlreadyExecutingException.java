@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.batch.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -42,8 +43,11 @@ public final class BatchAlreadyExecutingException extends DittoRuntimeException 
 
     private static final long serialVersionUID = 7202828974424543635L;
 
-    private BatchAlreadyExecutingException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private BatchAlreadyExecutingException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -113,8 +117,11 @@ public final class BatchAlreadyExecutingException extends DittoRuntimeException 
         }
 
         @Override
-        protected BatchAlreadyExecutingException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected BatchAlreadyExecutingException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new BatchAlreadyExecutingException(dittoHeaders, message, description, cause, href);
         }
     }

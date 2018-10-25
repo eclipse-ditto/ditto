@@ -34,12 +34,16 @@ public final class GatewayJwtInvalidException extends DittoRuntimeException impl
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "jwt.invalid";
 
     private static final String DEFAULT_MESSAGE = "The JWT could not be verified.";
+
     private static final String DEFAULT_DESCRIPTION = "Check if your JWT is correct.";
 
     private static final long serialVersionUID = -1840453579113250977L;
 
-    private GatewayJwtInvalidException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayJwtInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -100,7 +104,9 @@ public final class GatewayJwtInvalidException extends DittoRuntimeException impl
 
         @Override
         protected GatewayJwtInvalidException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayJwtInvalidException(dittoHeaders, message, description, cause, href);
         }

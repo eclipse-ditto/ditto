@@ -45,7 +45,6 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -117,7 +116,6 @@ public final class CommandNotSupportedException extends DittoRuntimeException {
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new CommandNotSupportedException(dittoHeaders, message, description, cause, href);
         }
 

@@ -36,6 +36,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "signal.illegal";
 
     private static final String OPERATING_MESSAGE_TEMPLATE = "The Connection with ID ''{0}'' is {1}.";
+
     private static final String OPERATING_DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
 
     private static final String STAYING_MESSAGE_TEMPLATE = "The message ''{2}'' is illegal for the {1} Connection " +
@@ -44,8 +45,11 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
     private static final long serialVersionUID = 2648721759252899991L;
 
 
-    private ConnectionSignalIllegalException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ConnectionSignalIllegalException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
@@ -139,7 +143,9 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
         @Override
         protected ConnectionSignalIllegalException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ConnectionSignalIllegalException(dittoHeaders, message, description, cause, href);
         }
     }

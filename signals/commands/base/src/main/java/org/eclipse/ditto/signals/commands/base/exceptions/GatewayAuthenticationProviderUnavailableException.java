@@ -36,6 +36,7 @@ public final class GatewayAuthenticationProviderUnavailableException extends Dit
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "authentication.provider.unavailable";
 
     private static final String DEFAULT_MESSAGE = "The authentication provider is not available.";
+
     private static final String DEFAULT_DESCRIPTION =
             "If after retry it is still unavailable, please contact the service team.";
 
@@ -44,7 +45,9 @@ public final class GatewayAuthenticationProviderUnavailableException extends Dit
 
     private GatewayAuthenticationProviderUnavailableException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
@@ -106,7 +109,9 @@ public final class GatewayAuthenticationProviderUnavailableException extends Dit
 
         @Override
         protected GatewayAuthenticationProviderUnavailableException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayAuthenticationProviderUnavailableException(dittoHeaders, message, description, cause,
                     href);

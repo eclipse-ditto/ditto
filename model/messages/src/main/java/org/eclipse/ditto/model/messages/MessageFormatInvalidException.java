@@ -66,7 +66,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
             @Nullable final Throwable cause,
             @Nullable final URI href,
             @Nullable final JsonArray validationErrors) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.validationErrors = validationErrors;
     }
@@ -164,7 +163,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new MessageFormatInvalidException(dittoHeaders, message, description, cause, href,
                     validationErrors);
         }

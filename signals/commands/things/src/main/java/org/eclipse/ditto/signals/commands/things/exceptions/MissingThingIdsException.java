@@ -45,8 +45,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
     
     private static final long serialVersionUID = -5672699009682971258L;
 
-    private MissingThingIdsException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private MissingThingIdsException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -94,8 +97,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
         }
 
         @Override
-        protected MissingThingIdsException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected MissingThingIdsException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MissingThingIdsException(dittoHeaders, message, description, cause, href);
         }
     }

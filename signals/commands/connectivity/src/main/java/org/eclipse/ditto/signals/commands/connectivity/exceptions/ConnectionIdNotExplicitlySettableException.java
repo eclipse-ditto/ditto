@@ -41,8 +41,11 @@ public final class ConnectionIdNotExplicitlySettableException extends DittoRunti
 
     private static final long serialVersionUID = -5528368754415335490L;
 
-    private ConnectionIdNotExplicitlySettableException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ConnectionIdNotExplicitlySettableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -105,7 +108,9 @@ public final class ConnectionIdNotExplicitlySettableException extends DittoRunti
         @Override
         protected ConnectionIdNotExplicitlySettableException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ConnectionIdNotExplicitlySettableException(dittoHeaders, message, description, cause, href);
         }
     }

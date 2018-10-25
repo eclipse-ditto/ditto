@@ -44,8 +44,11 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
     private static final long serialVersionUID = 9075301177869840493L;
 
 
-    private ConnectionUnavailableException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ConnectionUnavailableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
@@ -111,7 +114,9 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
         @Override
         protected ConnectionUnavailableException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ConnectionUnavailableException(dittoHeaders, message, description, cause, href);
         }
     }

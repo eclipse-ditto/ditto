@@ -43,8 +43,11 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
 
     private static final long serialVersionUID = 4511420390758955872L;
 
-    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -108,8 +111,11 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
         }
 
         @Override
-        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyIdNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }

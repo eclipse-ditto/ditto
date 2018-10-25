@@ -60,8 +60,11 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
 
     private static final long serialVersionUID = -2640894758584381867L;
 
-    private PolicyIdMissingException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private PolicyIdMissingException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -135,8 +138,11 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
         }
 
         @Override
-        protected PolicyIdMissingException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected PolicyIdMissingException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyIdMissingException(dittoHeaders, message, description, cause, href);
         }
     }

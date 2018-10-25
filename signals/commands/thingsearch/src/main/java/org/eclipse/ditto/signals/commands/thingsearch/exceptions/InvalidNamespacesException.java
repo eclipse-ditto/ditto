@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.thingsearch.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -37,8 +38,11 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
 
     private static final long serialVersionUID = 8900314242209005665L;
 
-    private InvalidNamespacesException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private InvalidNamespacesException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -101,8 +105,11 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
         }
 
         @Override
-        protected InvalidNamespacesException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected InvalidNamespacesException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new InvalidNamespacesException(dittoHeaders, message, description, cause, href);
         }
     }

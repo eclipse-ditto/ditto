@@ -41,8 +41,11 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = 1164235483383640723L;
 
-    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.TOO_MANY_REQUESTS, dittoHeaders, message, description, cause, href);
     }
 
@@ -100,7 +103,9 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
         }
 
         protected GatewayServiceTooManyRequestsException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayServiceTooManyRequestsException(dittoHeaders, message, description, cause, href);
         }

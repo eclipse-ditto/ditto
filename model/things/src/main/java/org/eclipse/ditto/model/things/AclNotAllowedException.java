@@ -13,6 +13,7 @@ package org.eclipse.ditto.model.things;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -42,8 +43,11 @@ public final class AclNotAllowedException extends DittoRuntimeException implemen
 
     private static final long serialVersionUID = -2640894758584381867L;
 
-    private AclNotAllowedException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private AclNotAllowedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -111,8 +115,11 @@ public final class AclNotAllowedException extends DittoRuntimeException implemen
         }
 
         @Override
-        protected AclNotAllowedException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected AclNotAllowedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new AclNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }

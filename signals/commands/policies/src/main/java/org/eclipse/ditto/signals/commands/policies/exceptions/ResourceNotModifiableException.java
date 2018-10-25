@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,11 +45,10 @@ public final class ResourceNotModifiableException extends DittoRuntimeException 
     private static final long serialVersionUID = -3333742392554340824L;
 
     private ResourceNotModifiableException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
-
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -117,11 +117,10 @@ public final class ResourceNotModifiableException extends DittoRuntimeException 
 
         @Override
         protected ResourceNotModifiableException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
-
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ResourceNotModifiableException(dittoHeaders, message, description, cause, href);
         }
 

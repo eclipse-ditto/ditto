@@ -43,9 +43,11 @@ public final class MessageMapperConfigurationInvalidException extends DittoRunti
 
     private static final long serialVersionUID = -2538489434734124572L;
 
-    private MessageMapperConfigurationInvalidException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private MessageMapperConfigurationInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
             @Nullable final String description,
-            @Nullable final Throwable cause, @Nullable final URI href) {
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -108,8 +110,11 @@ public final class MessageMapperConfigurationInvalidException extends DittoRunti
         }
 
         @Override
-        protected MessageMapperConfigurationInvalidException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected MessageMapperConfigurationInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MessageMapperConfigurationInvalidException(dittoHeaders, message, description, cause, href);
         }
     }

@@ -48,7 +48,6 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 
@@ -106,7 +105,6 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingPreconditionFailedException(dittoHeaders, message, description, cause, href);
         }
 

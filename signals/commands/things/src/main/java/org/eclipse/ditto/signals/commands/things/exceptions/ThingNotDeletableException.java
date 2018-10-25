@@ -15,6 +15,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -48,8 +49,11 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
 
     private static final long serialVersionUID = -8123337828934144618L;
 
-    private ThingNotDeletableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingNotDeletableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -116,8 +120,11 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
         }
 
         @Override
-        protected ThingNotDeletableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ThingNotDeletableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             final JsonSchemaVersion schemaVersion =
                     checkNotNull(dittoHeaders, "command headers").getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
 

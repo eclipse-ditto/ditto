@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -42,8 +43,11 @@ public final class FeatureNotAccessibleException extends DittoRuntimeException i
 
     private static final long serialVersionUID = 7276337778530053496L;
 
-    private FeatureNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeatureNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -109,8 +113,11 @@ public final class FeatureNotAccessibleException extends DittoRuntimeException i
         }
 
         @Override
-        protected FeatureNotAccessibleException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected FeatureNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new FeatureNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }

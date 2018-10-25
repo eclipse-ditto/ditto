@@ -35,12 +35,16 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "method.notallowed";
 
     private static final String MESSAGE_TEMPLATE = "The provided HTTP method ''{0}'' is not allowed on this resource.";
+
     private static final String DEFAULT_DESCRIPTION = "Check if you used the correct resource and method combination.";
 
     private static final long serialVersionUID = -4940757644888672775L;
 
-    private GatewayMethodNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayMethodNotAllowedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.METHOD_NOT_ALLOWED, dittoHeaders, message, description, cause, href);
     }
 
@@ -106,7 +110,9 @@ public final class GatewayMethodNotAllowedException extends DittoRuntimeExceptio
 
         @Override
         protected GatewayMethodNotAllowedException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayMethodNotAllowedException(dittoHeaders, message, description, cause, href);
         }

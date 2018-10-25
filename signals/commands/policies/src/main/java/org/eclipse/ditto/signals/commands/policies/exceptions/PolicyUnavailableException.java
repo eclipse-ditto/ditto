@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -42,8 +43,11 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
     private static final long serialVersionUID = 1987286804137290070L;
 
 
-    private PolicyUnavailableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private PolicyUnavailableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
@@ -108,8 +112,11 @@ public final class PolicyUnavailableException extends DittoRuntimeException impl
         }
 
         @Override
-        protected PolicyUnavailableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyUnavailableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyUnavailableException(dittoHeaders, message, description, cause, href);
         }
     }

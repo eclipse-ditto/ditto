@@ -38,8 +38,11 @@ public final class GatewayInternalErrorException extends DittoRuntimeException i
 
     private static final long serialVersionUID = -3752250243417604562L;
 
-    private GatewayInternalErrorException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayInternalErrorException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
@@ -99,7 +102,9 @@ public final class GatewayInternalErrorException extends DittoRuntimeException i
 
         @Override
         protected GatewayInternalErrorException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayInternalErrorException(dittoHeaders, message, description, cause, href);
         }

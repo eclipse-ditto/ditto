@@ -48,7 +48,6 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 
@@ -121,7 +120,6 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new PolicyPreconditionFailedException(dittoHeaders, message, description, cause, href);
         }
 

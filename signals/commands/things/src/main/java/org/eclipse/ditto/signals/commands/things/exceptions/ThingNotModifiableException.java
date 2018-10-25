@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -43,8 +44,11 @@ public final class ThingNotModifiableException extends DittoRuntimeException imp
 
     private static final long serialVersionUID = 7150912939789802382L;
 
-    private ThingNotModifiableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingNotModifiableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -109,8 +113,11 @@ public final class ThingNotModifiableException extends DittoRuntimeException imp
         }
 
         @Override
-        protected ThingNotModifiableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ThingNotModifiableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ThingNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

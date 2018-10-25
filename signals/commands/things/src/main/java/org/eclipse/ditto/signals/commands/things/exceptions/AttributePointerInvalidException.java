@@ -47,7 +47,6 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -116,7 +115,6 @@ public final class AttributePointerInvalidException extends DittoRuntimeExceptio
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new AttributePointerInvalidException(dittoHeaders, message, description, cause, href);
         }
 

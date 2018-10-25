@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -42,8 +43,11 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
     
     private static final long serialVersionUID = 2892397125359904460L;
 
-    private AttributeNotModifiableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private AttributeNotModifiableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -111,8 +115,11 @@ public final class AttributeNotModifiableException extends DittoRuntimeException
         }
 
         @Override
-        protected AttributeNotModifiableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected AttributeNotModifiableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new AttributeNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

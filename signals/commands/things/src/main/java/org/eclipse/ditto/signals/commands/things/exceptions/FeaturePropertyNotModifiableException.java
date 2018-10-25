@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -44,8 +45,11 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
 
     private static final long serialVersionUID = -1793783227991859251L;
 
-    private FeaturePropertyNotModifiableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeaturePropertyNotModifiableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -115,8 +119,10 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
 
         @Override
         protected FeaturePropertyNotModifiableException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description, final Throwable cause, final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new FeaturePropertyNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

@@ -36,12 +36,16 @@ public final class ThingTooLargeException extends DittoRuntimeException implemen
 
     private static final String MESSAGE_TEMPLATE =
             "The size of ''{0}'' kB exceeds the maximal allowed Thing size of ''{1}'' kB.";
+
     private static final String DEFAULT_DESCRIPTION = "Reduce the Thing size in the bounds of the specified limit";
 
     private static final long serialVersionUID = 6239157630841614456L;
 
-    private ThingTooLargeException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ThingTooLargeException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.REQUEST_ENTITY_TOO_LARGE, dittoHeaders, message, description, cause, href);
     }
 
@@ -91,8 +95,11 @@ public final class ThingTooLargeException extends DittoRuntimeException implemen
         }
 
         @Override
-        protected ThingTooLargeException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected ThingTooLargeException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ThingTooLargeException(dittoHeaders, message, description, cause, href);
         }
     }

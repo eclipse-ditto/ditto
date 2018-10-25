@@ -13,6 +13,7 @@ package org.eclipse.ditto.protocoladapter;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -37,8 +38,11 @@ public final class UnknownSignalException extends DittoRuntimeException {
 
     private static final long serialVersionUID = -4379093157473087421L;
 
-    private UnknownSignalException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private UnknownSignalException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -101,8 +105,11 @@ public final class UnknownSignalException extends DittoRuntimeException {
         }
 
         @Override
-        protected UnknownSignalException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected UnknownSignalException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new UnknownSignalException(dittoHeaders, message, description, cause, href);
         }
     }

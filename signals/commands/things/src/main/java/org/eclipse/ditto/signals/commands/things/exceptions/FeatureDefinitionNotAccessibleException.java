@@ -48,7 +48,6 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -120,7 +119,6 @@ public final class FeatureDefinitionNotAccessibleException extends DittoRuntimeE
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new FeatureDefinitionNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
 

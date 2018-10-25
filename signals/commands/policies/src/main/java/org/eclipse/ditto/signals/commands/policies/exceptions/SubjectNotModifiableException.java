@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,11 +45,10 @@ public final class SubjectNotModifiableException extends DittoRuntimeException i
     private static final long serialVersionUID = -2998602993431173066L;
 
     private SubjectNotModifiableException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
-
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -115,11 +115,10 @@ public final class SubjectNotModifiableException extends DittoRuntimeException i
 
         @Override
         protected SubjectNotModifiableException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
-
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new SubjectNotModifiableException(dittoHeaders, message, description, cause, href);
         }
 

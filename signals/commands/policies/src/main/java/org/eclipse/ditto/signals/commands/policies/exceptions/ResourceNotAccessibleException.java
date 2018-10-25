@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,11 +45,10 @@ public final class ResourceNotAccessibleException extends DittoRuntimeException 
     private static final long serialVersionUID = 2620243998960976955L;
 
     private ResourceNotAccessibleException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
-
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -117,11 +117,10 @@ public final class ResourceNotAccessibleException extends DittoRuntimeException 
 
         @Override
         protected ResourceNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
-
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ResourceNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
 

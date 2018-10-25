@@ -43,13 +43,11 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
 
     private static final long serialVersionUID = 897914540900650802L;
 
-
     private ConnectionFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -121,7 +119,6 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ConnectionFailedException(dittoHeaders, message, description, cause, href);
         }
 

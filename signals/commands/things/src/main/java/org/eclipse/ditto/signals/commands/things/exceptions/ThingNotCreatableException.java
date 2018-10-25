@@ -55,8 +55,11 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
 
     private static final long serialVersionUID = 2153912949789822362L;
 
-    private ThingNotCreatableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingNotCreatableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -155,8 +158,11 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
         }
 
         @Override
-        protected ThingNotCreatableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ThingNotCreatableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ThingNotCreatableException(dittoHeaders, message, description, cause, href);
         }
     }

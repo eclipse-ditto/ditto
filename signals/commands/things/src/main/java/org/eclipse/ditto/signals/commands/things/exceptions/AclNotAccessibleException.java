@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -45,8 +46,11 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
 
     private static final long serialVersionUID = 6811033520675841466L;
 
-    private AclNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private AclNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -112,8 +116,11 @@ public final class AclNotAccessibleException extends DittoRuntimeException imple
         }
 
         @Override
-        protected AclNotAccessibleException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected AclNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new AclNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }

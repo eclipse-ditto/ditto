@@ -56,7 +56,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -125,7 +124,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 

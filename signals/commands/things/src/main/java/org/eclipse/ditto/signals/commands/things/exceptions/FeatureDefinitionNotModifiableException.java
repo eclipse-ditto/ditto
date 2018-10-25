@@ -49,7 +49,6 @@ public final class FeatureDefinitionNotModifiableException extends DittoRuntimeE
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -123,7 +122,6 @@ public final class FeatureDefinitionNotModifiableException extends DittoRuntimeE
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new FeatureDefinitionNotModifiableException(dittoHeaders, message, description, cause, href);
         }
 

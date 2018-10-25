@@ -62,7 +62,6 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.batchId = batchId;
         this.commandCorrelationId = commandCorrelationId;
@@ -236,7 +235,6 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new BatchNotExecutableException(batchId, commandCorrelationId, dittoHeaders, message,
                     description, cause, href);
         }

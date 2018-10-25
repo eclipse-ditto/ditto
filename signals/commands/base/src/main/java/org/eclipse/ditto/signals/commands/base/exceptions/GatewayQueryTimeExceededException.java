@@ -39,8 +39,11 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
 
     private static final String DEFAULT_DESCRIPTION = "Optimize the request and try again later.";
 
-    private GatewayQueryTimeExceededException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayQueryTimeExceededException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -101,7 +104,9 @@ public final class GatewayQueryTimeExceededException extends DittoRuntimeExcepti
 
         @Override
         protected GatewayQueryTimeExceededException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayQueryTimeExceededException(dittoHeaders, message, description, cause, href);
         }
