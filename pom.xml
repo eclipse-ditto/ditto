@@ -194,7 +194,9 @@
         <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
 
         <!-- globally set version for checking binary compatibility against -->
-        <binary-compatibility-check.version>${project.version}</binary-compatibility-check.version>
+        <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
+        <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally broke something -->
+        <binary-compatibility-check.version>0.8.0-M2c</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>

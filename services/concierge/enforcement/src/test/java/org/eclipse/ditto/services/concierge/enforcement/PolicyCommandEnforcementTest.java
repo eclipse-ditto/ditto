@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.concierge.cache.PolicyCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
@@ -115,6 +116,7 @@ public class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
+    private Cache<EntityId, Entry<Policy>> policyCache;
     private Cache<EntityId, Entry<Enforcer>> enforcerCache;
     private TestKit testKit;
     private ActorRef enforcer;
@@ -125,7 +127,8 @@ public class PolicyCommandEnforcementTest {
 
         policiesShardRegionProbe = createPoliciesShardRegionProbe();
 
-        enforcerCache = createCache(new PolicyEnforcerCacheLoader(ASK_TIMEOUT, policiesShardRegionProbe.ref()));
+        policyCache = createCache(new PolicyCacheLoader(ASK_TIMEOUT, policiesShardRegionProbe.ref()));
+        enforcerCache = createCache(new PolicyEnforcerCacheLoader(ASK_TIMEOUT, policyCache));
 
         enforcer = createEnforcer();
 
@@ -490,7 +493,7 @@ public class PolicyCommandEnforcementTest {
                 new TestProbe(system, createUniqueName("pubSubMediator-")).ref();
 
         final PolicyCommandEnforcement.Provider enforcementProvider =
-                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), enforcerCache);
+                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), policyCache, enforcerCache);
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 

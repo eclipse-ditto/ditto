@@ -548,7 +548,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, allEntries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, allEntries);
     }
 
     /**
@@ -560,7 +560,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, entries);
     }
 
     /**
@@ -589,4 +589,123 @@ public final class PoliciesModelFactory {
         return newPolicy(jsonObject);
     }
 
+    /**
+     * Returns a new {@link EffectedPermissions} containing the
+     *
+     * @return the new {@code EffectedPermissions}.
+     */
+    public static EffectedImportedEntries newEffectedImportedEntries(@Nullable final Iterable<String> includedImportedEntries,
+            @Nullable final Iterable<String> excludedImportedEntries) {
+
+        return ImmutableEffectedImportedEntries.of(getOrEmptyCollection(includedImportedEntries),
+                getOrEmptyCollection(excludedImportedEntries));
+    }
+
+    /**
+     * Returns a new immutable instance of {@link ImportedEntries} containing the given entry labels.
+     *
+     * @param entryLabels the entryLabels to initialise the result with.
+     * @return the new {@code ImportedEntries}.
+     * @throws NullPointerException if {@code entryLabels} is {@code null};
+     */
+    public static ImportedEntries newImportedEntries(final Collection<String> entryLabels) {
+        return ImmutableImportedEntries.of(entryLabels);
+    }
+
+    /**
+     * Returns a new immutable instance of {@link ImportedEntries} containing the given entry labels.
+     *
+     * @param entryLabel the mandatory entryLabel to be contained in the result.
+     * @param furtherEntryLabels additional entryLabels to be contained in the result.
+     * @return the new {@code ImportedEntries}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static ImportedEntries newImportedEntries(final String entryLabel, final String... furtherEntryLabels) {
+        return ImmutableImportedEntries.of(entryLabel, furtherEntryLabels);
+    }
+
+    public static ImportedEntries noImportedEntries() {
+        return ImmutableImportedEntries.none();
+    }
+
+    /**
+     * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImportedEntries}.
+     *
+     * @return the new {@link PolicyImport}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyImport newPolicyImport(final String importedPolicyId) {
+        return ImmutablePolicyImport.of(importedPolicyId);
+    }
+
+    /**
+     * Returns a new {@link PolicyImport} with the specified {@code importedPolicyId} and {@code effectedImportedEntries}.
+     *
+     * @return the new {@link PolicyImport}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyImport newPolicyImport(final String importedPolicyId,
+            final EffectedImportedEntries effectedImportedEntries) {
+        return ImmutablePolicyImport.of(importedPolicyId, effectedImportedEntries);
+    }
+
+    /**
+     * Returns a new empty {@link PolicyImports}.
+     *
+     * @return the new {@code PolicyImports}.
+     */
+    public static PolicyImports emptyPolicyImports() {
+        return ImmutablePolicyImports.of(Collections.emptyList());
+    }
+
+    /**
+     * Returns a new {@link PolicyImports} containing the given policyImports.
+     *
+     * @param policyImports the PolicyImport iterator to use
+     * @return the new {@code PolicyImports}.
+     * @throws NullPointerException if {@code policyImports} is {@code null}.
+     */
+    public static PolicyImports newPolicyImports(final Iterable<PolicyImport> policyImports) {
+        if (policyImports instanceof PolicyImports) {
+            return (PolicyImports) policyImports;
+        }
+        return ImmutablePolicyImports.of(policyImports);
+    }
+
+    /**
+     * Returns a new {@link PolicyImport} containing the given policyImport.
+     *
+     * @param policyImport the {@link Resource} to be contained in the new Resources.
+     * @param furtherPolicyImports further {@link Resource}s to be contained in the new Resources.
+     * @return the new {@code Resources}.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static PolicyImports newPolicyImports(final PolicyImport policyImport,
+            final PolicyImport... furtherPolicyImports) {
+        checkNotNull(policyImport, "mandatory policyImport");
+        checkNotNull(furtherPolicyImports, "additional policyImports");
+
+        final Collection<PolicyImport> allPolicyImports =
+                new ArrayList<>(1 + furtherPolicyImports.length);
+        allPolicyImports.add(policyImport);
+        Collections.addAll(allPolicyImports, furtherPolicyImports);
+
+        return newPolicyImports(allPolicyImports);
+    }
+
+    /**
+     * Returns a new immutable {@link PolicyImports} based on the given JSON object.
+     *
+     * @param jsonObject provides the initial values for the result.
+     * @return the new PolicyImports.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     */
+    public static PolicyImports newPolicyImports(final JsonObject jsonObject) {
+        return ImmutablePolicyImports.fromJson(jsonObject);
+    }
+
+    public static EffectedImportedEntries emptyEffectedImportedEntries() {
+        return ImmutableEffectedImportedEntries.of(Collections.emptyList(), Collections.emptyList());
+    }
 }

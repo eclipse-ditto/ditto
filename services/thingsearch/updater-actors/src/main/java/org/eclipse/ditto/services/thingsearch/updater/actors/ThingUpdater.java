@@ -802,6 +802,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .isPresent();
         if (isExpectedPolicyId) {
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
+            // TODO TJ use policyCache in things-search service in order to lookup imported policy entries
             final Enforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
             this.policyEnforcer = thePolicyEnforcer;
             updateSearchIndexWithPolicy(syncedThing, thePolicyEnforcer);

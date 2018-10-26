@@ -20,6 +20,7 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subjects;
@@ -36,11 +37,14 @@ public final class PoliciesValidator implements Validator {
             "It must contain at least one Subject with permission(s) <{0}> on resource <{1}>!";
 
     private final Iterable<PolicyEntry> policyEntries;
+    private final boolean containsPolicyImport;
+
     private boolean validationResult;
     private String reason;
 
-    private PoliciesValidator(final Iterable<PolicyEntry> policyEntries) {
+    private PoliciesValidator(final Iterable<PolicyEntry> policyEntries, final boolean containsPolicyImport) {
         this.policyEntries = policyEntries;
+        this.containsPolicyImport = containsPolicyImport;
         validationResult = true;
         reason = null;
     }
@@ -55,31 +59,46 @@ public final class PoliciesValidator implements Validator {
     public static PoliciesValidator newInstance(final Iterable<PolicyEntry> policyEntries) {
         requireNonNull(policyEntries, "The policyEntries to validate must not be null!");
 
-        return new PoliciesValidator(policyEntries);
+        final boolean containsPolicyImport;
+        if (policyEntries instanceof Policy) {
+            containsPolicyImport = ((Policy) policyEntries).getImports()
+                    .filter(imports -> !imports.isEmpty())
+                    .isPresent();
+        } else {
+            containsPolicyImport = false;
+        }
+
+        return new PoliciesValidator(policyEntries, containsPolicyImport);
     }
 
     @Override
     public boolean isValid() {
-        final Set<Subjects> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false) //
-                .filter(this::hasPermissionGranted) //
-                .map(PolicyEntry::getSubjects) //
-                .collect(Collectors.toSet());
+        if (containsPolicyImport) {
+            // -> only check in concierge, but no longer in PolicyPersistenceActor (as we would also have to load the imported policies here)
+            // ---> but then it would be possible to lock out myself when modifying the policy
+            return true;
+        } else {
+            final Set<Subjects> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
+                    .filter(this::hasPermissionGranted)
+                    .map(PolicyEntry::getSubjects)
+                    .collect(Collectors.toSet());
 
-        final Set<Subjects> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false) //
-                .filter(this::hasPermissionRevoked) //
-                .map(PolicyEntry::getSubjects) //
-                .collect(Collectors.toSet());
+            final Set<Subjects> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
+                    .filter(this::hasPermissionRevoked)
+                    .map(PolicyEntry::getSubjects)
+                    .collect(Collectors.toSet());
 
-        withPermissionGranted.removeAll(withPermissionRevoked);
+            withPermissionGranted.removeAll(withPermissionRevoked);
 
-        validationResult = !withPermissionGranted.isEmpty();
+            validationResult = !withPermissionGranted.isEmpty();
 
-        if (!validationResult) {
-            reason = MessageFormat.format(NO_AUTH_SUBJECT_PATTERN, Permission.MIN_REQUIRED_POLICY_PERMISSIONS,
-                    ROOT_RESOURCE);
+            if (!validationResult) {
+                reason = MessageFormat.format(NO_AUTH_SUBJECT_PATTERN, Permission.MIN_REQUIRED_POLICY_PERMISSIONS,
+                        ROOT_RESOURCE);
+            }
+
+            return validationResult;
         }
-
-        return validationResult;
     }
 
     private boolean hasPermissionGranted(final PolicyEntry policyEntry) {

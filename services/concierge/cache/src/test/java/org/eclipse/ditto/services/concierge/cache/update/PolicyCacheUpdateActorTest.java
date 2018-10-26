@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -51,6 +52,7 @@ public final class PolicyCacheUpdateActorTest {
 
     private static ActorSystem system;
 
+    private Cache<EntityId, Entry<Policy>> mockPolicyCache;
     private Cache<EntityId, Entry<Enforcer>> mockEnforcerCache;
 
     private ActorRef updateActor;
@@ -72,11 +74,12 @@ public final class PolicyCacheUpdateActorTest {
     @Before
     @SuppressWarnings("unchecked")
     public void init() {
+        mockPolicyCache = mock(Cache.class);
         mockEnforcerCache = mock(Cache.class);
 
         pubSubMediatorProbe = new TestProbe(system, "mockPubSubMediator");
 
-        final Props props = PolicyCacheUpdateActor.props(mockEnforcerCache, pubSubMediatorProbe.ref(), INSTANCE_INDEX);
+        final Props props = PolicyCacheUpdateActor.props(mockPolicyCache, mockEnforcerCache, pubSubMediatorProbe.ref(), INSTANCE_INDEX);
         updateActor = system.actorOf(props);
 
         testKit = new TestKit(system);

@@ -26,10 +26,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
+import org.eclipse.ditto.services.concierge.cache.PolicyCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
@@ -80,8 +82,11 @@ public class TestSetup {
 
         final Duration askTimeout = CONFIG.caches().askTimeout();
 
+        final PolicyCacheLoader policyCacheLoader = new PolicyCacheLoader(askTimeout, policiesShardRegion);
+        final Cache<EntityId, Entry<Policy>> policyCache = CaffeineCache.of(Caffeine.newBuilder(),
+                policyCacheLoader);
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+                new PolicyEnforcerCacheLoader(askTimeout, policyCache);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache = CaffeineCache.of(Caffeine.newBuilder(),
                 policyEnforcerCacheLoader);
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
@@ -95,8 +100,9 @@ public class TestSetup {
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
+                policiesShardRegion, thingIdCache, policyCache, policyEnforcerCache, aclEnforcerCache));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyCache,
+                policyEnforcerCache));
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 

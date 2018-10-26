@@ -157,12 +157,22 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     /**
      * Removes the entry identified by the specified label from this Policy.
      *
-     * @param label the nabel identifying the entry to be removed from this Policy.
+     * @param label the label identifying the entry to be removed from this Policy.
      * @return a copy of this Policy which does not contain the identified entry anymore.
      * @throws NullPointerException if {@code entry} is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
     Policy removeEntry(CharSequence label);
+
+    /**
+     * Removes the entry identified by the specified labels from this Policy.
+     *
+     * @param labels the labels identifying the entries to be removed from this Policy.
+     * @return a copy of this Policy which does not contain the identified entries anymore.
+     * @throws NullPointerException if {@code labels} is {@code null}.
+     * @throws IllegalArgumentException if {@code labels} is empty.
+     */
+    Policy removeEntries(Iterable<CharSequence> labels);
 
     /**
      * Removes the specified entry from this Policy.
@@ -356,6 +366,13 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     int getSize();
 
     /**
+     * Returns the PolicyImports this Policy has.
+     *
+     * @return the PolicyImports of this Policy.
+     */
+    Optional<PolicyImports> getImports();
+
+    /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
      * modifying the entry set has no impact on this Policy.
      *
@@ -444,6 +461,12 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<String> ID =
                 JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Policy's imports.
+         */
+        public static final JsonFieldDefinition<JsonObject> IMPORTS =
+                JsonFactory.newJsonObjectFieldDefinition("imports", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's entries.

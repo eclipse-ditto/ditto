@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -26,6 +27,8 @@ import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyImportHelper;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.models.concierge.EntityId;
@@ -61,13 +64,16 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             JsonFactory.newFieldSelector(Policy.JsonFields.ID);
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever enforcerRetriever;
+    private final Cache<EntityId, Entry<Policy>> policyCache;
     private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
 
     private PolicyCommandEnforcement(final Context data, final ActorRef policiesShardRegion,
+            final Cache<EntityId, Entry<Policy>> policyCache,
             final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
 
         super(data);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
+        this.policyCache = requireNonNull(policyCache);
         this.enforcerCache = requireNonNull(enforcerCache);
         enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
     }
@@ -187,7 +193,9 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         final PolicyCommand policyCommand = transformModifyPolicyToCreatePolicy(receivedCommand);
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
-            final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
+            final Set<PolicyEntry> mergedPolicyEntriesSet =
+                    PolicyImportHelper.mergeImportedPolicyEntries(createPolicy.getPolicy(), this::policyLoader);
+            final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet);
             final Optional<CreatePolicy> authorizedCommand = authorizePolicyCommand(createPolicy, enforcer);
             if (authorizedCommand.isPresent()) {
                 forwardToPoliciesShardRegion(createPolicy, sender);
@@ -201,6 +209,12 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                             .build();
             replyToSender(policyNotAccessibleException, sender);
         }
+    }
+
+    private Optional<Policy> policyLoader(final String policyId) {
+        return policyCache.getBlocking(EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId))
+                .filter(Entry::exists)
+                .map(Entry::getValue);
     }
 
     private void forwardToPoliciesShardRegion(final PolicyCommand command, final ActorRef sender) {
@@ -218,6 +232,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      */
     private void invalidateCaches(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+        policyCache.invalidate(entityId);
         enforcerCache.invalidate(entityId);
     }
 
@@ -277,6 +292,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
      */
     public static final class Provider implements EnforcementProvider<PolicyCommand> {
 
+        private final Cache<EntityId, Entry<Policy>> policyCache;
         private final Cache<EntityId, Entry<Enforcer>> enforcerCache;
         private ActorRef policiesShardRegion;
 
@@ -287,8 +303,10 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
          * @param enforcerCache the enforcer cache.
          */
         public Provider(final ActorRef policiesShardRegion,
+                final Cache<EntityId, Entry<Policy>> policyCache,
                 final Cache<EntityId, Entry<Enforcer>> enforcerCache) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
+            this.policyCache = requireNonNull(policyCache);
             this.enforcerCache = requireNonNull(enforcerCache);
         }
 
@@ -299,7 +317,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
 
         @Override
         public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
-            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
+            return new PolicyCommandEnforcement(context, policiesShardRegion, policyCache, enforcerCache);
         }
     }
 }

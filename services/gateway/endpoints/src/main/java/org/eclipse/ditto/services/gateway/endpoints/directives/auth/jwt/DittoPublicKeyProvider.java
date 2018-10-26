@@ -27,9 +27,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
@@ -49,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -82,10 +78,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
 
-        final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
                 .maximumSize(maxCacheEntries)
-                .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS)
-                .removalListener(new CacheRemovalListener());
+                .expireAfterWrite(expiry.getSeconds(), TimeUnit.SECONDS);
         this.publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
     }
 
@@ -193,13 +188,4 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return null;
     }
 
-    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKey> {
-
-        @Override
-        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
-                @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
-            final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
-            LOGGER.debug(msgTemplate, key, cause);
-        }
-    }
 }

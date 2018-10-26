@@ -14,7 +14,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.enforcers.tree.TreeBasedPolicyEnforcer;
 import org.eclipse.ditto.model.enforcers.trie.TrieBasedPolicyEnforcer;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 
 /**
  * Contains multiple implementations of {@link Enforcer}s suited for different use cases.
@@ -30,38 +30,38 @@ public final class PolicyEnforcers {
      * Returns a general purpose Enforcer which requires some memory and delivers very high throughput for
      * most of the Policies.
      *
-     * @param policy the Policy to initialize the evaluator with.
+     * @param policyEntries the Policy entries to initialize the evaluator with.
      * @return the initialized general purpose Enforcer.
      * @throws NullPointerException if {@code policy} is {@code null}.
      */
-    public static Enforcer defaultEvaluator(final Policy policy) {
-        return throughputOptimizedEvaluator(policy);
+    public static Enforcer defaultEvaluator(final Iterable<PolicyEntry> policyEntries) {
+        return throughputOptimizedEvaluator(policyEntries);
     }
 
     /**
      * Returns a Enforcer which requires more memory (factor 2-4 more than {@link
-     * #memoryOptimizedEvaluator(Policy)}) but delivers very high throughput for most of the Policies, especially good
+     * #memoryOptimizedEvaluator(Iterable)}) but delivers very high throughput for most of the Policies, especially good
      * for complex Policies with multiple subjects.
      * <p>
      * Building JsonViews has also a higher throughput with this algorithm.
      *
-     * @param policy the Policy to initialize the evaluator with.
+     * @param policyEntries the Policy entries to initialize the evaluator with.
      * @return the initialized throughput optimized Enforcer.
      * @throws NullPointerException if {@code policy} is {@code null}.
      */
-    public static Enforcer throughputOptimizedEvaluator(final Policy policy) {
-        return TrieBasedPolicyEnforcer.newInstance(policy);
+    public static Enforcer throughputOptimizedEvaluator(final Iterable<PolicyEntry> policyEntries) {
+        return TrieBasedPolicyEnforcer.newInstance(policyEntries);
     }
 
     /**
      * Returns a Enforcer which requires little memory and delivers good performance for most of the Policies.
      *
-     * @param policy the Policy to initialize the evaluator with.
+     * @param policyEntries the Policy entries to initialize the evaluator with.
      * @return the initialized memory optimized Enforcer.
      * @throws NullPointerException if {@code policy} is {@code null}.
      */
-    public static Enforcer memoryOptimizedEvaluator(final Policy policy) {
-        return TreeBasedPolicyEnforcer.createInstance(policy);
+    public static Enforcer memoryOptimizedEvaluator(final Iterable<PolicyEntry> policyEntries) {
+        return TreeBasedPolicyEnforcer.createInstance(policyEntries);
     }
 
 }

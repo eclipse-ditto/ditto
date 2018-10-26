@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -34,31 +35,37 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
      */
     public static final String ACTOR_NAME = "policyCacheUpdater";
 
+    private final Cache<EntityId, Entry<Policy>> policyCache;
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
-    private PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+    private PolicyCacheUpdateActor(
+            final Cache<EntityId, Entry<Policy>> policyCache,
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final int instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(PolicyEvent.TYPE_PREFIX), instanceIndex);
-
+        this.policyCache = requireNonNull(policyCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
     }
 
     /**
      * Create an Akka {@code Props} object for this actor.
      *
+     * @param policyCache the policy cache.
      * @param policyEnforcerCache the policy-enforcer cache.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param instanceIndex the index of this service instance.
      * @return Akka {@code Props} object.
      */
-    public static Props props(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
+    public static Props props(
+            final Cache<EntityId, Entry<Policy>> policyCache,
+            final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef pubSubMediator, final int instanceIndex) {
         requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
 
         return Props.create(PolicyCacheUpdateActor.class,
-                () -> new PolicyCacheUpdateActor(policyEnforcerCache, pubSubMediator, instanceIndex));
+                () -> new PolicyCacheUpdateActor(policyCache, policyEnforcerCache, pubSubMediator, instanceIndex));
     }
 
     @Override
@@ -68,6 +75,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
 
     private void handleEvent(final PolicyEvent policyEvent) {
         final EntityId key = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyEvent.getId());
+        policyCache.invalidate(key);
         policyEnforcerCache.invalidate(key);
     }
 }

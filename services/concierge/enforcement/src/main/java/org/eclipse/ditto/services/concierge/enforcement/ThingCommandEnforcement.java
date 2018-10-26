@@ -44,7 +44,9 @@ import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.policies.PolicyImportHelper;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -116,11 +118,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final EnforcerRetriever thingEnforcerRetriever;
     private final EnforcerRetriever policyEnforcerRetriever;
     private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+    private final Cache<EntityId, Entry<Policy>> policyCache;
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
     private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
 
     private ThingCommandEnforcement(final Context data, final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+            final Cache<EntityId, Entry<Policy>> policyCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
             final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
@@ -131,6 +135,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
 
         this.thingIdCache = requireNonNull(thingIdCache);
+        this.policyCache = requireNonNull(policyCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
         thingEnforcerRetriever =
@@ -163,6 +168,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
+        private final Cache<EntityId, Entry<Policy>> policyCache;
         private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
         private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
         private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
@@ -173,14 +179,16 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param thingsShardRegion the ActorRef to the Things shard region.
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param thingIdCache the thing-id-cache.
+         * @param policyCache the policy cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param aclEnforcerCache the acl-enforcer cache.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<Policy>> policyCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
-            this(thingsShardRegion, policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache,
+            this(thingsShardRegion, policiesShardRegion, thingIdCache, policyCache, policyEnforcerCache, aclEnforcerCache,
                     DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
         }
 
@@ -190,6 +198,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param thingsShardRegion the ActorRef to the Things shard region.
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param thingIdCache the thing-id-cache.
+         * @param policyCache the policy cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param aclEnforcerCache the acl-enforcer cache.
          * @param subjectIssuersForPolicyMigration a list of {@link SubjectIssuer}s for which a {@link Subject} will
@@ -198,12 +207,14 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
+                final Cache<EntityId, Entry<Policy>> policyCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
                 final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
+            this.policyCache = requireNonNull(policyCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
             this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
@@ -224,7 +235,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         @Override
         public AbstractEnforcement<ThingCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
+                    policyCache, policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
             );
         }
     }
@@ -661,6 +672,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
     private void invalidatePolicyCache(final String policyId) {
         final EntityId entityId = EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId);
+        policyCache.invalidate(entityId);
         policyEnforcerCache.invalidate(entityId);
     }
 
@@ -804,8 +816,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         return checkInitialPolicy(createThing, inlinedPolicy, sender).flatMap(initialPolicy -> {
 
-            if (PoliciesValidator.newInstance(initialPolicy).isValid()) {
-                final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
+            final Set<PolicyEntry> mergedPolicyEntriesSet =
+                    PolicyImportHelper.mergeImportedPolicyEntries(initialPolicy, this::policyLoader);
+            if (PoliciesValidator.newInstance(mergedPolicyEntriesSet).isValid()) {
+                final Enforcer initialEnforcer = PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet);
                 return attachEnforcerOrReplyWithError(createThing, initialEnforcer,
                         ThingCommandEnforcement::authorizeByPolicy, sender);
             } else {
@@ -817,6 +831,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 return Optional.empty();
             }
         });
+    }
+
+    private Optional<Policy> policyLoader(final String policyId) {
+        return policyCache.getBlocking(EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId))
+                .filter(Entry::exists)
+                .map(Entry::getValue);
     }
 
     private Optional<Policy> checkInitialPolicy(final CreateThing createThing, final JsonObject inlinedPolicy,

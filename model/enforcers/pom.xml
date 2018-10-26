@@ -23,6 +23,11 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Model :: Enforcers</name>
 
+    <properties>
+        <!-- deactivate binary comp check for this module only for now -->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

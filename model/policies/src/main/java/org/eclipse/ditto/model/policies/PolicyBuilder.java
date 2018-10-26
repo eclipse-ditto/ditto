@@ -506,6 +506,14 @@ public interface PolicyBuilder {
     PolicyBuilder setModified(@Nullable Instant modified);
 
     /**
+     * Sets the PolicyImports to this builder.
+     *
+     * @param imports the PolicyImports to be set.
+     * @return this builder to allow method chaining.
+     */
+    PolicyBuilder setImports(@Nullable PolicyImports imports);
+
+    /**
      * Sets the given entry to this builder. A previous entry with the same {@link Label} as the one of the
      * provided {@code entry} is replaced.
      *

@@ -18,8 +18,10 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
+import org.eclipse.ditto.services.concierge.cache.PolicyCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
@@ -68,11 +70,20 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, configReader.caches().id(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE);
 
+        final PolicyCacheLoader policyCacheLoader =
+                new PolicyCacheLoader(askTimeout, policiesShardRegionProxy);
+        final Cache<EntityId, Entry<Policy>> policyCache =
+                CacheFactory.createCache(policyCacheLoader, configReader.caches().enforcer(),
+                        "ditto_authorization_cache_" + "policy");
+        policyCache.subscribeForInvalidation(policyCacheLoader);
+        policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
+
         final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegionProxy);
+                new PolicyEnforcerCacheLoader(askTimeout, policyCache);
         final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, configReader.caches().enforcer(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy");
+        policyCacheLoader.registerCacheInvalidator(policyEnforcerCache::invalidate);
 
         final AclEnforcerCacheLoader aclEnforcerCacheLoader =
                 new AclEnforcerCacheLoader(askTimeout, thingsShardRegionProxy);
@@ -82,8 +93,9 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, policyEnforcerCache, aclEnforcerCache));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
+                policiesShardRegionProxy, thingIdCache, policyCache, policyEnforcerCache, aclEnforcerCache));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyCache,
+                policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache,
                 aclEnforcerCache));
 
@@ -100,7 +112,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         // start cache updaters
         final int instanceIndex = configReader.instanceIndex();
         final Props policyCacheUpdateActorProps =
-                PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
+                PolicyCacheUpdateActor.props(policyCache, policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
 
         context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),

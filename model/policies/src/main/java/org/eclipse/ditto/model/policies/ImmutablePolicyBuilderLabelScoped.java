@@ -80,6 +80,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    public PolicyBuilder setImports(@Nullable final PolicyImports imports) {
+        delegate.setImports(imports);
+        return this;
+    }
+
+    @Override
     public ImmutablePolicyBuilderLabelScoped set(final PolicyEntry entry) {
         delegate.set(entry);
         return this;

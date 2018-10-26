@@ -38,6 +38,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
     @Nullable private Instant modified;
+    @Nullable private PolicyImports imports;
 
     private ImmutablePolicyBuilder() {
         subjects = new LinkedHashMap<>();
@@ -47,6 +48,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         lifecycle = null;
         revision = null;
         modified = null;
+        imports = null;
     }
 
     /**
@@ -95,7 +97,8 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
-                .setModified(existingPolicy.getModified().orElse(null));
+                .setModified(existingPolicy.getModified().orElse(null))
+                .setImports(existingPolicy.getImports().orElse(null));
 
         existingPolicy.getId().ifPresent(result::setId);
         existingPolicy.forEach(result::set);
@@ -130,6 +133,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setModified(@Nullable final Instant modified) {
         this.modified = modified;
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setImports(@Nullable final PolicyImports imports) {
+        this.imports = imports;
         return this;
     }
 
@@ -318,7 +327,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, imports, policyEntries);
     }
 
     @Nonnull

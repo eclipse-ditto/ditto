@@ -41,7 +41,7 @@ import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Permissions;
-import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 
@@ -51,8 +51,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 public final class TreeBasedPolicyEnforcer implements Enforcer {
 
     private static final String ROOT_RESOURCE = "/";
-
-    private static final JsonKey THING_ID_FIELD = JsonFactory.newKey("thingId");
 
     /**
      * Maps subject ID to {@link SubjectNode} whose children are {@link ResourceNode} for which the subject is granted
@@ -67,15 +65,15 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
     /**
      * Creates a new policy tree for execution of policy checks.
      *
-     * @param policy the policy to create a tree for
+     * @param policyEntries the policyEntries to create a tree for
      * @return the generated {@code TreeBasedPolicyEnforcer}
      * @throws NullPointerException if {@code policy} is {@code null}.
      */
-    public static TreeBasedPolicyEnforcer createInstance(final Policy policy) {
-        checkNotNull(policy, "policy");
+    public static TreeBasedPolicyEnforcer createInstance(final Iterable<PolicyEntry> policyEntries) {
+        checkNotNull(policyEntries, "policy");
         final Map<String, PolicyTreeNode> tree = new HashMap<>();
 
-        policy.getEntriesSet().forEach(policyEntry ->
+        policyEntries.forEach(policyEntry ->
                 policyEntry.getSubjects().forEach(subject -> {
                     final PolicyTreeNode parentNode = Optional.ofNullable(tree.get(subject.getId().toString())).
                             orElseGet(() -> {

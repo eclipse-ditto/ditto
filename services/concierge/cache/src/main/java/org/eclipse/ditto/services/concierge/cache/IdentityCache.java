@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheInvalidationListener;
 
 /**
  * Cache that returns the key as result.
@@ -46,6 +47,12 @@ public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
     public boolean invalidate(final EntityId key) {
         // do nothing
         return false;
+    }
+
+    @Override
+    public void subscribeForInvalidation(
+            final CacheInvalidationListener<EntityId, Entry<EntityId>> invalidationListener) {
+        // do nothing
     }
 
     @Override
