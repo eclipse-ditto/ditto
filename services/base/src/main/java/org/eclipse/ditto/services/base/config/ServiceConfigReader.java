@@ -25,6 +25,13 @@ public interface ServiceConfigReader {
     ClusterConfigReader cluster();
 
     /**
+     * Retrieve a caches configuration reader.
+     *
+     * @return the caches configuration of the service.
+     */
+    CachesConfigReader caches();
+
+    /**
      * Get the index of this service instance.
      *
      * @return the instance index.

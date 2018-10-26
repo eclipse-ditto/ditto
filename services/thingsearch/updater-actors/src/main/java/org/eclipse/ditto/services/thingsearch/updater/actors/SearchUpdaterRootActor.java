@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
@@ -88,8 +87,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Duration resetTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET);
         final CircuitBreaker circuitBreaker =
                 new CircuitBreaker(getContext().dispatcher(), getContext().system().scheduler(), maxFailures,
-                        scala.concurrent.duration.Duration.create(callTimeout.getSeconds(), TimeUnit.SECONDS),
-                        scala.concurrent.duration.Duration.create(resetTimeout.getSeconds(), TimeUnit.SECONDS));
+                        callTimeout, resetTimeout);
         circuitBreaker.onOpen(() -> log.warning(
                 "The circuit breaker for this search updater instance is open which means that all ThingUpdaters" +
                         " won't process any messages until the circuit breaker is closed again"));
@@ -111,7 +109,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
-                .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                .props(configReader, numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);

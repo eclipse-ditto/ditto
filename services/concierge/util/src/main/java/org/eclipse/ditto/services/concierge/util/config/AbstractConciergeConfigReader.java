@@ -21,7 +21,6 @@ import com.typesafe.config.Config;
  */
 public abstract class AbstractConciergeConfigReader extends AbstractServiceConfigReader {
 
-    private static final String PATH_CACHES = "caches";
     private static final String PATH_ENFORCEMENT = "enforcement";
 
     private static final String PATH_PREFIX_THINGS_AGGREGATOR = "things-aggregator.";
@@ -35,15 +34,6 @@ public abstract class AbstractConciergeConfigReader extends AbstractServiceConfi
 
     protected AbstractConciergeConfigReader(final Config config, final String serviceName) {
         super(config, serviceName);
-    }
-
-    /**
-     * Retrieve configuration reader of caches.
-     *
-     * @return the configuration reader.
-     */
-    public CachesConfigReader caches() {
-        return new CachesConfigReader(getChild(PATH_CACHES));
     }
 
     /**

@@ -25,6 +25,8 @@ import java.util.Set;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.services.base.config.DittoServiceConfigReader;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
@@ -43,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -72,10 +75,12 @@ public class ThingsUpdaterTest {
     private ActorSystem actorSystem;
     private TestProbe shardMessageReceiver;
     private ShardRegionFactory shardRegionFactory;
+    private Config config;
 
     @Before
     public void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", ConfigFactory.load("test"));
+        config = ConfigFactory.load("test");
+        actorSystem = ActorSystem.create("AkkaTestSystem", config);
         shardMessageReceiver = TestProbe.apply(actorSystem);
         shardRegionFactory = TestUtils.getMockedShardRegionFactory(
                 original -> actorSystem.actorOf(TestUtils.getForwarderActorProps(original, shardMessageReceiver.ref())),
@@ -164,8 +169,10 @@ public class ThingsUpdaterTest {
                         scala.concurrent.duration.Duration.create(1, "min"));
         final boolean eventProcessingActive = true;
         final Duration activityCheckInterval = Duration.ofSeconds(30L);
+        final ServiceConfigReader configReader = DittoServiceConfigReader.from("things-search")
+                .apply(config);
         return actorSystem.actorOf(ThingsUpdater.props(
-                NUMBER_OF_SHARDS,
+                configReader, NUMBER_OF_SHARDS,
                 shardRegionFactory,
                 persistence,
                 circuitBreaker,

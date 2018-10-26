@@ -46,7 +46,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsParamete
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.models.streaming.StreamingType;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;

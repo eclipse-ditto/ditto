@@ -25,8 +25,36 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-policies</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-model-enforcers</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-policies</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-caching</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-policies</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-metrics</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
@@ -40,6 +68,16 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-events-things</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>

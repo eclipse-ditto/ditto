@@ -27,8 +27,8 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyImportHelper;
 import org.eclipse.ditto.model.policies.PolicyRevision;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 

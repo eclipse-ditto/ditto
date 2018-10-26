@@ -20,11 +20,8 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.CacheFactory;
-import org.eclipse.ditto.services.concierge.cache.PolicyCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.ThingEnforcementIdCacheLoader;
-import org.eclipse.ditto.services.concierge.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcementProvider;
 import org.eclipse.ditto.services.concierge.enforcement.EnforcerActorCreator;
 import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
@@ -33,11 +30,14 @@ import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
-import org.eclipse.ditto.services.models.concierge.EntityId;
-import org.eclipse.ditto.services.models.concierge.cache.Entry;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheFactory;
+import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
+import org.eclipse.ditto.services.utils.cache.update.PolicyCacheUpdateActor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorContext;
@@ -49,6 +49,7 @@ import akka.actor.Props;
  */
 public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFactory<ConciergeConfigReader> {
 
+    private static final String POLICY_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_policy_cache_";
     private static final String ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_enforcer_cache_";
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
@@ -73,8 +74,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final PolicyCacheLoader policyCacheLoader =
                 new PolicyCacheLoader(askTimeout, policiesShardRegionProxy);
         final Cache<EntityId, Entry<Policy>> policyCache =
-                CacheFactory.createCache(policyCacheLoader, configReader.caches().enforcer(),
-                        "ditto_authorization_cache_" + "policy");
+                CacheFactory.createCache(policyCacheLoader, configReader.caches().policy(),
+                        POLICY_CACHE_METRIC_NAME_PREFIX + "policy");
         policyCache.subscribeForInvalidation(policyCacheLoader);
         policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
 

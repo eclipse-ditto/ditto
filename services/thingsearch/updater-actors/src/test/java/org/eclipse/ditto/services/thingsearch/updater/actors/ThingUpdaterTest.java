@@ -51,6 +51,8 @@ import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.ThingTag;
@@ -60,6 +62,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.JavaTestProbe;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
@@ -119,6 +122,9 @@ public final class ThingUpdaterTest {
 
     @Mock
     private ThingsSearchUpdaterPersistence persistenceMock;
+
+    @Mock
+    private Cache<EntityId, Entry<Policy>> policyCacheMock;
 
     private Source<Boolean, NotUsed> successWithDelay() {
         final int sourceDelayMillis = 1500;
@@ -975,7 +981,7 @@ public final class ThingUpdaterTest {
                         Duration.create(1, "min"));
 
         final Props props = ThingUpdater.props(persistenceMock, circuitBreaker, thingsShard, policiesShard,
-                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100)
+                java.time.Duration.ofSeconds(60), orDefaultTimeout(thingsTimeout), 100, policyCacheMock)
                 .withMailbox("akka.actor.custom-updater-mailbox");
 
         return actorSystem.actorOf(props, THING_ID);

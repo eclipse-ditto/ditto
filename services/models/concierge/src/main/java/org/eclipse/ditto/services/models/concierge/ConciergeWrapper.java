@@ -11,9 +11,10 @@
 package org.eclipse.ditto.services.models.concierge;
 
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.streaming.StreamingType;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
@@ -33,7 +34,7 @@ public final class ConciergeWrapper {
      */
     public static ShardedMessageEnvelope wrapForEnforcer(final Signal<?> signal) {
         final EntityId entityId;
-        if (MessageCommand.RESOURCE_TYPE.equals(signal.getResourceType())) {
+        if (StreamingType.MESSAGES.getDistributedPubSubTopic().equals(signal.getResourceType())) {
             entityId = EntityId.of(ThingCommand.RESOURCE_TYPE, signal.getId());
         } else {
             entityId = EntityId.of(signal.getResourceType(), signal.getId());

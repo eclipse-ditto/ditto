@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.ResourceKey;
-import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.controlflow.Consume;

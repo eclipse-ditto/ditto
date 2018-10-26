@@ -19,10 +19,18 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PoliciesResourceType;
+import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.base.config.ServiceConfigReader;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cache.Cache;
+import org.eclipse.ditto.services.utils.cache.CacheFactory;
+import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -56,13 +64,17 @@ final class ThingsUpdater extends AbstractActor {
      */
     static final String ACTOR_NAME = "thingsUpdater";
 
+    private static final String POLICY_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_policy_cache_";
+
     private static final String UPDATER_GROUP = "thingsUpdaterGroup";
     private final DiagnosticLoggingAdapter log = Logging.apply(this);
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
+    private final Cache<EntityId, Entry<Policy>> policyCache;
 
-    private ThingsUpdater(final int numberOfShards,
+    private ThingsUpdater(final ServiceConfigReader configReader,
+            final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
@@ -78,9 +90,18 @@ final class ThingsUpdater extends AbstractActor {
 
         final ActorRef pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
 
+        final Duration askTimeout = configReader.caches().askTimeout();
+        final PolicyCacheLoader policyCacheLoader =
+                new PolicyCacheLoader(askTimeout, policiesShardRegion);
+        policyCache = CacheFactory.createCache(policyCacheLoader, configReader.caches().policy(),
+                POLICY_CACHE_METRIC_NAME_PREFIX + "policy");
+        policyCache.subscribeForInvalidation(policyCacheLoader);
+        policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
+
         final Props thingUpdaterProps =
                 ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize)
+                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize,
+                        policyCache)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
@@ -98,6 +119,7 @@ final class ThingsUpdater extends AbstractActor {
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param configReader the ConfigReader of this service.
      * @param numberOfShards the number of shards the "search-updater" shardRegion should be started with.
      * @param shardRegionFactory The shard region factory to use when creating sharded actors.
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
@@ -105,7 +127,8 @@ final class ThingsUpdater extends AbstractActor {
      * @param maxBulkSize maximum number of events to update in a bulk.
      * @return the Akka configuration Props object
      */
-    static Props props(final int numberOfShards,
+    static Props props(final ServiceConfigReader configReader,
+            final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
@@ -118,7 +141,8 @@ final class ThingsUpdater extends AbstractActor {
 
             @Override
             public ThingsUpdater create() {
-                return new ThingsUpdater(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                return new ThingsUpdater(configReader, numberOfShards, shardRegionFactory, searchUpdaterPersistence,
+                        circuitBreaker,
                         eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize);
             }
         });
@@ -162,6 +186,7 @@ final class ThingsUpdater extends AbstractActor {
 
     private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
+        policyCache.invalidate(EntityId.of(PoliciesResourceType.POLICY, policyEvent.getPolicyId()));
         thingIdsForPolicy(policyEvent.getPolicyId())
                 .thenAccept(thingIds ->
                         thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id))

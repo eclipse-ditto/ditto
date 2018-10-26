@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.persistence.mongo.suffixes.SuffixBuilderConfig;
+import org.eclipse.ditto.services.base.config.namespaces.SuffixBuilderConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;

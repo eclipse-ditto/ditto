@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -37,9 +38,13 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
+import org.eclipse.ditto.model.policies.PolicyImportHelper;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.models.caching.EntityId;
+import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
@@ -52,10 +57,12 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -143,6 +150,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final java.time.Duration activityCheckInterval;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
+    private final Cache<EntityId, Entry<Policy>> policyCache;
     private final Materializer materializer;
 
     // transducer state-transition table
@@ -175,7 +183,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final java.time.Duration activityCheckInterval,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final Cache<EntityId, Entry<Policy>> policyCache) {
 
         this.maxBulkSize = maxBulkSize;
         this.thingsTimeout = Duration.create(thingsTimeout.toNanos(), TimeUnit.NANOSECONDS);
@@ -184,6 +193,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         this.activityCheckInterval = activityCheckInterval;
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         this.circuitBreaker = circuitBreaker;
+        this.policyCache = policyCache;
         this.gatheredEvents = new ArrayList<>();
 
         thingId = tryToGetThingId(StandardCharsets.UTF_8);
@@ -235,6 +245,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * updated.
      * @param thingsTimeout how long to wait for Things and Policies service.
      * @param maxBulkSize maximum number of events to update in a bulk.
+     * @param policyCache the Cache used to access and load Policies.
      * @return the Akka configuration Props object
      */
     static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -243,7 +254,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             final ActorRef policiesShardRegion,
             final java.time.Duration activityCheckInterval,
             final java.time.Duration thingsTimeout,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final Cache<EntityId, Entry<Policy>> policyCache) {
 
         return Props.create(ThingUpdater.class, new Creator<ThingUpdater>() {
             private static final long serialVersionUID = 1L;
@@ -251,7 +263,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             @Override
             public ThingUpdater create() {
                 return new ThingUpdater(thingsTimeout, thingsShardRegion, policiesShardRegion,
-                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize);
+                        searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize, policyCache);
             }
         });
     }
@@ -802,13 +814,23 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .isPresent();
         if (isExpectedPolicyId) {
             policyRevision = policy.getRevision().map(PolicyRevision::toLong).orElse(UNKNOWN_REVISION);
-            // TODO TJ use policyCache in things-search service in order to lookup imported policy entries
-            final Enforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(policy);
+            final Set<PolicyEntry> mergedPolicyEntriesSet =
+                    PolicyImportHelper.mergeImportedPolicyEntries(policy, this::policyLoader);
+            final Enforcer thePolicyEnforcer = PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet);
             this.policyEnforcer = thePolicyEnforcer;
             updateSearchIndexWithPolicy(syncedThing, thePolicyEnforcer);
         } else {
             log.warning("Received policy ID <{0}> is not expected ID <{1}>!", policy.getId(), policyId);
         }
+    }
+
+    private Optional<Policy> policyLoader(final String policyId) {
+        // TODO TJ can we retrieve the Policy always via the policyCache? then this Actor would get a lot easier ..
+        // TODO TJ cache invalidation is not yet properly handled in things-search - ThingUpdaters could register
+        // for the PolicyId and the imported policyIds instead of directly receiving PolicyEvents
+        return policyCache.getBlocking(EntityId.of(PolicyCommand.RESOURCE_TYPE, policyId))
+                .filter(Entry::exists)
+                .map(Entry::getValue);
     }
 
     private void handleException(final DittoRuntimeException exception) {

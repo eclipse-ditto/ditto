@@ -81,6 +81,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-caching</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-concierge</artifactId>
         </dependency>
 

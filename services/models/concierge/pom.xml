@@ -26,19 +26,6 @@
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-messages</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-things</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-thingsearch</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-things</artifactId>
         </dependency>
         <dependency>
@@ -48,6 +35,11 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-batch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-caching</artifactId>
         </dependency>
 
         <dependency>
