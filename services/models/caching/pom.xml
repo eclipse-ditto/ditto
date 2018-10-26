@@ -23,6 +23,11 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Caching</name>
 
+    <properties>
+        <!-- deactivate binary comp check for this module only for now -->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
