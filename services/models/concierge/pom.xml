@@ -23,6 +23,11 @@
     <packaging>jar</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Concierge</name>
 
+    <properties>
+        <!-- deactivate binary comp check for this module only for now -->
+        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
