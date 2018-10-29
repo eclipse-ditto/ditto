@@ -48,7 +48,6 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 
@@ -76,16 +75,11 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
      */
     public static ThingPreconditionFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    private static ThingPreconditionFailedException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -111,7 +105,6 @@ public final class ThingPreconditionFailedException extends DittoRuntimeExceptio
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingPreconditionFailedException(dittoHeaders, message, description, cause, href);
         }
 

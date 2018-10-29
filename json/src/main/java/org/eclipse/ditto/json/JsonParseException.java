@@ -26,7 +26,7 @@ public final class JsonParseException extends JsonRuntimeException {
     public static final String ERROR_CODE = "json.invalid";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Check if the JSON was valid (e.g. on http://jsonlint.com) and if it was in required format.";
+            "Check if the JSON was valid (e.g. on https://jsonlint.com) and if it was in required format.";
 
     private static final long serialVersionUID = -7585793723086474449L;
 

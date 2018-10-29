@@ -66,7 +66,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
             @Nullable final Throwable cause,
             @Nullable final URI href,
             @Nullable final JsonArray validationErrors) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.validationErrors = validationErrors;
     }
@@ -80,7 +79,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
     public static MessageFormatInvalidException.Builder newBuilder(final JsonArray validationErrors) {
         return new MessageFormatInvalidException.Builder(validationErrors);
     }
-
 
     @Override
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
@@ -120,6 +118,9 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -162,7 +163,6 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new MessageFormatInvalidException(dittoHeaders, message, description, cause, href,
                     validationErrors);
         }

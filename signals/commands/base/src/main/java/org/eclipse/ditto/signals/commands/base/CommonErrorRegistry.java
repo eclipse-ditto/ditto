@@ -31,6 +31,8 @@ import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtInvalidException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayPlaceholderNotResolvableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
@@ -56,6 +58,7 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
     public static CommonErrorRegistry newInstance() {
         final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
 
+        // exceptions in package
         parseStrategies.put(JsonParseException.ERROR_CODE, (jsonObject, dittoHeaders) -> new DittoJsonException(
                 JsonParseException.newBuilder().message(getMessage(jsonObject)).build(), dittoHeaders));
 
@@ -72,47 +75,54 @@ public final class CommonErrorRegistry extends AbstractErrorRegistry<DittoRuntim
                         JsonPointerInvalidException.newBuilder().message(getMessage(jsonObject)).build(),
                         dittoHeaders));
 
-        // other common exceptions
+        // exceptions in package org.eclipse.ditto.model.base.exceptions
+        parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE,
+                DittoHeaderInvalidException::fromJson);
 
-        parseStrategies.put(DittoHeaderInvalidException.ERROR_CODE, DittoHeaderInvalidException::fromJson);
-        parseStrategies.put(CommandNotSupportedException.ERROR_CODE, CommandNotSupportedException::fromJson);
-        parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE, JsonTypeNotParsableException::fromJson);
-        parseStrategies.put(InvalidRqlExpressionException.ERROR_CODE, InvalidRqlExpressionException::fromJson);
+        parseStrategies.put(InvalidRqlExpressionException.ERROR_CODE,
+                InvalidRqlExpressionException::fromJson);
 
-        // Gateway exceptions
+        // exception in package org.eclipse.ditto.signals.commands.base
+        parseStrategies.put(CommandNotSupportedException.
+                ERROR_CODE, CommandNotSupportedException::fromJson);
+
+        // exception in package org.eclipse.ditto.signals.base
+        parseStrategies.put(JsonTypeNotParsableException.ERROR_CODE,
+                JsonTypeNotParsableException::fromJson);
+
+        // exceptions in package org.eclipse.ditto.signals.commands.base.exceptions
         parseStrategies.put(GatewayAuthenticationFailedException.ERROR_CODE,
                 GatewayAuthenticationFailedException::fromJson);
 
         parseStrategies.put(GatewayAuthenticationProviderUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayAuthenticationProviderUnavailableException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayAuthenticationProviderUnavailableException::fromJson);
 
         parseStrategies.put(GatewayInternalErrorException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayInternalErrorException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayInternalErrorException::fromJson);
+
+        parseStrategies.put(GatewayJwtInvalidException.ERROR_CODE,
+                GatewayJwtInvalidException::fromJson);
+
+        parseStrategies.put(GatewayJwtIssuerNotSupportedException.ERROR_CODE,
+                GatewayJwtIssuerNotSupportedException::fromJson);
 
         parseStrategies.put(GatewayMethodNotAllowedException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayMethodNotAllowedException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
-
-        parseStrategies.put(GatewayQueryTimeExceededException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayQueryTimeExceededException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
-
-        parseStrategies.put(GatewayServiceTimeoutException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTimeoutException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
-
-        parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceUnavailableException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
-
-        parseStrategies.put(GatewayServiceTooManyRequestsException.ERROR_CODE,
-                (jsonObject, dittoHeaders) -> GatewayServiceTooManyRequestsException
-                        .fromMessage(getMessage(jsonObject), dittoHeaders));
+                GatewayMethodNotAllowedException::fromJson);
 
         parseStrategies.put(GatewayPlaceholderNotResolvableException.ERROR_CODE,
                 GatewayPlaceholderNotResolvableException::fromJson);
+
+        parseStrategies.put(GatewayQueryTimeExceededException.ERROR_CODE,
+                GatewayQueryTimeExceededException::fromJson);
+
+        parseStrategies.put(GatewayServiceTimeoutException.ERROR_CODE,
+                GatewayServiceTimeoutException::fromJson);
+
+        parseStrategies.put(GatewayServiceTooManyRequestsException.ERROR_CODE,
+                GatewayServiceTooManyRequestsException::fromJson);
+
+        parseStrategies.put(GatewayServiceUnavailableException.ERROR_CODE,
+                GatewayServiceUnavailableException::fromJson);
 
         return new CommonErrorRegistry(parseStrategies);
     }

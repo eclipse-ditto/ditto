@@ -12,6 +12,7 @@ package org.eclipse.ditto.model.things;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -36,11 +37,16 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
 
     private static final String DEFAULT_MESSAGE = "The Access Control List Entry is invalid.";
 
+    private static final String DEFAULT_DESCRIPTION = "Valid Access Control List Entries are 'READ', 'WRITE' or " +
+            "'ADMINISTRATE'.";
+
     private static final long serialVersionUID = 4590455181499641439L;
 
-    private AclEntryInvalidException(final DittoHeaders dittoHeaders, final String message,
-            final String description,
-            final Throwable cause, final URI href) {
+    private AclEntryInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -61,9 +67,9 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
      * @return the new AclEntryInvalidException.
      */
     public static AclEntryInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return newBuilder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return newBuilder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -77,7 +83,12 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
     public static AclEntryInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return newBuilder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     @Override
@@ -94,11 +105,15 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
 
         private Builder() {
             message(DEFAULT_MESSAGE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override
-        protected AclEntryInvalidException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected AclEntryInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new AclEntryInvalidException(dittoHeaders, message, description, cause, href);
         }
     }

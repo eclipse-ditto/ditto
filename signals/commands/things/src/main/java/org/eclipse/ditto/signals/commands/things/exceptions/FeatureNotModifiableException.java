@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -42,8 +43,11 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
 
     private static final long serialVersionUID = 7276337778530053496L;
 
-    private FeatureNotModifiableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeatureNotModifiableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -85,7 +89,12 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
      */
     public static FeatureNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -104,8 +113,11 @@ public class FeatureNotModifiableException extends DittoRuntimeException impleme
         }
 
         @Override
-        protected FeatureNotModifiableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected FeatureNotModifiableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new FeatureNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

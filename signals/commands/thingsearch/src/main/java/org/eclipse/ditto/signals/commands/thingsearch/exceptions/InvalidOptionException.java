@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.thingsearch.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -32,12 +33,16 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "search.option.invalid";
 
     static final String DEFAULT_DESCRIPTION = "At least one provided option is invalid.";
+
     static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
     private static final long serialVersionUID = -2341639110057194874L;
 
-    private InvalidOptionException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private InvalidOptionException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -79,7 +84,12 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
     public static InvalidOptionException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -94,8 +104,11 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
         }
 
         @Override
-        protected InvalidOptionException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected InvalidOptionException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new InvalidOptionException(dittoHeaders, message, description, cause, href);
         }
     }

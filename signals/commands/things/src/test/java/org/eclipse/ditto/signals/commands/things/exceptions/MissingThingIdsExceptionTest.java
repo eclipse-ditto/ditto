@@ -37,9 +37,7 @@ public class MissingThingIdsExceptionTest {
                     MISSING_THING_IDS_EXCEPTION.getDescription().orElse(null),
                     JsonField.isValueNonNull())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    MISSING_THING_IDS_EXCEPTION.getHref()
-                            .map(URI::toString)
-                            .orElse(null),
+                    MISSING_THING_IDS_EXCEPTION.getHref().map(URI::toString).orElse(null),
                     JsonField.isValueNonNull())
             .build();
 

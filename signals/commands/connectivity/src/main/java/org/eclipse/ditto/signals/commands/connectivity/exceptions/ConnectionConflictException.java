@@ -44,8 +44,11 @@ public final class ConnectionConflictException extends DittoRuntimeException imp
     private static final long serialVersionUID = -4525302146860945435L;
 
 
-    private ConnectionConflictException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ConnectionConflictException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
     }
 
@@ -85,7 +88,12 @@ public final class ConnectionConflictException extends DittoRuntimeException imp
      */
     public static ConnectionConflictException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -104,8 +112,11 @@ public final class ConnectionConflictException extends DittoRuntimeException imp
         }
 
         @Override
-        protected ConnectionConflictException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected ConnectionConflictException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ConnectionConflictException(dittoHeaders, message, description, cause, href);
         }
     }

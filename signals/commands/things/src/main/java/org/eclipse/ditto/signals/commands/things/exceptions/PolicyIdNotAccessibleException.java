@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -43,8 +44,11 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
 
     private static final long serialVersionUID = -623037881914361095L;
 
-    private PolicyIdNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private PolicyIdNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -67,7 +71,7 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
      */
     public static PolicyIdNotAccessibleException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new PolicyIdNotAccessibleException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
@@ -85,7 +89,12 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
      */
     public static PolicyIdNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -105,8 +114,11 @@ public final class PolicyIdNotAccessibleException extends DittoRuntimeException 
         }
 
         @Override
-        protected PolicyIdNotAccessibleException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyIdNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyIdNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }
