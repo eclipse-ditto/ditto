@@ -23,7 +23,7 @@ public final class JsonParseException extends JsonRuntimeException {
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "json.format.invalid";
+    public static final String ERROR_CODE = "json.invalid";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the JSON was valid (e.g. on https://jsonlint.com) and if it was in required format.";
