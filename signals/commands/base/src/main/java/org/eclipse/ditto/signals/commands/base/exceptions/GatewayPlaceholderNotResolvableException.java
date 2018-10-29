@@ -124,7 +124,9 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayPlaceholderNotResolvableException> {
 
-        private Builder() {}
+        private Builder() {
+            description(UNKNOWN_DESCRIPTION_TEMPLATE);
+        }
 
         private Builder(final String message, final String description) {
             this();

@@ -109,7 +109,7 @@ public final class PolicyEntryNotAccessibleException extends DittoRuntimeExcepti
         }
 
         private Builder(final CharSequence label, final String policyId) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
         }
 

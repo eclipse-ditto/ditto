@@ -118,7 +118,9 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyInvalidException> {
 
-        private Builder() {}
+        private Builder() {
+            description(DESCRIPTION_TEMPLATE);
+        }
 
         private Builder(final Collection<String> permissions, final String thingId) {
             message(MessageFormat.format(MESSAGE_TEMPLATE, thingId));

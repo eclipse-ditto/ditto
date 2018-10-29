@@ -39,6 +39,8 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
 
     private static final String OPERATING_DESCRIPTION_TEMPLATE = "Please retry in {0} {1}.";
 
+    private static final String DEFAULT_DESCRIPTION ="Please retry later.";
+
     private static final String STAYING_MESSAGE_TEMPLATE = "The message ''{2}'' is illegal for the {1} Connection " +
             "with ID ''{0}''";
 
@@ -78,7 +80,7 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(null))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
                 .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
@@ -91,7 +93,9 @@ public final class ConnectionSignalIllegalException extends DittoRuntimeExceptio
 
         private String connectionId = "UNKNOWN";
 
-        private Builder() {}
+        private Builder() {
+            this.description(DEFAULT_DESCRIPTION);
+        }
 
         /**
          * Set the connection ID.

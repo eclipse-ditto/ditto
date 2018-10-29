@@ -203,11 +203,13 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
         @Nullable private String batchId;
         @Nullable private String commandCorrelationId;
 
-        private Builder() {}
+        private Builder() {
+            description(DEFAULT_DESCRIPTION_TEMPLATE);
+        }
 
         private Builder(final String batchId, final String commandCorrelationId,
                 final DittoRuntimeException dittoRuntimeException) {
-
+            this();
             this.batchId = batchId;
             this.commandCorrelationId = commandCorrelationId;
 

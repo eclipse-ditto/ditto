@@ -107,6 +107,7 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
 
         private Builder() {
             message(DEFAULT_MESSAGE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override

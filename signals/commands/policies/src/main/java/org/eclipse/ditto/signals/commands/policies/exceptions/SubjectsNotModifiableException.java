@@ -110,7 +110,7 @@ public final class SubjectsNotModifiableException extends DittoRuntimeException 
         }
 
         private Builder(final String policyId, final CharSequence label) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
         }
 

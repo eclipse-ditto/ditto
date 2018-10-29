@@ -111,7 +111,7 @@ public final class ResourceNotAccessibleException extends DittoRuntimeException 
         }
 
         private Builder(final String policyId, final CharSequence label, final String path) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, path, label, policyId));
         }
 

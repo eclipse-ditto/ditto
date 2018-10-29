@@ -109,7 +109,7 @@ public final class SubjectNotAccessibleException extends DittoRuntimeException i
         }
 
         private Builder(final String policyId, final CharSequence label, final CharSequence subjectId) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, subjectId, label, policyId));
         }
 

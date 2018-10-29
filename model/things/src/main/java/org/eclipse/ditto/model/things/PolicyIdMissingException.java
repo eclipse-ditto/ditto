@@ -127,7 +127,9 @@ public final class PolicyIdMissingException extends DittoRuntimeException implem
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdMissingException> {
 
-        private Builder() {}
+        private Builder() {
+            description(DEFAULT_DESCRIPTION_GENERIC);
+        }
 
         private Builder(final String thingId, final JsonSchemaVersion version, final String messageTemplate,
                 final String description) {

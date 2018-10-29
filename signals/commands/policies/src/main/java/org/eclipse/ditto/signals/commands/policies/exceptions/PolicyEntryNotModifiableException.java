@@ -109,7 +109,7 @@ public final class PolicyEntryNotModifiableException extends DittoRuntimeExcepti
         }
 
         private Builder(final String policyId, final CharSequence label) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
         }
 

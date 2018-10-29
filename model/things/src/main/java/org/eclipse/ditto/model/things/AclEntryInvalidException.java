@@ -105,6 +105,7 @@ public final class AclEntryInvalidException extends DittoRuntimeException implem
 
         private Builder() {
             message(DEFAULT_MESSAGE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override
