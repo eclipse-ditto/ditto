@@ -62,7 +62,8 @@ final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
         if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return createThing;
         } else {
-            return CreateThing.of(substitutedThing, substitutedInlinePolicyJson, dittoHeaders);
+            return CreateThing.of(substitutedThing, substitutedInlinePolicyJson,
+                    createThing.getPolicyIdOrPlaceholder().orElse(null), dittoHeaders);
         }
     }
 

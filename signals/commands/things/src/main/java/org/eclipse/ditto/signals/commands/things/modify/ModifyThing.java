@@ -63,6 +63,18 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             JsonFactory.newJsonObjectFieldDefinition("initialPolicy", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     /**
+     * Json Field definition for the optional feature to copy an existing policy.
+     */
+    public static final JsonFieldDefinition<String> JSON_POLICY_ID_OR_PLACEHOLDER =
+            JsonFactory.newStringFieldDefinition("policyIdOrPlaceholder", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
+     * Json Field definition for the optional feature to copy an existing policy.
+     */
+    public static final JsonFieldDefinition<String> JSON_COPY_POLICY_FROM =
+            JsonFactory.newStringFieldDefinition("_copyPolicyFrom", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
      * Json Field definition for the optional initial "inline" policy for usage in getEntity().
      */
     public static final JsonFieldDefinition<JsonObject> JSON_INLINE_POLICY =
@@ -71,13 +83,15 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     private final String thingId;
     private final Thing thing;
     @Nullable private final JsonObject initialPolicy;
+    @Nullable private final String policyIdOrPlaceholder;
 
     private ModifyThing(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
-            final DittoHeaders dittoHeaders) {
+            @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
         this.thing = thing;
         this.initialPolicy = initialPolicy;
+        this.policyIdOrPlaceholder = policyIdOrPlaceholder;
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(() -> thing.toJsonString().length(), () ->
                 dittoHeaders);
@@ -92,17 +106,80 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws AclNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command was
+     * @throws PolicyIdNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command was
      * created via API version {@link JsonSchemaVersion#V_1}.
-     * @throws PolicyIdNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
+     * @throws AclNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
      * an API version greater than {@link JsonSchemaVersion#V_1}.
      */
     public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             final DittoHeaders dittoHeaders) {
         Objects.requireNonNull(thingId, "The Thing identifier must not be null!");
         Objects.requireNonNull(thing, "The modified Thing must not be null!");
-        ensureAuthorizationMatchesSchemaVersion(thingId, thing, initialPolicy, dittoHeaders);
-        return new ModifyThing(thingId, thing, initialPolicy, dittoHeaders);
+        ensureAuthorizationMatchesSchemaVersion(thingId, thing, initialPolicy, null, dittoHeaders);
+
+        return new ModifyThing(thingId, thing, initialPolicy, null, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying a thing which is passed as argument. The thing will have a policy copied from
+     * a policy with the given policyIdOrPlaceholder.
+     *
+     * @param thingId the Thing's ID.
+     * @param thing the {@link Thing} to modify.
+     * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
+     * If its a placeholder it will be resolved to a policy id.
+     * Placeholder must be of the syntax: {@code {{ ref:things/<theThingId>/policyId }} }.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws PolicyIdNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command
+     * was created via API version {@link JsonSchemaVersion#V_1}.
+     * @throws AclNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
+     * an API version greater than {@link JsonSchemaVersion#V_1}.
+     */
+    public static ModifyThing withCopiedPolicy(final String thingId, final Thing thing,
+            final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
+
+        Objects.requireNonNull(thingId, "The Thing identifier must not be null!");
+        Objects.requireNonNull(thing, "The modified Thing must not be null!");
+        Objects.requireNonNull(policyIdOrPlaceholder, "The policy id to copy must nit be null!");
+        ensureAuthorizationMatchesSchemaVersion(thingId, thing, null, policyIdOrPlaceholder, dittoHeaders);
+
+        return new ModifyThing(thingId, thing, null, policyIdOrPlaceholder, dittoHeaders);
+    }
+
+    /**
+     * Returns a command for modifying a thing which is passed as argument.
+     * Only one of the arguments initialPolicy and policyIdOrPlaceholder must not be null. They are both allowed to be
+     * null, but not both to not be null at the same time.
+     *
+     * @param thingId the Thing's ID.
+     * @param thing the {@link Thing} to modify.
+     * @param policyIdOrPlaceholder the policy id of the {@code Policy} to copy and set for the Thing when creating it.
+     * If its a placeholder it will be resolved to a policy id.
+     * Placeholder must be of the syntax: {@code {{ ref:things/<theThingId>/policyId }} }.
+     * @param initialPolicy the initial {@code Policy} to set for the Thing when creating it - may be null.
+     * @param dittoHeaders the headers of the command.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws PolicyIdNotAllowedException if the passed {@code thing} contained a Policy or Policy ID but the command
+     * was created via API version {@link JsonSchemaVersion#V_1}.
+     * @throws PolicyIdNotAllowedException if the passed {@code initialPolicy} is not null and the passed
+     * {@code policyIdOrPlaceholder} is not null.
+     * was created via API version {@link JsonSchemaVersion#V_1}.
+     * @throws AclNotAllowedException if the passed {@code thing} contained an ACL but the command was created via
+     * an API version greater than {@link JsonSchemaVersion#V_1}.
+     */
+    public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
+            @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
+
+        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
+                policyIdOrPlaceholder, dittoHeaders);
+        if (policyIdOrPlaceholder == null) {
+            return of(thingId, thing, initialPolicy, dittoHeaders);
+        } else {
+            return withCopiedPolicy(thingId, thing, policyIdOrPlaceholder, dittoHeaders);
+        }
     }
 
     /**
@@ -137,13 +214,14 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
             final JsonObject thingJsonObject = jsonObject.getValueOrThrow(JSON_THING);
             final Thing extractedThing = ThingsModelFactory.newThing(thingJsonObject);
             final JsonObject initialPolicyObject = jsonObject.getValue(JSON_INITIAL_POLICY).orElse(null);
+            final String policyIdOrPlaceholder = jsonObject.getValue(JSON_POLICY_ID_OR_PLACEHOLDER).orElse(null);
 
             final Optional<String> optionalThingId = jsonObject.getValue(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final String thingId = optionalThingId.orElseGet(() -> extractedThing.getId().orElseThrow(() ->
                     new JsonMissingFieldException(ThingModifyCommand.JsonFields.JSON_THING_ID)
             ));
 
-            return of(thingId, extractedThing, initialPolicyObject, dittoHeaders);
+            return of(thingId, extractedThing, initialPolicyObject, policyIdOrPlaceholder, dittoHeaders);
         });
     }
 
@@ -156,12 +234,14 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     private static void ensureAuthorizationMatchesSchemaVersion(final String thingId,
             final Thing thing,
             @Nullable final JsonObject initialPolicy,
+            @Nullable final String policyIdOrPlaceholder,
             final DittoHeaders dittoHeaders) {
 
         final JsonSchemaVersion version = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         if (JsonSchemaVersion.V_1.equals(version)) {
             // v1 commands may not contain policy information
-            final boolean containsPolicy = null != initialPolicy || thing.getPolicyId().isPresent();
+            final boolean containsPolicy =
+                    null != policyIdOrPlaceholder || null != initialPolicy || thing.getPolicyId().isPresent();
             if (containsPolicy) {
                 throw PolicyIdNotAllowedException
                         .newBuilder(thingId)
@@ -204,6 +284,14 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         return Optional.ofNullable(initialPolicy);
     }
 
+    /**
+     * @return The policy id of the {@code Policy} to copy and set for the Thing when creating it.
+     * Could also be a placeholder like: {{ ref:things/theThingId/policyId }}.
+     */
+    public Optional<String> getPolicyIdOrPlaceholder() {
+        return Optional.ofNullable(policyIdOrPlaceholder);
+    }
+
     @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
@@ -212,8 +300,12 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         final JsonObject thingJson = thing.toJson(schemaVersion, FieldType.regularOrSpecial());
-        final JsonObject fullThingJson =
+        final JsonObject withInlinePolicyThingJson =
                 getInitialPolicy().map(ip -> thingJson.set(JSON_INLINE_POLICY, ip)).orElse(thingJson);
+        final JsonObject fullThingJson = getPolicyIdOrPlaceholder().map(
+                containedPolicyIdOrPlaceholder -> withInlinePolicyThingJson.set(JSON_COPY_POLICY_FROM,
+                        containedPolicyIdOrPlaceholder)).orElse(withInlinePolicyThingJson);
+
         return Optional.of(fullThingJson);
     }
 
@@ -226,6 +318,9 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         if (initialPolicy != null) {
             jsonObjectBuilder.set(JSON_INITIAL_POLICY, initialPolicy, predicate);
         }
+        if (policyIdOrPlaceholder != null) {
+            jsonObjectBuilder.set(JSON_POLICY_ID_OR_PLACEHOLDER, policyIdOrPlaceholder, predicate);
+        }
     }
 
     @Override
@@ -235,7 +330,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     @Override
     public ModifyThing setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, thing, initialPolicy, dittoHeaders);
+        return of(thingId, thing, initialPolicy, policyIdOrPlaceholder, dittoHeaders);
     }
 
     @Override
@@ -246,7 +341,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, thing, initialPolicy);
+        return Objects.hash(super.hashCode(), thingId, thing, initialPolicy, policyIdOrPlaceholder);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -261,6 +356,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
         final ModifyThing that = (ModifyThing) obj;
         return that.canEqual(this) && Objects.equals(thingId, that.thingId)
                 && Objects.equals(thing, that.thing) && Objects.equals(initialPolicy, that.initialPolicy) &&
+                Objects.equals(policyIdOrPlaceholder, that.policyIdOrPlaceholder) &&
                 super.equals(obj);
     }
 
@@ -272,7 +368,7 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", thing=" + thing +
-                ", initialPolicy=" + initialPolicy + "]";
+                ", initialPolicy=" + initialPolicy + ", policyIdOrPlaceholder=" + policyIdOrPlaceholder + "]";
     }
 
 }

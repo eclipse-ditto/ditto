@@ -25,6 +25,7 @@ import javax.jms.Session;
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -47,7 +48,7 @@ import akka.testkit.javadsl.TestKit;
  * Tests the {@link JMSConnectionHandlingActor}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public class JmsConnectionHandlingActorTest {
+public class JmsConnectionHandlingActorTest extends WithMockServers {
 
     @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
 

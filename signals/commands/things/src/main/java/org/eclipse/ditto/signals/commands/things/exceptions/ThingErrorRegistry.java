@@ -116,6 +116,7 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
                 PolicyInvalidException::fromJson);
         parseStrategies.put(PolicyNotAllowedException.ERROR_CODE,
                 PolicyNotAllowedException::fromJson);
+        parseStrategies.put(PoliciesConflictingException.ERROR_CODE, PoliciesConflictingException::fromJson);
         parseStrategies.put(ThingConflictException.ERROR_CODE,
                 ThingConflictException::fromJson);
         parseStrategies.put(ThingIdNotExplicitlySettableException.ERROR_CODE,

@@ -67,10 +67,11 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
 
         mappingStrategies.put(CreateThing.TYPE,
                 adaptable -> CreateThing.of(thingFrom(adaptable), initialPolicyForCreateThingFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        policyIdOrPlaceholderForCreateThingFrom(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(ModifyThing.TYPE,
                 adaptable -> ModifyThing.of(thingIdFrom(adaptable), thingFrom(adaptable),
-                        initialPolicyForModifyThingFrom(adaptable), dittoHeadersFrom(adaptable)));
+                        initialPolicyForModifyThingFrom(adaptable), policyIdOrPlaceholderForModifyThingFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteThing.TYPE,
                 adaptable -> DeleteThing.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
@@ -170,10 +171,24 @@ final class ThingModifyCommandAdapter extends AbstractAdapter<ThingModifyCommand
                 .orElse(null);
     }
 
+    private static String policyIdOrPlaceholderForCreateThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getValue()
+                .map(JsonValue::asObject)
+                .flatMap(o -> o.getValue(CreateThing.JSON_COPY_POLICY_FROM))
+                .orElse(null);
+    }
+
     private static JsonObject initialPolicyForModifyThingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)
                 .map(o -> o.getValue(ModifyThing.JSON_INLINE_POLICY).map(JsonValue::asObject).orElse(null))
+                .orElse(null);
+    }
+
+    private static String policyIdOrPlaceholderForModifyThingFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getValue()
+                .map(JsonValue::asObject)
+                .flatMap(o -> o.getValue(ModifyThing.JSON_COPY_POLICY_FROM))
                 .orElse(null);
     }
 

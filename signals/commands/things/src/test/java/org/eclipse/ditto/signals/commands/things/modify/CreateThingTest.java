@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.lang.ref.SoftReference;
+import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -28,6 +29,8 @@ import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.exceptions.PoliciesConflictingException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -117,7 +120,7 @@ public final class CreateThingTest {
     @Test
     public void createTooLargeThing() {
         final StringBuilder sb = new StringBuilder();
-        for(int i=0; i<TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
+        for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
         }
         final JsonObject largeAttributes = JsonObject.newBuilder()
@@ -132,4 +135,48 @@ public final class CreateThingTest {
                 .isInstanceOf(ThingTooLargeException.class);
     }
 
+    @Test
+    public void initializeWithInitialPolicyNullAndWithCopiedPolicyNull() {
+        final CreateThing createThing =
+                CreateThing.of(TestConstants.Thing.THING, null, null, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(createThing.getInitialPolicy()).isNotPresent();
+        assertThat(createThing.getPolicyIdOrPlaceholder()).isNotPresent();
+    }
+
+    @Test
+    public void initializeWithCopiedPolicy() {
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final CreateThing createThing =
+                CreateThing.withCopiedPolicy(TestConstants.Thing.THING, thingReference,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(createThing.getInitialPolicy()).isNotPresent();
+        assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicyNullAndPolicyIdNull() {
+        final Thing thing = TestConstants.Thing.THING.setPolicyId(null);
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        final CreateThing createThing =
+                CreateThing.of(thing, null, thingReference, TestConstants.EMPTY_DITTO_HEADERS);
+
+        assertThat(createThing.getInitialPolicy()).isNotPresent();
+        assertThat(createThing.getPolicyIdOrPlaceholder()).isPresent();
+        assertThat(createThing.getPolicyIdOrPlaceholder()).contains(thingReference);
+    }
+
+    @Test
+    public void initializeWithCopiedPolicyAndWithInitialPolicy() {
+        final String thingReference = "{{ ref:things/my_namespace:my_thing/policyId }}";
+        assertThatThrownBy(() ->
+                CreateThing.of(TestConstants.Thing.THING, JsonObject.newBuilder().build(), thingReference,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .isInstanceOf(PoliciesConflictingException.class)
+                .hasMessage(MessageFormat.format(
+                        "The Thing with ID ''{0}'' could not be created as it contained an inline Policy as" +
+                                " well as a policyID to copy.", TestConstants.Thing.THING_ID));
+    }
 }
