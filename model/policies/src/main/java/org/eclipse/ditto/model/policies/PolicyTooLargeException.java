@@ -40,8 +40,11 @@ public final class PolicyTooLargeException extends DittoRuntimeException impleme
 
     private static final long serialVersionUID = 2434234324327234489L;
 
-    private PolicyTooLargeException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private PolicyTooLargeException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.REQUEST_ENTITY_TOO_LARGE, dittoHeaders, message, description, cause, href);
     }
 
@@ -66,9 +69,12 @@ public final class PolicyTooLargeException extends DittoRuntimeException impleme
      */
     public static PolicyTooLargeException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new PolicyTooLargeException.Builder()
+        return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -88,8 +94,11 @@ public final class PolicyTooLargeException extends DittoRuntimeException impleme
         }
 
         @Override
-        protected PolicyTooLargeException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected PolicyTooLargeException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyTooLargeException(dittoHeaders, message, description, cause, href);
         }
     }

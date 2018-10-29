@@ -97,15 +97,14 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
      * JsonFields#MESSAGE} field.
      */
     public static DittoHeaderInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    private static DittoHeaderInvalidException fromMessage(final String message, final DittoHeaders dittoHeaders) {
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
+
     /**
      * A mutable builder with a fluent API for a {@link DittoHeaderInvalidException}.
      */

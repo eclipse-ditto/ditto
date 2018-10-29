@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -43,11 +44,10 @@ public class SubjectsNotAccessibleException extends DittoRuntimeException implem
     private static final long serialVersionUID = 7355557968103689705L;
 
     private SubjectsNotAccessibleException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
-
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -71,7 +71,7 @@ public class SubjectsNotAccessibleException extends DittoRuntimeException implem
      */
     public static SubjectsNotAccessibleException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new SubjectsNotAccessibleException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
@@ -89,8 +89,12 @@ public class SubjectsNotAccessibleException extends DittoRuntimeException implem
      */
     public static SubjectsNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -105,17 +109,16 @@ public class SubjectsNotAccessibleException extends DittoRuntimeException implem
         }
 
         private Builder(final String policyId, final CharSequence label) {
-            description(DEFAULT_DESCRIPTION);
+            this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, label, policyId));
         }
 
         @Override
         protected SubjectsNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
-
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new SubjectsNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
 

@@ -56,7 +56,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -96,7 +95,12 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
      * JsonFields#MESSAGE} field.
      */
     public static ThingIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(DittoRuntimeException.readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -120,7 +124,6 @@ public final class ThingIdInvalidException extends DittoRuntimeException impleme
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 

@@ -48,7 +48,6 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
     }
 
@@ -65,6 +64,21 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
     }
 
     /**
+     * Constructs a new {@code PolicyPreconditionFailedException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new PolicyPreconditionFailedException.
+     */
+    public static PolicyPreconditionFailedException fromMessage(final String message,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
+                .build();
+    }
+
+    /**
      * Constructs a new {@link PolicyPreconditionFailedException} object with the exception message extracted from
      * the given JSON object.
      *
@@ -76,16 +90,11 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
      */
     public static PolicyPreconditionFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    private static PolicyPreconditionFailedException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -111,7 +120,6 @@ public final class PolicyPreconditionFailedException extends DittoRuntimeExcepti
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new PolicyPreconditionFailedException(dittoHeaders, message, description, cause, href);
         }
 

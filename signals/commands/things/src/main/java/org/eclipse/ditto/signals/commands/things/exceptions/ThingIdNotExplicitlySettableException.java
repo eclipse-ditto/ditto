@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -38,18 +39,22 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
             "It is not allowed to provide a Thing ID in the request body for "
                     + "method POST. The method POST will generate the Thing ID by itself.";
 
-    private static final String DEFAULT_DESCRIPTION_POST = "To provide your own Thing ID use a PUT request instead.";
+    private static final String DEFAULT_DESCRIPTION_POST =
+            "To provide your own Thing ID use a PUT request instead.";
 
     private static final String MESSAGE_TEMPLATE_PUT =
-            "The Thing ID in the request body is not equal to the Thing ID in " + "the request URL.";
+            "The Thing ID in the request body is not equal to the Thing ID in the request URL.";
 
     private static final String DEFAULT_DESCRIPTION_PUT =
-            "Either delete the Thing ID from the request body or use the " + "same Thing ID as in the request URL.";
+            "Either delete the Thing ID from the request body or use the same Thing ID as in the request URL.";
 
     private static final long serialVersionUID = 5477658033219182854L;
 
-    private ThingIdNotExplicitlySettableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingIdNotExplicitlySettableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -91,7 +96,23 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      */
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        final String message = readMessage(jsonObject);
+        if (MESSAGE_TEMPLATE_POST.equalsIgnoreCase(message)) {
+            return new Builder(true)
+                    .dittoHeaders(dittoHeaders)
+                    .message(message)
+                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_POST))
+                    .href(readHRef(jsonObject).orElse(null))
+                    .build();
+        }
+        else {
+            return new Builder(false)
+                    .dittoHeaders(dittoHeaders)
+                    .message(message)
+                    .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_PUT))
+                    .href(readHRef(jsonObject).orElse(null))
+                    .build();
+        }
     }
 
     /**
@@ -108,8 +129,10 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
 
         @Override
         protected ThingIdNotExplicitlySettableException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description, final Throwable cause, final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ThingIdNotExplicitlySettableException(dittoHeaders, message, description, cause, href);
         }
     }

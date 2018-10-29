@@ -13,6 +13,7 @@ package org.eclipse.ditto.protocoladapter;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -37,8 +38,11 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
 
     private static final long serialVersionUID = 5748920703966374167L;
 
-    private UnknownTopicPathException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private UnknownTopicPathException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -70,9 +74,9 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * @return the new UnknownTopicPathException.
      */
     public static UnknownTopicPathException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder() //
-                .dittoHeaders(dittoHeaders) //
-                .message(message) //
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(message)
                 .build();
     }
 
@@ -87,12 +91,16 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
      * JsonFields#MESSAGE} field.
      */
     public static UnknownTopicPathException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
      * A mutable builder with a fluent API for a {@link UnknownTopicPathException}.
-     *
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnknownTopicPathException> {
@@ -107,8 +115,11 @@ public final class UnknownTopicPathException extends DittoRuntimeException {
         }
 
         @Override
-        protected UnknownTopicPathException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected UnknownTopicPathException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new UnknownTopicPathException(dittoHeaders, message, description, cause, href);
         }
     }

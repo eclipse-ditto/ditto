@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -40,8 +41,11 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
 
     private static final long serialVersionUID = -707524055354192288L;
 
-    private FeaturesNotModifiableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeaturesNotModifiableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -64,7 +68,7 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
      */
     public static FeaturesNotModifiableException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-        return new FeaturesNotModifiableException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
                 .build();
@@ -82,7 +86,12 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
      */
     public static FeaturesNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -102,8 +111,11 @@ public final class FeaturesNotModifiableException extends DittoRuntimeException 
         }
 
         @Override
-        protected FeaturesNotModifiableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected FeaturesNotModifiableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new FeaturesNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

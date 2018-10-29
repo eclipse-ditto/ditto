@@ -159,13 +159,6 @@ public final class ConfigKeys {
 
         private static final String PREFIX = CONNECTIVITY_PREFIX + "reconnect.";
 
-        private static final String SNAPSHOT_PREFIX = PREFIX + "snapshot.";
-
-        /**
-         * Every amount of changes (configured by this key), this Actor will create a snapshot of the connection ids.
-         */
-        public static final String SNAPSHOT_THRESHOLD = SNAPSHOT_PREFIX + "threshold";
-
         /**
          * Initial delay for reconnecting the connections after the ReconnectActor has been started.
          */
@@ -175,6 +168,16 @@ public final class ConfigKeys {
          * Interval for trying to reconnect all started connections.
          */
         public static final String RECONNECT_INTERVAL = PREFIX + "interval";
+
+        /**
+         * Frequency (duration) of recovery. Used to limit the recovery rate.
+         */
+        public static final String RECONNECT_RATE_FREQUENCY = PREFIX + "rate.frequency";
+
+        /**
+         * Number of entities recovered per batch. Used to limit the recovery rate.
+         */
+        public static final String RECONNECT_RATE_ENTITIES = PREFIX + "rate.entities";
 
         private Reconnect() {
             throw new AssertionError();

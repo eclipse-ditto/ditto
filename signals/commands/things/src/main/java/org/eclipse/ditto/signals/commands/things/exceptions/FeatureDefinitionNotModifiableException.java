@@ -49,7 +49,6 @@ public final class FeatureDefinitionNotModifiableException extends DittoRuntimeE
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -94,8 +93,12 @@ public final class FeatureDefinitionNotModifiableException extends DittoRuntimeE
      */
     public static FeatureDefinitionNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -119,7 +122,6 @@ public final class FeatureDefinitionNotModifiableException extends DittoRuntimeE
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new FeatureDefinitionNotModifiableException(dittoHeaders, message, description, cause, href);
         }
 

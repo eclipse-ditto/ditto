@@ -62,7 +62,6 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
         this.batchId = batchId;
         this.commandCorrelationId = commandCorrelationId;
@@ -116,6 +115,8 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
                 .commandCorrelationId(commandCorrelationId)
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_TEMPLATE))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -202,11 +203,13 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
         @Nullable private String batchId;
         @Nullable private String commandCorrelationId;
 
-        private Builder() {}
+        private Builder() {
+            description(DEFAULT_DESCRIPTION_TEMPLATE);
+        }
 
         private Builder(final String batchId, final String commandCorrelationId,
                 final DittoRuntimeException dittoRuntimeException) {
-
+            this();
             this.batchId = batchId;
             this.commandCorrelationId = commandCorrelationId;
 
@@ -234,7 +237,6 @@ public final class BatchNotExecutableException extends DittoRuntimeException imp
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new BatchNotExecutableException(batchId, commandCorrelationId, dittoHeaders, message,
                     description, cause, href);
         }

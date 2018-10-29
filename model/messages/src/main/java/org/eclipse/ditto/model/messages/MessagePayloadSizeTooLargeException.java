@@ -36,12 +36,16 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
 
     private static final String MESSAGE_TEMPLATE =
             "The message payload size of ''{0}'' kB exceeds the maximal allowed size of ''{1}'' kB.";
+
     private static final String DEFAULT_DESCRIPTION = "Reduce the message payload in the bounds of the specified limit";
 
     private static final long serialVersionUID = -2530157640888612975L;
 
-    private MessagePayloadSizeTooLargeException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private MessagePayloadSizeTooLargeException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.REQUEST_ENTITY_TOO_LARGE, dittoHeaders, message, description, cause, href);
     }
 
@@ -66,9 +70,12 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
      */
     public static MessagePayloadSizeTooLargeException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new MessagePayloadSizeTooLargeException.Builder()
+        return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -90,7 +97,9 @@ public final class MessagePayloadSizeTooLargeException extends DittoRuntimeExcep
         @Override
         protected MessagePayloadSizeTooLargeException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MessagePayloadSizeTooLargeException(dittoHeaders, message, description, cause, href);
         }
     }
