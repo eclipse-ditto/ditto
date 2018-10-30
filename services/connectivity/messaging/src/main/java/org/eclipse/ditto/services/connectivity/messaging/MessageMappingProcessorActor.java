@@ -23,8 +23,10 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -290,9 +292,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
             final AuthorizationContext filteredContext =
                     PlaceholderFilter.filterAuthorizationContext(authorizationContext, externalMessage.getHeaders());
-            final String authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
-            return externalMessage.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
-                    authSubjectsArray);
+            final JsonArray authSubjectsArray = mapAuthorizationContextToSubjectsArray(filteredContext);
+            final ExternalMessage externalMessageWithSourceHeader = authSubjectsArray.get(0)
+                    .map(JsonValue::asString)
+                    .map(firstAuthorizationSubject -> externalMessage.withHeader(DittoHeaderDefinition.SOURCE.getKey(),
+                            firstAuthorizationSubject))
+                    .orElse(externalMessage);
+            return externalMessageWithSourceHeader.withHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(),
+                    authSubjectsArray.toString());
         }
 
         private static AuthorizationContext getAuthorizationContextFromMessage(final ExternalMessage externalMessage) {
@@ -305,12 +312,12 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             return authorizationContext;
         }
 
-        private static String mapAuthorizationContextToSubjectsArray(final AuthorizationContext authorizationContext) {
+        private static JsonArray mapAuthorizationContextToSubjectsArray(
+                final AuthorizationContext authorizationContext) {
             return authorizationContext.stream()
                     .map(AuthorizationSubject::getId)
                     .map(JsonFactory::newValue)
-                    .collect(JsonCollectors.valuesToArray())
-                    .toString();
+                    .collect(JsonCollectors.valuesToArray());
         }
     }
 
