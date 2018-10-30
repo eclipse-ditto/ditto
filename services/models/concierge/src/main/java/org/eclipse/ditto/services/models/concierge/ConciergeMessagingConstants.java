@@ -42,9 +42,15 @@ public final class ConciergeMessagingConstants {
     public static final String BATCH_SUPERVISOR_ACTOR_PATH = ROOT_ACTOR_PATH + "/batchSupervisor/singleton";
 
     /**
+     * Name of the blocked-namespace-updater singleton.
+     */
+    public static final String BLOCKED_NAMESPACES_UPDATER_NAME = "blockedNamespacesUpdater";
+
+    /**
      * Path of the blocked-namespace-updater as a root-level cluster singleton.
      */
-    public static final String BLOCKED_NAMESPACES_UPDATER_PATH = USER_PATH + "/blockedNamespacesUpdater";
+    public static final String BLOCKED_NAMESPACES_UPDATER_PATH =
+            String.format("%s/%s/singleton", USER_PATH, BLOCKED_NAMESPACES_UPDATER_NAME);
 
     /**
      * Name of the shard region for authorization entities.

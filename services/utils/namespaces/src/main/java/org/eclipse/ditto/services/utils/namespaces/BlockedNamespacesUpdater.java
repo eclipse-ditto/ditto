@@ -29,16 +29,6 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class BlockedNamespacesUpdater extends AbstractActor {
 
-    /**
-     * Name of this actor.
-     */
-    public static final String ACTOR_NAME = "blockedNamespacesUpdater";
-
-    /**
-     * Path of this actor as a root-level cluster singleton.
-     */
-    public static final String SINGLETON_PATH = "";
-
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final BlockedNamespaces blockedNamespaces;

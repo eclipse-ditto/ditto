@@ -127,7 +127,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         // start cluster singleton that writes to the distributed cache of blocked namespaces
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
-        ClusterUtil.startSingleton(actorSystem, actorSystem, CLUSTER_ROLE, BlockedNamespacesUpdater.ACTOR_NAME,
+        ClusterUtil.startSingleton(actorSystem, actorSystem, CLUSTER_ROLE,
+                ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
         context.actorOf(DispatcherActorCreator.props(configReader, pubSubMediator, enforcerShardRegion),
