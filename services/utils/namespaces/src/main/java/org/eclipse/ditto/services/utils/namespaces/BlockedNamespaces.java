@@ -13,8 +13,8 @@ package org.eclipse.ditto.services.utils.namespaces;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
+import org.eclipse.ditto.services.utils.ddata.DistributedDataConfigReader;
 
 import akka.actor.ActorSystem;
 import akka.cluster.Cluster;

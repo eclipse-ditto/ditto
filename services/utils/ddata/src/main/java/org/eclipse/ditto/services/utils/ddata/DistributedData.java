@@ -153,15 +153,15 @@ public abstract class DistributedData<R extends ReplicatedData> {
      * Compute timeout from a given read/write consistency and a default. If the timeout from the read/write
      * consistency is positive, then it is taken. Otherwise the default timeout is taken.
      *
-     * @param givenTimeout timeout from a read/write consistency.
-     * @param defaultTimeout default timeout.
+     * @param defaultTimeout timeout from a read/write consistency.
+     * @param configuredTimeout default timeout.
      * @return the timeout.
      */
-    private static Timeout getAskTimeout(final FiniteDuration givenTimeout, final Duration defaultTimeout) {
-        if (givenTimeout.gt(FiniteDuration.Zero())) {
-            return Timeout.durationToTimeout(givenTimeout);
+    private static Timeout getAskTimeout(final FiniteDuration defaultTimeout, final Duration configuredTimeout) {
+        if (configuredTimeout.isNegative()) {
+            return Timeout.durationToTimeout(defaultTimeout);
         } else {
-            return Timeout.create(defaultTimeout);
+            return Timeout.create(configuredTimeout);
         }
     }
 

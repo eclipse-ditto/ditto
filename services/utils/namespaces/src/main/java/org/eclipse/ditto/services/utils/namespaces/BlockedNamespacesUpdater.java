@@ -12,7 +12,10 @@ package org.eclipse.ditto.services.utils.namespaces;
 
 import static akka.cluster.pubsub.DistributedPubSubMediator.Put;
 
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.BlockNamespaceResponse;
 import org.eclipse.ditto.signals.commands.namespaces.UnblockNamespace;
@@ -67,23 +70,42 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         final String namespace = command.getNamespace();
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
-        blockedNamespaces.add(namespace).thenAccept(_void -> {
-            final BlockNamespaceResponse response =
-                    BlockNamespaceResponse.getInstance(namespace, command.getResourceType(), command.getDittoHeaders());
-            sender.tell(response, self);
-        });
+        blockedNamespaces.add(namespace)
+                .thenAccept(_void -> {
+                    final BlockNamespaceResponse response =
+                            BlockNamespaceResponse.getInstance(namespace, command.getResourceType(),
+                                    command.getDittoHeaders());
+                    sender.tell(response, self);
+                })
+                .exceptionally(error -> handleError(error, command, sender));
     }
 
     private void unblockNamespace(final UnblockNamespace command) {
         final String namespace = command.getNamespace();
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
-        blockedNamespaces.add(namespace).thenAccept(_void -> {
-            final UnblockNamespaceResponse response =
-                    UnblockNamespaceResponse.getInstance(namespace, command.getResourceType(),
-                            command.getDittoHeaders());
-            sender.tell(response, self);
-        });
+        blockedNamespaces.add(namespace)
+                .thenAccept(_void -> {
+                    final UnblockNamespaceResponse response =
+                            UnblockNamespaceResponse.getInstance(namespace, command.getResourceType(),
+                                    command.getDittoHeaders());
+                    sender.tell(response, self);
+                })
+                .exceptionally(error -> handleError(error, command, sender));
+    }
+
+    private Void handleError(final Throwable error, final Command<?> command, final ActorRef sender) {
+        log.error(error, "Failed to perform <{}>", command);
+        final DittoRuntimeException message;
+        if (error instanceof DittoRuntimeException) {
+            message = (DittoRuntimeException) error;
+        } else {
+            message = GatewayInternalErrorException.newBuilder()
+                    .message(error.getClass() + ": " + error.getMessage())
+                    .build();
+        }
+        sender.tell(message, getSelf());
+        return null;
     }
 
 }
