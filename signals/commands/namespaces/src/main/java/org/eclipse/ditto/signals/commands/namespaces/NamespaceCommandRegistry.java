@@ -40,7 +40,6 @@ public final class NamespaceCommandRegistry extends AbstractJsonParsableRegistry
         parseStrategies.put(BlockNamespace.TYPE, BlockNamespace::fromJson);
         parseStrategies.put(UnblockNamespace.TYPE, UnblockNamespace::fromJson);
         parseStrategies.put(PurgeNamespace.TYPE, PurgeNamespace::fromJson);
-        parseStrategies.put(QueryNamespaceEmptiness.TYPE, QueryNamespaceEmptiness::fromJson);
 
         return new NamespaceCommandRegistry(parseStrategies);
     }
