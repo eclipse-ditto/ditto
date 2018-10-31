@@ -153,7 +153,6 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         Map<String, String> headers = null;
         try {
             headers = extractHeadersFromMessage(properties, envelope);
-            headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();

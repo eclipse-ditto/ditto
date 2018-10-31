@@ -161,6 +161,8 @@ public class MessageMappingProcessorActorTest {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
             assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+            assertThat(modifyAttribute.getDittoHeaders().getSource()).contains(
+                    "integration:" + correlationId + ":hub-application/json");
         });
     }
 
