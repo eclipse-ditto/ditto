@@ -20,9 +20,11 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.placeholder.Placeholder;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 
 /**
@@ -103,6 +105,13 @@ public abstract class AbstractProtocolValidator {
                 validateTarget(target, dittoHeaders, targetDescription(target, connection)));
     }
 
+    protected void validateHeaderMapping(final HeaderMapping headerMapping, final DittoHeaders dittoHeaders) {
+        headerMapping.getMapping().forEach((key, value) -> {
+            final String replaced = validateTemplate(value, PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders, true);
+            validateTemplate(replaced, PlaceholderFactory.newThingPlaceholder(), dittoHeaders, false);
+        });
+    }
+
     protected abstract void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription);
 
@@ -130,10 +139,15 @@ public abstract class AbstractProtocolValidator {
                 target.getAddress(), connection.getId());
     }
 
-    protected <T> void validateEnforcement(final String template, final Placeholder<T> placeholder,
+    protected <T> String validateTemplate(final String template, final Placeholder<T> placeholder,
             final DittoHeaders headers) {
+        return validateTemplate(template, placeholder, headers, false);
+    }
+
+    private <T> String validateTemplate(final String template, final Placeholder<T> placeholder,
+            final DittoHeaders headers, final boolean allowUnresolved) {
         try {
-            PlaceholderFilter.validate(template, placeholder);
+            return PlaceholderFilter.validate(template, placeholder, allowUnresolved);
         } catch (final DittoRuntimeException exception) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder(MessageFormat.format(ENFORCEMENT_ERROR_MESSAGE, template,

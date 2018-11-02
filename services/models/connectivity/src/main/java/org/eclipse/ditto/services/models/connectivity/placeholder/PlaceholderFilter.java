@@ -186,8 +186,9 @@ public final class PlaceholderFilter {
                 UNRESOLVED_INPUT_HANDLER, allowUnresolved);
     }
 
-    public static <T> String validate(final String template, final Placeholder<T> thePlaceholder) {
-        return doApply(template, thePlaceholder, false, placeholder -> Optional.of("dummy"));
+    public static <T> String validate(final String template, final Placeholder<T> thePlaceholder,
+            final boolean allowUnresolved) {
+        return doApply(template, thePlaceholder, allowUnresolved, placeholder -> Optional.of("dummy"));
     }
 
     static String checkAllPlaceholdersResolved(final String input) {
