@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createRandomConnectionId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
@@ -35,6 +36,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
+import javax.jms.CompletionListener;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -505,7 +507,7 @@ public class AmqpClientActorTest {
 
             getLastSender().tell(responseSupplier.apply(command.getId(), command.getDittoHeaders()), getRef());
 
-            verify(mockProducer, timeout(2000)).send(expectedJmsResponse);
+            verify(mockProducer, timeout(2000)).send(same(expectedJmsResponse), any(CompletionListener.class));
         }};
     }
 
@@ -526,7 +528,7 @@ public class AmqpClientActorTest {
 
             amqpClientActor.tell(outboundSignal, getRef());
 
-            verify(mockProducer, timeout(2000)).send(mockTextMessage);
+            verify(mockProducer, timeout(2000)).send(same(mockTextMessage), any(CompletionListener.class));
         }};
     }
 

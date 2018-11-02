@@ -105,10 +105,10 @@ public abstract class AbstractConsumerActorTest<M> {
         testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
             assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
             assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID);
-            assertThat(msg.getDittoHeaders()).containsEntry("device:id", TestConstants.Things.THING_ID);
-            assertThat(msg.getDittoHeaders()).containsEntry("prefixed:thing:id",
+            assertThat(msg.getDittoHeaders()).containsEntry("device_id", TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("prefixed_thing_id",
                     "some.prefix." + TestConstants.Things.THING_ID);
-            assertThat(msg.getDittoHeaders()).containsEntry("suffixed:thing:id",
+            assertThat(msg.getDittoHeaders()).containsEntry("suffixed_thing_id",
                     TestConstants.Things.THING_ID + ".some.suffix");
         }, response -> fail("not expected"));
     }

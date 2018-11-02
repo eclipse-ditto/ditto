@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import javax.jms.JMSException;
 
 import org.apache.qpid.jms.message.JmsMessage;
+import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
@@ -44,7 +45,7 @@ import akka.stream.alpakka.mqtt.MqttMessage;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 
-public class MQTTPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
+public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessage> {
 
     private TestProbe probe;
     private MqttConnectionFactory mqttConnectionFactory;
@@ -74,6 +75,7 @@ public class MQTTPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected void verifyPublishedMessage() {
+        Awaitility.await().until(() -> received.size()>0);
         assertThat(received).hasSize(1);
         final MqttMessage mqttMessage = received.get(0);
         assertThat(mqttMessage.topic()).isEqualTo(getOutboundAddress());
