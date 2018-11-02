@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -34,6 +35,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
     @Nullable private EnforcementFilter<String> enforcementFilter;
+    @Nullable private HeaderMapping headerMapping;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -49,6 +51,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
+        this.headerMapping = message.getHeaderMapping().orElse(null);
     }
 
     /**
@@ -118,6 +121,12 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withHeaderMapping(@Nullable final HeaderMapping headerMapping) {
+        this.headerMapping = headerMapping;
+        return this;
+    }
+
+    @Override
     public ExternalMessageBuilder asResponse(final boolean response) {
         this.response = response;
         return this;
@@ -132,7 +141,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, enforcementFilter);
+                authorizationContext, enforcementFilter, headerMapping);
     }
 
 }

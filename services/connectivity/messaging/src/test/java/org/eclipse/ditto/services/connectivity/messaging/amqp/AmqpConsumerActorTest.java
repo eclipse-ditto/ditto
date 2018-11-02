@@ -57,16 +57,17 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
         return AmqpConsumerActor.props("consumer", messageConsumer, mappingActor,
-                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT);
+                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT,
+                TestConstants.HEADER_MAPPING);
     }
 
     @Override
     protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header) {
-        return getJmsMessage(TestConstants.modifyThing(), "enforcement", header, REPLY_TO_HEADER);
+        return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, REPLY_TO_HEADER);
     }
 
     @Test
-    public void plainStringMappingTest() throws JMSException {
+    public void plainStringMappingTest() {
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
@@ -144,7 +145,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -218,7 +219,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
 
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo123", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
+                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null, null));
 
             final String correlationId = "cor-";
             final String plainPayload =

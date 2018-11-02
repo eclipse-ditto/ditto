@@ -24,7 +24,7 @@ public class OutboundSignalFactory {
         return new UnmappedOutboundSignal(signal, targets);
     }
 
-    public static OutboundSignal newMappedOutboundSignal(final OutboundSignal signal,
+    public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal signal,
             final ExternalMessage externalMessage) {
         return new MappedOutboundSignal(signal, externalMessage);
     }

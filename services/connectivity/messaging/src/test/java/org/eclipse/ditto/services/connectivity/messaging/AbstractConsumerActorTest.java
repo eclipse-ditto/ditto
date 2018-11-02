@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.header;
 
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -45,15 +47,15 @@ public abstract class AbstractConsumerActorTest<M> {
 
     private static final Config CONFIG = ConfigFactory.load("test");
     private static final String CONNECTION_ID = "connection";
-    protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
+    protected static final Map.Entry<String, String> REPLY_TO_HEADER = header("reply-to", "reply-to-address");
+    protected static final Enforcement ENFORCEMENT =
+            ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
     protected static ActorSystem actorSystem;
 
     @Rule
     public TestName name = new TestName();
-    protected static final Enforcement ENFORCEMENT =
-            ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
     @BeforeClass
     public static void setUp() {
@@ -69,13 +71,13 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     @Test
-    public void testInboundMessageWithEnforcementSucceeds() {
-        testInboundMessageWithEnforcement(header("device_id", TestConstants.Things.THING_ID), true, o -> {});
+    public void testInboundMessageSucceeds() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, s -> {}, o -> {});
     }
 
     @Test
-    public void testInboundMessageWithEnforcementFails() {
-        testInboundMessageWithEnforcement(header("device_id", "_invalid"), false, outboundSignal -> {
+    public void testInboundMessageFails() {
+        testInboundMessage(header("device_id", "_invalid"), false, s -> {}, outboundSignal -> {
             final ConnectionSignalIdEnforcementFailedException exception =
                     ConnectionSignalIdEnforcementFailedException.fromMessage(
                             outboundSignal.getExternalMessage().getTextPayload().orElse(""),
@@ -86,8 +88,8 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     @Test
-    public void testInboundMessageWithEnforcementFailsIfHeaderIsMissing() {
-        testInboundMessageWithEnforcement(header("some", "header"), false, outboundSignal -> {
+    public void testInboundMessageFailsIfHeaderIsMissing() {
+        testInboundMessage(header("some", "header"), false, s -> {}, outboundSignal -> {
             final UnresolvedPlaceholderException exception =
                     UnresolvedPlaceholderException.fromMessage(
                             outboundSignal.getExternalMessage().getTextPayload().orElse(""),
@@ -98,12 +100,43 @@ public abstract class AbstractConsumerActorTest<M> {
         });
     }
 
+    @Test
+    public void testInboundMessageWithHeaderMapping() {
+        testInboundMessage(header("device_id", TestConstants.Things.THING_ID), true, msg -> {
+            assertThat(msg.getDittoHeaders()).containsEntry("eclipse", "ditto");
+            assertThat(msg.getDittoHeaders()).containsEntry("thing_id", TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("device:id", TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("prefixed:thing:id",
+                    "some.prefix." + TestConstants.Things.THING_ID);
+            assertThat(msg.getDittoHeaders()).containsEntry("suffixed:thing:id",
+                    TestConstants.Things.THING_ID + ".some.suffix");
+        }, response -> fail("not expected"));
+    }
+
+    @Test
+    public void testInboundMessageWithHeaderMappingThrowsUnresolvedPlaceholderException() {
+        testInboundMessage(header("useless", "header"), false,
+                msg -> {},
+                response -> {
+                    final UnresolvedPlaceholderException exception =
+                            UnresolvedPlaceholderException.fromMessage(
+                                    response.getExternalMessage().getTextPayload().orElse(""),
+                                    response.getSource().getDittoHeaders());
+                    assertThat(exception.getErrorCode()).isEqualTo(UnresolvedPlaceholderException.ERROR_CODE);
+                    assertThat(exception.getDittoHeaders()).contains(REPLY_TO_HEADER);
+                    assertThat(exception.getMessage()).contains("{{ header:device_id }}");
+                }
+        );
+    }
+
     protected abstract Props getConsumerActorProps(final ActorRef mappingActor);
 
     protected abstract M getInboundMessage(final Map.Entry<String, Object> header);
 
-    private void testInboundMessageWithEnforcement(final Map.Entry<String, Object> header,
-            final boolean isForwardedToConcierge, final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
+    private void testInboundMessage(final Map.Entry<String, Object> header,
+            final boolean isForwardedToConcierge,
+            final Consumer<Signal<?>> verifySignal,
+            final Consumer<OutboundSignal.WithExternalMessage> verifyResponse) {
         new TestKit(actorSystem) {{
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
@@ -119,6 +152,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 publisher.expectNoMessage(ONE_SECOND);
                 final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
                 assertThat(modifyThing.getThingId()).isEqualTo(TestConstants.Things.THING_ID);
+                verifySignal.accept(modifyThing);
             } else {
                 concierge.expectNoMessage(ONE_SECOND);
                 final OutboundSignal.WithExternalMessage outboundSignal =

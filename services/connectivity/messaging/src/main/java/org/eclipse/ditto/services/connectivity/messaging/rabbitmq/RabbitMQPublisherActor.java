@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpTarget;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -143,9 +144,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     log.debug("Received mapped message {} ", message);
 
                     log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
-                    outbound.getTargets().stream()
-                            .map(t -> toPublishTarget(t.getAddress()))
-                            .forEach(destination -> publishMessage(destination, message));
+                    outbound.getTargets().forEach(target -> {
+                        final RabbitMQTarget rabbitMQTarget = toPublishTarget(target.getAddress());
+                        final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target);
+                        publishMessage(rabbitMQTarget, messageWithMappedHeaders);
+                    });
                 })
                 .match(AddressMetric.class, this::handleAddressMetric)
                 .match(RetrieveAddressMetric.class, ram -> {
@@ -221,4 +224,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         channelActor.tell(channelMessage, getSelf());
     }
 
+    @Override
+    protected DiagnosticLoggingAdapter log() {
+        return log;
+    }
 }

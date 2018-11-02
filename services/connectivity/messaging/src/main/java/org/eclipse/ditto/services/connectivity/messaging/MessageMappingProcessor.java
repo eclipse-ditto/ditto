@@ -131,7 +131,7 @@ public final class MessageMappingProcessor {
                     () -> getMapper(message).map(message));
 
             return adaptableOpt.map(adaptable -> {
-                doUpdateCorrelationId(adaptable);
+                enhanceLogFromAdaptable(adaptable);
 
                 return this.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
@@ -157,7 +157,7 @@ public final class MessageMappingProcessor {
             final Adaptable adaptable =
                     withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME), adaptableSupplier);
 
-            doUpdateCorrelationId(adaptable);
+            enhanceLogFromAdaptable(adaptable);
 
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable).map(adaptable));
@@ -202,7 +202,7 @@ public final class MessageMappingProcessor {
 
     private MessageMapper getMapper(final Adaptable adaptable) {
 
-        doUpdateCorrelationId(adaptable);
+        enhanceLogFromAdaptable(adaptable);
         return registry.getMapper().orElseGet(() -> {
             log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
                     adaptable);
@@ -210,7 +210,7 @@ public final class MessageMappingProcessor {
         });
     }
 
-    private void doUpdateCorrelationId(final Adaptable adaptable) {
+    private void enhanceLogFromAdaptable(final Adaptable adaptable) {
         adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
                 .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);

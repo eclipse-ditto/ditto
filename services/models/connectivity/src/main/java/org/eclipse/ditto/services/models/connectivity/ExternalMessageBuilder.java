@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -92,6 +93,14 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
+
+    /**
+     * Associates {@link HeaderMapping} data with the message. Pass {@code null} to disable headerMapping.
+     *
+     * @param headerMapping the mappings
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withHeaderMapping(@Nullable HeaderMapping headerMapping);
 
     /**
      * Marks the message as a response message.

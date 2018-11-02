@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -78,6 +80,18 @@ public class TestConstants {
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
+
+    public static HeaderMapping HEADER_MAPPING;
+
+    static {
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("eclipse", "ditto");
+        map.put("thing_id", "{{ thing:id }}");
+        map.put("device_id", "{{ header:device_id }}");
+        map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
+        map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
+        HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
+    }
 
     public static class Things {
 

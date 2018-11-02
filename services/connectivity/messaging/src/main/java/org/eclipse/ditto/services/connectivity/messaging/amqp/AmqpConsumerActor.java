@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
@@ -72,6 +73,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private final MessageConsumer messageConsumer;
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext authorizationContext;
+    @Nullable private final HeaderMapping headerMapping;
 
     private AddressMetric addressMetric;
     private long consumedMessages = 0L;
@@ -80,11 +82,12 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement) {
+            @Nullable final Enforcement enforcement, @Nullable HeaderMapping headerMapping) {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = authorizationContext;
+        this.headerMapping = headerMapping;
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
@@ -100,18 +103,19 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
      * @param messageConsumer the JMS message consumer
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @param authorizationContext the authorization context of this source
+     * @param headerMapping optional header mapping
      * @return the Akka configuration Props object.
      */
     static Props props(final String source, final MessageConsumer messageConsumer,
             final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement) {
+            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
         return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpConsumerActor create() {
                 return new AmqpConsumerActor(source, messageConsumer, messageMappingProcessor, authorizationContext,
-                        enforcement);
+                        enforcement, headerMapping);
             }
         });
     }
@@ -170,6 +174,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
             builder.withAuthorizationContext(authorizationContext);
             extractPayloadFromMessage(message, builder);
             builder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
+            builder.withHeaderMapping(headerMapping);
             final ExternalMessage externalMessage = builder.build();
             LogUtil.enhanceLogWithCorrelationId(log, externalMessage
                     .findHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()));
@@ -197,7 +202,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
         }
     }
 
-    private void extractPayloadFromMessage(final Message message,
+    private void extractPayloadFromMessage(final JmsMessage message,
             final ExternalMessageBuilder builder) throws JMSException {
         if (message instanceof TextMessage) {
             final String payload = ((TextMessage) message).getText();
@@ -214,7 +219,10 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 throw new IllegalArgumentException("Message too large...");
             }
         } else {
-            throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported.");
+            final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
+            log.debug("Received message of unsupported type ({}) with headers: {}",
+                    message.getClass().getName(), headersMapFromJmsMessage);
+            throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported. Received " + message.getClass().getName() + ".");
         }
     }
 

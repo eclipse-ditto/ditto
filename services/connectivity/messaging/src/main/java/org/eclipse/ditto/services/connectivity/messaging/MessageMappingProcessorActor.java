@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -38,7 +39,10 @@ import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedE
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
+import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -77,7 +81,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final ActorRef conciergeForwarder;
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
-    private final BiFunction<ExternalMessage, Signal<?>, Signal<?>> adjustHeaders;
+    private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
+    private final BiFunction<ExternalMessage, Signal<?>, DittoHeaders> mapHeaders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
@@ -92,6 +97,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
+        mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
     }
 
@@ -147,7 +153,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             signalOpt.ifPresent(signal -> {
                 enhanceLogUtil(signal);
                 applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
-                final Signal<?> adjustedSignal = adjustHeaders.apply(messageWithAuthSubject, signal);
+                final Signal<?> adjustedSignal = mapHeaders
+                        .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
+                        .andThen(signal::setDittoHeaders)
+                        .apply(messageWithAuthSubject, signal);
+
                 startTrace(adjustedSignal);
                 // This message is important to check if a command is accepted for a specific connection, as this
                 // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
@@ -284,7 +294,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     static final class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {
 
-
         @Override
         public ExternalMessage apply(final ExternalMessage externalMessage) {
             final AuthorizationContext authorizationContext = getAuthorizationContextFromMessage(externalMessage);
@@ -314,7 +323,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
-    static final class AdjustHeaders implements BiFunction<ExternalMessage, Signal<?>, Signal<?>> {
+    static final class AdjustHeaders implements BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> {
 
         private final String connectionId;
 
@@ -323,8 +332,8 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
 
         @Override
-        public Signal<?> apply(final ExternalMessage externalMessage, final Signal<?> signal) {
-            final DittoHeadersBuilder dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
+        public DittoHeaders apply(final ExternalMessage externalMessage, final DittoHeaders dittoHeaders) {
+            final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
 
             final String beforeMapping = externalMessage
                     .findHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey())
@@ -334,14 +343,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             // because beforeMapping is a JsonArray String, we need to set AUTHORIZATION_SUBJECTS header directly
             dittoHeadersBuilder.putHeader(DittoHeaderDefinition.AUTHORIZATION_SUBJECTS.getKey(), beforeMapping);
 
-            if (!signal.getDittoHeaders().getOrigin().isPresent()) {
+            if (!dittoHeaders.getOrigin().isPresent()) {
                 dittoHeadersBuilder.origin(connectionId);
             }
 
-            final DittoHeaders adjustedHeaders = dittoHeadersBuilder.build();
             // overwrite the auth-subjects to the configured ones after mapping in order to be sure that the mapping
             // does not choose/change the auth-subjects itself:
-            return signal.setDittoHeaders(adjustedHeaders);
+            return dittoHeadersBuilder.build();
         }
 
     }
@@ -365,6 +373,37 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 log.debug("Connection Signal ID Enforcement enabled: {}", enforcementFilter);
                 enforcementFilter.match(signal.getId(), signal.getDittoHeaders());
             });
+        }
+    }
+
+    /**
+     * Helper class applying the {@link org.eclipse.ditto.model.connectivity.HeaderMapping}.
+     */
+    static final class ApplyHeaderMapping implements BiFunction<ExternalMessage, Signal<?>, DittoHeaders> {
+
+        private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
+        private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
+        private final DiagnosticLoggingAdapter log;
+
+        ApplyHeaderMapping(final DiagnosticLoggingAdapter log) {
+            this.log = log;
+        }
+
+        @Override
+        public DittoHeaders apply(final ExternalMessage externalMessage, final Signal<?> signal) {
+            return externalMessage.getHeaderMapping().map(headerMapping -> {
+                log.debug("Applying header mapping: {}", headerMapping);
+                final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                final String thingId = signal.getId();
+                final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
+
+                headerMapping.getMapping().forEach((key, value) -> {
+                    final String withHeaders = PlaceholderFilter.apply(value, dittoHeaders, HEADERS_PLACEHOLDER, true);
+                    final String withHeadersAndThingId = PlaceholderFilter.apply(withHeaders, thingId, THING_PLACEHOLDER);
+                    dittoHeadersBuilder.putHeader(key, withHeadersAndThingId);
+                });
+                return dittoHeadersBuilder.build();
+            }).orElse(signal.getDittoHeaders());
         }
     }
 }

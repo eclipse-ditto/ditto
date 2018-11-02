@@ -342,6 +342,17 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@link MqttTarget} with MQTT specific configuration.
+     *
+     * @param target the delegate target
+     * @param qos the target qos value
+     * @return the created {@link Target}
+     */
+    public static Target newMqttTarget(final Target target, final int qos) {
+        return new ImmutableMqttTarget(target, qos);
+    }
+
+    /**
      * Creates a new {@code Source} object from the specified JSON object. Decides which specific {@link Source}
      * implementation to choose depending on the given {@link ConnectionType}.
      *

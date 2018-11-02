@@ -126,9 +126,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
                     log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
                     outbound.getTargets().forEach(target -> {
                         final MqttPublishTarget mqttTarget = toPublishTarget(target.getAddress());
+                        final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target);
                         final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
                         final MqttQoS targetQoS = MqttValidator.getQoS(qos);
-                        publishMessage(mqttTarget, targetQoS, message);
+                        publishMessage(mqttTarget, targetQoS, messageWithMappedHeaders);
                     });
                 })
                 .match(RetrieveAddressMetric.class, ram -> {
@@ -208,5 +209,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             mqttClientActor.tell(new Status.Failure(exception), getSelf());
         }
         return done;
+    }
+
+    @Override
+    protected DiagnosticLoggingAdapter log() {
+        return log;
     }
 }
