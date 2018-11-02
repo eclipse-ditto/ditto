@@ -172,8 +172,8 @@ public final class CreateThing extends AbstractCommand<CreateThing> implements T
     public static CreateThing of(final Thing newThing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
         final String thingId = String.valueOf(newThing.getId().orElse(null));
-        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(thingId, newThing,
-                initialPolicy, policyIdOrPlaceholder, dittoHeaders);
+        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
+                policyIdOrPlaceholder, dittoHeaders);
         if (policyIdOrPlaceholder == null) {
             return of(newThing, initialPolicy, dittoHeaders);
         } else {

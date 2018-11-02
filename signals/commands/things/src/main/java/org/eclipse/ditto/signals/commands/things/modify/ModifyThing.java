@@ -173,9 +173,8 @@ public final class ModifyThing extends AbstractCommand<ModifyThing> implements T
     public static ModifyThing of(final String thingId, final Thing thing, @Nullable final JsonObject initialPolicy,
             @Nullable final String policyIdOrPlaceholder, final DittoHeaders dittoHeaders) {
 
-        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicyOrPolicyId(thingId, thing, initialPolicy,
-                policyIdOrPlaceholder,
-                dittoHeaders);
+        ThingModifyCommand.ensurePolicyCopyFromDoesNotConflictWithInlinePolicy(thingId, initialPolicy,
+                policyIdOrPlaceholder, dittoHeaders);
         if (policyIdOrPlaceholder == null) {
             return of(thingId, thing, initialPolicy, dittoHeaders);
         } else {

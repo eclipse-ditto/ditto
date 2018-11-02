@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -40,17 +41,13 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = 1164235483383640723L;
 
-    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayServiceTooManyRequestsException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.TOO_MANY_REQUESTS, dittoHeaders, message, description, cause, href);
     }
-
-    /**
-     * A mutable builder for a {@code GatewayServiceTooManyRequestsException}.
-     *
-     * @return the builder.
-     */
-    public static Builder newBuilder() { return new Builder(); }
 
     /**
      * Constructs a new {@code GatewayServiceTooManyRequestsException} object with given message.
@@ -68,6 +65,33 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
     }
 
     /**
+     * A mutable builder for a {@code GatewayServiceTooManyRequestsException}.
+     *
+     * @return the builder.
+     */
+    public static Builder newBuilder() { return new Builder(); }
+
+    /**
+     * Constructs a new {@code GatewayServiceTooManyRequestsException} object with the exception message extracted from the given
+     * JSON object.
+     *
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayServiceTooManyRequestsException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
+     */
+    public static GatewayServiceTooManyRequestsException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
+    }
+
+    /**
      * A mutable builder with a fluent API for a {@link GatewayServiceTooManyRequestsException}.
      */
     @NotThreadSafe
@@ -79,7 +103,9 @@ public class GatewayServiceTooManyRequestsException extends DittoRuntimeExceptio
         }
 
         protected GatewayServiceTooManyRequestsException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayServiceTooManyRequestsException(dittoHeaders, message, description, cause, href);
         }

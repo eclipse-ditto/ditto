@@ -14,6 +14,8 @@ import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandA
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.net.URI;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -34,7 +36,8 @@ public class PolicyIdNotAllowedExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     TestConstants.Thing.POLICY_ID_NOT_ALLOWED_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Thing.POLICY_ID_NOT_ALLOWED_EXCEPTION.getHref().toString())
+                    TestConstants.Thing.POLICY_ID_NOT_ALLOWED_EXCEPTION.getHref()
+                            .map(URI::toString).orElse(null))
             .build();
 
 

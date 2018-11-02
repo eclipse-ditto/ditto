@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -34,15 +35,18 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "id.notsettable";
 
-    private static final String MESSAGE_TEMPLATE_PUT =
+    private static final String MESSAGE_TEMPLATE =
             "The Policy ID in the request body is not equal to the Policy ID in the request URL.";
 
-    private static final String DEFAULT_DESCRIPTION_PUT =
+    private static final String DEFAULT_DESCRIPTION =
             "Either delete the Policy ID from the request body or use the same Policy ID as in the request URL.";
 
 
-    private PolicyIdNotExplicitlySettableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private PolicyIdNotExplicitlySettableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -84,7 +88,12 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
      */
     public static PolicyIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -95,14 +104,16 @@ public final class PolicyIdNotExplicitlySettableException extends DittoRuntimeEx
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdNotExplicitlySettableException> {
 
         private Builder() {
-            message(MESSAGE_TEMPLATE_PUT);
-            description(DEFAULT_DESCRIPTION_PUT);
+            message(MESSAGE_TEMPLATE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override
         protected PolicyIdNotExplicitlySettableException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description, final Throwable cause, final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyIdNotExplicitlySettableException(dittoHeaders, message, description, cause, href);
         }
     }

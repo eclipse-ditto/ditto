@@ -51,8 +51,11 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
     private static final long serialVersionUID = -8724890154457417912L;
 
-    private GatewayPlaceholderNotResolvableException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayPlaceholderNotResolvableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -110,6 +113,7 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(UNKNOWN_DESCRIPTION_TEMPLATE))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -120,7 +124,9 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayPlaceholderNotResolvableException> {
 
-        private Builder() {}
+        private Builder() {
+            description(UNKNOWN_DESCRIPTION_TEMPLATE);
+        }
 
         private Builder(final String message, final String description) {
             this();
@@ -130,7 +136,9 @@ public final class GatewayPlaceholderNotResolvableException extends DittoRuntime
 
         @Override
         protected GatewayPlaceholderNotResolvableException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayPlaceholderNotResolvableException(dittoHeaders, message, description, cause, href);
         }

@@ -42,16 +42,24 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
             "The Thing with ID ''{0}'' could not be created because creation of its " +
                     "implicit Policy ID ''{1}'' failed.";
 
-    private static final String DEFAULT_DESCRIPTION =
+    private static final String DEFAULT_DESCRIPTION_NOT_EXISTING =
             "Check if the ID of the Policy you created the Thing with is correct and that the Policy is existing.";
 
     private static final String DEFAULT_DESCRIPTION_POLICY_CREATION_FAILED =
             "If you want to use an existing Policy, specify it as 'policyId' in the Thing JSON you create.";
 
+    private static final String DEFAULT_DESCRIPTION_GENERIC =
+            "Either check if the ID of the Policy you created the Thing with is correct and that the " +
+                    "Policy is existing or If you want to use the existing Policy, specify it as 'policyId' " +
+                    "in the Thing JSON you create.";
+
     private static final long serialVersionUID = 2153912949789822362L;
 
-    private ThingNotCreatableException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private ThingNotCreatableException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -113,7 +121,12 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      */
     public static ThingNotCreatableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION_GENERIC))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -122,9 +135,13 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<ThingNotCreatableException> {
 
+        private Builder() {
+            description(DEFAULT_DESCRIPTION_GENERIC);
+        }
+
         private Builder(final boolean policyMissing) {
             if (policyMissing) {
-                description(DEFAULT_DESCRIPTION);
+                description(DEFAULT_DESCRIPTION_NOT_EXISTING);
             } else {
                 description(DEFAULT_DESCRIPTION_POLICY_CREATION_FAILED);
             }
@@ -140,8 +157,11 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
         }
 
         @Override
-        protected ThingNotCreatableException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected ThingNotCreatableException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ThingNotCreatableException(dittoHeaders, message, description, cause, href);
         }
     }

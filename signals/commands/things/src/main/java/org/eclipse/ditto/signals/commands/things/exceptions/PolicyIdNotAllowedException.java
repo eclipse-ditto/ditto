@@ -39,21 +39,15 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
 
     private static final String DEFAULT_DESCRIPTION =
             "If you want to use an existing Policy, specify it as 'policyId' in the Thing JSON. If you want to create" +
-                    " a Thing with inline Policy, no Policy ID is allowed as it will be created with the Thing ID." +
-                    " If you want to create a Thing with a new Policy copied from another Thing, specify either " +
-                    "the id of the policy or a reference placeholder to the policy id as '_copyPolicyFrom'.";
-
-    private static final String COPY_POLICY_FROM_WITH_INLINE_POLICY_MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' " +
-            "could not be created/modified as it contained an inline Policy and a policy id to copy from.";
-
-    private static final String COPY_POLICY_FROM_WITH_POLICY_ID_MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' " +
-            "could not be created/modified as it contained a policy id to use and a policy id to copy from.";
-
+                    " a Thing with inline Policy, no Policy ID is allowed as it will be created with the Thing ID.";
 
     private static final long serialVersionUID = 4511420390758955872L;
 
-    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private PolicyIdNotAllowedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -65,22 +59,6 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
      */
     public static Builder newBuilder(final String thingId) {
         return new Builder(thingId);
-    }
-
-    public static PolicyIdNotAllowedException forCopyPolicyFromWithInlinePolicy(final String thingId,
-            final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .message(MessageFormat.format(COPY_POLICY_FROM_WITH_INLINE_POLICY_MESSAGE_TEMPLATE, thingId))
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    public static PolicyIdNotAllowedException forCopyPolicyFromWithPolicyId(final String thingId,
-            final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .message(MessageFormat.format(COPY_POLICY_FROM_WITH_POLICY_ID_MESSAGE_TEMPLATE, thingId))
-                .dittoHeaders(dittoHeaders)
-                .build();
     }
 
     /**
@@ -109,7 +87,12 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
      */
     public static PolicyIdNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -128,8 +111,11 @@ public final class PolicyIdNotAllowedException extends DittoRuntimeException imp
         }
 
         @Override
-        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected PolicyIdNotAllowedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyIdNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }

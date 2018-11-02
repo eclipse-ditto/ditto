@@ -59,8 +59,12 @@ public final class ThingSearchErrorRegistry extends AbstractErrorRegistry<DittoR
         commonErrorRegistry.getTypes()
                 .forEach(type -> parseStrategies.put(type, commonErrorRegistry::parse));
 
-        parseStrategies.put(InvalidOptionException.ERROR_CODE, InvalidOptionException::fromJson);
-        parseStrategies.put(InvalidNamespacesException.ERROR_CODE, InvalidNamespacesException::fromJson);
+
+        parseStrategies.put(InvalidOptionException.ERROR_CODE,
+                InvalidOptionException::fromJson);
+
+        parseStrategies.put(InvalidNamespacesException.ERROR_CODE,
+                InvalidNamespacesException::fromJson);
 
         return new ThingSearchErrorRegistry(parseStrategies);
     }

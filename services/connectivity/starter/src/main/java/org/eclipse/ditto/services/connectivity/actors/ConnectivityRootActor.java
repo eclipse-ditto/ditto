@@ -65,6 +65,7 @@ import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
+import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -74,6 +75,7 @@ import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.persistence.query.PersistenceQuery;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -87,6 +89,8 @@ public final class ConnectivityRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "connectivityRoot";
 
     private static final String CLUSTER_ROLE = "connectivity";
+    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID =
+            "akka-contrib-mongodb-persistence-reconnect-readjournal";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -198,8 +202,12 @@ public final class ConnectivityRootActor extends AbstractActor {
                         shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
-        startClusterSingletonActor(ReconnectActor.ACTOR_NAME,
-                ReconnectActor.props(connectionShardRegion, pubSubMediator));
+        final JavaDslMongoReadJournal mongoReadJournal = PersistenceQuery
+                .get(getContext().getSystem())
+                .getReadJournalFor(JavaDslMongoReadJournal.class, RECONNECT_READ_JOURNAL_PLUGIN_ID);
+
+        startClusterSingletonActor(ReconnectActor.ACTOR_NAME, ReconnectActor.props(connectionShardRegion,
+                mongoReadJournal::currentPersistenceIds));
 
         String hostname = config.getString(ConfigKeys.Http.HOSTNAME);
         if (hostname.isEmpty()) {

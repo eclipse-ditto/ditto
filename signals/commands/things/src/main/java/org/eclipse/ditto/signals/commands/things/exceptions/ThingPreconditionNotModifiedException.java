@@ -50,7 +50,6 @@ public final class ThingPreconditionNotModifiedException extends DittoRuntimeExc
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.NOT_MODIFIED, dittoHeaders, message, description, cause, href);
     }
 
@@ -78,16 +77,11 @@ public final class ThingPreconditionNotModifiedException extends DittoRuntimeExc
      */
     public static ThingPreconditionNotModifiedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
-    }
-
-    private static ThingPreconditionNotModifiedException fromMessage(final String message,
-            final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
-                .message(message)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -112,7 +106,6 @@ public final class ThingPreconditionNotModifiedException extends DittoRuntimeExc
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingPreconditionNotModifiedException(dittoHeaders, message, description, cause, href);
         }
 

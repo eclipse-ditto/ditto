@@ -58,9 +58,12 @@ public final class BatchErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         final CommonErrorRegistry commonErrorRegistry = CommonErrorRegistry.newInstance();
         commonErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, commonErrorRegistry));
 
-        parseStrategies.put(BatchNotExecutableException.ERROR_CODE, BatchNotExecutableException::fromJson);
-        parseStrategies.put(BatchAlreadyExecutingException.ERROR_CODE, BatchAlreadyExecutingException::fromJson);
+        // exceptions in package org.eclipse.ditto.signals.commands.batch.exceptions
+        parseStrategies.put(BatchAlreadyExecutingException.ERROR_CODE,
+                BatchAlreadyExecutingException::fromJson);
 
+        parseStrategies.put(BatchNotExecutableException.ERROR_CODE,
+                BatchNotExecutableException::fromJson);
 
         return new BatchErrorRegistry(parseStrategies);
     }

@@ -140,12 +140,18 @@ public class DittoRuntimeException extends RuntimeException implements
                 .href(dittoRuntimeException.href);
     }
 
+    protected static Optional<URI> readHRef(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "JSON object");
+        return jsonObject.getValue(JsonFields.HREF).map(URI::create);
+    }
+
     protected static String readMessage(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.getValueOrThrow(JsonFields.MESSAGE);
     }
 
     protected static Optional<String> readDescription(final JsonObject jsonObject) {
+        checkNotNull(jsonObject, "JSON object");
         return jsonObject.getValue(JsonFields.DESCRIPTION);
     }
 
@@ -196,9 +202,7 @@ public class DittoRuntimeException extends RuntimeException implements
      *
      * @return a link to provide the user with further information about this exception.
      */
-    public Optional<URI> getHref() {
-        return Optional.ofNullable(href);
-    }
+    public Optional<URI> getHref() { return Optional.ofNullable(href); }
 
     @Override
     public String getManifest() {

@@ -29,7 +29,7 @@ public final class DittoJsonException extends DittoRuntimeException {
     /**
      * Fallback Error code of this exception.
      */
-    public static final String FALLBACK_ERROR_CODE = "json.invalid";
+    public static final String FALLBACK_ERROR_CODE = "json.format.invalid";
 
     private static final long serialVersionUID = -6003501868758251973L;
 
@@ -74,7 +74,7 @@ public final class DittoJsonException extends DittoRuntimeException {
     }
 
     /**
-     * Executes the given Function. Executes the given Supplier. An occurring {@link JsonRuntimeException},
+     * Executes the given Function. An occurring {@link JsonRuntimeException},
      * {@code IllegalArgumentException} or {@code NullPointerException} is caught, wrapped and re-thrown as
      * {@code DittoJsonException}.
      *

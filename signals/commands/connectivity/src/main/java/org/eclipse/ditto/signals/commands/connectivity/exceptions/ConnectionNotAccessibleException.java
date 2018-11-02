@@ -42,8 +42,11 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
 
     private static final long serialVersionUID = -3207647419678933094L;
 
-    private ConnectionNotAccessibleException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private ConnectionNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -84,7 +87,12 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
      */
     public static ConnectionNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -105,7 +113,9 @@ public final class ConnectionNotAccessibleException extends DittoRuntimeExceptio
         @Override
         protected ConnectionNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new ConnectionNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }
