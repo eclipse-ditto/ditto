@@ -16,6 +16,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -32,6 +35,13 @@ public class ImmutableTargetTest {
     private static final String ADDRESS = "amqp/target1";
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
+
+    private static Map<String, String> mapping = new HashMap<>();
+    static {
+        mapping.put("correlation-id", "{{ header:message-id }}");
+        mapping.put("thing-id", "{{ header:device_id }}");
+        mapping.put("eclipse", "ditto");
+    }
 
     private static final Target TARGET_WITH_AUTH_CONTEXT =
             ConnectivityModelFactory.newTarget(ADDRESS, ctx, TWIN_EVENTS);
@@ -55,7 +65,7 @@ public class ImmutableTargetTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableTarget.class, areImmutable(),
-                provided(AuthorizationContext.class, FilteredTopic.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, FilteredTopic.class, HeaderMapping.class).isAlsoImmutable());
     }
 
     @Test

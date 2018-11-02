@@ -238,6 +238,7 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final AuthorizationContext authorizationContext, final String address) {
         return newSourceBuilder().address(address).authorizationContext(authorizationContext).build();
     }
+
     /**
      * Creates a new {@link Source}.
      *
@@ -249,6 +250,10 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final AuthorizationContext authorizationContext, final String address,
             final int index) {
         return newSourceBuilder().address(address).authorizationContext(authorizationContext).index(index).build();
+    }
+
+    public static TargetBuilder newTargetBuilder() {
+        return new ImmutableTarget.Builder();
     }
 
     /**
@@ -272,7 +277,10 @@ public final class ConnectivityModelFactory {
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
             final Set<FilteredTopic> topics) {
-        return ImmutableTarget.of(address, authorizationContext, topics);
+        return new ImmutableTarget.Builder().address(address)
+                .authorizationContext(authorizationContext)
+                .topics(topics)
+                .build();
     }
 
     /**
@@ -288,11 +296,11 @@ public final class ConnectivityModelFactory {
             final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
         final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return ImmutableTarget.of(address, authorizationContext, topics);
+        return newTarget(address, authorizationContext, topics);
     }
 
     /**
-     * Creates a new {@link MqttTarget}.
+     * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
@@ -304,7 +312,7 @@ public final class ConnectivityModelFactory {
             final Topic requiredTopic, final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return ImmutableTarget.of(address, authorizationContext, topics.stream()
+        return newTarget(address, authorizationContext, topics.stream()
                 .map(ConnectivityModelFactory::newFilteredTopic)
                 .collect(Collectors.toSet())
         );
@@ -327,7 +335,7 @@ public final class ConnectivityModelFactory {
             final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        final ImmutableTarget target = ImmutableTarget.of(address, authorizationContext, topics.stream()
+        final Target target = newTarget(address, authorizationContext, topics.stream()
                 .map(ConnectivityModelFactory::newFilteredTopic)
                 .collect(Collectors.toSet()));
         return new ImmutableMqttTarget(target, qos);
@@ -483,7 +491,8 @@ public final class ConnectivityModelFactory {
      * @param additionalFilters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newSourceAddressEnforcement(final String requiredFilter, final String... additionalFilters) {
+    public static Enforcement newSourceAddressEnforcement(final String requiredFilter,
+            final String... additionalFilters) {
         return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, requiredFilter, additionalFilters);
     }
 
@@ -495,5 +504,14 @@ public final class ConnectivityModelFactory {
      */
     public static Enforcement newEnforcement(final Enforcement enforcement) {
         return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getFilters());
+    }
+
+    /**
+     * Creates a new instance of a {@link HeaderMapping}.
+     * @param mapping the mapping definition
+     * @return the new instance of {@link HeaderMapping}
+     */
+    public static HeaderMapping newHeaderMapping(Map<String, String> mapping) {
+        return new ImmutableHeaderMapping(mapping);
     }
 }
