@@ -14,12 +14,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
+import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
 import akka.actor.AbstractActor;
 import akka.event.DiagnosticLoggingAdapter;
@@ -38,14 +41,19 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return (outboundSignal.getExternalMessage().isResponse() || outboundSignal.getExternalMessage().isError());
     }
 
-    protected ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outbound,
+    protected <C extends MessageCommand> ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outbound,
             final Target target) {
         final ExternalMessage message = outbound.getExternalMessage();
         return target.getHeaderMapping().map(mapping -> {
             if (mapping.getMapping().isEmpty()) {
                 return message;
             }
-            final Map<String, String> originalHeaders = message.getHeaders();
+            // TODO TBD we must access the message headers to get hold of the message subject
+            final Map<String, String> originalHeaders = new HashMap<>(message.getHeaders());
+            if (outbound.getSource() instanceof MessageCommand) {
+                final MessageHeaders messageHeaders = ((MessageCommand) outbound.getSource()).getMessage().getHeaders();
+                originalHeaders.put(MessageHeaderDefinition.SUBJECT.getKey(), messageHeaders.getSubject());
+            }
             final Map<String, String> mappedHeaders = new HashMap<>();
             mapping.getMapping().forEach((key, value) -> {
                 final String withHeaders = PlaceholderFilter.apply(value, originalHeaders, HEADERS_PLACEHOLDER, true);
