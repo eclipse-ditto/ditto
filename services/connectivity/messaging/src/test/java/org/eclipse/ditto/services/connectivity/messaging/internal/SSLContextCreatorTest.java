@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Ce
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.CompletableFuture;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -24,7 +25,7 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.eclipse.ditto.model.connectivity.credentials.ClientCertificateCredentials;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.AcceptAnyTrustManager;
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -194,18 +195,20 @@ public final class SSLContextCreatorTest {
     }
 
     @Test
-    @Ignore
     public void distrustSelfSignedClient() {
-        assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
-            try (final ServerSocket serverSocket = startServer(true);
-                    final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, null)
-                            .clientCertificate(SELF_SIGNED_CLIENT_CREDENTIALS)
-                            .getSocketFactory()
-                            .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
+        try (final ServerSocket serverSocket = startServer(true);
+                final Socket underTest = SSLContextCreator.of(Certificates.CA_CRT, null, null)
+                        .clientCertificate(SELF_SIGNED_CLIENT_CREDENTIALS)
+                        .getSocketFactory()
+                        .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-                underTest.getOutputStream().write(234);
-            }
-        });
+            underTest.getOutputStream().write(234);
+        } catch (SSLHandshakeException | SocketException expected) {
+          // one of these is expected. should only be SSLHandshakeException, but JDK has a bug
+        } catch (final Exception e) {
+            e.printStackTrace();
+            Assert.fail("Got different exception than expected");
+        }
     }
 
     @Test

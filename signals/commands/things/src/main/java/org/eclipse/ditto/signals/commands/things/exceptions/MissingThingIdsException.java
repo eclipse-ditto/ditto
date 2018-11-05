@@ -45,8 +45,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
     
     private static final long serialVersionUID = -5672699009682971258L;
 
-    private MissingThingIdsException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private MissingThingIdsException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -60,8 +63,8 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
      *
      * @return the builder.
      */
-    public static MissingThingIdsException.Builder newBuilder() {
-        return new MissingThingIdsException.Builder();
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**
@@ -75,9 +78,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
      * JsonFields#MESSAGE} field.
      */
     public static MissingThingIdsException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new MissingThingIdsException.Builder()
+        return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
     /**
@@ -92,8 +97,11 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
         }
 
         @Override
-        protected MissingThingIdsException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected MissingThingIdsException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MissingThingIdsException(dittoHeaders, message, description, cause, href);
         }
     }

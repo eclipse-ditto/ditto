@@ -423,12 +423,18 @@ public class DittoProtocolAdapter implements ProtocolAdapter {
                     .forEach(type -> parseStrategies.put(type, messageErrorRegistry));
 
             // Protocol Adapter exceptions:
-            parseStrategies.put(UnknownSignalException.ERROR_CODE, UnknownSignalException::fromJson);
-            parseStrategies.put(UnknownCommandException.ERROR_CODE, UnknownCommandException::fromJson);
-            parseStrategies.put(UnknownCommandResponseException.ERROR_CODE, UnknownCommandResponseException::fromJson);
-            parseStrategies.put(UnknownEventException.ERROR_CODE, UnknownEventException::fromJson);
-            parseStrategies.put(UnknownPathException.ERROR_CODE, UnknownPathException::fromJson);
-            parseStrategies.put(UnknownTopicPathException.ERROR_CODE, UnknownTopicPathException::fromJson);
+            parseStrategies.put(UnknownCommandException.ERROR_CODE,
+                    UnknownCommandException::fromJson);
+            parseStrategies.put(UnknownCommandResponseException.ERROR_CODE,
+                    UnknownCommandResponseException::fromJson);
+            parseStrategies.put(UnknownEventException.ERROR_CODE,
+                    UnknownEventException::fromJson);
+            parseStrategies.put(UnknownPathException.ERROR_CODE,
+                    UnknownPathException::fromJson);
+            parseStrategies.put(UnknownSignalException.ERROR_CODE,
+                    UnknownSignalException::fromJson);
+            parseStrategies.put(UnknownTopicPathException.ERROR_CODE,
+                    UnknownTopicPathException::fromJson);
 
             return new ProtocolAdapterErrorRegistry(parseStrategies);
         }

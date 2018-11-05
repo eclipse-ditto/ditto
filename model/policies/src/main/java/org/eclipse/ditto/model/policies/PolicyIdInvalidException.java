@@ -57,7 +57,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -81,7 +80,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
      */
     public static PolicyIdInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .message(message)
                 .dittoHeaders(dittoHeaders)
@@ -99,7 +97,12 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link JsonFields#MESSAGE} field.
      */
     public static PolicyIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     @Override
@@ -129,7 +132,6 @@ public final class PolicyIdInvalidException extends DittoRuntimeException implem
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new PolicyIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 

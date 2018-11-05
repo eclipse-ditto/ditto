@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -37,8 +38,11 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
 
     private static final long serialVersionUID = -858422215851104480L;
 
-    private GatewayServiceTimeoutException(final DittoHeaders dittoHeaders, @Nullable final String message,
-            @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+    private GatewayServiceTimeoutException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -67,6 +71,26 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
     }
 
     /**
+     * Constructs a new {@code GatewayServiceTimeoutException} object with the exception message extracted from the given
+     * JSON object.
+     *
+     * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayServiceTimeoutException.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
+     * JsonFields#MESSAGE} field.
+     */
+    public static GatewayServiceTimeoutException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
+    }
+
+    /**
      * A mutable builder with a fluent API for a {@link GatewayServiceTimeoutException}.
      */
     @NotThreadSafe
@@ -79,7 +103,9 @@ public final class GatewayServiceTimeoutException extends DittoRuntimeException 
 
         @Override
         protected GatewayServiceTimeoutException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
                 @Nullable final URI href) {
             return new GatewayServiceTimeoutException(dittoHeaders, message, description, cause, href);
         }

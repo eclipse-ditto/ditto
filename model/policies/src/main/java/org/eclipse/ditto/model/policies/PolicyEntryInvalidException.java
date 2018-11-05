@@ -37,6 +37,8 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
 
     private static final String DEFAULT_MESSAGE = "The Policy Entry is invalid.";
 
+    private static final String DEFAULT_DESCRIPTION = "Policy entry does not contain any known permission like 'READ' or 'WRITE'";
+
     private static final long serialVersionUID = 7032353950909423082L;
 
     private PolicyEntryInvalidException(final DittoHeaders dittoHeaders,
@@ -44,7 +46,6 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -67,7 +68,6 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
      */
     public static PolicyEntryInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .message(message)
                 .dittoHeaders(dittoHeaders)
@@ -86,7 +86,12 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
      * JsonFields#MESSAGE} field.
      */
     public static PolicyEntryInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     @Override
@@ -102,6 +107,7 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
 
         private Builder() {
             message(DEFAULT_MESSAGE);
+            description(DEFAULT_DESCRIPTION);
         }
 
         @Override
@@ -110,7 +116,6 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new PolicyEntryInvalidException(dittoHeaders, message, description, cause, href);
         }
 

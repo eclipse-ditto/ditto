@@ -56,7 +56,6 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -91,10 +90,13 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SubjectInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final Builder builder = new Builder();
-        builder.loadJson(jsonObject);
-        builder.dittoHeaders(dittoHeaders);
-        return builder.build();
+        return new Builder()
+                .loadJson(jsonObject)
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -119,7 +121,6 @@ public final class SubjectInvalidException extends DittoRuntimeException impleme
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new SubjectInvalidException(dittoHeaders, message, description, cause, href);
         }
 

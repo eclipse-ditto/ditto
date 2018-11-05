@@ -48,7 +48,6 @@ public final class ConnectionSignalIdEnforcementFailedException extends DittoRun
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -71,7 +70,6 @@ public final class ConnectionSignalIdEnforcementFailedException extends DittoRun
      */
     public static ConnectionSignalIdEnforcementFailedException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -90,11 +88,11 @@ public final class ConnectionSignalIdEnforcementFailedException extends DittoRun
      */
     public static ConnectionSignalIdEnforcementFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(null))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -119,7 +117,6 @@ public final class ConnectionSignalIdEnforcementFailedException extends DittoRun
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ConnectionSignalIdEnforcementFailedException(dittoHeaders, message, description, cause, href);
         }
 

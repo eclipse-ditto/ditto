@@ -12,6 +12,7 @@ package org.eclipse.ditto.signals.commands.thingsearch.exceptions;
 
 import java.net.URI;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -32,12 +33,16 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "search.namespaces.invalid";
 
     static final String DEFAULT_DESCRIPTION = "The list of provided namespaces is too long.";
+
     static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
     private static final long serialVersionUID = 8900314242209005665L;
 
-    private InvalidNamespacesException(final DittoHeaders dittoHeaders, final String message, final String description,
-            final Throwable cause, final URI href) {
+    private InvalidNamespacesException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
@@ -80,7 +85,12 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
      * JsonFields#MESSAGE} field.
      */
     public static InvalidNamespacesException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -95,8 +105,11 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
         }
 
         @Override
-        protected InvalidNamespacesException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected InvalidNamespacesException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new InvalidNamespacesException(dittoHeaders, message, description, cause, href);
         }
     }

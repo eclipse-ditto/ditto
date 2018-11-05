@@ -33,7 +33,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit tests for {@link DefaultClientActorPropsFactory}.
  */
-public class DefaultClientActorPropsFactoryTest {
+public class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private ActorSystem actorSystem;
     private Serialization serialization;

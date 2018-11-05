@@ -14,6 +14,8 @@ import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandA
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.net.URI;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -35,7 +37,8 @@ public class ThingNotCreatableExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getHref().toString())
+                    TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getHref()
+                            .map(URI::toString).orElse(null))
             .build();
 
 

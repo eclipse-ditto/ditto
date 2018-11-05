@@ -13,6 +13,8 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
@@ -34,7 +36,8 @@ public class PolicyPreconditionNotModifiedExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     TestConstants.Policy.POLICY_PRECONDITION_NOT_MODIFIED_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Policy.POLICY_PRECONDITION_NOT_MODIFIED_EXCEPTION.getHref().toString())
+                    TestConstants.Policy.POLICY_PRECONDITION_NOT_MODIFIED_EXCEPTION.getHref()
+                            .map(Objects::toString).orElse(null))
             .build();
 
 

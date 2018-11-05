@@ -41,9 +41,11 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
 
     private static final long serialVersionUID = 3108439347153942427L;
 
-    private MessageMapperConfigurationFailedException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private MessageMapperConfigurationFailedException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
             @Nullable final String description,
-            @Nullable final Throwable cause, @Nullable final URI href) {
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -82,7 +84,12 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      * JsonFields#MESSAGE} field.
      */
     public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -101,8 +108,11 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
         }
 
         @Override
-        protected MessageMapperConfigurationFailedException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected MessageMapperConfigurationFailedException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MessageMapperConfigurationFailedException(dittoHeaders, message, description, cause, href);
         }
     }

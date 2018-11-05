@@ -43,13 +43,11 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
 
     private static final long serialVersionUID = 897914540900650802L;
 
-
     private ConnectionFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.GATEWAY_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -73,7 +71,6 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      */
     public static ConnectionFailedException from(final String message, @Nullable final String description,
             final DittoHeaders dittoHeaders) {
-
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -93,7 +90,12 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
      * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
      */
     public static ConnectionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return from(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -117,7 +119,6 @@ public final class ConnectionFailedException extends DittoRuntimeException imple
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ConnectionFailedException(dittoHeaders, message, description, cause, href);
         }
 

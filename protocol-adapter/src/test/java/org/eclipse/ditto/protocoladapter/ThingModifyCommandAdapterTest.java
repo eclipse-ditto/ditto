@@ -139,7 +139,8 @@ public final class ThingModifyCommandAdapterTest {
     @Test
     public void modifyThingFromAdaptable() {
         final ModifyThing expected =
-                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, TestConstants.DITTO_HEADERS_V_2);
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, null,
+                        TestConstants.DITTO_HEADERS_V_2);
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .things()
@@ -178,7 +179,113 @@ public final class ThingModifyCommandAdapterTest {
                 .build();
 
         final ModifyThing modifyThing =
-                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null,
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, null,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(modifyThing);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyThingFromAdaptableWithPolicyIdToCopy() {
+        final String policyIdToCopy = "someNameSpace:someId";
+        final ModifyThing expected =
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, null, policyIdToCopy,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
+                                .set(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyThingToAdaptableWithPolicyIdToCopy() {
+        final String policyIdToCopy = "someNameSpace:someId";
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
+                                .set(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyThing modifyThing =
+                ModifyThing.withCopiedPolicy(TestConstants.THING_ID, TestConstants.THING, policyIdToCopy,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(modifyThing);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyThingFromAdaptableWithInlinePolicy() {
+        final ModifyThing expected =
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, JsonObject.newBuilder().build(), null,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
+                                .set(ModifyThing.JSON_INLINE_POLICY, JsonObject.newBuilder().build()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand actual = underTest.fromAdaptable(adaptable);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyThingToAdaptableWithInlinePolicy() {
+        final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
+                .things()
+                .twin()
+                .commands()
+                .modify()
+                .build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
+                                .set(ModifyThing.JSON_INLINE_POLICY, JsonObject.newBuilder().build()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyThing modifyThing =
+                ModifyThing.of(TestConstants.THING_ID, TestConstants.THING, JsonObject.newBuilder().build(),
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(modifyThing);
 

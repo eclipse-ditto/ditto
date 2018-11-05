@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.things.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -42,8 +43,11 @@ public final class FeaturePropertiesNotAccessibleException extends DittoRuntimeE
 
     private static final long serialVersionUID = 3148170836485607502L;
 
-    private FeaturePropertiesNotAccessibleException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private FeaturePropertiesNotAccessibleException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -85,7 +89,12 @@ public final class FeaturePropertiesNotAccessibleException extends DittoRuntimeE
      */
     public static FeaturePropertiesNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -106,7 +115,10 @@ public final class FeaturePropertiesNotAccessibleException extends DittoRuntimeE
 
         @Override
         protected FeaturePropertiesNotAccessibleException doBuild(final DittoHeaders dittoHeaders,
-                final String message, final String description, final Throwable cause, final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new FeaturePropertiesNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }

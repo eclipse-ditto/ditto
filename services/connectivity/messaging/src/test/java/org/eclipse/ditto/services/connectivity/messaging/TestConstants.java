@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -73,6 +74,9 @@ import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 
 public class TestConstants {
+
+    // concurrent mutable collection of all running mock servers
+    private static final ConcurrentLinkedQueue<ServerSocket> MOCK_SERVERS = new ConcurrentLinkedQueue<>();
 
     public static final Config CONFIG = ConfigFactory.load("test");
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
@@ -200,7 +204,13 @@ public class TestConstants {
         return "connection-" + UUID.randomUUID();
     }
 
-    public static String getUri() {
+    /**
+     * Mock a listener on the server socket to fool connection client actors
+     * into not failing the connections immediately. Close the server socket to stop the mock server.
+     *
+     * @return server socket of the mock server.
+     */
+    public static ServerSocket newMockServer() {
         final ServerSocket serverSocket;
         try {
             serverSocket = new ServerSocket(0);
@@ -208,14 +218,52 @@ public class TestConstants {
             throw new IllegalStateException(e);
         }
         Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                final Socket clientSocket = serverSocket.accept();
-            } catch (final IOException e) {
-                throw new IllegalStateException(e);
+            // accept many client sockets
+            while (true) {
+                try (final Socket clientSocket = serverSocket.accept()) {
+                    // close socket immediately
+                } catch (final IOException e) {
+                    // break the loop
+                    throw new IllegalStateException(e);
+                }
             }
         });
+        return serverSocket;
+    }
+
+    /**
+     * Create a mock connection URI to a local server socket.
+     *
+     * @param serverSocket the server socket to connect to.
+     * @return the mock connection URI.
+     */
+    public static String getUriOfMockServer(final ServerSocket serverSocket) {
         final int localPort = serverSocket.getLocalPort();
         return String.format(URI_TEMPLATE, "127.0.0.1", localPort);
+    }
+
+    /**
+     * Create a mock connection URI and start a mock server on the same port.
+     * Stop the mock servers by calling {@code stopMockServers()}.
+     */
+    public static String getUriOfNewMockServer() {
+        final ServerSocket serverSocket = newMockServer();
+        MOCK_SERVERS.add(serverSocket);
+        return getUriOfMockServer(serverSocket);
+    }
+
+    /**
+     * Stop mock servers started by the unit tests to release resources.
+     */
+    public static void stopMockServers() {
+        MOCK_SERVERS.forEach(serverSocket -> {
+            try {
+                serverSocket.close();
+            } catch (final IOException e) {
+                // don't care, close remaining sockets anyway
+            }
+        });
+        MOCK_SERVERS.clear();
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
@@ -229,7 +277,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final ConnectionStatus status, final List<Source> sources) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri())
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .build();
@@ -237,7 +285,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Target... targets) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri())
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(asSet(targets))
                 .build();
