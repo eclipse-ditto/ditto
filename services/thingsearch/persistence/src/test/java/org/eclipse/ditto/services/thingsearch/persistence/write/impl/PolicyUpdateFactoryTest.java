@@ -205,15 +205,15 @@ public final class PolicyUpdateFactoryTest {
 
         final Set<Document> expectedPolicyDocs = toSet(
                 createPolicyIndexDoc("attribute/location/latitude", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesGrantAndLocationRevoke)),
                 createPolicyIndexDoc("attribute/location/longitude", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesGrantAndLocationRevoke)),
                 createPolicyIndexDoc("attribute/manufacturer", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesGrantAndLocationRevoke),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesGrantAndLocationRevoke),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesRevokeAndLocationGrant))
         );
@@ -303,6 +303,7 @@ public final class PolicyUpdateFactoryTest {
 
         return new Document()
                 .append(PersistenceConstants.FIELD_ID, TestConstants.Thing.THING_ID + ":" + idSuffix)
+                .append(PersistenceConstants.FIELD_THING_ID, TestConstants.Thing.THING_ID)
                 .append(PersistenceConstants.FIELD_RESOURCE, resource)
                 .append(PersistenceConstants.FIELD_GRANTED, grants)
                 .append(PersistenceConstants.FIELD_REVOKED, revokes);

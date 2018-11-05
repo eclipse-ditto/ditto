@@ -348,6 +348,7 @@ final class PolicyUpdateFactory {
 
         return new Document()
                 .append(PersistenceConstants.FIELD_ID, resourcePermissions.createPolicyEntryId(thingId))
+                .append(PersistenceConstants.FIELD_THING_ID, thingId)
                 .append(PersistenceConstants.FIELD_GRANTED, resourcePermissions.getReadGrantedSubjectIds())
                 .append(PersistenceConstants.FIELD_REVOKED, resourcePermissions.getReadRevokedSubjectIds())
                 .append(PersistenceConstants.FIELD_RESOURCE, resourcePermissions.getResource());
