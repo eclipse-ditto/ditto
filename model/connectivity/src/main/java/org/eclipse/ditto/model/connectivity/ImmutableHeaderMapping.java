@@ -15,19 +15,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of a {@link HeaderMapping}.
  */
+@Immutable
 public final class ImmutableHeaderMapping implements HeaderMapping {
 
     private final Map<String, String> mapping;
@@ -52,7 +53,7 @@ public final class ImmutableHeaderMapping implements HeaderMapping {
     public static HeaderMapping fromJson(final JsonObject jsonObject) {
         return new ImmutableHeaderMapping(jsonObject.stream()
                 .filter(f -> f.getValue().isString())
-                .collect(Collectors.toMap(JsonField::getKeyName, (JsonField jsonField) -> jsonField.getValue().asString())));
+                .collect(Collectors.toMap(JsonField::getKeyName, jsonField -> jsonField.getValue().asString())));
     }
 
     @Override
@@ -66,8 +67,12 @@ public final class ImmutableHeaderMapping implements HeaderMapping {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ImmutableHeaderMapping that = (ImmutableHeaderMapping) o;
         return Objects.equals(mapping, that.mapping);
     }

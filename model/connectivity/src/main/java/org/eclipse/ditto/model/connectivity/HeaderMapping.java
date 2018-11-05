@@ -12,12 +12,7 @@ package org.eclipse.ditto.model.connectivity;
 
 import java.util.Map;
 
-import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -28,7 +23,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * Definition of header mapping as a map. The key of the map defines the target of the mapping, the value defines the
  * source. Depending on the context where the mapping is used, placeholders are allowed in the value.
  */
-public interface HeaderMapping  extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
+public interface HeaderMapping extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
      * @return the header mapping definition

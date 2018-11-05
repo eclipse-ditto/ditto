@@ -18,18 +18,33 @@ import org.eclipse.ditto.signals.base.Signal;
 /**
  * Creates instances of {@link OutboundSignal}.
  */
-public class OutboundSignalFactory {
+public final class OutboundSignalFactory {
 
+    private OutboundSignalFactory() {
+        throw new AssertionError();
+    }
+
+    /**
+     * Creates a OutboundSignal containing a Signal and a Set of Targets where the Signal should be delivered to.
+     *
+     * @param signal the Signal to be delivered.
+     * @param targets the Set of Targets where the Signal should be delivered to.
+     * @return the created OutboundSignal.
+     */
     public static OutboundSignal newOutboundSignal(final Signal<?> signal, final Set<Target> targets) {
         return new UnmappedOutboundSignal(signal, targets);
     }
 
-    public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal signal,
+    /**
+     * Creates a OutboundSignal wrapping an existing {@code outboundSignal} which also is aware of the
+     * {@link ExternalMessage} that was mapped from the outbound signal.
+     *
+     * @param outboundSignal the OutboundSignal to wrap.
+     * @param externalMessage the mapped ExternalMessage.
+     * @return the created OutboundSignal which is aware of the ExternalMessage
+     */
+    public static OutboundSignal.WithExternalMessage newMappedOutboundSignal(final OutboundSignal outboundSignal,
             final ExternalMessage externalMessage) {
-        return new MappedOutboundSignal(signal, externalMessage);
-    }
-
-    private OutboundSignalFactory() {
-        throw new AssertionError();
+        return new MappedOutboundSignal(outboundSignal, externalMessage);
     }
 }

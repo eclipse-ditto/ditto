@@ -26,7 +26,6 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,6 +71,7 @@ public abstract class AbstractPublisherActorTest<T> {
             final OutboundSignal outboundSignal = mock(OutboundSignal.class);
             final Signal source = mock(Signal.class);
             when(source.getId()).thenReturn(TestConstants.Things.THING_ID);
+            when(source.getDittoHeaders()).thenReturn(DittoHeaders.empty());
             when(outboundSignal.getSource()).thenReturn(source);
             final Target target =
                     ConnectivityModelFactory.newTargetBuilder()

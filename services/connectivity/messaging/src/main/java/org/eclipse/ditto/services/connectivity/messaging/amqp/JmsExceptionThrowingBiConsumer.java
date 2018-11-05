@@ -16,25 +16,35 @@ import javax.jms.JMSException;
 import javax.jms.JMSRuntimeException;
 import javax.jms.Message;
 
-import org.apache.qpid.jms.message.JmsMessage;
-
 /**
- * A BiConsumer that throws {@link JMSException}s.
+ * An interface similar to BiConsumer that accepts a JMS Message and a String and throws {@link JMSException}s.
  */
 @FunctionalInterface
-public interface JmsExceptionThrowingBiConsumer { void accept(Message message, String value) throws JMSException;
+public interface JmsExceptionThrowingBiConsumer {
 
     /**
-     * Converts {@link JMSException} to {@link JMSRuntimeException}
-     * @param throwingConsumer the consumer that throws {@link JMSException}
-     * @return a consumer that throws {@link JMSRuntimeException}
+     * Performs this operation on the given arguments of type JMS Message and String.
+     *
+     * @param message the JMS message to accept.
+     * @param value the String to accept.
+     * @throws JMSException when the underlying JMS implementation raised a JMSException
      */
-    static BiConsumer<Message, String> wrap(JmsExceptionThrowingBiConsumer throwingConsumer) {
-        return (m,v) -> {
+    void accept(Message message, String value) throws JMSException;
+
+    /**
+     * Wraps a {@link JmsExceptionThrowingBiConsumer} returning a BiConsumer by converting thrown {@link JMSException}s
+     * to {@link JMSRuntimeException}s.
+     *
+     * @param throwingConsumer the JmsExceptionThrowingBiConsumer that throws {@link JMSException}
+     * @return a BiConsumer that throws {@link JMSRuntimeException}
+     */
+    static BiConsumer<Message, String> wrap(final JmsExceptionThrowingBiConsumer throwingConsumer) {
+        return (m, v) -> {
             try {
                 throwingConsumer.accept(m, v);
-            } catch (JMSException jmsException) {
-                throw new JMSRuntimeException(jmsException.getMessage(), jmsException.getErrorCode(), jmsException.getCause());
+            } catch (final JMSException jmsException) {
+                throw new JMSRuntimeException(jmsException.getMessage(), jmsException.getErrorCode(),
+                        jmsException.getCause());
             }
         };
     }

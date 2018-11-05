@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
@@ -35,13 +34,9 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
 import akka.actor.Props;
@@ -59,16 +54,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     static final String ACTOR_NAME = "amqpPublisherActor";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final Session session;
-    private final Map<Destination, MessageProducer> producerMap;
-
-    private AddressMetric addressMetric;
-    private long publishedMessages = 0L;
-    private Instant lastMessagePublishedAt;
-
-    private static Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
+    private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
     static {
         JMS_HEADER_MAPPING.put("correlation-id", wrap(Message::setJMSCorrelationID));
         JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
@@ -76,12 +62,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
     }
 
+    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+
+    private final Session session;
+    private final Map<Destination, MessageProducer> producerMap;
+
     private AmqpPublisherActor(final Session session) {
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
-        addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
-                        0, null);
     }
 
     /**
@@ -102,45 +90,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
-                    final ExternalMessage response = outbound.getExternalMessage();
-                    final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received response or error {} ", response);
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        // noop
+    }
 
-                    final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    if (replyToFromHeader != null) {
-                        final AmqpTarget amqpTarget = AmqpTarget.fromTargetAddress(replyToFromHeader);
-                        sendMessage(amqpTarget, response);
-                    } else {
-                        log.info("Response dropped, missing replyTo address: {}", response);
-                    }
-                })
-                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
-                    final ExternalMessage message = outbound.getExternalMessage();
-                    final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received mapped message {} ", message);
-
-                    outbound.getTargets().forEach(target -> {
-                                final AmqpTarget amqpTarget = toPublishTarget(target.getAddress());
-                                final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target);
-                                sendMessage(amqpTarget, messageWithMappedHeaders);
-                            });
-                })
-                .match(AddressMetric.class, this::handleAddressMetric)
-                .match(RetrieveAddressMetric.class, ram -> {
-                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric.getStatus(),
-                            addressMetric.getStatusDetails().orElse(null),
-                            publishedMessages, lastMessagePublishedAt), getSelf());
-                })
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+    @Override
+    protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
+        // noop
     }
 
     @Override
@@ -148,13 +104,16 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return AmqpTarget.fromTargetAddress(address);
     }
 
-    private void handleAddressMetric(final AddressMetric addressMetric) {
-        this.addressMetric = addressMetric;
+    @Override
+    protected AmqpTarget toReplyTarget(final String replyToAddress) {
+        return AmqpTarget.fromTargetAddress(replyToAddress);
     }
 
-    private void sendMessage(final AmqpTarget target, final ExternalMessage message) {
+    @Override
+    protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
+            final ExternalMessage message) {
         try {
-            final MessageProducer producer = getProducer(target.getJmsDestination());
+            final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
 
@@ -172,7 +131,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     }
                 });
             } else {
-                log.warning("No producer for destination {} available.", target);
+                log.warning("No producer for destination {} available.", publishTarget);
             }
         } catch (final JMSException e) {
             log.info("Failed to send JMS response: {}, {}", e.getMessage(), e.toString());
@@ -196,8 +155,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         // some headers must be handled differently to be passed to amqp message
         final Map<String, String> headers = externalMessage.getHeaders();
         JMS_HEADER_MAPPING.entrySet().stream()
-                .filter((e) -> headers.containsKey(e.getKey()))
-                .forEach((e) -> e.getValue().accept(message, headers.get(e.getKey())));
+                .filter(entry -> headers.containsKey(entry.getKey()))
+                .forEach(entry -> entry.getValue().accept(message, headers.get(entry.getKey())));
 
         if (message instanceof JmsMessage) {
             final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
@@ -208,11 +167,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         .stream()
                         // skip special jms properties in generic mapping
                         .filter(h -> !JMS_HEADER_MAPPING.keySet().contains(h.getKey()))
-                        .forEach((e) -> {
+                        .forEach(entry -> {
                             try {
-                                amqpJmsMessageFacade.setApplicationProperty(e.getKey(), e.getValue());
+                                amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
                             } catch (final JMSException ex) {
-                                log.warning("Could not set application-property <{}>", e.getKey());
+                                log.warning("Could not set application-property <{}>", entry.getKey());
                             }
                         });
             }
