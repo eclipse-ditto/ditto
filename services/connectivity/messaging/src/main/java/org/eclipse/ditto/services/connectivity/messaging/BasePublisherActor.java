@@ -16,11 +16,13 @@ import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -198,6 +200,17 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage)
                 .clearHeaders();
 
+        // keep correlation-id, content-type and reply-to:
+        Optional.ofNullable(originalHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
+                .ifPresent(c ->
+                        messageBuilder.withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(), c));
+        Optional.ofNullable(originalHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER))
+                .ifPresent(c ->
+                        messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER, c));
+        Optional.ofNullable(originalHeaders.get(ExternalMessage.REPLY_TO_HEADER))
+                .ifPresent(r ->
+                        messageBuilder.withAdditionalHeaders(ExternalMessage.REPLY_TO_HEADER, r));
+
         return target.getHeaderMapping().map(mapping -> {
             if (mapping.getMapping().isEmpty()) {
                 return messageBuilder.build();
@@ -222,7 +235,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
             // only explicitly re-add the mapped headers:
             return messageBuilder
-                    .withHeaders(mappedHeaders)
+                    .withAdditionalHeaders(mappedHeaders)
                     .build();
         }).orElseGet(messageBuilder::build);
     }

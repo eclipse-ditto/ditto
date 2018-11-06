@@ -60,6 +60,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
         JMS_HEADER_MAPPING.put("reply-to", wrap((message, value) -> message.setJMSReplyTo(new JmsQueue(value))));
         JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
+        JMS_HEADER_MAPPING.put("content-type", wrap((message, value) -> {
+            if (message instanceof JmsMessage) {
+                final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
+                if (facade instanceof AmqpJmsMessageFacade) {
+                    ((AmqpJmsMessageFacade) facade).setContentType(value);
+                }
+            }
+        }));
     }
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
