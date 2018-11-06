@@ -56,11 +56,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
     static {
-        JMS_HEADER_MAPPING.put("correlation-id", wrap(Message::setJMSCorrelationID));
+        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), wrap(Message::setJMSCorrelationID));
         JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
         JMS_HEADER_MAPPING.put("reply-to", wrap((message, value) -> message.setJMSReplyTo(new JmsQueue(value))));
         JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
-        JMS_HEADER_MAPPING.put("content-type", wrap((message, value) -> {
+        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), wrap((message, value) -> {
             if (message instanceof JmsMessage) {
                 final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
                 if (facade instanceof AmqpJmsMessageFacade) {
@@ -184,7 +184,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         });
             }
         }
-        message.setJMSCorrelationID(externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         return message;
     }
 
