@@ -80,8 +80,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
                 kamonCommandListener, kamonConnectionPoolListener);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
-                        MongoEventToPersistenceStrategyFactory.getInstance());
+                inizializeThingsSearchUpdaterPersistence(mongoClientWrapper, materializer, config);
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
@@ -143,6 +142,22 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         } else {
             log.warning("Deletion of marked as deleted Things from search index is not enabled");
         }
+    }
+
+    private ThingsSearchUpdaterPersistence inizializeThingsSearchUpdaterPersistence(
+            final MongoClientWrapper mongoClientWrapper, final ActorMaterializer materializer, final Config rawConfig) {
+        final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
+                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
+                        MongoEventToPersistenceStrategyFactory.getInstance(), materializer);
+
+        final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
+        if (indexInitializationEnabled) {
+            searchUpdaterPersistence.initializeIndices();
+        } else {
+            log.info("Skipping IndexInitializer because it is disabled.");
+        }
+
+        return searchUpdaterPersistence;
     }
 
     private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {
@@ -224,4 +239,5 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ClusterSingletonManagerSettings.create(getContext().system()).withRole(ConfigKeys.SEARCH_ROLE);
         getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
     }
+
 }

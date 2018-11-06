@@ -124,8 +124,16 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private MongoThingsSearchUpdaterPersistence provideWritePersistence() {
-        return new MongoThingsSearchUpdaterPersistence(mongoClient, log,
-                MongoEventToPersistenceStrategyFactory.getInstance());
+        final MongoThingsSearchUpdaterPersistence mongoThingsSearchUpdaterPersistence =
+                new MongoThingsSearchUpdaterPersistence(mongoClient, log,
+                        MongoEventToPersistenceStrategyFactory.getInstance(), getMaterializer());
+        try {
+            // explicitly trigger CompletableFuture to make sure that indices are created before test runs
+            mongoThingsSearchUpdaterPersistence.initializeIndices().toCompletableFuture().get();
+        } catch (final InterruptedException | ExecutionException e) {
+            throw new IllegalStateException(e);
+        }
+        return mongoThingsSearchUpdaterPersistence;
     }
 
     private static MongoClientWrapper provideClientWrapper() {
@@ -305,4 +313,5 @@ public abstract class AbstractThingSearchPersistenceITBase {
             // do nothing
         }
     }
+
 }

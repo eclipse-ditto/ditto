@@ -20,6 +20,7 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_VALUE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_THING_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence.filterNotDeleted;
 
 import java.util.Arrays;
@@ -88,6 +89,33 @@ public final class Indices {
          */
         private static BsonDocument filterPolicyIdExists() {
             return new BsonDocument(FIELD_POLICY_ID, new BsonDocument("$exists", BsonBoolean.TRUE));
+        }
+
+    }
+
+    /**
+     * Indices on {@link PersistenceConstants#POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME}.
+     */
+    public static final class Policies {
+
+        private static final Index THING = IndexFactory.newInstance("thingId",
+                keys(FIELD_THING_ID), false);
+
+        /**
+         * Gets all defined indices.
+         *
+         * @return the indices
+         */
+        public static List<Index> all() {
+            return Collections.unmodifiableList(Arrays.asList(THING));
+        }
+
+        private static List<String> keys(final String... keyNames) {
+            return Collections.unmodifiableList(Arrays.asList(keyNames));
+        }
+
+        private Policies() {
+            throw new AssertionError();
         }
 
     }

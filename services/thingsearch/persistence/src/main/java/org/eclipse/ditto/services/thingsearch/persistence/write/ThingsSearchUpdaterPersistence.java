@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
@@ -101,5 +102,12 @@ public interface ThingsSearchUpdaterPersistence {
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     Source<ThingMetadata, NotUsed> getThingMetadata(String thingId);
+
+    /**
+     * Initializes the search updater index if necessary.
+     *
+     * @return a {@link java.util.concurrent.CompletionStage} which can be either used for blocking or non-blocking initialization.
+     */
+    CompletionStage<Void> initializeIndices();
 
 }
