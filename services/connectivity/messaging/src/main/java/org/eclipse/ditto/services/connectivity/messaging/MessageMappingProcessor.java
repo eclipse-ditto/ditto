@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
@@ -101,7 +102,6 @@ public final class MessageMappingProcessor {
      *
      * @param message the message
      * @return the signal
-     * @throws RuntimeException if something went wrong
      */
     public Optional<Signal<?>> process(final ExternalMessage message) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
@@ -113,12 +113,21 @@ public final class MessageMappingProcessor {
      *
      * @param signal the signal
      * @return the message
-     * @throws RuntimeException if something went wrong
      */
     public Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
                 () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
+    }
+
+    /**
+     * Extracts/calculates the {@link TopicPath} from the passed {@code signal}.
+     *
+     * @param signal the signal to extract the TopicPath from.
+     * @return the extracted TopicPath
+     */
+    public TopicPath extractTopicPath(final Signal<?> signal) {
+        return protocolAdapter.toAdaptable(signal).getTopicPath();
     }
 
     private Optional<Signal<?>> convertMessage(final ExternalMessage message,

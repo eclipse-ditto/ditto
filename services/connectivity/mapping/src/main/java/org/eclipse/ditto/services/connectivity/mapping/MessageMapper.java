@@ -22,8 +22,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import com.typesafe.config.Config;
 
 /**
- * Defines a message mapper which maps a {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to a
- * {@link org.eclipse.ditto.protocoladapter.Adaptable} and vice versa.
+ * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
  * <p>
  * Usually a mapper is bound to a content type.
  * </p>
@@ -53,7 +52,7 @@ public interface MessageMapper {
     }
 
     /**
-     * Maps an {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to an {@link org.eclipse.ditto.protocoladapter.Adaptable}
+     * Maps an {@link ExternalMessage} to an {@link Adaptable}
      *
      * @param message the ExternalMessage to map
      * @return the mapped Adaptable or an empty Optional if the ExternalMessage should not be mapped after all
@@ -64,13 +63,13 @@ public interface MessageMapper {
     Optional<Adaptable> map(ExternalMessage message);
 
     /**
-     * Maps an {@link org.eclipse.ditto.protocoladapter.Adaptable} to an {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage}
+     * Maps an {@link Adaptable} to an {@link ExternalMessage}
      *
      * @param adaptable the Adaptable to map
      * @return the ExternalMessage or an empty Optional if the Adaptable should not be mapped after all
      * @throws org.eclipse.ditto.model.connectivity.MessageMappingFailedException if the given adaptable can not be mapped
      */
-    Optional<org.eclipse.ditto.services.models.connectivity.ExternalMessage> map(Adaptable adaptable);
+    Optional<ExternalMessage> map(Adaptable adaptable);
 
     /**
      * Finds the content-type header from the passed ExternalMessage.

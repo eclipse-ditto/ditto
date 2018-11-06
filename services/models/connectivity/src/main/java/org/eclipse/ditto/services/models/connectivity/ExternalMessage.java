@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -112,6 +113,11 @@ public interface ExternalMessage {
      * @return the {@link AuthorizationContext} assigned to this message
      */
     Optional<AuthorizationContext> getAuthorizationContext();
+
+    /**
+     * @return the {@link TopicPath} assigned to this message
+     */
+    Optional<TopicPath> getTopicPath();
 
     /**
      * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwise

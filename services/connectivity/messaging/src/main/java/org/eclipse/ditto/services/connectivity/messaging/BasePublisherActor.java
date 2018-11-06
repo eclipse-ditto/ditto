@@ -25,18 +25,18 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
 import akka.actor.AbstractActor;
 import akka.event.DiagnosticLoggingAdapter;
@@ -51,6 +51,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
+    private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
     protected long publishedMessages = 0L;
     protected Instant lastMessagePublishedAt;
@@ -189,30 +190,41 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     private ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
             final Target target) {
-        final ExternalMessage message = outboundSignal.getExternalMessage();
+
+        final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
+        final Map<String, String> originalHeaders = new HashMap<>(originalMessage.getHeaders());
+
+        // clear all existing headers in the builder which is used for building the ExternalMessage to be returned:
+        final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage)
+                .clearHeaders();
+
         return target.getHeaderMapping().map(mapping -> {
             if (mapping.getMapping().isEmpty()) {
-                return message;
+                return messageBuilder.build();
             }
-            final Map<String, String> originalHeaders = new HashMap<>(message.getHeaders());
             final Signal<?> sourceSignal = outboundSignal.getSource();
-            if (sourceSignal instanceof MessageCommand) {
-                // we must access the message headers to get hold of the message subject - only copy the message subject
-                // to the headers:
-                final MessageHeaders messageHeaders = ((MessageCommand) sourceSignal).getMessage().getHeaders();
-                originalHeaders.put(MessageHeaderDefinition.SUBJECT.getKey(), messageHeaders.getSubject());
-            }
-
-            LogUtil.enhanceLogWithCorrelationId(log(), sourceSignal);
             final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
                     .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), originalHeaders, HEADERS_PLACEHOLDER, true)))
+                            PlaceholderFilter.apply(e.getValue(), originalHeaders, HEADERS_PLACEHOLDER, true))
+                    )
                     .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                            PlaceholderFilter.apply(e.getValue(), sourceSignal.getId(), THING_PLACEHOLDER, true)))
+                            PlaceholderFilter.apply(e.getValue(), sourceSignal.getId(), THING_PLACEHOLDER, true))
+                    )
+                    .map(e -> originalMessage.getTopicPath()
+                            .map(topicPath -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                                    PlaceholderFilter.apply(e.getValue(), topicPath, TOPIC_PLACEHOLDER, true))
+                            ).orElse(e)
+                    )
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            log().debug("Result of header mapping <{}>: {}", mapping, mappedHeaders);
-            return message.withHeaders(mappedHeaders);
-        }).orElse(message);
+
+            LogUtil.enhanceLogWithCorrelationId(log(), sourceSignal);
+            log().debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
+
+            // only explicitly re-add the mapped headers:
+            return messageBuilder
+                    .withHeaders(mappedHeaders)
+                    .build();
+        }).orElseGet(messageBuilder::build);
     }
 
     private void handleAddressMetric(final AddressMetric addressMetric) {

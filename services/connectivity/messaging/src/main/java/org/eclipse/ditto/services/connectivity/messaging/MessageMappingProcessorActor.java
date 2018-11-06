@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.MessageFormat;
+import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -20,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceho
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.PlaceholderFilter;
 import org.eclipse.ditto.services.models.connectivity.placeholder.ThingPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.services.utils.tracing.TraceUtils;
@@ -63,8 +65,8 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a
- * consumer actor.
+ * This Actor processes incoming {@link Signal}s and dispatches them via {@link DistributedPubSubMediator} to a consumer
+ * actor.
  */
 public final class MessageMappingProcessorActor extends AbstractActor {
 
@@ -99,7 +101,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
-        mapHeaders = new ApplyHeaderMapping(log);
+        mapHeaders = new ApplyHeaderMapping(log, processor);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
     }
 
@@ -362,9 +364,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     /**
-     * Helper class applying the {@link org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter}
-     * of the passed in {@link ExternalMessage} by throwing a
-     * {@link ConnectionSignalIdEnforcementFailedException} if the enforcement failed.
+     * Helper class applying the {@link org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter} of
+     * the passed in {@link ExternalMessage} by throwing a {@link ConnectionSignalIdEnforcementFailedException} if the
+     * enforcement failed.
      */
     static final class ApplySignalIdEnforcement implements BiConsumer<ExternalMessage, Signal<?>> {
 
@@ -390,27 +392,43 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
         private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
         private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
-        private final DiagnosticLoggingAdapter log;
+        private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
-        ApplyHeaderMapping(final DiagnosticLoggingAdapter log) {
+        private final DiagnosticLoggingAdapter log;
+        private final MessageMappingProcessor processor;
+
+        ApplyHeaderMapping(final DiagnosticLoggingAdapter log,
+                final MessageMappingProcessor processor) {
             this.log = log;
+            this.processor = processor;
         }
 
         @Override
         public DittoHeaders apply(final ExternalMessage externalMessage, final Signal<?> signal) {
-            return externalMessage.getHeaderMapping().map(headerMapping -> {
-                log.debug("Applying header mapping: {}", headerMapping);
+            return externalMessage.getHeaderMapping().map(mapping -> {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final String thingId = signal.getId();
-                final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
+                final TopicPath topicPath = processor.extractTopicPath(signal);
 
-                headerMapping.getMapping().forEach((key, value) -> {
-                    final String withHeaders = PlaceholderFilter.apply(value, dittoHeaders, HEADERS_PLACEHOLDER, true);
-                    final String withHeadersAndThingId = PlaceholderFilter.apply(withHeaders, thingId, THING_PLACEHOLDER);
-                    dittoHeadersBuilder.putHeader(key, withHeadersAndThingId);
-                });
-                return dittoHeadersBuilder.build();
+                final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
+                mapping.getMapping().entrySet().stream()
+                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                                PlaceholderFilter.apply(e.getValue(), dittoHeaders, HEADERS_PLACEHOLDER, true))
+                        )
+                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                                PlaceholderFilter.apply(e.getValue(), thingId, THING_PLACEHOLDER, true))
+                        )
+                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                                PlaceholderFilter.apply(e.getValue(), topicPath, TOPIC_PLACEHOLDER, true))
+                        )
+                        .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
+
+                LogUtil.enhanceLogWithCorrelationId(log, signal);
+                final DittoHeaders newHeaders = dittoHeadersBuilder.build();
+                log.debug("Result of header mapping <{}> are these headers: {}", mapping, newHeaders);
+                return newHeaders;
             }).orElse(signal.getDittoHeaders());
         }
     }
+
 }
