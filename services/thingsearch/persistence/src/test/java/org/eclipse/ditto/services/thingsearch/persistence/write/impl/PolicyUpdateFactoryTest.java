@@ -11,20 +11,23 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_THING_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.REGEX_START_THING_ID;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.bson.BsonRegularExpression;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -51,6 +54,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.assertions.BsonAsserti
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.mongodb.client.model.Filters;
 
 /**
  * Unit test for {@link PolicyUpdateFactory}.
@@ -205,15 +210,15 @@ public final class PolicyUpdateFactoryTest {
 
         final Set<Document> expectedPolicyDocs = toSet(
                 createPolicyIndexDoc("attribute/location/latitude", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesGrantAndLocationRevoke)),
                 createPolicyIndexDoc("attribute/location/longitude", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesRevokeAndLocationGrant),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesGrantAndLocationRevoke)),
                 createPolicyIndexDoc("attribute/manufacturer", toSubjectIdsSet
-                        (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesGrantAndLocationRevoke),
+                                (subjectWithRootRevokeAndAttributesGrant, subjectWithAttributesGrantAndLocationRevoke),
                         toSubjectIdsSet(subjectWithRootGrantAndRevoke, subjectWithRootGrantAndAttributesRevoke,
                                 subjectWithAttributesRevokeAndLocationGrant))
         );
@@ -244,14 +249,29 @@ public final class PolicyUpdateFactoryTest {
 
         BsonAssertions.assertThat(policyUpdate.getPolicyIndexInsertEntries()).isEqualTo(expectedPolicyDocs);
 
-        final BsonRegularExpression startsWithThingIdRegex =
-                new BsonRegularExpression(REGEX_START_THING_ID + Pattern.quote(TestConstants.Thing.THING_ID + ":"));
-        final Document expectedIndexRemoveFilter = new Document().append(FIELD_ID, startsWithThingIdRegex);
+        final Bson startsWithThingIdRegex =
+                Filters.regex(FIELD_ID, REGEX_START_THING_ID + Pattern.quote(TestConstants.Thing.THING_ID + ":"));
+        final Bson expectedIndexRemoveFilter = filterWithFallback(TestConstants.Thing.THING_ID, startsWithThingIdRegex);
         BsonAssertions.assertThat(policyUpdate.getPolicyIndexRemoveFilter()).isEqualTo(expectedIndexRemoveFilter);
         assertPushGlobalReads(expectedPushGlobalReads, policyUpdate.getPushGlobalReads());
         BsonAssertions.assertThat(policyUpdate.getPullGlobalReads()).isEqualTo(PolicyUpdateFactory.PULL_GLOBAL_READS);
         BsonAssertions.assertThat(policyUpdate.getPullAclEntries()).isEqualTo(PolicyUpdateFactory.PULL_ACL);
     }
+
+    private static Bson filterWithFallback(final CharSequence thingId, final Bson... additionalFilters) {
+        final Bson[] original = new Bson[]{Filters.eq(FIELD_THING_ID, thingId)};
+
+        final List<Bson> fallbackFilters = new ArrayList<>(Arrays.asList(additionalFilters));
+        fallbackFilters.add(0, Filters.exists(FIELD_THING_ID, false));
+        final Bson[] fallback = fallbackFilters.toArray(new Bson[fallbackFilters.size()]);
+
+        return Filters.or(
+                Filters.and(original),
+                Filters.and(fallback)
+        );
+
+    }
+
 
     private static void assertPushGlobalReads(final Bson expected, final Bson actual) {
         // order does not matter for the global-reads documents, so it is a bit complicated to test this
@@ -303,6 +323,7 @@ public final class PolicyUpdateFactoryTest {
 
         return new Document()
                 .append(PersistenceConstants.FIELD_ID, TestConstants.Thing.THING_ID + ":" + idSuffix)
+                .append(PersistenceConstants.FIELD_THING_ID, TestConstants.Thing.THING_ID)
                 .append(PersistenceConstants.FIELD_RESOURCE, resource)
                 .append(PersistenceConstants.FIELD_GRANTED, grants)
                 .append(PersistenceConstants.FIELD_REVOKED, revokes);

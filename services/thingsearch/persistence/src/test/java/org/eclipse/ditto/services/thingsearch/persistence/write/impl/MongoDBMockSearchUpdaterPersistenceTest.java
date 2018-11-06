@@ -83,7 +83,8 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
                 .thenReturn(policiesCollection);
 
         persistence =
-                new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter, eventToPersistenceStrategyFactory);
+                new MongoThingsSearchUpdaterPersistence(clientWrapper, loggingAdapter,
+                        eventToPersistenceStrategyFactory, actorMaterializer);
     }
 
     @SuppressWarnings("unchecked")
@@ -120,4 +121,5 @@ public final class MongoDBMockSearchUpdaterPersistenceTest {
     private <T> void expectError(final Source<T, NotUsed> source) throws Throwable {
         throw source.runWith(TestSink.probe(actorSystem), actorMaterializer).expectSubscriptionAndError();
     }
+
 }

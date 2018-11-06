@@ -34,8 +34,6 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.persistence.AbstractThingSearchPersistenceITBase;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
-import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.junit.Before;
 
 
@@ -49,10 +47,10 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     private Enforcer policyEnforcer;
 
     @Before
-    public void initTestDataPersistence() {
+    @Override
+    public void before() {
+        super.before();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
-        writePersistence = new MongoThingsSearchUpdaterPersistence(getClient(),
-                log, MongoEventToPersistenceStrategyFactory.getInstance());
     }
 
     boolean isV1() {
@@ -175,4 +173,5 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
                 .setRevision(1L)
                 .build();
     }
+
 }

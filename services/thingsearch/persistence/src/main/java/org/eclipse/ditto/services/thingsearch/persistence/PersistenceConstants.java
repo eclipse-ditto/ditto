@@ -56,6 +56,11 @@ public final class PersistenceConstants {
     public static final String FIELD_ID = FieldExpressionUtil.FIELD_ID;
 
     /**
+     * Field name for thing id.
+     */
+    public static final String FIELD_THING_ID = "_thingId";
+
+    /**
      * Field name for policy id.
      */
     public static final String FIELD_POLICY_ID = "_policyId";
