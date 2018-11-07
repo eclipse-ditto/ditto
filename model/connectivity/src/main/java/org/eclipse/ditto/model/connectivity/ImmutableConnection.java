@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -560,6 +561,7 @@ final class ImmutableConnection implements Connection {
         @Override
         public ConnectionBuilder mappingContext(@Nullable final MappingContext mappingContext) {
             this.mappingContext = mappingContext;
+            checkMappingIsValid();
             return this;
         }
 
@@ -579,6 +581,7 @@ final class ImmutableConnection implements Connection {
         public Connection build() {
             checkSourceAndTargetAreValid();
             checkAuthorizationContextsAreValid();
+            //checkMappingIsValid();
             return new ImmutableConnection(this);
         }
 
@@ -586,6 +589,20 @@ final class ImmutableConnection implements Connection {
             if (sources.isEmpty() && targets.isEmpty()) {
                 throw ConnectionConfigurationInvalidException.newBuilder("Either a source or a target must be " +
                         "specified in the configuration of a connection!").build();
+            }
+        }
+
+        /**
+         * Both the incoming and the outgoing payload mapping script is not allowed to be empty.
+         */
+        private void checkMappingIsValid() {
+            if (mappingContext != null) {
+                mappingContext.getOptions().values().forEach(entry -> {
+                    if (entry.trim().length() == 0) {
+                        throw ConnectionConfigurationInvalidException.newBuilder("Empty Javascript could not be " +
+                                "applied for payload mapping!").build();
+                    }
+                });
             }
         }
 

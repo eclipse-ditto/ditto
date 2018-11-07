@@ -101,7 +101,6 @@ public final class CreateConnection extends AbstractCommand<CreateConnection>
         return new CommandJsonDeserializer<CreateConnection>(TYPE, jsonObject).deserialize(() -> {
             final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
             final Connection readConnection = ConnectivityModelFactory.connectionFromJson(jsonConnection);
-
             return of(readConnection, dittoHeaders);
         });
     }
