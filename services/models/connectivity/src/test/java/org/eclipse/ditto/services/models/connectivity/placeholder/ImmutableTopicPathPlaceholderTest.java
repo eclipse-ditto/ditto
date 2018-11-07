@@ -93,7 +93,12 @@ public class ImmutableTopicPathPlaceholderTest {
 
     @Test
     public void testReplaceSubject() {
-        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH, "subject")).contains(KNOWN_ACTION.getName());
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH, "subject")).isEmpty();
+    }
+
+    @Test
+    public void testReplaceActionOrSubject() {
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH, "action|subject")).contains(KNOWN_ACTION.getName());
     }
 
     @Test
