@@ -151,6 +151,10 @@ public final class WebsocketRoute {
     private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket, final Integer version,
             final String connectionCorrelationId, final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders, final ProtocolAdapter adapter) {
+
+        LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                logger.info("Creating WebSocket for connection authContext: <{}>", connectionAuthContext));
+
         // build Sink and Source in order to support rpc style patterns as well as server push:
         return upgradeToWebSocket.handleMessagesWith(
                 createSink(version, connectionCorrelationId, connectionAuthContext, additionalHeaders, adapter),
@@ -171,7 +175,11 @@ public final class WebsocketRoute {
                     }
                 })
                 .flatMapConcat(textMsg -> textMsg.<String>fold("", (str1, str2) -> str1 + str2))
-                .log("ws-incoming-msg")
+                .via(Flow.fromFunction(result -> {
+                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                            logger.debug("Received incoming WebSocket message: {}", result));
+                    return result;
+                }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
                         Logging.WarningLevel()))
                 .filter(strictText -> processProtocolMessage(connectionAuthContext, connectionCorrelationId,
@@ -285,6 +293,11 @@ public final class WebsocketRoute {
                 })
                 .map(this::publishResponsePublishedEvent)
                 .map(jsonifiableToString(adapter))
+                .via(Flow.fromFunction(result -> {
+                    LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
+                            logger.debug("Sending outgoing WebSocket message: {}", result));
+                    return result;
+                }))
                 .map(TextMessage::create);
     }
 
@@ -333,22 +346,22 @@ public final class WebsocketRoute {
             final DittoHeadersBuilder internalHeadersBuilder = DittoHeaders.newBuilder();
 
             LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger -> {
-                logger.debug("Command-String <{}> has been successfully converted to signal <{}>.", cmdString, signal);
+                logger.debug("WebSocket message has been converted to signal <{}>.", signal);
                 final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
                 // add initial internal header values
-                logger.debug("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
+                logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
                 internalHeadersBuilder.putHeaders(initialInternalHeaders);
                 // add headers given by parent route first so that protocol message may override them
-                logger.debug("Adding additionalHeaders: <{}>.", additionalHeaders);
+                logger.trace("Adding additionalHeaders: <{}>.", additionalHeaders);
                 internalHeadersBuilder.putHeaders(additionalHeaders);
                 // add any headers from protocol adapter to internal headers
-                logger.debug("Adding signalHeaders: <{}>.", signalHeaders);
+                logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
                 internalHeadersBuilder.putHeaders(signalHeaders);
                 // generate correlation ID if it is not set in protocol message
                 if (!signalHeaders.getCorrelationId().isPresent()) {
                     final String correlationId = UUID.randomUUID().toString();
-                    logger.debug("Adding generated correlationId: <{}>.", correlationId);
+                    logger.trace("Adding generated correlationId: <{}>.", correlationId);
                     internalHeadersBuilder.correlationId(correlationId);
                 }
                 logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
