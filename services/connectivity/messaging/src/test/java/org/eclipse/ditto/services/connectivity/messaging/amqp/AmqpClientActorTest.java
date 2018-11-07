@@ -524,7 +524,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT,
+                    singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT, null,
                             Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());

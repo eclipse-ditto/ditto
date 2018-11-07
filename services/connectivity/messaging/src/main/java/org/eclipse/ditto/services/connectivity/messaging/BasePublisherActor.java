@@ -102,7 +102,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 outboundSource.getType(), target.getAddress());
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
-                            final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target);
+                            final ExternalMessage messageWithMappedHeaders = applyHeaderMapping(outbound, target, log());
                             publishMessage(target, publishTarget, messageWithMappedHeaders);
                         } catch (final DittoRuntimeException e) {
                             log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
@@ -188,10 +188,11 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param outboundSignal the OutboundSignal containing the {@link ExternalMessage} with headers potentially
      * containing placeholders.
      * @param target the {@link Target} to extract the {@link org.eclipse.ditto.model.connectivity.HeaderMapping} from.
+     * @param log the logger to use for logging.
      * @return the ExternalMessage with replaced headers
      */
-    private ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
-            final Target target) {
+    static ExternalMessage applyHeaderMapping(final OutboundSignal.WithExternalMessage outboundSignal,
+            final Target target, final DiagnosticLoggingAdapter log) {
 
         final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
         final Map<String, String> originalHeaders = new HashMap<>(originalMessage.getHeaders());
@@ -230,8 +231,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     )
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            LogUtil.enhanceLogWithCorrelationId(log(), sourceSignal);
-            log().debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
+            LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
+            log.debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
 
             // only explicitly re-add the mapped headers:
             return messageBuilder

@@ -145,16 +145,18 @@ public class TestConstants {
 
     public static class Targets {
 
+        private static final HeaderMapping HEADER_MAPPING = null;
+
         static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT,
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET =
-                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT,
+                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
-                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
+                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
