@@ -23,18 +23,26 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -231,12 +239,22 @@ public class JavaScriptMessageMapperRhinoTest {
             "    );" +
             "}";
 
+    private static MessageMapper javaScriptRhinoMapperNoop;
     private static MessageMapper javaScriptRhinoMapperPlain;
     private static MessageMapper javaScriptRhinoMapperEmpty;
     private static MessageMapper javaScriptRhinoMapperBinary;
 
     @BeforeClass
     public static void setup() {
+        javaScriptRhinoMapperNoop = MessageMappers.createJavaScriptMessageMapper();
+        javaScriptRhinoMapperNoop.configure(MAPPING_CONFIG,
+                JavaScriptMessageMapperFactory
+                        .createJavaScriptMessageMapperConfigurationBuilder(Collections.emptyMap())
+                        .incomingScript("")
+                        .outgoingScript("")
+                        .build()
+        );
+
         javaScriptRhinoMapperPlain = MessageMappers.createJavaScriptMessageMapper();
         javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
                 JavaScriptMessageMapperFactory
@@ -266,6 +284,66 @@ public class JavaScriptMessageMapperRhinoTest {
                         .outgoingScript(MAPPING_OUTGOING_BINARY)
                         .build()
         );
+    }
+
+    @Test
+    public void testNoopJavascriptIncomingMapping() {
+        final String correlationId = UUID.randomUUID().toString();
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(HEADER_CORRELATION_ID, correlationId);
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+
+        final ModifyAttribute modifyAttribute =
+                ModifyAttribute.of(MAPPING_INCOMING_NAMESPACE + ":" + MAPPING_INCOMING_ID,
+                        JsonPointer.of("foo"),
+                        JsonValue.of(MAPPING_INCOMING_PAYLOAD_STRING),
+                        DittoHeaders.newBuilder()
+                                .correlationId(correlationId)
+                                .schemaVersion(JsonSchemaVersion.V_2)
+                                .build());
+        final Adaptable inputAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyAttribute);
+        final JsonifiableAdaptable jsonifiableInputAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(inputAdaptable);
+        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withText(jsonifiableInputAdaptable.toJsonString())
+                .build();
+
+        final long startTs = System.nanoTime();
+        final Optional<Adaptable> adaptableOpt = javaScriptRhinoMapperNoop.map(message);
+        final Adaptable mappedAdaptable = adaptableOpt.get();
+        System.out.println(mappedAdaptable);
+        System.out.println(
+                "testNoopJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(mappedAdaptable).isEqualTo(jsonifiableInputAdaptable);
+    }
+
+    @Test
+    public void testNoopJavascriptOutgoingMapping() {
+        final String thingId = "org.eclipse.ditto:foo-bar-plain";
+        final String correlationId = UUID.randomUUID().toString();
+        final Thing newThing = Thing.newBuilder()
+                .setId(thingId)
+                .setAttributes(Attributes.newBuilder().set("foo", "bar").build())
+                .build();
+        final CreateThing createThing =
+                CreateThing.of(newThing, null, DittoHeaders.newBuilder().correlationId(correlationId).build());
+        final Adaptable inputAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(createThing);
+        final JsonifiableAdaptable jsonifiableInputAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(inputAdaptable);
+
+        final long startTs = System.nanoTime();
+
+        final Optional<ExternalMessage> rawMessageOpt = javaScriptRhinoMapperNoop.map(inputAdaptable);
+        final ExternalMessage rawMessage = rawMessageOpt.get();
+        System.out.println(rawMessage);
+        System.out.println(
+                "testNoopJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1000000.0 + "ms");
+
+        assertThat(rawMessage.findContentType()).contains(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        assertThat(rawMessage.findHeader(HEADER_CORRELATION_ID)).contains(correlationId);
+        assertThat(rawMessage.isTextMessage()).isTrue();
+        final String textPayload = rawMessage.getTextPayload().get();
+        DittoJsonAssertions.assertThat(JsonFactory.readFrom(textPayload).asObject())
+                .isEqualToIgnoringFieldDefinitions(jsonifiableInputAdaptable.toJson());
     }
 
     @Test
