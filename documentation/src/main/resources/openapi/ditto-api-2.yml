@@ -148,6 +148,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
+            example: {}
         description: JSON representation of the Thing to be created.
   '/things/{thingId}':
     get:
@@ -375,6 +376,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
+            example: {}
         description: JSON representation of the Thing to be modified.
     delete:
       summary: Delete a specific Thing
@@ -685,6 +687,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Attributes'
+            example: {}
         description: |-
           JSON object of all Attributes to be modified at once.
           Consider that the value has to be a JSON object or `null`, examples:
@@ -1056,6 +1059,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Features'
+            example: {}
         description: >-
           JSON object of the Features to be modified at once. It can be also
           `null` or an empty object `{}` (all features cleared).
@@ -1246,6 +1250,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Feature'
+            example: {}
         description: >-
           JSON representation of the Feature to be created/modified. It can also
           be `null` or an empty object `{}`.
@@ -1435,6 +1440,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FeatureDefinition'
+            example: {}
         description: >-
           JSON array of the complete Definition to be updated. Consider that the
           value has to be a JSON array or `null`. The content of the JSON array
@@ -1614,6 +1620,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FeatureProperties'
+            example: {}
         description: >-
           JSON object of all Properties to be updated at once. Consider that the
           value has to be a JSON object or `null`. We strongly recommend to use
@@ -2240,6 +2247,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Policy'
+            example: {}
         description: >-
           JSON representation of the Policy.
 
@@ -2414,6 +2422,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolicyEntries'
+            example: {}
         description: >-
           JSON representation of the Policy entries.
 
@@ -2559,6 +2568,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolicyEntry'
+            example: {}
         description: >-
           JSON representation of the Policy entry.
 
@@ -2735,6 +2745,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Subjects'
+            example: {}
         description: >-
           JSON representation of the Subjects.
 
@@ -2882,6 +2893,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubjectEntry'
+            example: {}
         description: JSON representation of the Subject
         required: true
     delete:
@@ -3054,6 +3066,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Resources'
+            example: {}
         description: JSON representation of the Resources
         required: true
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
@@ -3197,6 +3210,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResourceEntry'
+            example: {}
         description: JSON representation of the Resource
         required: true
     delete:
@@ -4072,12 +4086,15 @@ components:
         application/json:
           schema:
             type: string
+            example: ''
         application/octet-stream:
           schema:
             type: string
+            example: ''
         text/plain:
           schema:
             type: string
+            example: ''
       description: >-
         Payload of the message with max size of 10MB. It can be any HTTP
         supported content, including binary content.
@@ -4086,6 +4103,7 @@ components:
         application/json:
           schema:
             type: object
+            example: {}
       description: >-
         JSON representation of the value to be created/updated. This may be as
         well `null` or an empty object.
