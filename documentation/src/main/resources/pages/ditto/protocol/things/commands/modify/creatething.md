@@ -1,5 +1,7 @@
 ## CreateThing
 
+Creates a new Thing with ID ``com.acme:xdk_53`` that uses an existing Policy with ID ``com.acme:the_policy_id``.
+
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/commands/create",

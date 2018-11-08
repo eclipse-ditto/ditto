@@ -14,3 +14,5 @@ permalink: protocol-examples-modifything.html
 {% capture event %}{% include_relative protocol/things/events/thingmodified.md %}{% endcapture %}
 {{ event | markdownify }}
 
+{% capture command %}{% include_relative protocol/things/commands/modify/modifythingalternatives.md %}{% endcapture %}
+{{ command | markdownify }}
