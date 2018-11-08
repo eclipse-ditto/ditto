@@ -6,7 +6,6 @@
   "headers": {},
   "path": "/features/accelerometer",
   "value": {
-    "__schemaVersion": 2,
     "properties": {
       "x": 3.141,
       "y": 2.718,

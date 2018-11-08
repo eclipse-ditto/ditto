@@ -6,9 +6,7 @@
   "headers": {},
   "path": "/features",
   "value": {
-    "__schemaVersion": 2,
     "accelerometer": {
-      "__schemaVersion": 2,
       "properties": {
         "x": 3.141,
         "y": 2.718,

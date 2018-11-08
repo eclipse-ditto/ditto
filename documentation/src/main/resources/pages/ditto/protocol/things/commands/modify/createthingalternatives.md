@@ -1,6 +1,6 @@
 ## Alternative CreateThing commands
 
-If you want to copy an Existing policy instead of creating a new one by yourself or reference an existing Policy, you
+If you want to copy an existing Policy instead of creating a new one by yourself or reference an existing Policy, you
 can adjust the CreateThing command like demonstrated in the following examples.
 
 ### CreateThing with copied Policy by Policy ID
@@ -13,10 +13,6 @@ Creates a new Thing with ID ``com.acme:xdk_53`` with a Policy copied from the Po
   "headers": {},
   "path": "/",
   "value": {
-    "__schemaVersion": 2,
-    "__lifecycle": "ACTIVE",
-    "_revision": 1,
-    "_namespace": "com.acme",
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
     "_copyPolicyFrom": "com:acme:the_policy_id_to_copy"
@@ -34,10 +30,6 @@ Creates a new Thing with ID ``com.acme:xdk_53`` with a Policy copied from a Thin
   "headers": {},
   "path": "/",
   "value": {
-    "__schemaVersion": 2,
-    "__lifecycle": "ACTIVE",
-    "_revision": 1,
-    "_namespace": "com.acme",
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
     "_copyPolicyFrom": "{% raw %}{{ ref:things/com:acme:xdk_52/policyId }}{% endraw %}"
