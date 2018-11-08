@@ -6,7 +6,6 @@
   "headers": {},
   "path": "/acl",
   "value": {
-    "__schemaVersion": 1,
     "the_auth_subject_2": {
       "READ": true,
       "WRITE": false,

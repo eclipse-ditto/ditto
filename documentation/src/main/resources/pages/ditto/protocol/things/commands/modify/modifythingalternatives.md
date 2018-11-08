@@ -1,7 +1,7 @@
 ## Alternative ModifyThing commands
 
-If you want to copy an Existing policy instead of creating a new one by yourself or reference an existing Policy, you
-can adjust the ModifyThing command like demonstrated in the following examples.
+If you want to copy an existing Policy instead of creating a new one by yourself or reference an existing Policy, you
+can adjust the ModifyThing command like demonstrated in the following examples.<br/>
 This only works if a Thing with the given ``thingId`` does not exist, yet. If it exists the ``_copyPolicyFrom`` field
 will be ignored.
 
@@ -16,10 +16,6 @@ Policy copied from the Policy with ID ``com.acme:the_policy_id_to_copy``.
   "headers": {},
   "path": "/",
   "value": {
-    "__schemaVersion": 2,
-    "__lifecycle": "ACTIVE",
-    "_revision": 1,
-    "_namespace": "com.acme",
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
     "_copyPolicyFrom": "com:acme:the_policy_id_to_copy"
@@ -38,10 +34,6 @@ Policy copied from a Thing with ID ``com.acme:xdk_52``.
   "headers": {},
   "path": "/",
   "value": {
-    "__schemaVersion": 2,
-    "__lifecycle": "ACTIVE",
-    "_revision": 1,
-    "_namespace": "com.acme",
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
     "_copyPolicyFrom": "{% raw %}{{ ref:things/com:acme:xdk_52/policyId }}{% endraw %}"

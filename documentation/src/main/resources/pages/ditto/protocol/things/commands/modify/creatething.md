@@ -8,10 +8,6 @@ Creates a new Thing with ID ``com.acme:xdk_53`` that uses an existing Policy wit
   "headers": {},
   "path": "/",
   "value": {
-    "__schemaVersion": 2,
-    "__lifecycle": "ACTIVE",
-    "_revision": 1,
-    "_namespace": "com.acme",
     "thingId": "com.acme:xdk_53",
     "policyId": "com.acme:the_policy_id",
     "attributes": {
