@@ -17,6 +17,7 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ import javax.script.Bindings;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
@@ -86,6 +88,8 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     private Scriptable scope;
 
     @Nullable private JavaScriptMessageMapperConfiguration configuration;
+    private boolean incomingScriptIsEmpty = false;
+    private boolean outgoingScriptIsEmpty = false;
 
     JavaScriptMessageMapperRhino() {
         // no-op
@@ -133,56 +137,69 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
     @Override
     public Optional<Adaptable> map(final ExternalMessage message) {
 
-        try {
-            return Optional.ofNullable((Adaptable) contextFactory.call(cx -> {
-                final NativeObject headersObj = new NativeObject();
-                message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
-
-                final NativeArrayBuffer bytePayload;
-                if (message.getBytePayload().isPresent()) {
-                    final ByteBuffer byteBuffer = message.getBytePayload().get();
-                    final byte[] array = byteBuffer.array();
-                    bytePayload = new NativeArrayBuffer(array.length);
-                    for (int a = 0; a < array.length; a++) {
-                        bytePayload.getBuffer()[a] = array[a];
-                    }
-                } else {
-                    bytePayload = null;
-                }
-
-                final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
-                final String textPayload = message.getTextPayload().orElse(null);
-
-                final NativeObject externalMessage = new NativeObject();
-                externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
-                externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
-                externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
-                externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
-
-                final Function mapToDittoProtocolMsgWrapper = (Function) scope.get(INCOMING_FUNCTION_NAME, scope);
-                final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
-
-                if (result == null) {
-                    // return null if result is null causing the wrapping Optional to be empty
-                    return null;
-                }
-
-                final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
-
-                return DittoJsonException.wrapJsonRuntimeException(() -> {
-                    final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
-                    return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
-                });
+        if (incomingScriptIsEmpty) {
+            // shortcut: the user defined an empty incoming mapping script -> assume that the ExternalMessage is in DittoProtocol
+            return Optional.ofNullable(
+                    message.getTextPayload()
+                            .orElseGet(() -> message.getBytePayload()
+                                    .map(b -> StandardCharsets.UTF_8.decode(b).toString())
+                                    .orElse(null))
+            ).map(plainString -> DittoJsonException.wrapJsonRuntimeException(() -> {
+                final JsonObject jsonObject = JsonFactory.readFrom(plainString).asObject();
+                return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
             }));
-        } catch (final RhinoException e) {
-            throw buildMessageMappingFailedException(e, message.findContentType().orElse(""),
-                    DittoHeaders.of(message.getHeaders()));
-        } catch (final Throwable e) {
-            throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(null))
-                    .description(e.getMessage())
-                    .dittoHeaders(DittoHeaders.of(message.getHeaders()))
-                    .cause(e)
-                    .build();
+        } else {
+            try {
+                return Optional.ofNullable((Adaptable) contextFactory.call(cx -> {
+                    final NativeObject headersObj = new NativeObject();
+                    message.getHeaders().forEach((key, value) -> headersObj.put(key, headersObj, value));
+
+                    final NativeArrayBuffer bytePayload;
+                    if (message.getBytePayload().isPresent()) {
+                        final ByteBuffer byteBuffer = message.getBytePayload().get();
+                        final byte[] array = byteBuffer.array();
+                        bytePayload = new NativeArrayBuffer(array.length);
+                        for (int a = 0; a < array.length; a++) {
+                            bytePayload.getBuffer()[a] = array[a];
+                        }
+                    } else {
+                        bytePayload = null;
+                    }
+
+                    final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
+                    final String textPayload = message.getTextPayload().orElse(null);
+
+                    final NativeObject externalMessage = new NativeObject();
+                    externalMessage.put(EXTERNAL_MESSAGE_HEADERS, externalMessage, headersObj);
+                    externalMessage.put(EXTERNAL_MESSAGE_TEXT_PAYLOAD, externalMessage, textPayload);
+                    externalMessage.put(EXTERNAL_MESSAGE_BYTE_PAYLOAD, externalMessage, bytePayload);
+                    externalMessage.put(EXTERNAL_MESSAGE_CONTENT_TYPE, externalMessage, contentType);
+
+                    final Function mapToDittoProtocolMsgWrapper = (Function) scope.get(INCOMING_FUNCTION_NAME, scope);
+                    final Object result = mapToDittoProtocolMsgWrapper.call(cx, scope, scope, new Object[] {externalMessage});
+
+                    if (result == null) {
+                        // return null if result is null causing the wrapping Optional to be empty
+                        return null;
+                    }
+
+                    final String dittoProtocolJsonStr = (String) NativeJSON.stringify(cx, scope, result, null, null);
+
+                    return DittoJsonException.wrapJsonRuntimeException(() -> {
+                        final JsonObject jsonObject = JsonFactory.readFrom(dittoProtocolJsonStr).asObject();
+                        return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+                    });
+                }));
+            } catch (final RhinoException e) {
+                throw buildMessageMappingFailedException(e, message.findContentType().orElse(""),
+                        DittoHeaders.of(message.getHeaders()));
+            } catch (final Throwable e) {
+                throw MessageMappingFailedException.newBuilder(message.findContentType().orElse(null))
+                        .description(e.getMessage())
+                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                        .cause(e)
+                        .build();
+            }
         }
     }
 
@@ -205,66 +222,76 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         final JsonifiableAdaptable jsonifiableAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
 
-        try {
-            return Optional.ofNullable((ExternalMessage) contextFactory.call(cx -> {
-                final Object dittoProtocolMessage =
-                        NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
+        if (outgoingScriptIsEmpty) {
+            // shortcut: the user defined an empty outgoing mapping script -> send the Adaptable as DittoProtocol JSON
+            final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(
+                    adaptable.getHeaders().orElseGet(adaptable::getDittoHeaders));
+            messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
+                    DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+            messageBuilder.withText(jsonifiableAdaptable.toJsonString());
+            return Optional.of(messageBuilder.build());
+        } else {
+            try {
+                return Optional.ofNullable((ExternalMessage) contextFactory.call(cx -> {
+                    final Object dittoProtocolMessage =
+                            NativeJSON.parse(cx, scope, jsonifiableAdaptable.toJsonString(), new NullCallable());
 
-                final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
-                final NativeObject result =
-                        (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope,
-                                new Object[]{dittoProtocolMessage});
+                    final Function mapFromDittoProtocolMsgWrapper = (Function) scope.get(OUTGOING_FUNCTION_NAME, scope);
+                    final NativeObject result =
+                            (NativeObject) mapFromDittoProtocolMsgWrapper.call(cx, scope, scope,
+                                    new Object[]{dittoProtocolMessage});
 
-                if (result == null) {
-                    // return null if result is null causing the wrapping Optional to be empty
-                    return null;
-                }
+                    if (result == null) {
+                        // return null if result is null causing the wrapping Optional to be empty
+                        return null;
+                    }
 
-                final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
-                final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
-                final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
-                final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
+                    final Object contentType = result.get(EXTERNAL_MESSAGE_CONTENT_TYPE);
+                    final Object textPayload = result.get(EXTERNAL_MESSAGE_TEXT_PAYLOAD);
+                    final Object bytePayload = result.get(EXTERNAL_MESSAGE_BYTE_PAYLOAD);
+                    final Object mappingHeaders = result.get(EXTERNAL_MESSAGE_HEADERS);
 
-                final Map<String, String> headers;
-                if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
-                    headers = new HashMap<>();
-                    final Map jsHeaders = (Map) mappingHeaders;
-                    jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
-                } else {
-                    headers = Collections.emptyMap();
-                }
+                    final Map<String, String> headers;
+                    if (mappingHeaders != null && !(mappingHeaders instanceof Undefined)) {
+                        headers = new HashMap<>();
+                        final Map jsHeaders = (Map) mappingHeaders;
+                        jsHeaders.forEach((key, value) -> headers.put((String) key, value.toString()));
+                    } else {
+                        headers = Collections.emptyMap();
+                    }
 
-                final ExternalMessageBuilder messageBuilder =
-                        ExternalMessageFactory.newExternalMessageBuilder(headers);
+                    final ExternalMessageBuilder messageBuilder =
+                            ExternalMessageFactory.newExternalMessageBuilder(headers);
 
-                if (!(contentType instanceof Undefined)) {
-                    messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
-                            ((CharSequence) contentType).toString());
-                }
+                    if (!(contentType instanceof Undefined)) {
+                        messageBuilder.withAdditionalHeaders(ExternalMessage.CONTENT_TYPE_HEADER,
+                                ((CharSequence) contentType).toString());
+                    }
 
-                final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(bytePayload);
-                if (byteBuffer.isPresent()) {
-                    messageBuilder.withBytes(byteBuffer.get());
-                } else if (!(textPayload instanceof Undefined)) {
-                    messageBuilder.withText(((CharSequence) textPayload).toString());
-                } else {
-                    throw MessageMappingFailedException.newBuilder("")
-                            .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
-                            .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
-                            .build();
-                }
+                    final Optional<ByteBuffer> byteBuffer = convertToByteBuffer(bytePayload);
+                    if (byteBuffer.isPresent()) {
+                        messageBuilder.withBytes(byteBuffer.get());
+                    } else if (!(textPayload instanceof Undefined)) {
+                        messageBuilder.withText(((CharSequence) textPayload).toString());
+                    } else {
+                        throw MessageMappingFailedException.newBuilder("")
+                                .description("Neither <bytePayload> nor <textPayload> were defined in the outgoing script")
+                                .dittoHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty()))
+                                .build();
+                    }
 
-                return messageBuilder.build();
-            }));
-        } catch (final RhinoException e) {
-            throw buildMessageMappingFailedException(e, MessageMapper.findContentType(adaptable).orElse(""),
-                    adaptable.getHeaders().orElseGet(DittoHeaders::empty));
-        } catch (final Throwable e) {
-            throw MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
-                    .description(e.getMessage())
-                    .dittoHeaders(adaptable.getHeaders().orElseGet(DittoHeaders::empty))
-                    .cause(e)
-                    .build();
+                    return messageBuilder.build();
+                }));
+            } catch (final RhinoException e) {
+                throw buildMessageMappingFailedException(e, MessageMapper.findContentType(adaptable).orElse(""),
+                        adaptable.getHeaders().orElseGet(DittoHeaders::empty));
+            } catch (final Throwable e) {
+                throw MessageMappingFailedException.newBuilder(MessageMapper.findContentType(adaptable).orElse(""))
+                        .description(e.getMessage())
+                        .dittoHeaders(adaptable.getHeaders().orElseGet(DittoHeaders::empty))
+                        .cause(e)
+                        .build();
+            }
         }
     }
 
@@ -286,14 +313,23 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
         loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(OUTGOING_SCRIPT)),
                 OUTGOING_SCRIPT);
 
-        cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getIncomingScript)
-                            .orElse(""),
-                JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT, 1, null);
-        cx.evaluateString(scope,
-                    getConfiguration().flatMap(JavaScriptMessageMapperConfiguration::getOutgoingScript)
-                            .orElse(""),
-                JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT, 1, null);
+        final String userIncomingScript = getConfiguration()
+                .flatMap(JavaScriptMessageMapperConfiguration::getIncomingScript)
+                .orElse("");
+        incomingScriptIsEmpty = userIncomingScript.isEmpty();
+        if (!incomingScriptIsEmpty) {
+            cx.evaluateString(scope, userIncomingScript,
+                    JavaScriptMessageMapperConfigurationProperties.INCOMING_SCRIPT, 1, null);
+        }
+
+        final String userOutgoingScript = getConfiguration()
+                .flatMap(JavaScriptMessageMapperConfiguration::getOutgoingScript)
+                .orElse("");
+        outgoingScriptIsEmpty = userOutgoingScript.isEmpty();
+        if (!outgoingScriptIsEmpty) {
+            cx.evaluateString(scope, userOutgoingScript,
+                    JavaScriptMessageMapperConfigurationProperties.OUTGOING_SCRIPT, 1, null);
+        }
     }
 
     private Optional<JavaScriptMessageMapperConfiguration> getConfiguration() {
