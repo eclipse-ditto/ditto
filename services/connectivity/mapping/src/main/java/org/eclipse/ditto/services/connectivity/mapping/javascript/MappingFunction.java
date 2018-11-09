@@ -24,6 +24,13 @@ import org.mozilla.javascript.RhinoException;
  */
 public interface MappingFunction<I, O> extends Function<I, O> {
 
+    /**
+     * Build {@link MessageMappingFailedException} from a {@link RhinoException}.
+     * @param e the original exception thrown by the rhino engine
+     * @param contentType the content type of the message which could not be mapped
+     * @param dittoHeaders the {@link DittoHeaders} of the original message
+     * @return a {@link MessageMappingFailedException} containing information about the javascript error that occurred
+     */
     default MessageMappingFailedException buildMessageMappingFailedException(final RhinoException e,
             final String contentType, final DittoHeaders dittoHeaders) {
         final boolean sourceExists = e.lineSource() != null && !e.lineSource().isEmpty();
