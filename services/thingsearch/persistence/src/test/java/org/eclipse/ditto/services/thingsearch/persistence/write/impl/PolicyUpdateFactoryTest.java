@@ -249,29 +249,12 @@ public final class PolicyUpdateFactoryTest {
 
         BsonAssertions.assertThat(policyUpdate.getPolicyIndexInsertEntries()).isEqualTo(expectedPolicyDocs);
 
-        final Bson startsWithThingIdRegex =
-                Filters.regex(FIELD_ID, REGEX_START_THING_ID + Pattern.quote(TestConstants.Thing.THING_ID + ":"));
-        final Bson expectedIndexRemoveFilter = filterWithFallback(TestConstants.Thing.THING_ID, startsWithThingIdRegex);
+        final Bson expectedIndexRemoveFilter = Filters.eq(FIELD_THING_ID, TestConstants.Thing.THING_ID);
         BsonAssertions.assertThat(policyUpdate.getPolicyIndexRemoveFilter()).isEqualTo(expectedIndexRemoveFilter);
         assertPushGlobalReads(expectedPushGlobalReads, policyUpdate.getPushGlobalReads());
         BsonAssertions.assertThat(policyUpdate.getPullGlobalReads()).isEqualTo(PolicyUpdateFactory.PULL_GLOBAL_READS);
         BsonAssertions.assertThat(policyUpdate.getPullAclEntries()).isEqualTo(PolicyUpdateFactory.PULL_ACL);
     }
-
-    private static Bson filterWithFallback(final CharSequence thingId, final Bson... additionalFilters) {
-        final Bson[] original = new Bson[]{Filters.eq(FIELD_THING_ID, thingId)};
-
-        final List<Bson> fallbackFilters = new ArrayList<>(Arrays.asList(additionalFilters));
-        fallbackFilters.add(0, Filters.exists(FIELD_THING_ID, false));
-        final Bson[] fallback = fallbackFilters.toArray(new Bson[fallbackFilters.size()]);
-
-        return Filters.or(
-                Filters.and(original),
-                Filters.and(fallback)
-        );
-
-    }
-
 
     private static void assertPushGlobalReads(final Bson expected, final Bson actual) {
         // order does not matter for the global-reads documents, so it is a bit complicated to test this
