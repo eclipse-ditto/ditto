@@ -50,7 +50,8 @@ public final class ClusterConfigReader extends AbstractConfigReader {
      * @return instance index.
      */
     public int instanceIndex() {
-        return getIfPresent(PATH_INSTANCE_INDEX, config::getInt).orElse(-1);
+        return getIfPresent(PATH_INSTANCE_INDEX, config::getInt)
+                .orElseThrow(() -> new IllegalStateException("Could not determine the 'instance_index' of this cluster node"));
     }
 
     /**
