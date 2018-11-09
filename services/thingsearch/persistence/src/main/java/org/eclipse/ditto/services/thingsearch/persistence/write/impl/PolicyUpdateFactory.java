@@ -322,16 +322,13 @@ final class PolicyUpdateFactory {
     }
 
     private static Bson createThingRemovalFilter(final CharSequence thingId) {
-        final Bson filter = createThingIdFilter(thingId);
-        final Bson fallback = featureRemovalFilter(thingId, "");
-        return createFallbackFilterForMissingThingId(filter, fallback);
+        return createThingIdFilter(thingId);
     }
 
     private static Bson createFeatureRemovalFilter(final CharSequence thingId, final String featureId) {
         final Bson featureRegex = featureRemovalFilter(thingId, featureId);
-        final Bson filter = and(createThingIdFilter(thingId), featureRegex);
 
-        return createFallbackFilterForMissingThingId(filter, featureRegex);
+        return and(createThingIdFilter(thingId), featureRegex);
     }
 
     private static Bson featureRemovalFilter(final CharSequence thingId, final String featureId) {
@@ -343,9 +340,8 @@ final class PolicyUpdateFactory {
         final Bson pointerRegex = Filters.regex(PersistenceConstants.FIELD_ID,
                 PersistenceConstants.REGEX_START_THING_ID + thingId + ":" + pointer +
                         PersistenceConstants.REGEX_FIELD_END);
-        final Bson filter = and(createThingIdFilter(thingId), pointerRegex);
 
-        return createFallbackFilterForMissingThingId(filter, pointerRegex);
+        return and(createThingIdFilter(thingId), pointerRegex);
     }
 
     private static Bson createFeaturesRemovalFilter(final CharSequence thingId) {
@@ -354,30 +350,7 @@ final class PolicyUpdateFactory {
         final Bson featuresRegex =
                 Filters.regex(PersistenceConstants.FIELD_RESOURCE, PersistenceConstants.REGEX_START_THING_ID +
                         Pattern.quote(PersistenceConstants.FIELD_FEATURES));
-        final Bson filter = and(createThingIdFilter(thingId), thingRegex, featuresRegex);
-        final Bson fallback = and(thingRegex, featuresRegex);
-
-        return createFallbackFilterForMissingThingId(filter, fallback);
-    }
-
-    /**
-     * Creates a fallback filter for missing _thingId.
-     *
-     * @param filter The filter to use if thing id exists (does not check if it exists explicitly but expects.
-     * @param fallback The fallback filter.
-     * @return a Bson like this: or {[filter], and{ "_thingId": {$exists:false}, [fallback]}}
-     */
-    private static Bson createFallbackFilterForMissingThingId(final Bson filter, final Bson fallback) {
-        return Filters.or(
-                filter,
-                Filters.and(
-                        filterThingIdNotExists(),
-                        fallback)
-        );
-    }
-
-    private static Bson filterThingIdNotExists() {
-        return Filters.exists(PersistenceConstants.FIELD_THING_ID, false);
+        return and(createThingIdFilter(thingId), thingRegex, featuresRegex);
     }
 
     private static Bson createThingIdFilter(final CharSequence thingId) {
