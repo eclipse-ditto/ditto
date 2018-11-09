@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -101,7 +102,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         timers = new ConcurrentHashMap<>();
         placeholderSubstitution = new PlaceholderSubstitution();
         adjustHeaders = new AdjustHeaders(connectionId);
-        mapHeaders = new ApplyHeaderMapping(log, processor);
+        mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
     }
 
@@ -395,12 +396,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
         private final DiagnosticLoggingAdapter log;
-        private final MessageMappingProcessor processor;
 
-        ApplyHeaderMapping(final DiagnosticLoggingAdapter log,
-                final MessageMappingProcessor processor) {
+        ApplyHeaderMapping(final DiagnosticLoggingAdapter log) {
             this.log = log;
-            this.processor = processor;
         }
 
         @Override
@@ -408,18 +406,22 @@ public final class MessageMappingProcessorActor extends AbstractActor {
             return externalMessage.getHeaderMapping().map(mapping -> {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final String thingId = signal.getId();
-                final TopicPath topicPath = processor.extractTopicPath(signal);
 
                 final DittoHeadersBuilder dittoHeadersBuilder = dittoHeaders.toBuilder();
                 mapping.getMapping().entrySet().stream()
-                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                        .map(e -> newEntry(e.getKey(),
                                 PlaceholderFilter.apply(e.getValue(), dittoHeaders, HEADERS_PLACEHOLDER, true))
                         )
-                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
+                        .map(e -> newEntry(e.getKey(),
                                 PlaceholderFilter.apply(e.getValue(), thingId, THING_PLACEHOLDER, true))
                         )
-                        .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),
-                                PlaceholderFilter.apply(e.getValue(), topicPath, TOPIC_PLACEHOLDER, true))
+                        .map(e -> newEntry(e.getKey(),
+                                PlaceholderFilter.apply(e.getValue(),
+                                        externalMessage.getTopicPath()
+                                                .orElseThrow(
+                                                        () -> UnresolvedPlaceholderException.newBuilder(e.getValue())
+                                                                .build()),
+                                        TOPIC_PLACEHOLDER, true))
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));
 
@@ -429,6 +431,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 return newHeaders;
             }).orElse(signal.getDittoHeaders());
         }
-    }
 
+        private static Map.Entry<String, String> newEntry(final String key, final String value) {
+            return new AbstractMap.SimpleImmutableEntry<>(key, value);
+        }
+    }
 }

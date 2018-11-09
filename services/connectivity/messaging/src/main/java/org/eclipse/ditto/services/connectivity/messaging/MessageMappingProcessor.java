@@ -103,7 +103,7 @@ public final class MessageMappingProcessor {
      * @param message the message
      * @return the signal
      */
-    public Optional<Signal<?>> process(final ExternalMessage message) {
+    Optional<Signal<?>> process(final ExternalMessage message) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
         return withTimer(overAllProcessingTimer, () -> convertMessage(message, overAllProcessingTimer));
     }
@@ -114,20 +114,10 @@ public final class MessageMappingProcessor {
      * @param signal the signal
      * @return the message
      */
-    public Optional<ExternalMessage> process(final Signal<?> signal) {
+    Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
                 () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
-    }
-
-    /**
-     * Extracts/calculates the {@link TopicPath} from the passed {@code signal}.
-     *
-     * @param signal the signal to extract the TopicPath from.
-     * @return the extracted TopicPath
-     */
-    public TopicPath extractTopicPath(final Signal<?> signal) {
-        return protocolAdapter.toAdaptable(signal).getTopicPath();
     }
 
     private Optional<Signal<?>> convertMessage(final ExternalMessage message,
