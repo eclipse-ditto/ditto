@@ -51,12 +51,12 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     private static final String CRITERION_PLACEHOLDER = "criterion";
     private static final String ACTION_PLACEHOLDER = "action";
     private static final String SUBJECT_PLACEHOLDER = "subject";
-    private static final String ACTRION_OR_SUBJECT_PLACEHOLDER = "action|subject";
+    private static final String ACTION_OR_SUBJECT_PLACEHOLDER = "action|subject";
 
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
             Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITYID_PLACEHOLDER, GROUP_PLACEHOLDER,
                     CHANNEL_PLACEHOLDER, CRITERION_PLACEHOLDER, ACTION_PLACEHOLDER, SUBJECT_PLACEHOLDER,
-                    ACTRION_OR_SUBJECT_PLACEHOLDER));
+                    ACTION_OR_SUBJECT_PLACEHOLDER));
 
     private ImmutableTopicPathPlaceholder() {
     }
@@ -94,7 +94,7 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
                 return topicPath.getAction().map(TopicPath.Action::getName);
             case SUBJECT_PLACEHOLDER:
                 return topicPath.getSubject();
-            case ACTRION_OR_SUBJECT_PLACEHOLDER:
+            case ACTION_OR_SUBJECT_PLACEHOLDER:
                 // treat action|subject as synonyms:
                 return Optional.ofNullable(
                         topicPath.getSubject()
