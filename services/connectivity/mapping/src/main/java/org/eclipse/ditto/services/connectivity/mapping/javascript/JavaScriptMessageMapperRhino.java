@@ -79,7 +79,7 @@ final class JavaScriptMessageMapperRhino implements MessageMapper {
 
         try {
             // create scope once and load the required libraries in order to get best performance:
-            final Scriptable scope1 = (Scriptable) contextFactory.call(cx -> {
+            contextFactory.call(cx -> {
                 final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
                 initLibraries(cx, scope);
                 return scope;
