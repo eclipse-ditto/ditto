@@ -25,15 +25,6 @@ public interface ServiceConfigReader {
     ClusterConfigReader cluster();
 
     /**
-     * Get the index of this service instance.
-     *
-     * @return the instance index.
-     */
-    default String instanceIndex() {
-        return cluster().instanceIndex();
-    }
-
-    /**
      * Retrieve a health configuration reader.
      *
      * @return the health configuration of the service.

@@ -41,6 +41,7 @@ import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import akka.actor.ActorContext;
@@ -105,7 +106,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
-        final String instanceIndex = configReader.instanceIndex();
+        final String instanceIndex = ConfigUtil.instanceIdentifier();
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
