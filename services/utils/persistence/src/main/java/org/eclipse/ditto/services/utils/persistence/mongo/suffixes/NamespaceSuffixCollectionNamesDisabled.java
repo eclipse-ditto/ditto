@@ -10,10 +10,21 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
 
+import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
+
 /**
  * Class that does nothing for configuring Akka persistence MongoDB plugin suffix builder to do nothing.
  */
 @SuppressWarnings("unused")
-public final class NamespaceSuffixCollectionNamesDisabled {
-    // empty on purpose
+public final class NamespaceSuffixCollectionNamesDisabled implements CanSuffixCollectionNames {
+
+    @Override
+    public String getSuffixFromPersistenceId(final String persistenceId) {
+        return "";
+    }
+
+    @Override
+    public String validateMongoCharacters(final String input) {
+        return NamespaceSuffixCollectionNames.doValidateMongoCharacters(input);
+    }
 }
