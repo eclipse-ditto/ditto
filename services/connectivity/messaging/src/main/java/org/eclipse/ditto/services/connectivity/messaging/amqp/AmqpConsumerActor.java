@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
@@ -81,13 +82,15 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
 
     private AmqpConsumerActor(final String sourceAddress, final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement, @Nullable HeaderMapping headerMapping) {
-        this.sourceAddress = checkNotNull(sourceAddress, "source");
+            final ActorRef messageMappingProcessor, final Source source) {
+        this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.messageConsumer = checkNotNull(messageConsumer);
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
-        this.authorizationContext = authorizationContext;
-        this.headerMapping = headerMapping;
+        checkNotNull(source, "source");
+
+        authorizationContext = source.getAuthorizationContext();
+        final Enforcement enforcement = source.getEnforcement().orElse(null);
+        headerMapping = source.getHeaderMapping().orElse(null);
         addressMetric =
                 ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
                         0, null);
@@ -99,23 +102,20 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
-     * @param source the source of messages
+     * @param sourceAddress the source address of messages
      * @param messageConsumer the JMS message consumer
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
-     * @param authorizationContext the authorization context of this source
-     * @param headerMapping optional header mapping
+     * @param source the Source if the consumer
      * @return the Akka configuration Props object.
      */
-    static Props props(final String source, final MessageConsumer messageConsumer,
-            final ActorRef messageMappingProcessor, final AuthorizationContext authorizationContext,
-            @Nullable final Enforcement enforcement, @Nullable final HeaderMapping headerMapping) {
+    static Props props(final String sourceAddress, final MessageConsumer messageConsumer,
+            final ActorRef messageMappingProcessor, final Source source) {
         return Props.create(AmqpConsumerActor.class, new Creator<AmqpConsumerActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpConsumerActor create() {
-                return new AmqpConsumerActor(source, messageConsumer, messageMappingProcessor, authorizationContext,
-                        enforcement, headerMapping);
+                return new AmqpConsumerActor(sourceAddress, messageConsumer, messageMappingProcessor, source);
             }
         });
     }

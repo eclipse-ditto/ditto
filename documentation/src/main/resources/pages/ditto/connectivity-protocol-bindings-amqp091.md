@@ -42,6 +42,50 @@ incoming messages are processed. These subjects may contain placeholders, see
 }
 ```
 
+#### Enforcement
+
+{% include_relative connectivity-enforcement.md %}
+
+The following placeholders are available for the `input` field:
+
+| Placeholder    | Description  | Example   |
+|-----------|-------|---------------|
+| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device_id }}{%endraw%}`  |
+
+The following configuration demonstrates using an enforcement ensuring that the AMQP 0.9.1 header `device_id` matches a 
+set of whitelisted device ids:
+```json
+{
+  "addresses": [
+    "<queue_name>",
+    "..."
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."],
+  "enforcement": {
+    "input": "{%raw%}{{ header:device_id }}{%endraw%}",
+    "filters": [ "whitelisted-device-id-1", "whitelisted-device-id-2" ]
+  }
+}
+```
+
+#### Source header mapping
+
+For incoming AMQP 0.9.1 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+
+The JSON for an AMQP 0.9.1 source with header mapping could like this:
+```json
+{
+  "addresses": [
+    "<queue_name>"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "headerMapping": {
+    "correlation-id": "{%raw%}{{ header:message-id }}{%endraw%}",
+    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
+  }
+}
+```
+
 ### Target format
 
 An AMQP 0.9.1 connection requires the protocol configuration target object to have an `address` property with a combined
@@ -62,7 +106,7 @@ have READ permission on the Thing that is associated with a message.
     "_/_/things/twin/events",
     "_/_/things/live/messages"
   ],
-  "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+  "authorizationContext": ["ditto:outbound-auth-subject"]
 }
 ```
 
@@ -92,6 +136,26 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
+#### Target header mapping
+
+For outgoing AMQP 0.9.1 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+
+The JSON for an AMQP 0.9.1 target with header mapping could like this:
+```json
+{
+  "address": "<exchange_name>/<routing_key>",
+  "topics": [
+    "_/_/things/twin/events",
+    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "headerMapping": {
+    "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
+    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
+  }
 }
 ```
 

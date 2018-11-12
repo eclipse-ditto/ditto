@@ -62,21 +62,25 @@ The following placeholders are available for the `input` field:
 |-----------|-------|---------------|
 | `{%raw%}{{ source:address }}{%endraw%}` | The topic on which the message was received. | devices/sensors/temperature1  |
 
-##### Example of an enforcement configuration for MQTT sources
-
 Assuming a device `temperature1` publishes its telemetry data to an MQTT broker on topic `devices/sensors/temperature1`.
 The MQTT broker verifies that no other device is allowed to publish on this topic. To enforce that the device can 
 only send data to the Thing `sensors:temperature1` the following enforcement configuration can be used: 
 ```json
 {
+  "addresses": [ "devices/sensors/#" ],
+  "authorizationContext": ["ditto:inbound-auth-subject", "..."],
+  "qos": 1,
   "enforcement": {
     "input": "{%raw%}{{ source:address }}{%endraw%}",
     "filters": [ "{%raw%}devices/{{ thing:namespace }}/{{ thing:name }}{%endraw%}" ]
-  },
-  "addresses": [ "devices/sensors/#" ],
-  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
+  }
 }
 ```
+
+#### Source header mapping
+
+As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
+
 
 ### Target format
 
@@ -136,6 +140,10 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
 }
 ```
+
+#### Target header mapping
+
+As MQTT 3.1.1 does not support headers in its protocol, a [header mapping](connectivity-header-mapping.html) is not possible to configure here.
 
 
 ## Establishing a connection to an MQTT 3.1.1 endpoint

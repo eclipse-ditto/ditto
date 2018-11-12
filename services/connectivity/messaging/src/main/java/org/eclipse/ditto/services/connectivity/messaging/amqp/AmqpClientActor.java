@@ -36,14 +36,11 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -333,11 +330,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final AuthorizationContext authorizationContext = consumer.getSource().getAuthorizationContext();
-        final Enforcement enforcement = consumer.getSource().getEnforcement().orElse(null);
-        final HeaderMapping headerMapping = consumer.getSource().getHeaderMapping().orElse(null);
         final Props props = AmqpConsumerActor.props(consumer.getAddress(), consumer.getMessageConsumer(),
-                messageMappingProcessor, authorizationContext, enforcement, headerMapping);
+                messageMappingProcessor, consumer.getSource());
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);
