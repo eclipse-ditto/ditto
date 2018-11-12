@@ -92,6 +92,7 @@ public final class HttpRequestActor extends AbstractActor {
     private final Receive commandResponseAwaiting;
 
     private java.time.Duration messageTimeout;
+    private boolean isFireAndForgetMessage = false;
 
     private HttpRequestActor(final ActorRef proxyActor, final HeaderTranslator headerTranslator,
             final HttpRequest request,
@@ -333,7 +334,8 @@ public final class HttpRequestActor extends AbstractActor {
                     getContext().become(commandResponseAwaiting);
 
                     messageTimeout = message.getTimeout().orElse(null);
-                    if (messageTimeout != null && !isFireAndForgetMessage(command)) {
+                    isFireAndForgetMessage = isFireAndForgetMessage(command);
+                    if (messageTimeout != null && !isFireAndForgetMessage) {
                         getContext().setReceiveTimeout(Duration.apply(messageTimeout.getSeconds(), TimeUnit.SECONDS));
                     }
                 })
@@ -442,7 +444,7 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
-        if (messageTimeout != null) {
+        if (messageTimeout != null && !isFireAndForgetMessage) {
             logger.info("Got ReceiveTimeout when a message response was expected: {}", receiveTimeout);
             final MessageTimeoutException mte = new MessageTimeoutException(messageTimeout.getSeconds());
             completeWithResult(HttpResponse.create().withStatus(mte.getStatusCode().toInt())
