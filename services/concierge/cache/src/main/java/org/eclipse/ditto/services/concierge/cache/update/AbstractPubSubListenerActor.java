@@ -38,10 +38,10 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
      */
     protected AbstractPubSubListenerActor(final ActorRef pubSubMediator,
             final Set<String> eventTopics,
-            final int instanceIndex) {
+            final String instanceIndex) {
         requireNonNull(eventTopics);
 
-        final String group = getSelf().path().name() + instanceIndex;
+        final String group = getSelf().path().name() + "-" + instanceIndex;
         eventTopics.forEach(topic -> {
             log.info("Subscribing for pub/sub topic <{}> with group <{}>", topic, group);
             pubSubMediator.tell(subscribe(topic, group), getSelf());

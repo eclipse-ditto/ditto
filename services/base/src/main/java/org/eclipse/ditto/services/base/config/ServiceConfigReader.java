@@ -29,7 +29,7 @@ public interface ServiceConfigReader {
      *
      * @return the instance index.
      */
-    default int instanceIndex() {
+    default String instanceIndex() {
         return cluster().instanceIndex();
     }
 

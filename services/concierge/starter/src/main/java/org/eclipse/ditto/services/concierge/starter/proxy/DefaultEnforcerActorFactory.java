@@ -105,7 +105,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
-        final int instanceIndex = configReader.instanceIndex();
+        final String instanceIndex = configReader.instanceIndex();
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
