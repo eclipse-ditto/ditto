@@ -38,9 +38,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
-import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.models.connectivity.placeholder.HeadersPlaceholder;
@@ -87,7 +86,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private final Function<ExternalMessage, ExternalMessage> placeholderSubstitution;
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
-    private final BiFunction<ExternalMessage, Signal<?>, DittoHeaders> mapHeaders;
+    private final Function<InboundExternalMessage, DittoHeaders> mapHeaders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
@@ -154,14 +153,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         log.debug("Handling ExternalMessage: {}", externalMessage);
         try {
             final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
-            final Optional<Signal<?>> signalOpt = processor.process(messageWithAuthSubject);
-            signalOpt.ifPresent(signal -> {
+            final Optional<InboundExternalMessage> inboundMessageOpt = processor.process(messageWithAuthSubject);
+            inboundMessageOpt.ifPresent(inboundMessage -> {
+                final Signal<?> signal = inboundMessage.getSignal();
                 enhanceLogUtil(signal);
                 applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
                 final Signal<?> adjustedSignal = mapHeaders
                         .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
                         .andThen(signal::setDittoHeaders)
-                        .apply(messageWithAuthSubject, signal);
+                        .apply(inboundMessage);
 
                 startTrace(adjustedSignal);
                 // This message is important to check if a command is accepted for a specific connection, as this
@@ -389,7 +389,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     /**
      * Helper class applying the {@link org.eclipse.ditto.model.connectivity.HeaderMapping}.
      */
-    static final class ApplyHeaderMapping implements BiFunction<ExternalMessage, Signal<?>, DittoHeaders> {
+    static final class ApplyHeaderMapping implements Function<InboundExternalMessage, DittoHeaders> {
 
         private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
         private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
@@ -402,7 +402,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
 
         @Override
-        public DittoHeaders apply(final ExternalMessage externalMessage, final Signal<?> signal) {
+        public DittoHeaders apply(final InboundExternalMessage inboundExternalMessage) {
+            final Signal<?> signal = inboundExternalMessage.getSignal();
+            final ExternalMessage externalMessage = inboundExternalMessage.getSource();
             return externalMessage.getHeaderMapping().map(mapping -> {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final String thingId = signal.getId();
@@ -417,10 +419,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         )
                         .map(e -> newEntry(e.getKey(),
                                 PlaceholderFilter.apply(e.getValue(),
-                                        externalMessage.getTopicPath()
-                                                .orElseThrow(
-                                                        () -> UnresolvedPlaceholderException.newBuilder(e.getValue())
-                                                                .build()),
+                                        inboundExternalMessage.getTopicPath(),
                                         TOPIC_PLACEHOLDER, true))
                         )
                         .forEach(e -> dittoHeadersBuilder.putHeader(e.getKey(), e.getValue()));

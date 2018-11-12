@@ -30,6 +30,8 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -103,7 +105,7 @@ public final class MessageMappingProcessor {
      * @param message the message
      * @return the signal
      */
-    Optional<Signal<?>> process(final ExternalMessage message) {
+    Optional<InboundExternalMessage> process(final ExternalMessage message) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
         return withTimer(overAllProcessingTimer, () -> convertMessage(message, overAllProcessingTimer));
     }
@@ -120,7 +122,7 @@ public final class MessageMappingProcessor {
                 () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
     }
 
-    private Optional<Signal<?>> convertMessage(final ExternalMessage message,
+    private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
             final StartedTimer overAllProcessingTimer) {
         checkNotNull(message);
 
@@ -131,10 +133,10 @@ public final class MessageMappingProcessor {
 
             return adaptableOpt.map(adaptable -> {
                 enhanceLogFromAdaptable(adaptable);
-
-                return this.<Signal<?>>withTimer(
+                final Signal<?> signal = this.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> protocolAdapter.fromAdaptable(adaptable));
+                return MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal);
             });
         } catch (final DittoRuntimeException e) {
             throw e;
