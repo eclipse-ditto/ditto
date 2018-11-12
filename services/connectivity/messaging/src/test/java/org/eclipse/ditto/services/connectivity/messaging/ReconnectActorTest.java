@@ -16,8 +16,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.awaitility.Awaitility;
-import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -26,7 +24,6 @@ import org.junit.Test;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.pubsub.DistributedPubSub;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -89,7 +86,7 @@ public final class ReconnectActorTest {
                             ConnectionActor.PERSISTENCE_ID_PREFIX + "connection-3")));
 
             final ActorRef reconnectActor = actorSystem.actorOf(props);
-            reconnectActor.tell(ReconnectActor.ReconnectConnections.INSTANCE, getRef());
+            reconnectActor.tell(ReconnectActor.ReconnectMessages.START_RECONNECT, getRef());
 
             probe.expectMsgClass(RetrieveConnectionStatus.class);
             probe.expectMsgClass(RetrieveConnectionStatus.class);
