@@ -57,6 +57,22 @@ public interface AuthorizationContext
     List<AuthorizationSubject> getAuthorizationSubjects();
 
     /**
+     * Adds the given authorization subjects at the beginning of the list.
+     *
+     * @param authorizationSubjects the authorization subjects to be added
+     * @return a new authorization context with the given {@code authorizationSubjects} added at the beginning.
+     */
+    AuthorizationContext addHead(List<AuthorizationSubject> authorizationSubjects);
+
+    /**
+     * Adds the given authorization subjects at the end of the list.
+     *
+     * @param authorizationSubjects the authorization subjects to be added
+     * @return a new authorization context with the given {@code authorizationSubjects} added at the end.
+     */
+    AuthorizationContext addTail(List<AuthorizationSubject> authorizationSubjects);
+
+    /**
      * This convenience method returns a list containing the IDs of all AuthorizationSubjects of this context. Changes
      * on the returned list have no influence on this context object.
      *

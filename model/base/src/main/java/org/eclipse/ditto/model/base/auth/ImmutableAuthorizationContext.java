@@ -118,6 +118,30 @@ final class ImmutableAuthorizationContext implements AuthorizationContext {
     }
 
     @Override
+    public AuthorizationContext addHead(final List<AuthorizationSubject> authorizationSubjects) {
+        checkNotNull(authorizationSubjects, "authorizationSubjects");
+
+        final List<AuthorizationSubject> newAuthorizationSubjects =
+                new ArrayList<>(this.authorizationSubjects.size() + authorizationSubjects.size());
+        newAuthorizationSubjects.addAll(authorizationSubjects);
+        newAuthorizationSubjects.addAll(this.authorizationSubjects);
+
+        return new ImmutableAuthorizationContext(newAuthorizationSubjects);
+    }
+
+    @Override
+    public AuthorizationContext addTail(final List<AuthorizationSubject> authorizationSubjects) {
+        checkNotNull(authorizationSubjects, "authorizationSubjects");
+
+        final List<AuthorizationSubject> newAuthorizationSubjects =
+                new ArrayList<>(this.authorizationSubjects.size() + authorizationSubjects.size());
+        newAuthorizationSubjects.addAll(this.authorizationSubjects);
+        newAuthorizationSubjects.addAll(authorizationSubjects);
+
+        return new ImmutableAuthorizationContext(newAuthorizationSubjects);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
