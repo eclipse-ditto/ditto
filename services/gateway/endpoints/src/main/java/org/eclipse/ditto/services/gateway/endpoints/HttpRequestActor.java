@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -45,7 +46,6 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.actor.Status;
@@ -67,7 +67,6 @@ import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
 import scala.concurrent.duration.Duration;
-import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
 
 /**
@@ -84,14 +83,11 @@ public final class HttpRequestActor extends AbstractActor {
     private static final ContentType CONTENT_TYPE_JSON = ContentTypes.APPLICATION_JSON;
     private static final ContentType CONTENT_TYPE_TEXT = ContentTypes.TEXT_PLAIN_UTF8;
 
-    private static final String AKKA_HTTP_SERVER_REQUEST_TIMEOUT = "akka.http.server.request-timeout";
-
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
 
     private final ActorRef proxyActor;
     private final HeaderTranslator headerTranslator;
     private final CompletableFuture<HttpResponse> httpResponseFuture;
-    private final Cancellable serverRequestTimeoutCancellable;
     private final java.time.Duration serverRequestTimeout;
     private final Receive commandResponseAwaiting;
 
@@ -105,11 +101,8 @@ public final class HttpRequestActor extends AbstractActor {
         this.httpResponseFuture = httpResponseFuture;
 
         final Config config = getContext().system().settings().config();
-        serverRequestTimeout = config.getDuration(AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
-        serverRequestTimeoutCancellable = getContext().system().scheduler().scheduleOnce
-                (FiniteDuration.apply(serverRequestTimeout.toNanos(), TimeUnit.NANOSECONDS), getSelf(),
-                        ServerRequestTimeoutMessage.INSTANCE,
-                        getContext().dispatcher(), null);
+        serverRequestTimeout = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
+        getContext().setReceiveTimeout(serverRequestTimeout);
 
         // wrap JsonRuntimeExceptions
         commandResponseAwaiting = ReceiveBuilder.create()
@@ -176,13 +169,7 @@ public final class HttpRequestActor extends AbstractActor {
                     handleDittoRuntimeException(dre);
                 })
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
-                .match(ReceiveTimeout.class, receiveTimeout -> {
-                    logger.info("Got ReceiveTimeout when a response was expected: '{}'", receiveTimeout);
-                    final MessageTimeoutException mte =
-                            new MessageTimeoutException(messageTimeout != null ? messageTimeout.getSeconds() : 0);
-                    completeWithResult(HttpResponse.create().withStatus(mte.getStatusCode().toInt())
-                            .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(mte.toJsonString())));
-                })
+                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     logger.warning("Got AskTimeoutException when a command response was expected: '{}'",
                             failure.cause().getMessage());
@@ -198,8 +185,6 @@ public final class HttpRequestActor extends AbstractActor {
                             failure.cause().getMessage());
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
-                .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
-                        serverRequestTimeoutMessage -> handleServerRequestTimeout())
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a command response: {}", m);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
@@ -334,15 +319,6 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     @Override
-    public void postStop() throws Exception {
-        super.postStop();
-
-        if (serverRequestTimeoutCancellable != null) {
-            serverRequestTimeoutCancellable.cancel();
-        }
-    }
-
-    @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(MessageCommand.class, command -> { // receive MessageCommands
@@ -385,8 +361,7 @@ public final class HttpRequestActor extends AbstractActor {
                     }
                 })
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
-                .matchEquals(ServerRequestTimeoutMessage.INSTANCE,
-                        serverRequestTimeoutMessage -> handleServerRequestTimeout())
+                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
                 .match(Command.class, command -> { // receive Commands
                     logger.debug("Got 'Command' message, telling the targetActor about it");
 
@@ -466,10 +441,17 @@ public final class HttpRequestActor extends AbstractActor {
         return enhanceResponseWithExternalDittoHeaders(httpResponse, messageCommandResponse.getDittoHeaders());
     }
 
-    private void handleServerRequestTimeout() {
-        logger.warning("No response within server request timeout ({}), shutting actor down.",
-                serverRequestTimeout);
-        // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
+    private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+        if (messageTimeout != null) {
+            logger.info("Got ReceiveTimeout when a message response was expected: {}", receiveTimeout);
+            final MessageTimeoutException mte = new MessageTimeoutException(messageTimeout.getSeconds());
+            completeWithResult(HttpResponse.create().withStatus(mte.getStatusCode().toInt())
+                    .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(mte.toJsonString())));
+        } else {
+            logger.warning("No response within server request timeout ({}), shutting actor down.",
+                    serverRequestTimeout);
+            // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
+        }
         stop();
     }
 
@@ -525,14 +507,6 @@ public final class HttpRequestActor extends AbstractActor {
         logger.clearMDC();
         // destroy ourself:
         getContext().stop(getSelf());
-    }
-
-    private static final class ServerRequestTimeoutMessage {
-
-        private static final ServerRequestTimeoutMessage INSTANCE = new ServerRequestTimeoutMessage();
-
-        private ServerRequestTimeoutMessage() {}
-
     }
 
 }
