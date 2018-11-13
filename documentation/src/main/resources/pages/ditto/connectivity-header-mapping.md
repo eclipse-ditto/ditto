@@ -11,6 +11,12 @@ messages can be mapped to and from internal DittoHeaders.
 That way the headers can be passed through Ditto or defined DittoHeaders like for example `correlation-id` may be 
 mapped to a header used for message correlation in the external system.
 
+A header mapping can be defined individually for every source and target of a connection. For examples of a definition 
+see [source header mapping](connectivity-protocol-bindings-amqp091.html#source-header-mapping) 
+and [target header mapping](connectivity-protocol-bindings-amqp091.html#target-header-mapping) for AMQP 0.9.1 connections
+or [source header mapping](connectivity-protocol-bindings-amqp10.html#source-header-mapping) 
+and [target header mapping](connectivity-protocol-bindings-amqp10.html#target-header-mapping) for AMQP 1.0 connections.
+
 ## Supported placeholders
 
 The already defined [placeholders of connections](basic-connections.html#placeholders) are supported inside header
