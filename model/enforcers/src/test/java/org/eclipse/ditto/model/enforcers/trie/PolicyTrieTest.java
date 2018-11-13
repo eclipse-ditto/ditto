@@ -16,15 +16,18 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.enforcers.TestConstants;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.Resource;
@@ -78,7 +81,8 @@ public final class PolicyTrieTest {
                         PoliciesModelFactory.newSubjects(
                                 PoliciesModelFactory.newSubject(johnTitor)),
                         Resources.newInstance(
-                                Resource.newInstance(ResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE, fooResourcePath),
+                                Resource.newInstance(
+                                        ResourceKey.newInstance(TestConstants.Policy.RESOURCE_TYPE, fooResourcePath),
                                         EffectedPermissions.newInstance(Collections.singleton("READ"),
                                                 Collections.singleton("WRITE"))),
                                 Resource.newInstance(barResourceKey,
@@ -181,7 +185,8 @@ public final class PolicyTrieTest {
         fooNodeGrantMap.put("WRITE", Collections.singletonMap(subjectId, 0));
         final PermissionSubjectsMap fooNodeRevokeMap = new PermissionSubjectsMap();
         fooNodeRevokeMap.put("WRITE", Collections.singletonMap(anotherSubjectId, 0));
-        final GrantRevokeIndex expectedFooNodeGrantRevokeIndex = new GrantRevokeIndex(fooNodeGrantMap, fooNodeRevokeMap);
+        final GrantRevokeIndex expectedFooNodeGrantRevokeIndex =
+                new GrantRevokeIndex(fooNodeGrantMap, fooNodeRevokeMap);
 
         final PermissionSubjectsMap barNodeGrantMap = new PermissionSubjectsMap();
         barNodeGrantMap.put("READ", Collections.singletonMap(subjectId, 0));
@@ -189,7 +194,8 @@ public final class PolicyTrieTest {
         final PermissionSubjectsMap barNodeRevokeMap = new PermissionSubjectsMap();
         barNodeRevokeMap.put("READ", Collections.singletonMap(anotherSubjectId, 0));
         barNodeRevokeMap.put("WRITE", Collections.singletonMap(anotherSubjectId, -1));
-        final GrantRevokeIndex expectedBarNodeGrantRevokeIndex = new GrantRevokeIndex(barNodeGrantMap, barNodeRevokeMap);
+        final GrantRevokeIndex expectedBarNodeGrantRevokeIndex =
+                new GrantRevokeIndex(barNodeGrantMap, barNodeRevokeMap);
 
         // ACT
         final PolicyTrie transitiveClosure = underTest.getTransitiveClosure();
@@ -207,6 +213,15 @@ public final class PolicyTrieTest {
         assertThat(getGrantRevokeIndex(barNodeOptional))
                 .as("GrantRevokeIndex of bar node is expected")
                 .isEqualTo(expectedBarNodeGrantRevokeIndex);
+    }
+
+    @Test
+    public void buildJsonViewOfNullValue() {
+        final JsonObject createdJsonView =
+                underTest.buildJsonView(JsonFactory.nullObject(), new HashSet<>(), Permissions.none());
+        final JsonObject expectedJsonView = JsonFactory.nullObject();
+
+        assertThat(createdJsonView).isEqualTo(expectedJsonView);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
