@@ -103,7 +103,6 @@ public interface Enforcer {
      * @return A Set containing the subject ids with partial permissions on the passed resourceKey or any other
      * resources in the hierarchy below.
      * @throws NullPointerException if any argument is {@code null}.
-     *
      */
     default Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
             final String permission, final String... furtherPermissions) {
@@ -241,9 +240,7 @@ public interface Enforcer {
         final boolean isAuthorizationSubjectRelevant =
                 hasPartialPermissions(rootResourceKey, authorizationContext, permissions);
         if (isAuthorizationSubjectRelevant) {
-            final JsonObject inputJsonObject = JsonFactory.newObjectBuilder()
-                    .setAll(jsonFields)
-                    .build();
+            final JsonObject inputJsonObject = JsonFactory.newObject(jsonFields);
             final JsonObject whitelistedJsonView = inputJsonObject.get(whiteList);
             return new JsonObjectMerger().apply(whitelistedJsonView, enforcedJsonView);
         } else {
