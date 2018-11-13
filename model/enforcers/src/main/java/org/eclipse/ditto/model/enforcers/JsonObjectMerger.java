@@ -45,6 +45,10 @@ final class JsonObjectMerger implements BiFunction<JsonObject, JsonObject, JsonO
     private static JsonObject mergeJsonObjects(final JsonObject object1, final JsonObject object2) {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
 
+        if(object1.isNull() && object2.isNull()) {
+            return JsonFactory.nullObject();
+        }
+
         // add fields of jsonObject1
         object1.forEach(jsonField -> {
             final JsonKey key = jsonField.getKey();
