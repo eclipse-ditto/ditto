@@ -234,6 +234,10 @@ final class PolicyTrie {
 
         final PolicyTrie defaultPolicyTrie = new PolicyTrie(grantRevokeIndex, Collections.emptyMap());
 
+        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
+            return (JsonObject) jsonFields;
+        }
+
         final JsonObjectBuilder outputObjectBuilder = JsonFactory.newObjectBuilder();
         for (final JsonField field : jsonFields) {
             final JsonValue jsonView = getViewForJsonFieldOrNull(field, defaultPolicyTrie, subjectIds, permissions);
