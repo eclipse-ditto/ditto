@@ -52,8 +52,6 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
 
     private static final String ROOT_RESOURCE = "/";
 
-    private static final JsonKey THING_ID_FIELD = JsonFactory.newKey("thingId");
-
     /**
      * Maps subject ID to {@link SubjectNode} whose children are {@link ResourceNode} for which the subject is granted
      * or revoked access. The child-set of each {@link SubjectNode} is effectively a map from resources to permissions.
@@ -235,6 +233,11 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final EffectedResources effectedResources = getGrantedAndRevokedSubResource(
                 JsonFactory.newPointer(ROOT_RESOURCE), resourceKey.getResourceType(), authorizationSubjectIds,
                 permissions);
+
+        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
+            return JsonFactory.nullObject();
+        }
+
         final List<PointerAndValue> flatPointers = new ArrayList<>();
         jsonFields.forEach(jsonField -> collectFlatPointers(jsonField.getKey().asPointer(), jsonField, flatPointers));
         final Set<JsonPointer> grantedResources = extractJsonPointers(effectedResources.getGrantedResources());
