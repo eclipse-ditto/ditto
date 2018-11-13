@@ -15,9 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -28,6 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -40,6 +39,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetailsResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsResponse;
 
 import akka.actor.AbstractActor;
@@ -144,10 +144,6 @@ public final class StatisticsActor extends AbstractActor {
         return shardStatisticsMap;
     }
 
-    private static String ensureNonemptyString(final String possiblyEmptyString) {
-        return possiblyEmptyString.isEmpty() ? EMPTY_STRING_TAG : possiblyEmptyString;
-    }
-
     @Override
     public Receive createReceive() {
         // ignore - the message is too late
@@ -168,16 +164,16 @@ public final class StatisticsActor extends AbstractActor {
                     final ActorRef self = getSelf();
                     final ActorRef sender = getSender();
                     becomeStatisticsAwaiting(statistics ->
-                                sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
-                                        retrieveStatistics.getDittoHeaders()), self)
+                            sender.tell(RetrieveStatisticsResponse.of(statistics.toJson(),
+                                    retrieveStatistics.getDittoHeaders()), self)
                     );
                 })
                 .match(RetrieveStatisticsDetails.class, retrieveStatistics -> {
 
-                    tellRootActorToGetShardRegionState(THINGS_ROOT);
-                    tellRootActorToGetShardRegionState(POLICIES_ROOT);
-                    tellRootActorToGetShardRegionState(CONCIERGE_ROOT);
-                    tellRootActorToGetShardRegionState(SEARCH_UPDATER_ROOT);
+                    tellRootActorToRetrieveStatistics(THINGS_ROOT, retrieveStatistics);
+                    tellRootActorToRetrieveStatistics(POLICIES_ROOT, retrieveStatistics);
+                    tellRootActorToRetrieveStatistics(CONCIERGE_ROOT, retrieveStatistics);
+                    tellRootActorToRetrieveStatistics(SEARCH_UPDATER_ROOT, retrieveStatistics);
 
                     final ActorRef self = getSelf();
                     final ActorRef sender = getSender();
@@ -199,9 +195,10 @@ public final class StatisticsActor extends AbstractActor {
         tellShardRegionToSendClusterShardingStats(SR_SEARCH_UPDATER);
     }
 
-    private void tellRootActorToGetShardRegionState(final String rootActorPath) {
-        pubSubMediator.tell(new DistributedPubSubMediator.SendToAll(
-                rootActorPath, ShardRegion.getShardRegionStateInstance(), false), getSelf());
+    private void tellRootActorToRetrieveStatistics(final String rootActorPath,
+            final RetrieveStatisticsDetails retrieveStatistics) {
+        pubSubMediator.tell(new DistributedPubSubMediator.SendToAll(rootActorPath, retrieveStatistics, false),
+                getSelf());
     }
 
     private void tellShardRegionToSendClusterShardingStats(final String shardRegion) {
@@ -232,7 +229,8 @@ public final class StatisticsActor extends AbstractActor {
                                 currentStatistics.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
                 )
                 .match(ShardRegion.ClusterShardingStats.class, clusterShardingStats -> {
-                    final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
+                    final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap,
+                            getSender().path().name());
                     final Map<Address, ShardRegion.ShardRegionStats> regions = clusterShardingStats.getRegions();
                     shardStatistics.count = regions.isEmpty() ? 0 : regions.values().stream()
                             .mapToInt(shardRegionStats -> shardRegionStats.getStats().isEmpty() ? 0 :
@@ -270,40 +268,30 @@ public final class StatisticsActor extends AbstractActor {
                         retrieveStatistics -> getSender().tell(RetrieveStatisticsResponse.of(
                                 currentStatisticsDetails.toJson(), retrieveStatistics.getDittoHeaders()), getSelf())
                 )
-                .match(ShardRegion.CurrentShardRegionState.class, currentShardRegionState -> {
-                    final ShardStatisticsWrapper shardStatistics = getShardStatistics(shardStatisticsMap);
-                    final Map<String, Long> shards = currentShardRegionState.getShards()
+                .match(RetrieveStatisticsDetailsResponse.class, retrieveStatisticsDetailsResponse -> {
+                    final String shardRegion = retrieveStatisticsDetailsResponse.getStatisticsDetails()
                             .stream()
-                            .map(ShardRegion.ShardState::getEntityIds)
-                            .flatMap(strSet -> strSet.stream()
-                                    .map(str -> {
-                                        // groupKey may be either namespace or resource-type+namespace (in case of concierge)
-                                        final String[] groupKeys = str.split(":", 3);
-                                        // assume String.split(String, int) may not return an empty array
-                                        switch (groupKeys.length) {
-                                            case 0:
-                                                // should not happen with Java 8 strings, but just in case
-                                                return EMPTY_STRING_TAG;
-                                            case 1:
-                                            case 2:
-                                                // normal: namespace
-                                                return ensureNonemptyString(groupKeys[0]);
-                                            default:
-                                                // concierge: resource-type + namespace
-                                                return groupKeys[0] + ":" + groupKeys[1];
-                                        }
-                                    })
-                            )
-                            .collect(Collectors.groupingBy(Function.identity(),
-                                    Collectors.mapping(Function.identity(), Collectors.counting())));
+                            .findFirst()
+                            .map(JsonField::getKeyName)
+                            .orElse(null);
 
-                    shards.forEach((key, value) -> {
-                        if (shardStatistics.hotnessMap.containsKey(key)) {
-                            shardStatistics.hotnessMap.put(key, shardStatistics.hotnessMap.get(key) + value);
-                        } else {
-                            shardStatistics.hotnessMap.put(key, value);
-                        }
-                    });
+                    if (shardRegion != null) {
+                        final ShardStatisticsWrapper shardStatistics =
+                                getShardStatistics(shardStatisticsMap, shardRegion);
+
+                        retrieveStatisticsDetailsResponse.getStatisticsDetails().getValue(shardRegion)
+                                .map(JsonValue::asObject)
+                                .map(JsonObject::stream)
+                                .ifPresent(namespaceEntries -> namespaceEntries.forEach(field -> {
+                                    if (shardStatistics.hotnessMap.containsKey(field.getKeyName())) {
+                                        shardStatistics.hotnessMap.put(field.getKeyName(),
+                                                shardStatistics.hotnessMap.get(field.getKeyName()) +
+                                                        field.getValue().asLong());
+                                    } else {
+                                        shardStatistics.hotnessMap.put(field.getKeyName(), field.getValue().asLong());
+                                    }
+                                }));
+                    }
                 })
                 .match(AskTimeoutException.class, askTimeout -> {
                     currentStatisticsDetails = new StatisticsDetails(
@@ -320,8 +308,10 @@ public final class StatisticsActor extends AbstractActor {
         );
     }
 
-    private ShardStatisticsWrapper getShardStatistics(final Map<String, ShardStatisticsWrapper> shardStatisticsMap) {
-        ShardStatisticsWrapper shardStatistics = shardStatisticsMap.get(getSender().path().name());
+    private ShardStatisticsWrapper getShardStatistics(final Map<String, ShardStatisticsWrapper> shardStatisticsMap,
+            final String shardRegion) {
+
+        ShardStatisticsWrapper shardStatistics = shardStatisticsMap.get(shardRegion);
         if (shardStatistics == null) {
             if (getSender().path().toStringWithoutAddress().contains(SR_SEARCH_UPDATER)) {
                 shardStatistics = shardStatisticsMap.get(SR_SEARCH_UPDATER);
@@ -548,7 +538,8 @@ public final class StatisticsActor extends AbstractActor {
 
     }
 
-    private static class InternalRetrieveStatistics{
+    private static class InternalRetrieveStatistics {
+
         private InternalRetrieveStatistics() {
             // no-op
         }

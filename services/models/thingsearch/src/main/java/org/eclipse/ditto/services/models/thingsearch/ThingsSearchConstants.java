@@ -39,7 +39,7 @@ public final class ThingsSearchConstants {
     /**
      * Path of the updater root actor.
      */
-    public static final String UPDATER_ROOT_ACTOR_PATH = USER_PATH + "/searchUpdaterRoot";
+    public static final String UPDATER_ROOT_ACTOR_PATH = ROOT_ACTOR_PATH + "/searchUpdaterRoot";
 
     /**
      * Path of the search actor.

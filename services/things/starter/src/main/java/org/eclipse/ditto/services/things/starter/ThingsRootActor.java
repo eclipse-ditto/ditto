@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshott
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.typesafe.config.Config;
 
@@ -54,7 +56,6 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -64,6 +65,7 @@ import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -135,8 +137,7 @@ final class ThingsRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final ActorRef thingsShardRegion;
-
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
     private ThingsRootActor(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
@@ -152,11 +153,14 @@ final class ThingsRootActor extends AbstractActor {
                 ClusterShardingSettings.create(getContext().system())
                         .withRole(ThingsMessagingConstants.CLUSTER_ROLE);
 
-        thingsShardRegion = ClusterSharding.get(getContext().system())
+        final ActorRef thingsShardRegion = ClusterSharding.get(getContext().system())
                 .start(ThingsMessagingConstants.SHARD_REGION,
                         thingSupervisorProps,
                         shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+
+        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
+                ThingsMessagingConstants.SHARD_REGION, log);
 
         final HealthConfigReader healthConfig = configReader.health();
         final HealthCheckingActorOptions.Builder hcBuilder =
@@ -245,13 +249,18 @@ final class ThingsRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        thingsShardRegion.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
+        log.info("Sending the namespace stats of the things shard as requested..");
+        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {

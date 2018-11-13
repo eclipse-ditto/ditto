@@ -47,7 +47,6 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.cluster.sharding.ShardRegion;
 import akka.pattern.CircuitBreaker;
 import akka.stream.javadsl.Source;
 import akka.testkit.TestProbe;
@@ -135,17 +134,6 @@ public class ThingsUpdaterTest {
             expectShardedMessage(shardMessageReceiver, message, message.getEntityId());
         }};
     }
-
-    @Test
-    public void shardRegionStateIsForwarded() {
-        final ShardRegion.GetShardRegionState$ shardRegionState = ShardRegion.getShardRegionStateInstance();
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = createThingsUpdater();
-            underTest.tell(shardRegionState, getRef());
-            shardMessageReceiver.expectMsg(shardRegionState);
-        }};
-    }
-
 
     private void expectShardedMessage(final TestProbe probe, final Jsonifiable event, final String id) {
         final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);

@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
@@ -24,6 +23,7 @@ import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -36,7 +36,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.Logging;
@@ -87,8 +86,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final Duration resetTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET);
         final CircuitBreaker circuitBreaker =
                 new CircuitBreaker(getContext().dispatcher(), getContext().system().scheduler(), maxFailures,
-                        scala.concurrent.duration.Duration.create(callTimeout.getSeconds(), TimeUnit.SECONDS),
-                        scala.concurrent.duration.Duration.create(resetTimeout.getSeconds(), TimeUnit.SECONDS));
+                        callTimeout, resetTimeout);
         circuitBreaker.onOpen(() -> log.warning(
                 "The circuit breaker for this search updater instance is open which means that all ThingUpdaters" +
                         " won't process any messages until the circuit breaker is closed again"));
@@ -214,8 +212,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        thingsUpdaterActor.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, cmd -> thingsUpdaterActor.forward(cmd, getContext()))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);

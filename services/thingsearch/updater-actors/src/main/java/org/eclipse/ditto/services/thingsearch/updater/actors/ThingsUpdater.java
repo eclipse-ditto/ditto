@@ -21,9 +21,12 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -34,12 +37,12 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.event.Logging;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.CircuitBreaker;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
@@ -61,6 +64,7 @@ final class ThingsUpdater extends AbstractActor {
     private final ActorRef shardRegion;
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
     private ThingsUpdater(final int numberOfShards,
             final ShardRegionFactory shardRegionFactory,
@@ -86,6 +90,9 @@ final class ThingsUpdater extends AbstractActor {
         shardRegion = shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps);
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         materializer = ActorMaterializer.create(getContext());
+
+        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(shardRegion,
+                ThingsSearchConstants.SHARD_REGION, log);
 
         if (eventProcessingActive) {
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
@@ -127,8 +134,7 @@ final class ThingsUpdater extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        shardRegion.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
@@ -138,6 +144,12 @@ final class ThingsUpdater extends AbstractActor {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
+        log.info("Sending the namespace stats of the search-updater shard as requested..");
+        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private void processThingTag(final ThingTag thingTag) {
