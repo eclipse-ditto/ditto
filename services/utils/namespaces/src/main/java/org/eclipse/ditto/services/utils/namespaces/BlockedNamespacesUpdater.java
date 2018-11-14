@@ -24,6 +24,7 @@ import org.eclipse.ditto.signals.commands.namespaces.UnblockNamespaceResponse;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -41,6 +42,10 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
 
         // register self for pub-sub on restart
         pubSubMediator.tell(new Put(getSelf()), getSelf());
+
+        // subscribe to namespace-blocking commands
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(BlockNamespace.TYPE, getSelf()), getSelf());
+        pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(UnblockNamespace.TYPE, getSelf()), getSelf());
     }
 
     /**
@@ -59,6 +64,8 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(BlockNamespace.class, this::blockNamespace)
                 .match(UnblockNamespace.class, this::unblockNamespace)
+                .match(DistributedPubSubMediator.SubscribeAck.class, subscribeAck ->
+                        log.info("Got SubscribeAck <{}>", subscribeAck))
                 .matchAny(message -> {
                     log.warning("Unhandled message <{}>", message);
                     unhandled(message);

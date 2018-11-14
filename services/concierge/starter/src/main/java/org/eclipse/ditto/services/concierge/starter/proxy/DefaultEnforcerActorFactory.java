@@ -143,17 +143,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
 
         return withDittoHeaders -> BlockNamespaceBehavior.of(blockedNamespaces)
                 .block(withDittoHeaders)
-                .thenCompose(placeholderSubstitution)
-                .exceptionally(throwable -> {
-                    if (throwable instanceof NamespaceBlockedException) {
-                        final String description = String.format("Please try again after %s.",
-                                devOpsConfigReader.namespaceBlockTime().toString());
-                        throw ((NamespaceBlockedException) throwable).toBuilder()
-                                .description(description)
-                                .build();
-                    }
-                    return null;
-                });
+                .thenCompose(placeholderSubstitution);
     }
 
     private ActorRef getInternalConciergeForwarder(final ActorContext actorContext,

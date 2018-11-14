@@ -196,17 +196,22 @@ public final class DevOpsCommandsActor extends AbstractActor {
                     .map(dittoRuntimeException -> errorResponse(command, dittoRuntimeException.toJson()))
                     .right()
                     .flatMap(piggybackCommand -> {
-                        final String topic = executePiggyback.getDittoHeaders().get(TOPIC_HEADER);
-                        if (topic == null) {
-                            final String message =
-                                    "Piggyback command to the pub-sub mediator must define the ''topic'' header.";
-                            return new Left<>(errorResponse(command, HttpStatusCode.BAD_REQUEST, message));
-                        } else {
+                        final Optional<String> topic =
+                                Optional.ofNullable(executePiggyback.getDittoHeaders().get(TOPIC_HEADER))
+                                        .map(Optional::of)
+                                        .orElseGet(() -> executePiggyback.getPiggybackCommand()
+                                                .getValue(Command.JsonFields.TYPE));
+                        if (topic.isPresent()) {
+                            final String isGroupTopicValue =
+                                    executePiggyback.getDittoHeaders().get(IS_GROUP_TOPIC_HEADER);
                             final boolean isGroupTopic =
-                                    !"false".equalsIgnoreCase(
-                                            executePiggyback.getDittoHeaders().get(IS_GROUP_TOPIC_HEADER));
+                                    isGroupTopicValue != null && !"false".equalsIgnoreCase(isGroupTopicValue);
                             return new Right<>(
-                                    new DistributedPubSubMediator.Publish(topic, piggybackCommand, isGroupTopic));
+                                    new DistributedPubSubMediator.Publish(topic.get(), piggybackCommand, isGroupTopic));
+                        } else {
+                            final String message =
+                                    "No topic found for publishing. Did you set the ''topic'' header?";
+                            return new Left<>(errorResponse(command, HttpStatusCode.BAD_REQUEST, message));
                         }
                     });
         } else {
