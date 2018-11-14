@@ -29,12 +29,14 @@ import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.typesafe.config.Config;
 
@@ -53,7 +55,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.DiagnosticLoggingAdapter;
@@ -64,6 +65,7 @@ import akka.http.javadsl.server.Route;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -79,9 +81,6 @@ public final class ConciergeRootActor extends AbstractActor {
     private static final String RESTARTING_CHILD_MSG = "Restarting child...";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-
-    private final ActorRef conciergeShardRegion;
-
     private final SupervisorStrategy supervisorStrategy = new OneForOneStrategy(true, DeciderBuilder
             .match(NullPointerException.class, e -> {
                 log.error(e, "NullPointer in child actor: {}", e.getMessage());
@@ -129,6 +128,8 @@ public final class ConciergeRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
+
     private <C extends AbstractConciergeConfigReader> ConciergeRootActor(final C configReader,
             final ActorRef pubSubMediator,
             final AbstractEnforcerActorFactory<C> authorizationProxyPropsFactory,
@@ -141,7 +142,11 @@ public final class ConciergeRootActor extends AbstractActor {
 
         final ActorContext context = getContext();
 
-        conciergeShardRegion = authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
+        final ActorRef conciergeShardRegion =
+                authorizationProxyPropsFactory.startEnforcerActor(context, configReader, pubSubMediator);
+
+        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(conciergeShardRegion,
+                ConciergeMessagingConstants.SHARD_REGION, log);
 
         final ActorRef conciergeForwarder = startChildActor(context, ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeShardRegion));
@@ -233,13 +238,18 @@ public final class ConciergeRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        conciergeShardRegion.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure <{}>!", f))
                 .matchAny(m -> {
                     log.warning("Unknown message <{}>.", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
+        log.info("Sending the namespace stats of the concierge shard as requested..");
+        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private void bindHttpStatusRoute(final ActorRef healthCheckingActor, final HttpConfigReader httpConfig,
