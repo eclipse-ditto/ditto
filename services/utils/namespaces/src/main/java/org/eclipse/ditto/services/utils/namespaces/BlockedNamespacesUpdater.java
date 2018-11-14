@@ -84,7 +84,7 @@ public final class BlockedNamespacesUpdater extends AbstractActor {
         final String namespace = command.getNamespace();
         final ActorRef sender = getSender();
         final ActorRef self = getSelf();
-        blockedNamespaces.add(namespace)
+        blockedNamespaces.remove(namespace)
                 .thenAccept(_void -> {
                     final UnblockNamespaceResponse response =
                             UnblockNamespaceResponse.getInstance(namespace, command.getResourceType(),
