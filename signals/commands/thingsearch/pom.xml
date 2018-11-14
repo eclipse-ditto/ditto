@@ -91,12 +91,6 @@
                     </newVersion>
                     <parameter>
                         <excludes>
-                            <!-- moved to ditto-model-thingsearch: -->
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidFilterException</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.ThingSearchException</exclude>
-                            <!-- not compatible as based on moved interfaces: -->
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidNamespacesException</exclude>
-                            <exclude>org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException</exclude>
                         </excludes>
                         <onlyModified>true</onlyModified>
                         <accessModifier>public</accessModifier>

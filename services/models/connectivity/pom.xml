@@ -24,7 +24,7 @@
 
     <properties>
         <!-- deactivate binary comp check for this module only for now -->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
+        <!--<binary-compatibility-check.version>${revision}</binary-compatibility-check.version>-->
     </properties>
 
     <dependencies>
