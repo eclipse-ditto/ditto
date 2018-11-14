@@ -37,7 +37,6 @@ import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponse;
 import org.eclipse.ditto.signals.commands.devops.DevOpsErrorResponse;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
-import org.eclipse.ditto.signals.commands.devops.PublishCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 
@@ -117,44 +116,36 @@ public final class DevOpsCommandsActor extends AbstractActor {
      * DevOps commands issued via the HTTP DevopsRoute are handled here on the (gateway) cluster node which got the HTTP
      * request. The job now is to:
      * <ul>
-     * <li>publish the command in the cluster (so that all services which should react on that command get it)</li>
-     * <li>start aggregation of responses</li>
+     *  <li>publish the command in the cluster (so that all services which should react on that command get it)</li>
+     *  <li>start aggregation of responses</li>
      * </ul>
      *
      * @param command the initial DevOpsCommand to handle
      */
     private void handleInitialDevOpsCommand(final DevOpsCommand<?> command) {
-        LogUtil.enhanceLogWithCorrelationId(log, command);
 
         final ActorRef responseCorrelationActor = getContext().actorOf(
                 DevOpsCommandResponseCorrelationActor.props(getSender(), command),
                 command.getDittoHeaders().getCorrelationId()
                         .orElseThrow(() -> new IllegalArgumentException("Missing correlation-id for DevOpsCommand")));
 
-        final DistributedPubSubMediator.Publish publishMessage;
-        final Optional<DistributedPubSubMediator.Publish> interpretedPublishMessage = tryToInterpretAsPublish(command);
-
-        if (interpretedPublishMessage.isPresent()) {
-            publishMessage = interpretedPublishMessage.get();
-            log.info("Publishing <{}>", publishMessage);
-        } else {
-            final String topic;
-            final Optional<String> commandServiceNameOpt = command.getServiceName();
-            if (commandServiceNameOpt.isPresent()) {
-                final String commandServiceName = commandServiceNameOpt.get();
-                final Integer commandInstance = command.getInstance().orElse(null);
-                if (commandInstance != null) {
-                    topic = command.getType() + ":" + commandServiceName + ":" + commandInstance;
-                } else {
-                    topic = command.getType() + ":" + commandServiceName;
-                }
+        final String topic;
+        final Optional<String> commandServiceNameOpt = command.getServiceName();
+        if (commandServiceNameOpt.isPresent()) {
+            final String commandServiceName = commandServiceNameOpt.get();
+            final Integer commandInstance = command.getInstance().orElse(null);
+            if (commandInstance != null) {
+                topic = command.getType() + ":" + commandServiceName + ":" + commandInstance;
             } else {
-                topic = command.getType();
+                topic = command.getType() + ":" + commandServiceName;
             }
-            publishMessage = new DistributedPubSubMediator.Publish(topic, command);
-            log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}>", command.getType(), topic);
+        } else {
+            topic = command.getType();
         }
-        pubSubMediator.tell(publishMessage, responseCorrelationActor);
+
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.info("Publishing DevOpsCommand <{}> into cluster on topic <{}>", command.getType(), topic);
+        pubSubMediator.tell(new DistributedPubSubMediator.Publish(topic, command), responseCorrelationActor);
     }
 
     private void handleDevOpsCommandViaPubSub(final DevOpsCommandViaPubSub devOpsCommandViaPubSub) {
@@ -198,22 +189,23 @@ public final class DevOpsCommandsActor extends AbstractActor {
 
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         final String piggybackCommandType = piggybackCommandJson.getValueOrThrow(Command.JsonFields.TYPE);
-        final Optional<Jsonifiable<?>> piggybackOptional = deserializePiggybackCommand(command);
+        if (serviceMappingStrategy.containsKey(piggybackCommandType)) {
 
-        if (piggybackOptional.isPresent()) {
-            final Jsonifiable<?> result = piggybackOptional.get();
-            if (result instanceof DittoRuntimeException) {
-                final DittoRuntimeException e = (DittoRuntimeException) result;
+            final Jsonifiable<?> piggybackCommand;
+            try {
+                piggybackCommand = serviceMappingStrategy.get(piggybackCommandType)
+                        .apply(piggybackCommandJson, command.getDittoHeaders());
+            } catch (final DittoRuntimeException e) {
                 log.warning("Got DittoRuntimeException while parsing piggybackCommand <{}>: {}", piggybackCommandType,
                         e.getMessage());
                 getSender().tell(e, getSelf());
                 return;
             }
 
-            log.info("Received PiggybackCommand: <{}> - telling to: <{}>",
-                    result, command.getTargetActorSelection());
+            log.info("Received PiggybackCommand: <{}> - telling to: <{}>", piggybackCommand,
+                    command.getTargetActorSelection());
 
-            getContext().actorSelection(command.getTargetActorSelection()).forward(result, getContext());
+            getContext().actorSelection(command.getTargetActorSelection()).forward(piggybackCommand, getContext());
         } else {
             final String message =
                     String.format("ExecutePiggybackCommand with piggybackCommand <%s> cannot be executed " +
@@ -225,68 +217,6 @@ public final class DevOpsCommandsActor extends AbstractActor {
         }
     }
 
-    /**
-     * Attempt to deserialize piggyback command from the payload of an ExecutePiggybackCommand.
-     *
-     * @param command the ExecutePiggybackCommand.
-     * @return Deserialized payload command if deserialization is successful, the encountered error if
-     * deserialization fails, or an empty optional if the payload is not known.
-     */
-    private Optional<Jsonifiable<?>> deserializePiggybackCommand(final ExecutePiggybackCommand command) {
-        final JsonObject piggybackCommandJson = command.getPiggybackCommand();
-        final String piggybackCommandType = piggybackCommandJson.getValueOrThrow(Command.JsonFields.TYPE);
-        return Optional.ofNullable(serviceMappingStrategy.get(piggybackCommandType))
-                .<Jsonifiable<?>>map(mapper -> {
-                    try {
-                        return mapper.apply(piggybackCommandJson, command.getDittoHeaders());
-                    } catch (final DittoRuntimeException e) {
-                        return e;
-                    }
-                });
-    }
-
-    /**
-     * Check a DevOps command for whether to interpret it as publication of some message to the pub-sub mediator.
-     *
-     * @param devOpsCommand the command to check.
-     * @return a publish-message if the DevOps command should be interpreted as publication at the pub-sub mediator,
-     * or an empty optional otherwise.
-     */
-    private Optional<DistributedPubSubMediator.Publish> tryToInterpretAsPublish(final DevOpsCommand<?> devOpsCommand) {
-        if (devOpsCommand instanceof ExecutePiggybackCommand) {
-            final ExecutePiggybackCommand executePiggybackCommand = (ExecutePiggybackCommand) devOpsCommand;
-            final Optional<String> piggybackCommandType = executePiggybackCommand.getPiggybackCommand()
-                    .getValue(Command.JsonFields.TYPE);
-            return piggybackCommandType.filter(PublishCommand.TYPE::equals)
-                    .flatMap(type -> deserializePiggybackCommand(executePiggybackCommand))
-                    .filter(result -> result instanceof PublishCommand)
-                    .flatMap(result -> toPublishMessage((PublishCommand) result, devOpsCommand.getDittoHeaders()));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Convert a PublishCommand into a publish-message for the pub-sub mediator.
-     *
-     * @param publishCommand the devops command that specifies the publish-operation.
-     * @param dittoHeaders headers to use in deserialization.
-     * @return the publish-message for the pub-sub mediator.
-     */
-    private Optional<DistributedPubSubMediator.Publish> toPublishMessage(final PublishCommand publishCommand,
-            final DittoHeaders dittoHeaders) {
-
-        return publishCommand.getPayload()
-                .getValue(Command.JsonFields.TYPE)
-                .flatMap(payloadType ->
-                        Optional.ofNullable(serviceMappingStrategy.get(payloadType))
-                                .map(mapper -> mapper.apply(publishCommand.getPayload(), dittoHeaders)))
-                .map(mappedPayload -> {
-                    final String topic = publishCommand.getTopic();
-                    final boolean isGroupTopic = publishCommand.isGroupTopic();
-                    return new DistributedPubSubMediator.Publish(topic, mappedPayload, isGroupTopic);
-                });
-    }
 
     /**
      * Child actor handling the distributed pub/sub subscriptions of DevOpsCommands in the cluster.

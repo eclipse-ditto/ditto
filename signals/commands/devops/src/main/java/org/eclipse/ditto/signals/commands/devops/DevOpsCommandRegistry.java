@@ -44,7 +44,6 @@ public final class DevOpsCommandRegistry extends AbstractJsonParsableRegistry<De
         parseStrategies.put(RetrieveStatistics.TYPE, RetrieveStatistics::fromJson);
         parseStrategies.put(RetrieveStatisticsDetails.TYPE, RetrieveStatistics::fromJson);
         parseStrategies.put(ExecutePiggybackCommand.TYPE, ExecutePiggybackCommand::fromJson);
-        parseStrategies.put(PublishCommand.TYPE, PublishCommand::fromJson);
 
         return new DevOpsCommandRegistry(parseStrategies);
     }
