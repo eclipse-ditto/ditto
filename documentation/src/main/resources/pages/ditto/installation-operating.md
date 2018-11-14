@@ -5,6 +5,8 @@ keywords: operating, docker, docker-compose, devops, logging, logstash, elk, mon
 permalink: installation-operating.html
 ---
 
+pubsubmediator: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
+
 After Ditto was once successfully started, the next step is to set it up for continuously operating it.
 
 This page shows the basics for operating Ditto.
@@ -217,6 +219,175 @@ Example:
 }
 ```
 
-Currently piggybacks are only used to configure Dittos connectivity service. More information on this can be found in
+#### Managing connections
+
+Piggybacks are used to configure Dittos connectivity service. More information on this can be found in
 the [Manage Connections](connectivity-manage-connections.html) section.
 
+#### Erasing data within a namespace
+
+Ditto supports erasure of _all_ data within a namespace during live operations.
+To do so safely, perform the following steps in sequence.
+
+1. [Block all messages to the namespace](#block-all-messages-to-a-namespace)
+   so that actors will not spawn in the namespace.
+2. [Shutdown all actors in the namespace](#shutdown-all-actors-in-a-namespace)
+   so that no actor will generate data in the namespace.
+3. [Erase data from the persistence](#erase-all-data-in-a-namespace-from-the-persistence).
+4. [Unblock messages to the namespace](#unblock-messages-to-a-namespace)
+   so that it can be reused.
+
+##### Block all messages to a namespace
+
+Send a piggyback command to [Akka's Pub-Sub Mediator](pubsubmediator) with type `namespaces.commands:blockNamespace`
+to block all messages sent to actors belonging to a namespace.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:blockNamespace",
+    "namespace": "namespaceToBlock"
+  }
+}
+```
+
+A response will come once the namespace is blocked on all members of the Ditto cluster.
+Once blocked, a namespace stays blocked for the lifetime of the Ditto cluster,
+until [unblocked](#unblock-messages-to-a-namespace).
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:blockNamespace",
+      "status": 200,
+      "namespace": "namespaceToBlock",
+      "resourceType": "namespaces"
+    }
+  }
+}
+```
+
+##### Shutdown all actors in a namespace
+
+Send a piggyback command to [Akka's Pub-Sub Mediator](pubsubmediator) with type `common.commands:shutdown`
+to request all actors in a namespace to shutdown. The value of `piggybackCommand/reason/type` must be
+`purge-namespace`; otherwise the namespace's actors will not stop themselves.
+
+`PUT /devops/piggygack?timeout=0`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "piggybackCommand": {
+    "type": "common.commands:shutdown",
+    "reason": {
+      "type": "purge-namespace",
+      "details": "namespaceToShutdown"
+    }
+  }
+}
+```
+
+The shutdown command has no response because the number of actors shutting down can be very large.
+The response will always be `408` timeout.
+Feel free to send the shutdown command several times to make sure.
+
+##### Erase all data in a namespace from the persistence
+
+Send a piggyback command to [Akka's Pub-Sub Mediator](pubsubmediator) with type `namespaces.commands:purgeNamespace`
+to erase all data from the persistence.
+It is better to purge a namespace after
+[blocking](#block-all-messages-to-a-namespace) it and
+[shutting down](#shutdown-all-actors-in-a-namespace)
+all its actors so that no data is written in the namespace during its erasure.
+
+The erasure may take a long time if the namespace has a lot of data or if the persistent storage is slow.
+Set the timeout to a safe margin above the estimated erasure time in milliseconds.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": true
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:purgeNamespace",
+    "namespace": "namespaceToPurge"
+  }
+}
+```
+
+The response contains results of the data purge, one for each resource type.
+Note that to see responses from multiple resource types, the header `aggregate` must not be `false`.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing",
+      "successful": true
+    },
+    "?1": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "policy",
+      "successful": true
+    },
+    "?2": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing-search",
+      "successful": true
+    }
+  }
+}
+```
+
+##### Unblock messages to a namespace
+
+Send a piggyback command to [Akka's Pub-Sub Mediator](pubsubmediator) with type `namespaces.commands:unblockNamespace`
+to stop blocking messages to a namespace.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:unblockNamespace",
+    "namespace": "namespaceToUnblock"
+  }
+}
+```
+
+A response will come once the namespace's blockade is released on all members of the Ditto cluster.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:unblockNamespace",
+      "status": 200,
+      "namespace": "namespaceToUnblock",
+      "resourceType": "namespaces"
+    }
+  }
+}
+```
