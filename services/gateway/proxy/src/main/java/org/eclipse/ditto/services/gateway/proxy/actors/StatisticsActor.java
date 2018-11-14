@@ -282,15 +282,10 @@ public final class StatisticsActor extends AbstractActor {
                         retrieveStatisticsDetailsResponse.getStatisticsDetails().getValue(shardRegion)
                                 .map(JsonValue::asObject)
                                 .map(JsonObject::stream)
-                                .ifPresent(namespaceEntries -> namespaceEntries.forEach(field -> {
-                                    if (shardStatistics.hotnessMap.containsKey(field.getKeyName())) {
-                                        shardStatistics.hotnessMap.put(field.getKeyName(),
-                                                shardStatistics.hotnessMap.get(field.getKeyName()) +
-                                                        field.getValue().asLong());
-                                    } else {
-                                        shardStatistics.hotnessMap.put(field.getKeyName(), field.getValue().asLong());
-                                    }
-                                }));
+                                .ifPresent(namespaceEntries -> namespaceEntries.forEach(field ->
+                                        shardStatistics.hotnessMap
+                                                .merge(field.getKeyName(), field.getValue().asLong(), Long::sum)
+                                ));
                     }
                 })
                 .match(AskTimeoutException.class, askTimeout -> {
