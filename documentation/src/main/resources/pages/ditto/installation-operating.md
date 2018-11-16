@@ -5,7 +5,7 @@ keywords: operating, docker, docker-compose, devops, logging, logstash, elk, mon
 permalink: installation-operating.html
 ---
 
-pubsubmediator: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
+[pubsubmediator]: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
 
 Once you have successfully started Ditto, proceed with setting it up for continuous operation.
 
@@ -112,6 +112,8 @@ since the cause of the problem could be lost on service restart.
 Example for retrieving all currently configured log levels:<br/>
 `GET /devops/logging`
 
+Response:
+
 ```json
 {
     "gateway": {
@@ -164,6 +166,8 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 Example response for retrieving all currently configured log levels of gateways services:<br/>
 `GET /devops/logging/gateway`
 
+Response:
+
 ```json
 {
     "1": {
@@ -185,9 +189,11 @@ Example response for retrieving all currently configured log levels of gateways 
 }
 ```
 
-#### Change a specific log level for one services
+#### Change a specific log level for one service
 
-Example request payload to change the log level of logger `org.eclipse.ditto` in all gateway services to `DEBUG`:<br/>
+Example request payload to change the log level of logger `org.eclipse.ditto` in all
+instances of gateway-service to `DEBUG`:
+
 `PUT /devops/logging/gateway`
 
 ```json
@@ -240,7 +246,7 @@ To do so safely, perform the following steps in sequence.
 
 ##### Block all messages to a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator](pubsubmediator) with type `namespaces.commands:blockNamespace`
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
 to block all messages sent to actors belonging to a namespace.
 
 `PUT /devops/piggygack?timeout=10000`
@@ -277,7 +283,7 @@ or until you proceed with [step 4](#unblock-messages-to-a-namespace), which unbl
 
 ##### Shutdown all actors in a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator](pubsubmediator) with type `common.commands:shutdown`
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `common.commands:shutdown`
 to request all actors in a namespace to shut down. The value of `piggybackCommand/reason/type` must be
 `purge-namespace`; otherwise, the namespace's actors will not stop themselves.
 
@@ -302,7 +308,7 @@ Feel free to send the shutdown command several times to make sure.
 
 ##### Erase all data in a namespace from the persistence
 
-Send a piggyback command to [Akka's pub-sub-mediator](pubsubmediator) with type `namespaces.commands:purgeNamespace`
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:purgeNamespace`
 to erase all data from the persistence.
 It is better to purge a namespace after
 [blocking](#block-all-messages-to-a-namespace) it and
@@ -360,7 +366,7 @@ Note that to see responses from multiple resource types, the header `aggregate` 
 
 ##### Unblock messages to a namespace
 
-Send a piggyback command to [Akka's pub-sub-mediator](pubsubmediator) with type `namespaces.commands:unblockNamespace`
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
 to stop blocking messages to a namespace.
 
 `PUT /devops/piggygack?timeout=10000`
