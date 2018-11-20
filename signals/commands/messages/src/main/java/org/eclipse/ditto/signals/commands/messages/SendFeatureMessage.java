@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -62,6 +63,11 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
 
         super(TYPE, thingId, message, dittoHeaders);
         this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
+        final boolean featureIdValid = message.getFeatureId().map(featureId::equals)
+                .orElse(false);
+        if (!featureIdValid) {
+            throw FeatureIdInvalidException.newBuilder().dittoHeaders(dittoHeaders).build();
+        }
     }
 
     @Override

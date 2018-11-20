@@ -124,6 +124,11 @@ public final class SendThingMessageTest {
         SendThingMessage.of("foobar", MESSAGE, DITTO_HEADERS);
     }
 
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryCreateWithNonMatchingThingId() {
+        SendThingMessage.of(THING_ID + "-nomatch", MESSAGE, DITTO_HEADERS);
+    }
+
     @Test
     public void tryCreateValidMessage() {
         SendThingMessage.of(THING_ID, MESSAGE, DITTO_HEADERS);

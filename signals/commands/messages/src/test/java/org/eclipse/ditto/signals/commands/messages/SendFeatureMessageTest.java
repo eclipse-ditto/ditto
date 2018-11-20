@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -112,6 +113,26 @@ public final class SendFeatureMessageTest {
     @Test(expected = ThingIdInvalidException.class)
     public void tryCreateWithInvalidThingId() {
         SendFeatureMessage.of("foobar", FEATURE_ID, MESSAGE, DITTO_HEADERS);
+    }
+
+    @Test(expected = ThingIdInvalidException.class)
+    public void tryCreateWithNonMatchingThingId() {
+        SendFeatureMessage.of(THING_ID + "-nomatch", FEATURE_ID, MESSAGE, DITTO_HEADERS);
+    }
+
+    @Test(expected = FeatureIdInvalidException.class)
+    public void tryCreateWithMissingFeatureId() {
+        SendFeatureMessage.of(THING_ID, FEATURE_ID, MessagesModelFactory.newMessageBuilder(
+                MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
+                        .contentType(CONTENT_TYPE)
+                        .build())
+                .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
+                .build(), DITTO_HEADERS);
+    }
+
+    @Test(expected = FeatureIdInvalidException.class)
+    public void tryCreateWithNonMatchingFeatureId() {
+        SendFeatureMessage.of(THING_ID, FEATURE_ID + "-nomatch", MESSAGE, DITTO_HEADERS);
     }
 
     @Test

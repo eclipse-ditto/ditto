@@ -69,13 +69,19 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
         this.thingId = requireNonNull(thingId, "The thingId cannot be null.");
         this.message = requireNonNull(message, "The message cannot be null.");
 
-        validateThingId();
+        validateThingId(message.getThingId(), dittoHeaders);
     }
 
-    private void validateThingId() {
-        final Validator thingIdValidator = IdValidator.newInstance(thingId, THING_ID_REGEX);
+    private void validateThingId(final String thingIdFromMessage, final DittoHeaders dittoHeaders) {
+        final Validator thingIdValidator = IdValidator.newInstance(this.thingId, THING_ID_REGEX);
         if (!thingIdValidator.isValid()) {
-            throw new ThingIdInvalidException(thingId);
+            throw ThingIdInvalidException.newBuilder(this.thingId).dittoHeaders(dittoHeaders).build();
+        }
+
+        if (!this.thingId.equals(thingIdFromMessage)) {
+            throw ThingIdInvalidException.newBuilder(this.thingId)
+                    .description("It does not match the 'thingId' from the Message the command transports. Check if they are equal.")
+                    .dittoHeaders(dittoHeaders).build();
         }
     }
 
