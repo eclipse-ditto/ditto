@@ -10,9 +10,11 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -26,6 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -61,12 +64,29 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, thingId, message, dittoHeaders);
-        this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
+        this.featureId = checkNotNull(featureId, "featureId");
+        validateMessageFeatureId(featureId, message, dittoHeaders);
     }
 
-    @Override
-    public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingId(), featureId, getMessage(), dittoHeaders);
+    private static void validateMessageFeatureId(final String expectedFeatureId, final Message<?> message,
+            final DittoHeaders dittoHeaders) {
+
+        final Optional<String> messageFeatureIdOptional = message.getFeatureId();
+        if (!messageFeatureIdOptional.isPresent()) {
+            final String msgPattern = "The Message did not contain a feature ID at all! Expected was feature ID <{0}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        final String messageFeatureId = messageFeatureIdOptional.get();
+        if (!messageFeatureId.equals(expectedFeatureId)) {
+            final String msgPattern = "The Message contained feature ID <{0}>. Expected was feature ID <{1}>.";
+            throw FeatureIdInvalidException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, messageFeatureId, expectedFeatureId))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     /**
@@ -80,8 +100,11 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @return new instance of {@code SendFeatureMessage}.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <T> SendFeatureMessage<T> of(final String thingId, final String featureId, final Message<T> message,
+    public static <T> SendFeatureMessage<T> of(final String thingId,
+            final String featureId,
+            final Message<T> message,
             final DittoHeaders dittoHeaders) {
+
         return new SendFeatureMessage<>(thingId, featureId, message, dittoHeaders);
     }
 
@@ -96,6 +119,12 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
+     * <ul>
+     *     <li>{@link MessageCommand.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID},</li>
+     *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
+     * </ul>
      */
     public static <T> SendFeatureMessage<T> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -111,6 +140,12 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of
+     * <ul>
+     *     <li>{@link MessageCommand.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link #JSON_FEATURE_ID},</li>
+     *     <li>{@link MessageCommand.JsonFields#JSON_MESSAGE}</li>
+     * </ul>
      */
     public static <T> SendFeatureMessage<T> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<SendFeatureMessage<T>>(TYPE, jsonObject).deserialize(() -> {
@@ -128,8 +163,14 @@ public final class SendFeatureMessage<T> extends AbstractMessageCommand<T, SendF
     }
 
     @Override
+    public SendFeatureMessage setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return of(getThingId(), featureId, getMessage(), dittoHeaders);
+    }
+
+    @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
+
         super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
 
         jsonObjectBuilder.remove(MessageCommand.JsonFields.JSON_THING_ID);

@@ -10,8 +10,9 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -63,19 +64,29 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
     private final String thingId;
     private final Message<T> message;
 
-    AbstractMessageCommand(final String type, final String thingId, final Message<T> message,
+    AbstractMessageCommand(final String type,
+            final String thingId,
+            final Message<T> message,
             final DittoHeaders dittoHeaders) {
-        super(type, dittoHeaders);
-        this.thingId = requireNonNull(thingId, "The thingId cannot be null.");
-        this.message = requireNonNull(message, "The message cannot be null.");
 
-        validateThingId();
+        super(type, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.message = checkNotNull(message, "message");
+
+        validateThingId(message.getThingId(), dittoHeaders);
     }
 
-    private void validateThingId() {
+    private void validateThingId(final String thingIdFromMessage, final DittoHeaders dittoHeaders) {
         final Validator thingIdValidator = IdValidator.newInstance(thingId, THING_ID_REGEX);
         if (!thingIdValidator.isValid()) {
-            throw new ThingIdInvalidException(thingId);
+            throw ThingIdInvalidException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
+        }
+        if (!thingId.equals(thingIdFromMessage)) {
+            final String descTemplate = "It does not match the 'thingId' from the Message the command" +
+                    " transports (<{0}>). Please ensure that they are equal.";
+            throw ThingIdInvalidException.newBuilder(thingId)
+                    .description(MessageFormat.format(descTemplate, thingIdFromMessage))
+                    .dittoHeaders(dittoHeaders).build();
         }
     }
 
@@ -114,8 +125,8 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
      * Deserializes the {@link Message} from the JSON representation - the {@code rawPayload} is decoded with Base64.
      *
      * @param <T> the type of the message's payload.
-     * @param jsonObject the JsonObjectReader to use for reading the message
-     * @return the Message
+     * @param jsonObject the JsonObjectReader to use for reading the message.
+     * @return the Message.
      */
     protected static <T> Message<T> deserializeMessageFromJson(final JsonObject jsonObject) {
         final JsonObject messageObject = jsonObject.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE);
@@ -153,7 +164,7 @@ abstract class AbstractMessageCommand<T, C extends AbstractMessageCommand> exten
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof AbstractMessageCommand);
+        return other instanceof AbstractMessageCommand;
     }
 
     @Override
