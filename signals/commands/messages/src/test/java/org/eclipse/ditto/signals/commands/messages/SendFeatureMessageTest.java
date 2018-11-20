@@ -11,6 +11,7 @@
 package org.eclipse.ditto.signals.commands.messages;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.util.UUID;
@@ -115,24 +116,39 @@ public final class SendFeatureMessageTest {
         SendFeatureMessage.of("foobar", FEATURE_ID, MESSAGE, DITTO_HEADERS);
     }
 
-    @Test(expected = ThingIdInvalidException.class)
-    public void tryCreateWithNonMatchingThingId() {
-        SendFeatureMessage.of(THING_ID + "-nomatch", FEATURE_ID, MESSAGE, DITTO_HEADERS);
+    @Test
+    public void tryToCreateInstanceWithNonMatchingThingId() {
+        assertThatExceptionOfType(ThingIdInvalidException.class)
+                .isThrownBy(() -> SendFeatureMessage.of(THING_ID + "-nomatch", FEATURE_ID, MESSAGE, DITTO_HEADERS))
+                .withMessageContaining("-nomatch")
+                .withNoCause();
     }
 
-    @Test(expected = FeatureIdInvalidException.class)
-    public void tryCreateWithMissingFeatureId() {
-        SendFeatureMessage.of(THING_ID, FEATURE_ID, MessagesModelFactory.newMessageBuilder(
-                MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
-                        .contentType(CONTENT_TYPE)
-                        .build())
+    @Test
+    public void tryToCreateInstanceWithMissingFeatureId() {
+        final MessageHeaders messageHeaders = MessageHeaders.newBuilder(MessageDirection.TO, THING_ID, SUBJECT)
+                .contentType(CONTENT_TYPE)
+                .build();
+        final Message<Object> message = MessagesModelFactory.newMessageBuilder(messageHeaders)
                 .payload(JsonFactory.newObject(KNOWN_RAW_PAYLOAD_STR))
-                .build(), DITTO_HEADERS);
+                .build();
+
+        assertThatExceptionOfType(FeatureIdInvalidException.class)
+                .isThrownBy(() -> SendFeatureMessage.of(THING_ID, FEATURE_ID, message, DITTO_HEADERS))
+                .withMessage("The Message did not contain a feature ID at all! Expected was feature ID <%s>.",
+                        FEATURE_ID)
+                .withNoCause();
     }
 
-    @Test(expected = FeatureIdInvalidException.class)
-    public void tryCreateWithNonMatchingFeatureId() {
-        SendFeatureMessage.of(THING_ID, FEATURE_ID + "-nomatch", MESSAGE, DITTO_HEADERS);
+    @Test
+    public void tryToCreateInstanceWithNonMatchingFeatureId() {
+        final String expectedFeatureId = FEATURE_ID + "-nomatch";
+
+        assertThatExceptionOfType(FeatureIdInvalidException.class)
+                .isThrownBy(() -> SendFeatureMessage.of(THING_ID, expectedFeatureId, MESSAGE, DITTO_HEADERS))
+                .withMessage("The Message contained feature ID <%s>. Expected was feature ID <%s>.", FEATURE_ID,
+                        expectedFeatureId)
+                .withNoCause();
     }
 
     @Test

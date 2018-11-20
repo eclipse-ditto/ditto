@@ -53,6 +53,7 @@ public final class FeatureIdInvalidException extends DittoRuntimeException imple
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -73,7 +74,9 @@ public final class FeatureIdInvalidException extends DittoRuntimeException imple
      * @return the new FeatureIdInvalidException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static FeatureIdInvalidException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
+    public static FeatureIdInvalidException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+
         return new Builder()
                 .dittoHeaders(dittoHeaders)
                 .message(message)
@@ -87,8 +90,8 @@ public final class FeatureIdInvalidException extends DittoRuntimeException imple
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeatureIdInvalidException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the
+     * {@link JsonFields#MESSAGE} field.
      */
     public static FeatureIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new Builder()
@@ -116,6 +119,7 @@ public final class FeatureIdInvalidException extends DittoRuntimeException imple
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new FeatureIdInvalidException(dittoHeaders, message, description, cause, href);
         }
 
