@@ -10,9 +10,9 @@
  */
 package org.eclipse.ditto.services.utils.health;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 
-import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -35,16 +35,26 @@ public final class DefaultHealthCheckingActorFactory {
      * Creates Akka configuration object Props for a health checking actor.
      *
      * @param options the options to configure this actor.
-     * @param mongoClientActor the actor handling mongodb calls.
+     * @param persistenceCheckerProps props to create persistence health checkers.
      * @return the Akka configuration Props object
      */
-    public static Props props(final HealthCheckingActorOptions options, final ActorRef mongoClientActor) {
+    public static Props props(final HealthCheckingActorOptions options, Props persistenceCheckerProps) {
         final LinkedHashMap<String, Props> childActorProps = new LinkedHashMap<>();
         if (options.isPersistenceCheckEnabled()) {
-            childActorProps.put(PERSISTENCE_LABEL, PersistenceHealthCheckingActor.props(mongoClientActor));
+            childActorProps.put(PERSISTENCE_LABEL, persistenceCheckerProps);
         }
-
         return CompositeCachingHealthCheckingActor.props(childActorProps, options.getInterval(),
+                options.isHealthCheckEnabled());
+    }
+
+    /**
+     * Creates Akka configuration object Props for a health checking actor that does not check the persistence.
+     *
+     * @param options the options to configure this actor.
+     * @return the Akka configuration Props object
+     */
+    public static Props propsWithoutPersistence(final HealthCheckingActorOptions options) {
+        return CompositeCachingHealthCheckingActor.props(Collections.emptyMap(), options.getInterval(),
                 options.isHealthCheckEnabled());
     }
 

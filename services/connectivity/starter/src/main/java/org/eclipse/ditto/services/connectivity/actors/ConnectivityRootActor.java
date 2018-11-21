@@ -40,11 +40,10 @@ import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -91,7 +90,8 @@ public final class ConnectivityRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "connectivityRoot";
 
     private static final String CLUSTER_ROLE = "connectivity";
-    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-reconnect-readjournal";
+    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID =
+            "akka-contrib-mongodb-persistence-reconnect-readjournal";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -163,14 +163,9 @@ public final class ConnectivityRootActor extends AbstractActor {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT),
-                        MongoConfig.getSSLEnabled(config)));
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
         final Duration minBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
