@@ -12,13 +12,10 @@ package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.respondWithHeaders;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
-
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 
 import com.typesafe.config.Config;
 
