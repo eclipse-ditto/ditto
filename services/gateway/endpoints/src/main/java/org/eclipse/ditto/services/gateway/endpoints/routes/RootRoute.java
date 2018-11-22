@@ -157,7 +157,7 @@ public final class RootRoute {
             final HttpClientFacade httpClient) {
         this(actorSystem, config, proxyActor, streamingActor, healthCheckingActor, clusterStateSupplier,
                 new DittoGatewayAuthenticationDirectiveFactory(config, httpClient),
-                NoopCustomApiRoutesProvider.getInstance(),NoopCustomHeadersHandler.getInstance());
+                NoopCustomApiRoutesProvider.getInstance(), NoopCustomHeadersHandler.getInstance());
     }
 
     /**
@@ -239,12 +239,12 @@ public final class RootRoute {
                                 ws(ctx, correlationId), // /ws
                                 ownHealth(),
                                 pathPrefixTest(PathMatchers.segment(DEVOPS_AUTH_SECURED), segment ->
-                                    authenticateDevopsBasic(REALM_DEVOPS,
-                                            route(
-                                                    overallStatusRoute.buildStatusRoute(), // /status
-                                                    devopsRoute.buildDevopsRoute(ctx) // /devops
-                                            )
-                                    )
+                                        authenticateDevopsBasic(REALM_DEVOPS,
+                                                route(
+                                                        overallStatusRoute.buildStatusRoute(), // /status
+                                                        devopsRoute.buildDevopsRoute(ctx) // /devops
+                                                )
+                                        )
                                 )
                         )
                 )
@@ -309,28 +309,31 @@ public final class RootRoute {
     private Route api(final RequestContext ctx, final String correlationId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
-                    customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                    apiAuthentication(correlationId,
-                        authContextWithPrefixedSubjects ->
-                            mapAuthorizationContext(
-                                correlationId,
-                                apiVersion,
-                                authContextWithPrefixedSubjects,
-                                authContext ->
-                                        parameterOptional(TopicPath.Channel.LIVE.getName(), liveParam ->
-                                            withDittoHeaders(
-                                                    authContext,
-                                                    apiVersion,
-                                                    correlationId,
-                                                    ctx,
-                                                    liveParam.orElse(null),
-                                                    CustomHeadersHandler.RequestType.API,
-                                                    dittoHeaders ->
-                                                            buildApiSubRoutes(ctx, dittoHeaders, authContext)
-                                            )
-                                        )
-                            )
-                    ))
+                        customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
+                                apiAuthentication(correlationId,
+                                        authContextWithPrefixedSubjects ->
+                                                mapAuthorizationContext(
+                                                        correlationId,
+                                                        apiVersion,
+                                                        authContextWithPrefixedSubjects,
+                                                        authContext ->
+                                                                parameterOptional(TopicPath.Channel.LIVE.getName(),
+                                                                        liveParam ->
+                                                                                withDittoHeaders(
+                                                                                        authContext,
+                                                                                        apiVersion,
+                                                                                        correlationId,
+                                                                                        ctx,
+                                                                                        liveParam.orElse(null),
+                                                                                        CustomHeadersHandler.RequestType.API,
+                                                                                        dittoHeaders ->
+                                                                                                buildApiSubRoutes(ctx,
+                                                                                                        dittoHeaders,
+                                                                                                        authContext)
+                                                                                )
+                                                                )
+                                                )
+                                ))
                 )
         );
     }
@@ -366,7 +369,8 @@ public final class RootRoute {
                 policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things SSE support
                 sseThingsRoute.buildThingsSseRoute(ctx, () ->
-                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE, authorizationContext)),
+                        overwriteDittoHeaders(ctx, dittoHeaders, CustomHeadersHandler.RequestType.SSE,
+                                authorizationContext)),
                 // /api/{apiVersion}/things
                 thingsRoute.buildThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/search/things
@@ -383,19 +387,21 @@ public final class RootRoute {
         return rawPathPrefix(mergeDoubleSlashes().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
                         wsAuthentication(correlationId, authContextWithPrefixedSubjects ->
-                            mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
-                                authContext ->
-                                    withDittoHeaders(authContext, wsVersion, correlationId, ctx, null,
-                                            CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
+                                mapAuthorizationContext(correlationId, wsVersion, authContextWithPrefixedSubjects,
+                                        authContext ->
+                                                withDittoHeaders(authContext, wsVersion, correlationId, ctx, null,
+                                                        CustomHeadersHandler.RequestType.WS, dittoHeaders -> {
 
-                                            final String userAgent = extractUserAgent(ctx).orElse(null);
-                                            final ProtocolAdapter chosenProtocolAdapter =
-                                                    protocolAdapterProvider.getProtocolAdapter(userAgent);
-                                            return websocketRoute.buildWebsocketRoute(wsVersion, correlationId,
-                                                    authContext, dittoHeaders, chosenProtocolAdapter);
-                                        }
-                                    )
-                            )
+                                                            final String userAgent = extractUserAgent(ctx).orElse(null);
+                                                            final ProtocolAdapter chosenProtocolAdapter =
+                                                                    protocolAdapterProvider.getProtocolAdapter(
+                                                                            userAgent);
+                                                            return websocketRoute.buildWebsocketRoute(wsVersion,
+                                                                    correlationId,
+                                                                    authContext, dittoHeaders, chosenProtocolAdapter);
+                                                        }
+                                                )
+                                )
                         )
                 )
         );
@@ -466,8 +472,13 @@ public final class RootRoute {
 
     private static ExceptionHandler createExceptionHandler() {
         return ExceptionHandler.newBuilder().match(DittoRuntimeException.class, cre -> {
-            final DittoHeaders dittoHeaders = cre.getDittoHeaders();
-            enhanceLogWithCorrelationId(dittoHeaders.getCorrelationId(), () ->
+            final Optional<String> correlationIdOpt = Optional.ofNullable(cre.getDittoHeaders())
+                            .flatMap(DittoHeaders::getCorrelationId);
+            if (!correlationIdOpt.isPresent()) {
+                LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
+                        cre.getClass().getSimpleName(), cre.getMessage());
+            }
+            enhanceLogWithCorrelationId(correlationIdOpt, () ->
                     LOGGER.info("DittoRuntimeException in gateway RootRoute: {}", cre.getMessage())
             );
             return complete(HttpResponse.create().withStatus(cre.getStatusCode().toInt())
