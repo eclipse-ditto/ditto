@@ -11,10 +11,12 @@
 package org.eclipse.ditto.signals.commands.messages;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Fail.fail;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -122,6 +124,24 @@ public final class SendThingMessageTest {
     @Test(expected = ThingIdInvalidException.class)
     public void tryCreateWithInvalidThingId() {
         SendThingMessage.of("foobar", MESSAGE, DITTO_HEADERS);
+    }
+
+    @Test
+    public void tryToCreateInstanceWithNonMatchingThingId() {
+        final String expectedThingId = THING_ID + "-nomatch";
+
+        try {
+            SendThingMessage.of(expectedThingId, MESSAGE, DITTO_HEADERS);
+            fail("Expected a ThingIdInvalidException to be thrown");
+        } catch (final ThingIdInvalidException e) {
+            assertThat(e).hasMessageContaining(expectedThingId).hasNoCause();
+
+
+            final String expectedDescription = MessageFormat.format("It does not match the 'thingId' from the Message " +
+                    "the command transports (<{0}>). Please ensure that they are equal.", MESSAGE.getThingId());
+
+            assertThat(e.getDescription()).hasValue(expectedDescription);
+        }
     }
 
     @Test

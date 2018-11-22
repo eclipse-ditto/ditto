@@ -29,7 +29,7 @@ import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.actor.AbstractActorPublisher;
+import akka.stream.actor.AbstractActorPublisherWithStash;
 import akka.stream.actor.ActorPublisherMessage;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -38,7 +38,7 @@ import scala.concurrent.duration.FiniteDuration;
  * necessary.
  */
 public final class EventAndResponsePublisher
-        extends AbstractActorPublisher<Jsonifiable.WithPredicate<JsonObject, JsonField>> {
+        extends AbstractActorPublisherWithStash<Jsonifiable.WithPredicate<JsonObject, JsonField>> {
 
     private static final int MESSAGE_CONSUMPTION_CHECK_SECONDS = 2;
     private final DiagnosticLoggingAdapter logger = LogUtil.obtain(this);
@@ -79,11 +79,15 @@ public final class EventAndResponsePublisher
                     logger.debug("Established new connection: {}", connectionCorrelationId);
                     getContext().become(connected(connectionCorrelationId));
                 })
-                .matchAny(any -> logger.warning("Got unknown message during init phase '{}'", any)).build();
+                .matchAny(any -> {
+                    logger.info("Got unknown message during init phase '{}' - stashing..", any);
+                    stash();
+                }).build();
     }
 
     private Receive connected(final String connectionCorrelationId) {
         this.connectionCorrelationId = connectionCorrelationId;
+        unstashAll();
 
         return ReceiveBuilder.create()
                 .match(Signal.class, signal -> buffer.size() >= backpressureBufferSize, signal -> {

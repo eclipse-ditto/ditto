@@ -49,6 +49,7 @@ import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -120,7 +121,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters
-        final int instanceIndex = configReader.instanceIndex();
+        final String instanceIndex = ConfigUtil.instanceIdentifier();
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);

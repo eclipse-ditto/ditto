@@ -43,7 +43,6 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class PolicyCacheUpdateActorTest {
 
-    private static final int INSTANCE_INDEX = 0;
     private static final String POLICY_ID = "my.namespace:policy_id";
     private static final EntityId ENTITY_ID = EntityId.of(PolicyCommand.RESOURCE_TYPE, POLICY_ID);
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
@@ -76,7 +75,7 @@ public final class PolicyCacheUpdateActorTest {
 
         pubSubMediatorProbe = new TestProbe(system, "mockPubSubMediator");
 
-        final Props props = PolicyCacheUpdateActor.props(mockEnforcerCache, pubSubMediatorProbe.ref(), INSTANCE_INDEX);
+        final Props props = PolicyCacheUpdateActor.props(mockEnforcerCache, pubSubMediatorProbe.ref(), "0");
         updateActor = system.actorOf(props);
 
         testKit = new TestKit(system);

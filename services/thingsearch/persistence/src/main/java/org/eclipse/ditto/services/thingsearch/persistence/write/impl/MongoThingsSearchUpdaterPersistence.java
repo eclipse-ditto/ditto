@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
@@ -45,6 +46,7 @@ import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
@@ -55,6 +57,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceOps;
 import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceSelection;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.reactivestreams.Publisher;
 
@@ -76,6 +79,7 @@ import akka.NotUsed;
 import akka.event.LoggingAdapter;
 import akka.japi.function.Function;
 import akka.japi.pf.PFBuilder;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
@@ -91,6 +95,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     private final MongoCollection<Document> policiesCollection;
     private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
             persistenceStrategyFactory;
+    private final IndexInitializer indexInitializer;
 
     /**
      * Constructor.
@@ -101,11 +106,13 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper,
             final LoggingAdapter log,
-            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory) {
+            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory,
+            final Materializer materializer) {
         super(log);
         database = clientWrapper.getDatabase();
         collection = database.getCollection(THINGS_COLLECTION_NAME);
         policiesCollection = database.getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
 
         this.persistenceStrategyFactory = persistenceStrategyFactory;
     }
@@ -398,6 +405,15 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                 doc.containsKey(FIELD_REVISION) ? doc.getLong(FIELD_REVISION) : -1L,
                 doc.containsKey(FIELD_POLICY_ID) ? doc.getString(FIELD_POLICY_ID) : null,
                 doc.containsKey(FIELD_POLICY_REVISION) ? doc.getLong(FIELD_POLICY_REVISION) : -1L);
+    }
+
+    @Override
+    public final CompletionStage<Void> initializeIndices() {
+        return indexInitializer.initialize(PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME, Indices.Policies.all())
+                .exceptionally(t -> {
+                    log.error(t, "Index-Initialization failed: {}", t.getMessage());
+                    return null;
+                });
     }
 
     private static List<WriteModel<Document>> createPolicyIndexModels(final Bson policiesFilter,

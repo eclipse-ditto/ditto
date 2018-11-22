@@ -38,7 +38,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
 
     private PolicyCacheUpdateActor(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final ActorRef pubSubMediator, final int instanceIndex) {
+            final ActorRef pubSubMediator, final String instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(PolicyEvent.TYPE_PREFIX), instanceIndex);
 
@@ -54,7 +54,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
      * @return Akka {@code Props} object.
      */
     public static Props props(final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final ActorRef pubSubMediator, final int instanceIndex) {
+            final ActorRef pubSubMediator, final String instanceIndex) {
         requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
 

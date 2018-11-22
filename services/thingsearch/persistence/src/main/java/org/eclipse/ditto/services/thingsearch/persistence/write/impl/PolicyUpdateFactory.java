@@ -83,8 +83,9 @@ final class PolicyUpdateFactory {
             // don't create useless update if there are no global reads
             pushGlobalReads = null;
         } else {
-            pushGlobalReads = new Document(PersistenceConstants.PUSH, new Document(PersistenceConstants.FIELD_INTERNAL, new Document(
-                    PersistenceConstants.EACH, globalReads)));
+            pushGlobalReads = new Document(PersistenceConstants.PUSH,
+                    new Document(PersistenceConstants.FIELD_INTERNAL, new Document(
+                            PersistenceConstants.EACH, globalReads)));
         }
 
         final String thingId = thing.getId().orElseThrow(() -> new IllegalStateException("Thing does not have an ID!"));
@@ -119,7 +120,8 @@ final class PolicyUpdateFactory {
             final JsonValue attributeValue,
             final Enforcer policyEnforcer) {
 
-        final Bson removalFilter = createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX + attributePointer.toString());
+        final Bson removalFilter =
+                createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX + attributePointer.toString());
         final Collection<ResourcePermissions> resourcePermissions =
                 createEntriesForAttribute(attributePointer, attributeValue, policyEnforcer);
         final Set<Document> policyIndexInserts = createPolicyEntries(thingId, resourcePermissions);
@@ -153,7 +155,8 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createAttributeDeletion(final CharSequence thingId, final JsonPointer jsonPointer) {
-        final Bson removalFilter = createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX + jsonPointer);
+        final Bson removalFilter =
+                createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX + jsonPointer);
         return new PolicyUpdate(removalFilter, new HashSet<>());
     }
 
@@ -187,7 +190,8 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createAttributesDeletion(final CharSequence thingId) {
-        return new PolicyUpdate(createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX), new HashSet<>());
+        return new PolicyUpdate(createRemovalFilter(thingId, PersistenceConstants.FIELD_ATTRIBUTE_PREFIX),
+                new HashSet<>());
     }
 
     /**
@@ -201,7 +205,8 @@ final class PolicyUpdateFactory {
     static PolicyUpdate createFeaturePropertyDeletion(final CharSequence thingId, final String featureId,
             final JsonPointer jsonPointer) {
         return new PolicyUpdate(createRemovalFilter(thingId,
-                featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH + jsonPointer.toString()),
+                featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX_WITH_ENDING_SLASH +
+                        jsonPointer.toString()),
                 new HashSet<>());
     }
 
@@ -213,7 +218,8 @@ final class PolicyUpdateFactory {
      * @return the created update.
      */
     static PolicyUpdate createFeaturePropertiesDeletion(final CharSequence thingId, final String featureId) {
-        return new PolicyUpdate(createRemovalFilter(thingId, featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX),
+        return new PolicyUpdate(
+                createRemovalFilter(thingId, featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX),
                 new HashSet<>());
     }
 
@@ -293,7 +299,8 @@ final class PolicyUpdateFactory {
             final FeatureProperties properties,
             final Enforcer policyEnforcer) {
 
-        final Bson removalFilter = createRemovalFilter(thingId, featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX);
+        final Bson removalFilter =
+                createRemovalFilter(thingId, featureId + PersistenceConstants.FIELD_FEATURE_PROPERTIES_PREFIX);
         final Collection<ResourcePermissions> resourcePermissions = new HashSet<>();
         properties.forEach(featureProperty -> resourcePermissions.addAll(
                 createEntriesForFeatureProperty(featureId, JsonFactory.newPointer(featureProperty.getKey()),
@@ -315,24 +322,39 @@ final class PolicyUpdateFactory {
     }
 
     private static Bson createThingRemovalFilter(final CharSequence thingId) {
-        return createFeatureRemovalFilter(thingId, "");
+        return createThingIdFilter(thingId);
     }
 
     private static Bson createFeatureRemovalFilter(final CharSequence thingId, final String featureId) {
-        return Filters.regex(
-                PersistenceConstants.FIELD_ID, PersistenceConstants.REGEX_START_THING_ID + Pattern.quote(thingId + ":" + featureId));
+        final Bson featureRegex = featureRemovalFilter(thingId, featureId);
+
+        return and(createThingIdFilter(thingId), featureRegex);
+    }
+
+    private static Bson featureRemovalFilter(final CharSequence thingId, final String featureId) {
+        return Filters.regex(PersistenceConstants.FIELD_ID,
+                PersistenceConstants.REGEX_START_THING_ID + Pattern.quote(thingId + ":" + featureId));
     }
 
     private static Bson createRemovalFilter(final CharSequence thingId, final String pointer) {
-        return Filters.regex(
-                PersistenceConstants.FIELD_ID, PersistenceConstants.REGEX_START_THING_ID + thingId + ":" + pointer + PersistenceConstants.REGEX_FIELD_END);
+        final Bson pointerRegex = Filters.regex(PersistenceConstants.FIELD_ID,
+                PersistenceConstants.REGEX_START_THING_ID + thingId + ":" + pointer +
+                        PersistenceConstants.REGEX_FIELD_END);
+
+        return and(createThingIdFilter(thingId), pointerRegex);
     }
 
     private static Bson createFeaturesRemovalFilter(final CharSequence thingId) {
-        return and(Filters.regex(
-                PersistenceConstants.FIELD_ID, PersistenceConstants.REGEX_START_THING_ID + Pattern.quote(thingId + ":")), Filters
-                .regex(PersistenceConstants.FIELD_RESOURCE,
-                PersistenceConstants.REGEX_START_THING_ID + Pattern.quote(PersistenceConstants.FIELD_FEATURES)));
+        final Bson thingRegex = Filters.regex(PersistenceConstants.FIELD_ID,
+                PersistenceConstants.REGEX_START_THING_ID + Pattern.quote(thingId + ":"));
+        final Bson featuresRegex =
+                Filters.regex(PersistenceConstants.FIELD_RESOURCE, PersistenceConstants.REGEX_START_THING_ID +
+                        Pattern.quote(PersistenceConstants.FIELD_FEATURES));
+        return and(createThingIdFilter(thingId), thingRegex, featuresRegex);
+    }
+
+    private static Bson createThingIdFilter(final CharSequence thingId) {
+        return Filters.eq(PersistenceConstants.FIELD_THING_ID, thingId);
     }
 
     private static Set<Document> createPolicyEntries(final CharSequence thingId,
@@ -348,6 +370,7 @@ final class PolicyUpdateFactory {
 
         return new Document()
                 .append(PersistenceConstants.FIELD_ID, resourcePermissions.createPolicyEntryId(thingId))
+                .append(PersistenceConstants.FIELD_THING_ID, thingId)
                 .append(PersistenceConstants.FIELD_GRANTED, resourcePermissions.getReadGrantedSubjectIds())
                 .append(PersistenceConstants.FIELD_REVOKED, resourcePermissions.getReadRevokedSubjectIds())
                 .append(PersistenceConstants.FIELD_RESOURCE, resourcePermissions.getResource());

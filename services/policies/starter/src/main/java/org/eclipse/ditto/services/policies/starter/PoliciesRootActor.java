@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.config.MongoConfig;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.typesafe.config.Config;
 
@@ -58,7 +60,6 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.cluster.sharding.ShardRegion;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
@@ -68,6 +69,7 @@ import akka.japi.Creator;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 
 /**
@@ -128,7 +130,7 @@ public final class PoliciesRootActor extends AbstractActor {
                 return SupervisorStrategy.escalate();
             }).build());
 
-    private final ActorRef policiesShardRegion;
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
     private PoliciesRootActor(final ServiceConfigReader configReader,
             final SnapshotAdapter<Policy> snapshotAdapter,
@@ -153,13 +155,16 @@ public final class PoliciesRootActor extends AbstractActor {
         pubSubMediator.tell(new DistributedPubSubMediator.Put(getSelf()), getSelf());
         pubSubMediator.tell(new DistributedPubSubMediator.Put(persistenceStreamingActor), getSelf());
 
-        policiesShardRegion = ClusterSharding.get(getContext().system())
+        final ActorRef policiesShardRegion = ClusterSharding.get(getContext().system())
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         // start cluster singleton for namespace ops
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyNamespaceOpsActor.ACTOR_NAME,
                 PolicyNamespaceOpsActor.props(pubSubMediator, config));
+
+        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
+                        PoliciesMessagingConstants.SHARD_REGION, log);
 
         final HealthConfigReader healthConfig = configReader.health();
 
@@ -241,13 +246,18 @@ public final class PoliciesRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        policiesShardRegion.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
+        log.info("Sending the namespace stats of the policy shard as requested..");
+        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
