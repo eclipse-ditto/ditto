@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.utils.akka;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 
 import javax.annotation.Nullable;
@@ -25,10 +27,13 @@ import scala.PartialFunction;
  */
 public abstract class AbstractActorWithLock extends AbstractActorWithStash {
 
-    private boolean isLocked = false;
+    private boolean locked;
+    @Nullable private Cancellable lockTimeout;
 
-    @Nullable
-    private Cancellable lockTimeout = null;
+    protected AbstractActorWithLock() {
+        locked = false;
+        lockTimeout = null;
+    }
 
     /**
      * @return Actor's usual message handler. It will always be invoked in the actor's thread.
@@ -36,35 +41,40 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
     protected abstract Receive handleMessage();
 
     /**
-     * @return Maximum time the actor stays locked.
+     * Prevents this actor from handling messages until it gets unlocked.
+     * <p>
+     * <em>This method is NOT thread-safe and MUST be called in the actor's thread!</em>
+     * </p>
+     *
+     * @param maxLockTime the maximum time the actor stays locked.
+     * @throws NullPointerException if {@code maxLockTime} is {@code null}.
      */
-    @Nullable
-    protected abstract Duration maxLockTime();
-
-    /**
-     * Prevent this actor from handling messages until unlocked - NOT thread-safe; MUST be called in the actor's thread.
-     */
-    protected void setLocked() {
-        isLocked = true;
-        final Duration timeout = maxLockTime();
-        if (timeout != null) {
-            cancelLockTimeout();
-            lockTimeout = getContext().system()
-                    .scheduler()
-                    .scheduleOnce(timeout, getSelf(), Control.UNLOCK, getContext().dispatcher(), ActorRef.noSender());
-        }
+    protected void setLocked(final Duration maxLockTime) {
+        checkNotNull(maxLockTime, "maxLockTime");
+        locked = true;
+        cancelLockTimeout();
+        final ActorContext context = getContext();
+        lockTimeout = context.system()
+                .scheduler()
+                .scheduleOnce(maxLockTime, getSelf(), Control.UNLOCK, context.dispatcher(), ActorRef.noSender());
     }
 
     /**
-     * Unlock this actor to handle messages again - thread-safe; can be called anywhere.
+     * Unlocks this actor to handle messages again.
+     * <p>
+     * <em>This method is thread-safe and can be called anywhere.</em>
+     * </p>
      */
     protected void unlock() {
         getSelf().tell(Control.UNLOCK, ActorRef.noSender());
     }
 
     /**
-     * Switch the actor's message handler - DO NOT call {@code getContext().become()} directly; otherwise the actor
-     * loses the ability to lock itself.
+     * Switches the actor's message handler.
+     * <p>
+     * <em>DO NOT call {@code getContext().become()} directly; otherwise the actor loses the ability to lock
+     * itself.</em>
+     * </p>
      *
      * @param receive the new message handler.
      */
@@ -72,27 +82,17 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
         getContext().become(lockBehavior(receive));
     }
 
-    /**
-     * Switch the actor's message handler - DO NOT call {@code getContext().become()} directly; otherwise the actor
-     * loses the ability to lock itself.
-     *
-     * @param receive the new message handler.
-     * @param discardOld whether the old handler should be discarded.
-     */
-    protected void become(final Receive receive, final boolean discardOld) {
-        getContext().become(lockBehavior(receive), discardOld);
-    }
-
     private Receive lockBehavior(final Receive receive) {
-        final PartialFunction<Object, ?> handler = receive.onMessage();
+        checkNotNull(receive, "actor's message handler");
         return ReceiveBuilder.create()
                 .matchEquals(Control.UNLOCK, unlock -> {
-                    isLocked = false;
+                    locked = false;
                     cancelLockTimeout();
                     unstashAll();
                 })
                 .matchAny(message -> {
-                    if (isLocked) {
+                    final PartialFunction<Object, ?> handler = receive.onMessage();
+                    if (locked) {
                         stash();
                     } else if (handler.isDefinedAt(message)) {
                         handler.apply(message);
@@ -101,6 +101,20 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
                     }
                 })
                 .build();
+    }
+
+    /**
+     * Switches the actor's message handler.
+     * <p>
+     * <em>DO NOT call {@code getContext().become()} directly; otherwise the actor loses the ability to lock
+     * itself.</em>
+     * </p>
+     *
+     * @param receive the new message handler.
+     * @param discardOld whether the old handler should be discarded.
+     */
+    protected void become(final Receive receive, final boolean discardOld) {
+        getContext().become(lockBehavior(receive), discardOld);
     }
 
     @Override
@@ -115,7 +129,7 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
     }
 
     private void cancelLockTimeout() {
-        if (lockTimeout != null) {
+        if (null != lockTimeout) {
             lockTimeout.cancel();
             lockTimeout = null;
         }
@@ -124,4 +138,5 @@ public abstract class AbstractActorWithLock extends AbstractActorWithStash {
     private enum Control {
         UNLOCK
     }
+
 }
