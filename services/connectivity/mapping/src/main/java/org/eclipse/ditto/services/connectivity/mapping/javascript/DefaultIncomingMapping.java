@@ -25,7 +25,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
  */
 public class DefaultIncomingMapping implements MappingFunction<ExternalMessage, Optional<Adaptable>> {
 
-    private static DefaultIncomingMapping INSTANCE = new DefaultIncomingMapping();
+    private static final DefaultIncomingMapping INSTANCE = new DefaultIncomingMapping();
 
     private DefaultIncomingMapping() {
     }
