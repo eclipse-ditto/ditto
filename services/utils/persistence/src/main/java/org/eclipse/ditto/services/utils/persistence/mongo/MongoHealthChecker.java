@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.mongo.RetrieveMongoStatusResponse;
@@ -27,6 +28,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -42,6 +44,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
 
     private static final String TEST_COLLECTION_NAME = "test";
     private static final String ID_FIELD = "_id";
+    private static final int HEALTH_CHECK_MAX_POOL_SIZE = 2;
 
     private final MongoClientWrapper mongoClient;
     private final MongoCollection<Document> collection;
@@ -53,8 +56,10 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     private MongoHealthChecker() {
 
         final Config config = getContext().system().settings().config();
+        final Config configWithLimitedMaxPoolSize = config
+                .withValue(MongoConfig.POOL_MAX_SIZE, ConfigValueFactory.fromAnyRef(HEALTH_CHECK_MAX_POOL_SIZE));
 
-        mongoClient = MongoClientWrapper.newInstance(config);
+        mongoClient = MongoClientWrapper.newInstance(configWithLimitedMaxPoolSize);
 
         /*
          * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve

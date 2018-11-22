@@ -38,7 +38,7 @@ public final class DefaultHealthCheckingActorFactory {
      * @param persistenceCheckerProps props to create persistence health checkers.
      * @return the Akka configuration Props object
      */
-    public static Props props(final HealthCheckingActorOptions options, Props persistenceCheckerProps) {
+    public static Props props(final HealthCheckingActorOptions options, final Props persistenceCheckerProps) {
         final LinkedHashMap<String, Props> childActorProps = new LinkedHashMap<>();
         if (options.isPersistenceCheckEnabled()) {
             childActorProps.put(PERSISTENCE_LABEL, persistenceCheckerProps);
