@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives.auth;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -62,7 +61,6 @@ public final class AuthorizationContextVersioningDirective {
 
     private static AuthorizationContext mapAuthorizationContext(
             final AuthorizationContext authenticationContextWithPrefixedSubjects, final int version) {
-        final List<AuthorizationSubject> subjects = new ArrayList<>();
         final List<AuthorizationSubject> subjectsWithPrefix = authenticationContextWithPrefixedSubjects
                 .getAuthorizationSubjects();
         final List<AuthorizationSubject> subjectsWithoutPrefix =
@@ -78,19 +76,15 @@ public final class AuthorizationContextVersioningDirective {
                AuthorizationSubject is used to create a default ACL
             */
 
-            subjects.addAll(subjectsWithoutPrefix);
-            subjects.addAll(subjectsWithPrefix);
+            return authenticationContextWithPrefixedSubjects.addHead(subjectsWithoutPrefix);
         } else {
             /* for V2 and above, we must enhance the List of
                AuthorizationSubjects by APPENDING AuthorizationSubjects without prefix - because the first
                AuthorizationSubject is used to create a default ACL
             */
 
-            subjects.addAll(subjectsWithPrefix);
-            subjects.addAll(subjectsWithoutPrefix);
+            return authenticationContextWithPrefixedSubjects.addTail(subjectsWithoutPrefix);
         }
-
-        return AuthorizationModelFactory.newAuthContext(subjects);
     }
 
 }

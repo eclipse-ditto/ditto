@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.thingsearch.common.util.ConfigKeys;
@@ -24,6 +23,7 @@ import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -36,7 +36,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.Logging;
@@ -80,16 +79,14 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
                 kamonCommandListener, kamonConnectionPoolListener);
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
-                        MongoEventToPersistenceStrategyFactory.getInstance());
+                inizializeThingsSearchUpdaterPersistence(mongoClientWrapper, materializer, config);
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
         final Duration resetTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET);
         final CircuitBreaker circuitBreaker =
                 new CircuitBreaker(getContext().dispatcher(), getContext().system().scheduler(), maxFailures,
-                        scala.concurrent.duration.Duration.create(callTimeout.getSeconds(), TimeUnit.SECONDS),
-                        scala.concurrent.duration.Duration.create(resetTimeout.getSeconds(), TimeUnit.SECONDS));
+                        callTimeout, resetTimeout);
         circuitBreaker.onOpen(() -> log.warning(
                 "The circuit breaker for this search updater instance is open which means that all ThingUpdaters" +
                         " won't process any messages until the circuit breaker is closed again"));
@@ -143,6 +140,22 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         } else {
             log.warning("Deletion of marked as deleted Things from search index is not enabled");
         }
+    }
+
+    private ThingsSearchUpdaterPersistence inizializeThingsSearchUpdaterPersistence(
+            final MongoClientWrapper mongoClientWrapper, final ActorMaterializer materializer, final Config rawConfig) {
+        final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
+                new MongoThingsSearchUpdaterPersistence(mongoClientWrapper, log,
+                        MongoEventToPersistenceStrategyFactory.getInstance(), materializer);
+
+        final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
+        if (indexInitializationEnabled) {
+            searchUpdaterPersistence.initializeIndices();
+        } else {
+            log.info("Skipping IndexInitializer because it is disabled.");
+        }
+
+        return searchUpdaterPersistence;
     }
 
     private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {
@@ -199,8 +212,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        thingsUpdaterActor.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, cmd -> thingsUpdaterActor.forward(cmd, getContext()))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
@@ -224,4 +236,5 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ClusterSingletonManagerSettings.create(getContext().system()).withRole(ConfigKeys.SEARCH_ROLE);
         getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
     }
+
 }
