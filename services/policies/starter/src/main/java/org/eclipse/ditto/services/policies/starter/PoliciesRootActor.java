@@ -32,12 +32,11 @@ import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.typesafe.config.Config;
@@ -157,14 +156,9 @@ public final class PoliciesRootActor extends AbstractActor {
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
-                        PoliciesMessagingConstants.SHARD_REGION, log);
+                PoliciesMessagingConstants.SHARD_REGION, log);
 
         final HealthConfigReader healthConfig = configReader.health();
-
-        final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(config.getString(ConfigKeys.MONGO_URI),
-                        healthConfig.getPersistenceTimeout(),
-                        MongoConfig.getSSLEnabled(config)));
 
         final boolean healthCheckEnabled = healthConfig.enabled();
         final Duration healthCheckInterval = healthConfig.getInterval();
@@ -177,7 +171,7 @@ public final class PoliciesRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final Props healthCheckingActorProps =
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient);
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
 
