@@ -11,6 +11,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -95,6 +96,7 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
                 "]";
     }
 
+
     /**
      * Builder for {@code ImmutableMqttSource}.
      */
@@ -154,6 +156,12 @@ public final class ImmutableMqttSource extends DelegateSource implements MqttSou
         @Override
         public MqttSourceBuilder enforcement(@Nullable final Enforcement enforcement) {
             delegateBuilder.enforcement(enforcement);
+            return this;
+        }
+
+        @Override
+        public MqttSourceBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
+            delegateBuilder.headerMapping(headerMapping);
             return this;
         }
 

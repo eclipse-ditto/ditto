@@ -23,12 +23,15 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
@@ -101,9 +104,8 @@ public final class MessageMappingProcessor {
      *
      * @param message the message
      * @return the signal
-     * @throws RuntimeException if something went wrong
      */
-    public Optional<Signal<?>> process(final ExternalMessage message) {
+    Optional<InboundExternalMessage> process(final ExternalMessage message) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, INBOUND);
         return withTimer(overAllProcessingTimer, () -> convertMessage(message, overAllProcessingTimer));
     }
@@ -113,15 +115,14 @@ public final class MessageMappingProcessor {
      *
      * @param signal the signal
      * @return the message
-     * @throws RuntimeException if something went wrong
      */
-    public Optional<ExternalMessage> process(final Signal<?> signal) {
+    Optional<ExternalMessage> process(final Signal<?> signal) {
         final StartedTimer overAllProcessingTimer = startNewTimer().tag(DIRECTION_TAG_NAME, OUTBOUND);
         return withTimer(overAllProcessingTimer,
                 () -> convertToExternalMessage(() -> protocolAdapter.toAdaptable(signal), overAllProcessingTimer));
     }
 
-    private Optional<Signal<?>> convertMessage(final ExternalMessage message,
+    private Optional<InboundExternalMessage> convertMessage(final ExternalMessage message,
             final StartedTimer overAllProcessingTimer) {
         checkNotNull(message);
 
@@ -131,11 +132,11 @@ public final class MessageMappingProcessor {
                     () -> getMapper(message).map(message));
 
             return adaptableOpt.map(adaptable -> {
-                doUpdateCorrelationId(adaptable);
-
-                return this.<Signal<?>>withTimer(
+                enhanceLogFromAdaptable(adaptable);
+                final Signal<?> signal = this.<Signal<?>>withTimer(
                         overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME),
                         () -> protocolAdapter.fromAdaptable(adaptable));
+                return MappedInboundExternalMessage.of(message, adaptable.getTopicPath(), signal);
             });
         } catch (final DittoRuntimeException e) {
             throw e;
@@ -157,7 +158,7 @@ public final class MessageMappingProcessor {
             final Adaptable adaptable =
                     withTimer(overAllProcessingTimer.startNewSegment(PROTOCOL_SEGMENT_NAME), adaptableSupplier);
 
-            doUpdateCorrelationId(adaptable);
+            enhanceLogFromAdaptable(adaptable);
 
             return withTimer(overAllProcessingTimer.startNewSegment(PAYLOAD_SEGMENT_NAME),
                     () -> getMapper(adaptable).map(adaptable));
@@ -202,7 +203,7 @@ public final class MessageMappingProcessor {
 
     private MessageMapper getMapper(final Adaptable adaptable) {
 
-        doUpdateCorrelationId(adaptable);
+        enhanceLogFromAdaptable(adaptable);
         return registry.getMapper().orElseGet(() -> {
             log.debug("Falling back to Default MessageMapper for mapping Adaptable as no MessageMapper was present: {}",
                     adaptable);
@@ -210,7 +211,7 @@ public final class MessageMappingProcessor {
         });
     }
 
-    private void doUpdateCorrelationId(final Adaptable adaptable) {
+    private void enhanceLogFromAdaptable(final Adaptable adaptable) {
         adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
                 .ifPresent(s -> LogUtil.enhanceLogWithCorrelationId(log, s));
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);

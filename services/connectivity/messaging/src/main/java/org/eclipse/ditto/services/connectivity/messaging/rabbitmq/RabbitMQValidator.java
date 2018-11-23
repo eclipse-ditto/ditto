@@ -48,16 +48,17 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
             final Supplier<String> sourceDescription) {
 
         source.getEnforcement().ifPresent(enforcement -> {
-            validateEnforcement(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
-            enforcement.getFilters().forEach(filterTemplate -> validateEnforcement(filterTemplate,
+            validateTemplate(enforcement.getInput(), PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders);
+            enforcement.getFilters().forEach(filterTemplate -> validateTemplate(filterTemplate,
                     PlaceholderFactory.newThingPlaceholder(), dittoHeaders));
         });
+        source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }
 
     @Override
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
-        // noop
+        target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }
 
     @Override

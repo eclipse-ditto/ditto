@@ -17,6 +17,7 @@ import java.util.Map;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -35,8 +36,9 @@ public class UnmodifiableExternalMessageBuilderTest {
         testBuildExternalMessage(true);
     }
 
-    public void testBuildExternalMessage(final boolean bytePayload) {
+    private void testBuildExternalMessage(final boolean bytePayload) {
         final AuthorizationContext authorizationContext = Mockito.mock(AuthorizationContext.class);
+        final TopicPath topicPath = Mockito.mock(TopicPath.class);
         final Map<String, String> headers = new HashMap<>();
         headers.put("eclipse", "ditto");
 
@@ -45,6 +47,7 @@ public class UnmodifiableExternalMessageBuilderTest {
 
         messageBuilder.withAdditionalHeaders("ditto", "eclipse");
         messageBuilder.withAuthorizationContext(authorizationContext);
+        messageBuilder.withTopicPath(topicPath);
         if (bytePayload) {
             messageBuilder.withBytes(BYTES);
         } else {
@@ -56,6 +59,7 @@ public class UnmodifiableExternalMessageBuilderTest {
         Assertions.assertThat(externalMessage.getHeaders()).containsEntry("eclipse", "ditto");
         Assertions.assertThat(externalMessage.getHeaders()).containsEntry("ditto", "eclipse");
         Assertions.assertThat(externalMessage.getAuthorizationContext()).contains(authorizationContext);
+        Assertions.assertThat(externalMessage.getTopicPath()).contains(topicPath);
         Assertions.assertThat(externalMessage.isError()).isFalse();
         Assertions.assertThat(externalMessage.isResponse()).isFalse();
 

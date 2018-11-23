@@ -50,6 +50,7 @@ final class ImmutableSource implements Source {
     private final int index;
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
+    @Nullable private final HeaderMapping headerMapping;
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
@@ -58,6 +59,7 @@ final class ImmutableSource implements Source {
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
         this.index = builder.index;
         this.enforcement = builder.enforcement;
+        this.headerMapping = builder.headerMapping;
     }
 
     @Override
@@ -86,6 +88,11 @@ final class ImmutableSource implements Source {
     }
 
     @Override
+    public Optional<HeaderMapping> getHeaderMapping() {
+        return Optional.ofNullable(headerMapping);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
@@ -105,6 +112,10 @@ final class ImmutableSource implements Source {
 
         if (enforcement != null) {
             jsonObjectBuilder.set(JsonFields.ENFORCEMENT, enforcement.toJson(schemaVersion, thePredicate), predicate);
+        }
+
+        if (headerMapping != null) {
+            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate), predicate);
         }
 
         return jsonObjectBuilder.build();
@@ -139,12 +150,16 @@ final class ImmutableSource implements Source {
         final Enforcement readEnforcement =
                 jsonObject.getValue(JsonFields.ENFORCEMENT).map(ImmutableEnforcement::fromJson).orElse(null);
 
+        final HeaderMapping readHeaderMapping =
+                jsonObject.getValue(JsonFields.HEADER_MAPPING).map(ImmutableHeaderMapping::fromJson).orElse(null);
+
         return new Builder()
                 .addresses(readSources)
                 .authorizationContext(readAuthorizationContext)
                 .consumerCount(readConsumerCount)
                 .index(index)
                 .enforcement(readEnforcement)
+                .headerMapping(readHeaderMapping)
                 .build();
     }
 
@@ -157,12 +172,13 @@ final class ImmutableSource implements Source {
                 Objects.equals(addresses, that.addresses) &&
                 Objects.equals(index, that.index) &&
                 Objects.equals(enforcement, that.enforcement) &&
+                Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(index, addresses, consumerCount, authorizationContext, enforcement);
+        return Objects.hash(index, addresses, consumerCount, authorizationContext, enforcement, headerMapping);
     }
 
     @Override
@@ -173,6 +189,7 @@ final class ImmutableSource implements Source {
                 ", consumerCount=" + consumerCount +
                 ", authorizationContext=" + authorizationContext +
                 ", enforcement=" + enforcement +
+                ", headerMapping=" + headerMapping +
                 "]";
     }
 
@@ -188,6 +205,7 @@ final class ImmutableSource implements Source {
 
         // optional:
         @Nullable private Enforcement enforcement;
+        @Nullable private HeaderMapping headerMapping;
 
         // optional with default:
         private int index = DEFAULT_INDEX;
@@ -229,6 +247,12 @@ final class ImmutableSource implements Source {
         @Override
         public SourceBuilder enforcement(@Nullable final Enforcement enforcement) {
             this.enforcement = enforcement;
+            return this;
+        }
+
+        @Override
+        public SourceBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
+            this.headerMapping = headerMapping;
             return this;
         }
 

@@ -60,6 +60,15 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Optional<Enforcement> getEnforcement();
 
     /**
+     * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
+     * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
+     * placeholders.
+     *
+     * @return the optional header mappings
+     */
+    Optional<HeaderMapping> getHeaderMapping();
+
+    /**
      * Returns all non hidden marked fields of this {@code Source}.
      *
      * @return a JSON object representation of this Source including only non hidden marked fields.
@@ -113,6 +122,13 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
                 JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Source} header mapping.
+         */
+        public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
+                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

@@ -22,8 +22,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import com.typesafe.config.Config;
 
 /**
- * Defines a message mapper which maps a {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to a
- * {@link org.eclipse.ditto.protocoladapter.Adaptable} and vice versa.
+ * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
  * <p>
  * Usually a mapper is bound to a content type.
  * </p>

@@ -48,7 +48,7 @@ public class StoppedKamonTimer implements StoppedTimer {
             }
         });
 
-        LOGGER.debug("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
+        LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
                 tags.get(SEGMENT_TAG), getDuration());
         onStopHandlers
                 .forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));

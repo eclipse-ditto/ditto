@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -56,9 +57,10 @@ public final class TestConstants {
                     .index(1).build()
     );
 
+    private static final HeaderMapping HEADER_MAPPING = null;
     public static final Set<Target> TARGETS = new HashSet<>(
             Collections.singletonList(
-                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS)));
+                    ConnectivityModelFactory.newTarget("eventQueue", AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS)));
     public static Connection CONNECTION =
             ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
                     .sources(SOURCES)

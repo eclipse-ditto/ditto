@@ -17,7 +17,10 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
-public interface MqttTarget {
+/**
+ * Specific {@link Target} adding MQTT related fields.
+ */
+public interface MqttTarget extends Target {
 
     /**
      * @return the qos level of this MQTT target

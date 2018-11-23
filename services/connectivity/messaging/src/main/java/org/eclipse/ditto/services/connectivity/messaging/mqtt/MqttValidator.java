@@ -92,6 +92,11 @@ public final class MqttValidator extends AbstractProtocolValidator {
                     .build();
         }
 
+        if (source.getHeaderMapping().isPresent()) {
+            throw ConnectionConfigurationInvalidException.newBuilder("Header mapping is not supported for MQTT " +
+                    "sources.").dittoHeaders(dittoHeaders).build();
+        }
+
         final MqttSource mqttSource = (MqttSource) source;
         validateSourceQoS(mqttSource.getQos(), dittoHeaders, sourceDescription);
         validateSourceEnforcement(mqttSource.getEnforcement().orElse(null), dittoHeaders, sourceDescription);
@@ -106,6 +111,11 @@ public final class MqttValidator extends AbstractProtocolValidator {
             throw ConnectionConfigurationInvalidException.newBuilder(message)
                     .dittoHeaders(dittoHeaders)
                     .build();
+        }
+
+        if (target.getHeaderMapping().isPresent()) {
+            throw ConnectionConfigurationInvalidException.newBuilder("Header mapping is not supported for MQTT " +
+                    "targets.").dittoHeaders(dittoHeaders).build();
         }
 
         final MqttTarget mqttTarget = (MqttTarget) target;

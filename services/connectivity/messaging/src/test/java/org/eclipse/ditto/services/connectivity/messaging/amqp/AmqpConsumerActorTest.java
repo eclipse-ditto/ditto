@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
@@ -57,16 +58,20 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
         return AmqpConsumerActor.props("consumer", messageConsumer, mappingActor,
-                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT);
+                ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .enforcement(ENFORCEMENT)
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .build());
     }
 
     @Override
     protected JmsMessage getInboundMessage(final Map.Entry<String, Object> header) {
-        return getJmsMessage(TestConstants.modifyThing(), "enforcement", header, REPLY_TO_HEADER);
+        return getJmsMessage(TestConstants.modifyThing(), "amqp-10-test", header, REPLY_TO_HEADER);
     }
 
     @Test
-    public void plainStringMappingTest() throws JMSException {
+    public void plainStringMappingTest() {
         new TestKit(actorSystem) {{
             final MappingContext mappingContext = ConnectivityModelFactory.newMappingContext(
                     "JavaScript",
@@ -142,9 +147,12 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-plainStringMappingTest");
 
+            final Source source = Mockito.mock(Source.class);
+            Mockito.when(source.getAuthorizationContext())
+                    .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
+                            source));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -216,9 +224,12 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             final ActorRef processor = actorSystem.actorOf(messageMappingProcessorProps,
                     MessageMappingProcessorActor.ACTOR_NAME + "-jmsMessageWithNullPropertyAndNullContentTypeTest");
 
+            final Source source = Mockito.mock(Source.class);
+            Mockito.when(source.getAuthorizationContext())
+                    .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props("foo123", Mockito.mock(MessageConsumer.class), processor,
-                            TestConstants.Authorization.AUTHORIZATION_CONTEXT, null));
+                            source));
 
             final String correlationId = "cor-";
             final String plainPayload =

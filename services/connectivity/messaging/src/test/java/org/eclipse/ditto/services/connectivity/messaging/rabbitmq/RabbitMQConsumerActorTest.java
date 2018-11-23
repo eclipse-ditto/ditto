@@ -35,7 +35,7 @@ public class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Deliver
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
         return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
-                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT);
+                TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT, TestConstants.HEADER_MAPPING);
     }
 
     @Override

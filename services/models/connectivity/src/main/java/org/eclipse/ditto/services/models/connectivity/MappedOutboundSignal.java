@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.models.connectivity;
 
+import java.util.Objects;
 import java.util.Set;
 
 import org.eclipse.ditto.model.connectivity.Target;
@@ -44,4 +45,30 @@ final class MappedOutboundSignal implements OutboundSignal.WithExternalMessage {
         return delegate.getTargets();
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof MappedOutboundSignal)) {
+            return false;
+        }
+        final MappedOutboundSignal that = (MappedOutboundSignal) o;
+        return Objects.equals(delegate, that.delegate) &&
+                Objects.equals(externalMessage, that.externalMessage);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(delegate, externalMessage);
+    }
+
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "delegate=" + delegate +
+                ", externalMessage=" + externalMessage +
+                "]";
+    }
 }

@@ -19,6 +19,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -33,7 +35,9 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Nullable private String textPayload;
     @Nullable private ByteBuffer bytePayload;
     @Nullable private AuthorizationContext authorizationContext;
+    @Nullable private TopicPath topicPath;
     @Nullable private EnforcementFilter<String> enforcementFilter;
+    @Nullable private HeaderMapping headerMapping;
 
     /**
      * Constructs a new MutableExternalMessageBuilder initialized with the passed {@code message}.
@@ -48,7 +52,9 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
         this.response = message.isResponse();
         this.error = message.isError();
         this.authorizationContext = message.getAuthorizationContext().orElse(null);
+        this.topicPath = message.getTopicPath().orElse(null);
         this.enforcementFilter = message.getEnforcementFilter().orElse(null);
+        this.headerMapping = message.getHeaderMapping().orElse(null);
     }
 
     /**
@@ -76,6 +82,12 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     public ExternalMessageBuilder withHeaders(final Map<String, String> headers) {
         ConditionChecker.checkNotNull(headers);
         this.headers = new HashMap<>(headers);
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder clearHeaders() {
+        this.headers.clear();
         return this;
     }
 
@@ -111,9 +123,21 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     }
 
     @Override
+    public ExternalMessageBuilder withTopicPath(final TopicPath topicPath) {
+        this.topicPath = topicPath;
+        return this;
+    }
+
+    @Override
     public <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(
             @Nullable final F enforcementFilter) {
         this.enforcementFilter = enforcementFilter;
+        return this;
+    }
+
+    @Override
+    public ExternalMessageBuilder withHeaderMapping(@Nullable final HeaderMapping headerMapping) {
+        this.headerMapping = headerMapping;
         return this;
     }
 
@@ -132,7 +156,7 @@ final class UnmodifiableExternalMessageBuilder implements ExternalMessageBuilder
     @Override
     public ExternalMessage build() {
         return new UnmodifiableExternalMessage(headers, response, error, payloadType, textPayload, bytePayload,
-                authorizationContext, enforcementFilter);
+                authorizationContext, topicPath, enforcementFilter, headerMapping);
     }
 
 }

@@ -32,8 +32,8 @@ import akka.japi.Creator;
 import scala.concurrent.duration.Duration;
 
 /**
- * Actor which is started for each {@link QueryThings} command in the gateway handling the response from "things-search",
- * retrieving the found things from "things" via the {@code aggregatorProxyActor} and responding to the
+ * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
+ * "things-search", retrieving the found things from "things" via the {@code aggregatorProxyActor} and responding to the
  * {@code originatingSender} with the combined result.
  * <p>
  * This is needed in gateway so that we can maintain the max. cluster-message size in Ditto while still being able to
@@ -59,7 +59,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
         queryThingsResponse = null;
 
         final Duration timeout = Duration.create(getContext().system().settings().config()
-                .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).getSeconds(), TimeUnit.SECONDS);
+                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).minusSeconds(5).getSeconds(),
+                TimeUnit.SECONDS);
         getContext().setReceiveTimeout(timeout);
     }
 
