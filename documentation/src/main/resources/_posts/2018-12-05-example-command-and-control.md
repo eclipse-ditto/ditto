@@ -1,7 +1,7 @@
 ---
 title: "Using Eclipse Hono's Command&Control with Eclipse Ditto"
-published: false
-permalink: 2018-12-14-example-command-and-control.html
+published: true
+permalink: 2018-12-05-example-command-and-control.html
 layout: post
 author: dominik_guggemos
 tags: [blog]
@@ -36,7 +36,7 @@ The following steps are covered in this example:
 ### Prerequisites: A Ditto digital twin and a Hono device 
 
 The creation of a Hono device and Ditto digital twin has already been covered in the blog post 
-[Connecting Eclipse Ditto to Eclipse Hono](/2018-05-02-connecting-ditto-hono.html). For brevity we will just list the 
+[Connecting Eclipse Ditto to Eclipse Hono](2018-05-02-connecting-ditto-hono.html). For brevity we will just list the 
 required commands to create a twin/device here. For a detailed explanation of the steps please refer to the previous 
 post. 
 
@@ -62,7 +62,7 @@ $ curl -X POST -i -H 'Content-Type: application/json' -d '{
 #### Create Ditto digital twin
 ```bash
 # create thing in Ditto
-$ curl -X PUT -i -u demo5:demo  -H 'Content-Type: application/json' -d '{
+$ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
     "features": {
       "water": {
         "properties": {
@@ -250,7 +250,7 @@ mosquitto_pub -d -h hono.eclipse.org -p 8883 -u 'teapot@org.eclipse.ditto' -P te
 
 If you have any wishes, improvements, are missing something
 or just want to get in touch with us, you can use one of
-our [feedback channels](https://eclipse.org/ditto/feedback.html).
+our [feedback channels](feedback.html).
 
 
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
