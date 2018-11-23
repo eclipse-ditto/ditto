@@ -23,6 +23,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
+import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -218,10 +219,10 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 throw new IllegalArgumentException("Message too large...");
             }
         } else {
+            final Destination destination = message.getJMSDestination();
             final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
-            log.debug("Received message of unsupported type ({}) with headers: {}",
-                    message.getClass().getName(), headersMapFromJmsMessage);
-            throw new IllegalArgumentException("Only messages of type TEXT or BYTE are supported. Received " + message.getClass().getName() + ".");
+            log.debug("Received message at '{}' of unsupported type ({}) with headers: {}",
+                    destination, message.getClass().getName(), headersMapFromJmsMessage);
         }
     }
 

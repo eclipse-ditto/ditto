@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.TopicParseException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
@@ -109,6 +110,9 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
 
         parseStrategies.put(MessageMappingFailedException.ERROR_CODE,
                 MessageMappingFailedException::fromJson);
+
+        parseStrategies.put(MessageSendingFailedException.ERROR_CODE,
+                MessageSendingFailedException::fromJson);
 
         parseStrategies.put(TopicParseException.ERROR_CODE,
                 TopicParseException::fromJson);

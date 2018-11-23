@@ -34,11 +34,14 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
@@ -55,6 +58,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     static final String ACTOR_NAME = "amqpPublisherActor";
 
     private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
+
     static {
         JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), wrap(Message::setJMSCorrelationID));
         JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
@@ -125,6 +129,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
 
+                final ActorRef origin = getSender();
                 producer.send(jmsMessage, new CompletionListener() {
                     @Override
                     public void onCompletion(final Message message) {
@@ -134,24 +139,37 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                     }
 
                     @Override
-                    public void onException(final Message message, final Exception exception) {
-                        log.debug("Failed to send message {}. Cause:", message, exception.getMessage());
+                    public void onException(final Message messageFailedToSend, final Exception exception) {
+                        handleSendException(message, exception, origin);
                     }
                 });
             } else {
                 log.warning("No producer for destination {} available.", publishTarget);
+                final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
+                        .message("Failed to send message, no producer available.")
+                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                        .build();
+                getSender().tell(sendFailedException, getSelf());
             }
         } catch (final JMSException e) {
-            log.info("Failed to send JMS response: {}, {}", e.getMessage(), e.toString());
-            log.error(e, "Failed to send JMS response: {}", e.getMessage());
+            handleSendException(message, e, getSender());
         }
+    }
+
+    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender) {
+        log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
+        final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
+                .cause(e)
+                .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                .build();
+        sender.tell(sendFailedException, getSelf());
     }
 
     private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
         final Message message;
         final Optional<String> optTextPayload = externalMessage.getTextPayload();
         if (optTextPayload.isPresent()) {
-             message = session.createTextMessage(optTextPayload.get());
+            message = session.createTextMessage(optTextPayload.get());
         } else if (externalMessage.getBytePayload().isPresent()) {
             final BytesMessage bytesMessage = session.createBytesMessage();
             bytesMessage.writeBytes(externalMessage.getBytePayload().map(ByteBuffer::array).orElse(new byte[]{}));
