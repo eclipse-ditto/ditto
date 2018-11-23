@@ -12,13 +12,10 @@ package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.respondWithHeaders;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Supplier;
-
-import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 
 import com.typesafe.config.Config;
 
@@ -41,10 +38,6 @@ public final class SecurityResponseHeadersDirective {
     private static final String X_XSS_PROTECTION = "X-XSS-Protection";
     private static final String MODE_BLOCK = "1; mode=block";
 
-    private static final String STRICT_TRANSPORT_SECURITY = "Strict-Transport-Security";
-    private static final String MAX_AGE = "max-age=";
-    private static final String INCLUDE_SUB_DOMAINS = " ; includeSubDomains";
-
     private SecurityResponseHeadersDirective() {
         // no op
     }
@@ -64,24 +57,15 @@ public final class SecurityResponseHeadersDirective {
     }
 
     static Iterable<HttpHeader> createSecurityResponseHeaders(final Config config) {
-        final boolean forceHttps = config.getBoolean(ConfigKeys.FORCE_HTTPS);
-        return createSecurityResponseHeaders(forceHttps);
+        return createSecurityResponseHeaders();
     }
 
-    private static Iterable<HttpHeader> createSecurityResponseHeaders(final boolean forceHttps) {
+    private static Iterable<HttpHeader> createSecurityResponseHeaders() {
         final List<HttpHeader> headers = new LinkedList<>();
 
         headers.add(RawHeader.create(X_FRAME_OPTIONS, SAMEORIGIN));
         headers.add(RawHeader.create(X_CONTENT_TYPE_OPTIONS, NOSNIFF));
         headers.add(RawHeader.create(X_XSS_PROTECTION, MODE_BLOCK));
-
-        // only when FORCE_HTTPS = true:
-        if (forceHttps) {
-            final String xXssProtectionValue = MAX_AGE +
-                    Duration.ofDays(365).getSeconds() // say the browser that we are a HSTS host for 1 year
-                    + INCLUDE_SUB_DOMAINS;
-            headers.add(RawHeader.create(STRICT_TRANSPORT_SECURITY, xXssProtectionValue));
-        }
 
         return Collections.unmodifiableList(headers);
     }

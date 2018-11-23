@@ -32,14 +32,11 @@ import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
-
-import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.actor.AbstractActor;
@@ -194,15 +191,9 @@ public final class ConciergeRootActor extends AbstractActor {
     private static ActorRef startHealthCheckingActor(final ActorContext context,
             final AbstractConciergeConfigReader configReader) {
 
-        final Config config = configReader.getRawConfig();
         final HealthConfigReader healthConfig = configReader.health();
-        final String mongoUri = MongoConfig.getMongoUri(config);
         final HealthCheckingActorOptions.Builder hcBuilder = HealthCheckingActorOptions
                 .getBuilder(healthConfig.enabled(), healthConfig.getInterval());
-
-        final ActorRef mongoClient = startChildActor(context, MongoClientActor.ACTOR_NAME,
-                MongoClientActor.props(mongoUri, healthConfig.getPersistenceTimeout(),
-                        MongoConfig.getSSLEnabled(config)));
 
         if (healthConfig.persistenceEnabled()) {
             hcBuilder.enablePersistenceCheck();
@@ -210,8 +201,7 @@ public final class ConciergeRootActor extends AbstractActor {
 
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         return startChildActor(context, DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
-
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
     }
 
     private static ActorRef startChildActor(final akka.actor.ActorContext context, final String actorName,

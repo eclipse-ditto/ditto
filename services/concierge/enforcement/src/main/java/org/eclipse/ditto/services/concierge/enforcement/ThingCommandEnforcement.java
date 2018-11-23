@@ -1005,8 +1005,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ModifyThing modifyThing = (ModifyThing) receivedCommand;
             final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
             final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
-            return CreateThing.of(modifyThing.getThing(), initialPolicy, policyIdOrPlaceholder,
-                    modifyThing.getDittoHeaders());
+            final Thing newThing = modifyThing.getThing().toBuilder()
+                    .setId(modifyThing.getThingId())
+                    .build();
+            return CreateThing.of(newThing, initialPolicy, policyIdOrPlaceholder, modifyThing.getDittoHeaders());
         } else {
             return receivedCommand;
         }
