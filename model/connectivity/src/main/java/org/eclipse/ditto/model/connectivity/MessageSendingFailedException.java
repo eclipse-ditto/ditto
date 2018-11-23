@@ -34,10 +34,11 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.sending.failed";
 
-    private static final String MESSAGE_TEMPLATE = "Failed to send message. Cause: [{0}] {1}";
+    private static final String MESSAGE_TEMPLATE = "Failed to send message: {0}";
     private static final String DEFAULT_MESSAGE = "Failed to send message.";
     private static final String DEFAULT_DESCRIPTION = "Sending the message to an external system failed, " +
-            "please check if your connection is configured properly and the target system is available.";
+            "please check if your connection is configured properly and the target system is available and consuming " +
+            "messages.";
 
     private MessageSendingFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
@@ -104,7 +105,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
                 message(DEFAULT_MESSAGE);
             } else {
                 super.cause(cause);
-                message(MessageFormat.format(MESSAGE_TEMPLATE, cause.getClass().getName(), cause.getMessage()));
+                message(MessageFormat.format(MESSAGE_TEMPLATE, cause.getMessage()));
             }
             return this;
         }
