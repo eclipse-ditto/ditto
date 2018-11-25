@@ -1,6 +1,6 @@
 ---
 title: Connections
-keywords: connection, connectivity, mapping, connection, integration
+keywords: connection, connectivity, mapping, connection, integration, placeholder
 tags: [connectivity]
 permalink: basic-connections.html
 ---
@@ -17,7 +17,7 @@ You can integrate your Ditto instance with external messaging services such as
 [Eclipse Hono](https://eclipse.org/hono/) or a [RabbitMQ](https://www.rabbitmq.com/) broker via custom "connections". 
 
 A connection represents a communication channel for the exchange of messages between any service and Ditto. It 
-requires a transport protocol, which is used to transmit [Ditto Protocol] messages. Ditto supports one-way and two-way
+requires a transport protocol, which is used to transmit [Ditto Protocol](protocol-overview.html) messages. Ditto supports one-way and two-way
  communication over connections. This enables consumer/producer scenarios as well as fully-fledged command and response
  use cases. Nevertheless, those options might be limited by the transport protocol or the other endpoint's
  capabilities.
@@ -93,13 +93,13 @@ back to the sender as an error message, if a valid _reply-to_ header was provide
 Another use case for placeholders may be to publish Thing events or live commands and events to a target address 
 containing Thing-specific information e.g. you can distribute Things from different namespaces to different target addresses.
 You can use the placeholders `{% raw %}{{ thing:id }}{% endraw %}`, `{% raw %}{{ thing:namespace }}{% endraw %}` and `{% raw %}{{ thing:name }}{% endraw %}` in the target address for this purpose.
-For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders are resolved as follows:
+For a Thing with the ID _org.eclipse.ditto:device-123_ these placeholders would be resolved as follows:
 
 | Placeholder | Description | Resolved value |
 |--------|------------|------------|
-| `thing:id`  | Full ID composed of _namespace_  `:` (as a separator), and _name_ | org.eclipse.ditto:device-123 |
-| `thing:namespace`  | Namespace (i.e. first part of an ID)  | org.eclipse.ditto |
-| `thing:name` | Name (i.e. second part of an ID ) | device-123 |
+| `thing:id`  | Full ID composed of _namespace_  `:` (as a separator), and _name_ | _org.eclipse.ditto:device-123_ |
+| `thing:namespace`  | Namespace (i.e. first part of an ID)  | _org.eclipse.ditto_ |
+| `thing:name` | Name (i.e. second part of an ID ) | _device-123_ |
 
 
 Example:
@@ -116,7 +116,4 @@ Sending live commands and events to a target address that contains the Things' n
         }
       ]
   }
-``` 
-
-[Connectivity API]: connectivity-overview.html
-[Ditto Protocol]: protocol-overview.html
+```

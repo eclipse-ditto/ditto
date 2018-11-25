@@ -20,6 +20,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -36,7 +38,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
+    @Nullable private final TopicPath topicPath;
     @Nullable private final EnforcementFilter<String> enforcementFilter;
+    @Nullable private final HeaderMapping headerMapping;
 
     UnmodifiableExternalMessage(final Map<String, String> headers,
             final boolean response,
@@ -45,7 +49,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final String textPayload,
             @Nullable final ByteBuffer bytePayload,
             @Nullable final AuthorizationContext authorizationContext,
-            @Nullable final EnforcementFilter<String> enforcementFilter) {
+            @Nullable final TopicPath topicPath,
+            @Nullable final EnforcementFilter<String> enforcementFilter,
+            @Nullable final HeaderMapping headerMapping) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
         this.response = response;
@@ -54,7 +60,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.textPayload = textPayload;
         this.bytePayload = bytePayload;
         this.authorizationContext = authorizationContext;
+        this.topicPath = topicPath;
         this.enforcementFilter = enforcementFilter;
+        this.headerMapping = headerMapping;
     }
 
     @Override
@@ -126,8 +134,18 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public Optional<TopicPath> getTopicPath() {
+        return Optional.ofNullable(topicPath);
+    }
+
+    @Override
     public Optional<EnforcementFilter<String>> getEnforcementFilter() {
         return Optional.ofNullable(enforcementFilter);
+    }
+
+    @Override
+    public Optional<HeaderMapping> getHeaderMapping() {
+        return Optional.ofNullable(headerMapping);
     }
 
     @Override
@@ -143,7 +161,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 Objects.equals(textPayload, that.textPayload) &&
                 Objects.equals(bytePayload, that.bytePayload) &&
                 Objects.equals(authorizationContext, that.authorizationContext) &&
+                Objects.equals(topicPath, that.topicPath) &&
                 Objects.equals(enforcementFilter, that.enforcementFilter) &&
+                Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType;
@@ -152,7 +172,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Override
     public int hashCode() {
         return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
-                enforcementFilter);
+                topicPath, enforcementFilter, headerMapping);
     }
 
     @Override
@@ -162,7 +182,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", response=" + response +
                 ", error=" + error +
                 ", authorizationContext=" + authorizationContext +
+                ", topicPath=" + topicPath +
                 ", enforcement=" + enforcementFilter +
+                ", headerMapping=" + headerMapping +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

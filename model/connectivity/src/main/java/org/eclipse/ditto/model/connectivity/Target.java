@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -58,6 +59,15 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     AuthorizationContext getAuthorizationContext();
 
     /**
+     * Defines an optional header mapping e.g. to rename, combine etc. headers for outbound message. Mapping is
+     * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
+     * placeholders.
+     *
+     * @return the optional header mapping
+     */
+    Optional<HeaderMapping> getHeaderMapping();
+
+    /**
      * Returns all non hidden marked fields of this {@code Connection}.
      *
      * @return a JSON object representation of this Target including only non hidden marked fields
@@ -104,6 +114,13 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the {@code Target} header mapping.
+         */
+        public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
+                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         JsonFields() {

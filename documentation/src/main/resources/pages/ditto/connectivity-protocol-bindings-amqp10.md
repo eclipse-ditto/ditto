@@ -50,21 +50,37 @@ The following placeholders are available for the `input` field:
 
 | Placeholder    | Description  | Example   |
 |-----------|-------|---------------|
-| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device:id }}{%endraw%}`  |
-
-##### Example of an enforcement configuration for AMQP 1.0 sources
+| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device_id }}{%endraw%}`  |
 
 Assuming a device `sensor:temperature1` pushes its telemetry data to Ditto which is stored in a Thing 
 `sensor:temperature1`. The device identity is provided in a header field `device_id`. To enforce that the device can 
 only send data to the Thing `sensor:temperature1` the following enforcement configuration can be used: 
 ```json
 {
+  "addresses": [ "telemetry/hono_tenant" ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
   "enforcement": {
     "input": "{%raw%}{{ header:device_id }}{%endraw%}",
     "filters": [ "{%raw%}{{ thing:id }}{%endraw%}" ]
-  },
-  "addresses": [ "telemetry/hono_tenant" ],
-  "authorizationContext": ["ditto:inbound-auth-subject", "..."]
+  }
+}
+```
+
+#### Source header mapping
+
+For incoming AMQP 1.0 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+
+The JSON for an AMQP 1.0 source with header mapping could like this:
+```json
+{
+  "addresses": [
+    "<source>"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "headerMapping": {
+    "correlation-id": "{%raw%}{{ header:message-id }}{%endraw%}",
+    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}"
+  }
 }
 ```
 
@@ -118,6 +134,28 @@ would match an attribute "counter" to be greater than 42. Additionally it would 
     "_/_/things/live/messages?namespaces=org.eclipse.ditto"
   ],
   "authorizationContext": ["ditto:outbound-auth-subject", "..."]
+}
+```
+
+#### Target header mapping
+
+For outgoing AMQP 1.0 messages, an optional [header mapping](connectivity-header-mapping.html) may be applied.
+
+The JSON for an AMQP 1.0 target with header mapping could like this:
+```json
+{
+  "address": "<target>",
+  "topics": [
+    "_/_/things/twin/events",
+    "_/_/things/live/messages?namespaces=org.eclipse.ditto"
+  ],
+  "authorizationContext": ["ditto:inbound-auth-subject"],
+  "headerMapping": {
+    "message-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
+    "content-type": "{%raw%}{{ header:content-type }}{%endraw%}",
+    "subject": "{%raw%}{{ topic:subject }}{%endraw%}",
+    "reply-to": "all-replies"
+  }
 }
 ```
 

@@ -215,14 +215,18 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * @return new source builder
+     * Creates a new {@link SourceBuilder} for building {@link Source}s.
+     *
+     * @return new {@link Source} builder
      */
     public static SourceBuilder newSourceBuilder() {
         return new ImmutableSource.Builder();
     }
 
     /**
-     * @return new source builder
+     * Creates a new {@link MqttSourceBuilder} for building {@link MqttSource}s.
+     *
+     * @return new {@link MqttSource} builder
      */
     public static MqttSourceBuilder newMqttSourceBuilder() {
         return new ImmutableMqttSource.Builder();
@@ -238,6 +242,7 @@ public final class ConnectivityModelFactory {
     public static Source newSource(final AuthorizationContext authorizationContext, final String address) {
         return newSourceBuilder().address(address).authorizationContext(authorizationContext).build();
     }
+
     /**
      * Creates a new {@link Source}.
      *
@@ -252,6 +257,15 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Creates a new {@link TargetBuilder} for building {@link Target}s.
+     *
+     * @return new {@link Target} builder
+     */
+    public static TargetBuilder newTargetBuilder() {
+        return new ImmutableTarget.Builder();
+    }
+
+    /**
      * Creates a new {@link Target} from existing target but different address.
      *
      * @param target the target
@@ -259,7 +273,8 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Target}
      */
     public static Target newTarget(final Target target, final String address) {
-        return newTarget(address, target.getAuthorizationContext(), target.getTopics());
+        return newTarget(address, target.getAuthorizationContext(), target.getHeaderMapping().orElse(null),
+                target.getTopics());
     }
 
     /**
@@ -267,12 +282,17 @@ public final class ConnectivityModelFactory {
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
+     * @param headerMapping the {@link HeaderMapping} of the new Target
      * @param topics the FilteredTopics for which this target will receive signals
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            final Set<FilteredTopic> topics) {
-        return ImmutableTarget.of(address, authorizationContext, topics);
+            @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
+        return new ImmutableTarget.Builder().address(address)
+                .authorizationContext(authorizationContext)
+                .topics(topics)
+                .headerMapping(headerMapping)
+                .build();
     }
 
     /**
@@ -280,31 +300,34 @@ public final class ConnectivityModelFactory {
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
+     * @param headerMapping the {@link HeaderMapping} of the new Target
      * @param requiredTopic the required FilteredTopic that should be published via this target
      * @param additionalTopics additional set of FilteredTopics that should be published via this target
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
+            @Nullable final HeaderMapping headerMapping, final FilteredTopic requiredTopic,
+            final FilteredTopic... additionalTopics) {
         final HashSet<FilteredTopic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return ImmutableTarget.of(address, authorizationContext, topics);
+        return newTarget(address, authorizationContext, headerMapping, topics);
     }
 
     /**
-     * Creates a new {@link MqttTarget}.
+     * Creates a new {@link Target}.
      *
      * @param address the address where the signals will be published
      * @param authorizationContext the authorization context of the new {@link Target}
+     * @param headerMapping the {@link HeaderMapping} of the new Target
      * @param requiredTopic the required topic that should be published via this target
      * @param additionalTopics additional set of topics that should be published via this target
      * @return the created {@link Target}
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
-            final Topic requiredTopic, final Topic... additionalTopics) {
+            @Nullable final HeaderMapping headerMapping, final Topic requiredTopic, final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        return ImmutableTarget.of(address, authorizationContext, topics.stream()
+        return newTarget(address, authorizationContext, headerMapping, topics.stream()
                 .map(ConnectivityModelFactory::newFilteredTopic)
                 .collect(Collectors.toSet())
         );
@@ -320,16 +343,27 @@ public final class ConnectivityModelFactory {
      * @param additionalTopics additional set of topics that should be published via this target
      * @return the created {@link Target}
      */
-    public static Target newMqttTarget(final String address,
+    public static MqttTarget newMqttTarget(final String address,
             final AuthorizationContext authorizationContext,
             final int qos,
             final Topic requiredTopic,
             final Topic... additionalTopics) {
         final HashSet<Topic> topics = new HashSet<>(Collections.singletonList(requiredTopic));
         topics.addAll(Arrays.asList(additionalTopics));
-        final ImmutableTarget target = ImmutableTarget.of(address, authorizationContext, topics.stream()
+        final Target target = newTarget(address, authorizationContext, null, topics.stream()
                 .map(ConnectivityModelFactory::newFilteredTopic)
                 .collect(Collectors.toSet()));
+        return new ImmutableMqttTarget(target, qos);
+    }
+
+    /**
+     * Creates a new {@link MqttTarget} with MQTT specific configuration.
+     *
+     * @param target the delegate target
+     * @param qos the target qos value
+     * @return the created {@link Target}
+     */
+    public static MqttTarget newMqttTarget(final Target target, final int qos) {
         return new ImmutableMqttTarget(target, qos);
     }
 
@@ -483,7 +517,8 @@ public final class ConnectivityModelFactory {
      * @param additionalFilters additional filters
      * @return the enforcement instance
      */
-    public static Enforcement newSourceAddressEnforcement(final String requiredFilter, final String... additionalFilters) {
+    public static Enforcement newSourceAddressEnforcement(final String requiredFilter,
+            final String... additionalFilters) {
         return newEnforcement(SOURCE_ADDRESS_ENFORCEMENT, requiredFilter, additionalFilters);
     }
 
@@ -495,5 +530,14 @@ public final class ConnectivityModelFactory {
      */
     public static Enforcement newEnforcement(final Enforcement enforcement) {
         return ImmutableEnforcement.of(enforcement.getInput(), enforcement.getFilters());
+    }
+
+    /**
+     * Creates a new instance of a {@link HeaderMapping}.
+     * @param mapping the mapping definition
+     * @return the new instance of {@link HeaderMapping}
+     */
+    public static HeaderMapping newHeaderMapping(Map<String, String> mapping) {
+        return new ImmutableHeaderMapping(mapping);
     }
 }

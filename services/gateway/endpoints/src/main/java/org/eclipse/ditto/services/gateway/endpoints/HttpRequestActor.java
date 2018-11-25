@@ -102,7 +102,8 @@ public final class HttpRequestActor extends AbstractActor {
         this.httpResponseFuture = httpResponseFuture;
 
         final Config config = getContext().system().settings().config();
-        serverRequestTimeout = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT);
+        serverRequestTimeout = config.getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT)
+                .minusSeconds(5);
         getContext().setReceiveTimeout(serverRequestTimeout);
 
         // wrap JsonRuntimeExceptions
@@ -393,7 +394,7 @@ public final class HttpRequestActor extends AbstractActor {
         final Optional<HttpStatusCode> responseStatusCode =
                 Optional.of(messageCommandResponse.getStatusCode())
                         .filter(code -> StatusCodes.lookup(code.toInt()).isPresent())
-        // only allow status code which are known to akka-http
+                        // only allow status code which are known to akka-http
                         .filter(code -> !HttpStatusCode.BAD_GATEWAY.equals(code));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 

@@ -88,7 +88,7 @@ public class KamonCounter implements Counter {
     public boolean reset() {
         try {
             getSnapshot(true);
-            LOGGER.debug("Reset histogram with name <{}>.", name);
+            LOGGER.trace("Reset histogram with name <{}>.", name);
             return true;
         } catch (IllegalStateException e) {
             LOGGER.warn("Could not reset histogram with name <{}>.", name);

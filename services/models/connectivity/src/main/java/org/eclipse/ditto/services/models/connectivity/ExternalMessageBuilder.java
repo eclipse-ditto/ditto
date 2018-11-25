@@ -17,6 +17,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.placeholder.EnforcementFilter;
 
 /**
@@ -48,6 +50,13 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     ExternalMessageBuilder withHeaders(Map<String, String> headers);
+
+    /**
+     * Clears existing message headers for this builder. Existing headers are removed!
+     *
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder clearHeaders();
 
     /**
      * Sets the passed {@code text} to the builder and also changing the
@@ -85,6 +94,14 @@ public interface ExternalMessageBuilder {
     ExternalMessageBuilder withAuthorizationContext(AuthorizationContext authorizationContext);
 
     /**
+     * Associates an {@link TopicPath} with the message.
+     *
+     * @param topicPath the {@link TopicPath} assigned to the message
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withTopicPath(TopicPath topicPath);
+
+    /**
      * Associates {@link Enforcement} data with the message. Pass {@code null} to disable enforcement.
      *
      * @param <F> the {@link EnforcementFilter} type
@@ -92,6 +109,14 @@ public interface ExternalMessageBuilder {
      * @return this builder in order to enable method chaining
      */
     <F extends EnforcementFilter<String>> ExternalMessageBuilder withEnforcement(@Nullable F enforcement);
+
+    /**
+     * Associates {@link HeaderMapping} data with the message. Pass {@code null} to disable headerMapping.
+     *
+     * @param headerMapping the mappings
+     * @return this builder in order to enable method chaining
+     */
+    ExternalMessageBuilder withHeaderMapping(@Nullable HeaderMapping headerMapping);
 
     /**
      * Marks the message as a response message.

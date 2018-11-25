@@ -118,7 +118,7 @@ public final class ExpiringTimerBuilder implements TimerBuilder<ExpiringTimerBui
         if (!expirationHandlingFuture.isDone()) {
             final boolean canceled = expirationHandlingFuture.cancel(false);
             if (canceled) {
-                LOGGER.debug("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
+                LOGGER.trace("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
                         "before timeout", timer.getName());
             }
         }
@@ -126,7 +126,7 @@ public final class ExpiringTimerBuilder implements TimerBuilder<ExpiringTimerBui
 
     private static void defaultExpirationHandling(final String tracingFilter, final StartedTimer timer,
             @Nullable Consumer<StartedTimer> additionalExpirationHandling) {
-        LOGGER.debug("Trace for {} stopped. Cause: Timer expired", tracingFilter);
+        LOGGER.trace("Trace for {} stopped. Cause: Timer expired", tracingFilter);
 
         if (additionalExpirationHandling != null) {
             try {

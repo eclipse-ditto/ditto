@@ -110,8 +110,8 @@ public class PreparedKamonTimer implements PreparedTimer {
     public boolean reset() {
         try {
             getSnapshot(true);
-            LOGGER.debug("Reset timer with name <{}>", name);
-        } catch (IllegalStateException e) {
+            LOGGER.trace("Reset timer with name <{}>", name);
+        } catch (final IllegalStateException e) {
             LOGGER.warn("Could not reset Kamon timer.", e);
             return false;
         }

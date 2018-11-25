@@ -801,7 +801,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private void handleOutboundSignal(final OutboundSignal signal) {
         enhanceLogUtil(signal.getSource());
         if (messageMappingProcessorActor != null) {
-            messageMappingProcessorActor.tell(signal, getSelf());
+            messageMappingProcessorActor.tell(signal, getSender());
         } else {
             log.info("Cannot handle <{}> signal as there is no MessageMappingProcessor available.",
                     signal.getSource().getType());

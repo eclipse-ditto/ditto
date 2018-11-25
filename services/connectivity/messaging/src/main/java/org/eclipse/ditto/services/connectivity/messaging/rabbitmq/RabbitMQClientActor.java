@@ -33,6 +33,8 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
@@ -374,10 +376,12 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         for (int i = 0; i < source.getConsumerCount(); i++) {
                             final String addressWithIndex = sourceAddress + "-" + i;
                             final AuthorizationContext authorizationContext = source.getAuthorizationContext();
+                            final Enforcement enforcement = source.getEnforcement().orElse(null);
+                            final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
                             final ActorRef consumer = startChildActorConflictFree(
                                     CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                     RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),
-                                            authorizationContext, source.getEnforcement().orElse(null)));
+                                            authorizationContext, enforcement, headerMapping));
                             consumerByAddressWithIndex.put(addressWithIndex, consumer);
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,

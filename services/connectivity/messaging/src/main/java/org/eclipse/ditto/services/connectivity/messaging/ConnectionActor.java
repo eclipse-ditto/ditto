@@ -407,7 +407,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, filteredTargets);
-        clientActorRouter.tell(outbound, getSelf());
+        clientActorRouter.tell(outbound, getSender());
     }
 
     private void testConnection(final TestConnection command) {

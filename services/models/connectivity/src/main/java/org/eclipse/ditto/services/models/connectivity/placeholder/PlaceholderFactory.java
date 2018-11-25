@@ -36,6 +36,13 @@ public final class PlaceholderFactory {
         return ImmutableSourceAddressPlaceholder.INSTANCE;
     }
 
+    /**
+     * @return new instance of the {@link TopicPathPlaceholder}
+     */
+    public static TopicPathPlaceholder newTopicPathPlaceholder() {
+        return ImmutableTopicPathPlaceholder.INSTANCE;
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }
