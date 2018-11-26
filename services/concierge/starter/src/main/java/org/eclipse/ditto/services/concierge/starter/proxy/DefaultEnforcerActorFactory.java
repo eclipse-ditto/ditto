@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -98,7 +99,8 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                PlaceholderSubstitution.newInstance();
+                CommandWithOptionalEntityValidator.getInstance()
+                        .andThen(PlaceholderSubstitution.newInstance());
         final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
