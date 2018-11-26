@@ -59,7 +59,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
         queryThingsResponse = null;
 
         final Duration timeout = Duration.create(getContext().system().settings().config()
-                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).minusSeconds(5).getSeconds(),
+                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).getSeconds(),
                 TimeUnit.SECONDS);
         getContext().setReceiveTimeout(timeout);
     }

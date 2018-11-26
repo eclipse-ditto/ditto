@@ -86,7 +86,6 @@ public abstract class AbstractRoute {
         this.proxyActor = proxyActor;
         this.actorSystem = actorSystem;
 
-
         final Config config = actorSystem.settings().config();
         final ProtocolConfigReader protocolConfig = ProtocolConfigReader.fromRawConfig(config);
         final ProtocolAdapterProvider protocolAdapterProvider =
@@ -96,8 +95,10 @@ public abstract class AbstractRoute {
         LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
 
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
-                .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc ->
-                        Supervision.stop() // in any case, stop!
+                .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
+                            LOGGER.error("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
+                            return Supervision.stop(); // in any case, stop!
+                        }
                 ), actorSystem);
     }
 
