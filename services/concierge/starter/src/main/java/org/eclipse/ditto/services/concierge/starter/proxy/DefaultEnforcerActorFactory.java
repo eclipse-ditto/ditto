@@ -21,8 +21,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
-import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
-import org.eclipse.ditto.services.base.config.DevOpsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.concierge.cache.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.concierge.cache.CacheFactory;
@@ -35,6 +33,7 @@ import org.eclipse.ditto.services.concierge.enforcement.LiveSignalEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
+import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -46,10 +45,10 @@ import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
-import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -102,7 +101,7 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         // pre-enforcer
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer =
-                newPreEnforcer(blockedNamespaces, configReader.devops(), PlaceholderSubstitution.newInstance());
+                newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
@@ -139,12 +138,14 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
     }
 
     private static Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> newPreEnforcer(
-            final BlockedNamespaces blockedNamespaces, final DevOpsConfigReader devOpsConfigReader,
+            final BlockedNamespaces blockedNamespaces,
             final PlaceholderSubstitution placeholderSubstitution) {
 
-        return withDittoHeaders -> BlockNamespaceBehavior.of(blockedNamespaces)
-                .block(withDittoHeaders)
-                .thenCompose(placeholderSubstitution);
+        return withDittoHeaders ->
+                BlockNamespaceBehavior.of(blockedNamespaces)
+                        .block(withDittoHeaders)
+                        .thenApply(CommandWithOptionalEntityValidator.getInstance())
+                        .thenCompose(placeholderSubstitution);
     }
 
     private ActorRef getInternalConciergeForwarder(final ActorContext actorContext,
