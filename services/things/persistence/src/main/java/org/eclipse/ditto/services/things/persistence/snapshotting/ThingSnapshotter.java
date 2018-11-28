@@ -294,6 +294,10 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                                                 snapshotAdapter.fromSnapshotStore(result.snapshot().get()));
                                     }
                                 }
+                                else if (response instanceof  SnapshotProtocol.LoadSnapshotFailed) {
+                                    doLog(logger -> logger.error("Load Snapshot failed with message - {}",
+                                            ((SnapshotProtocol.LoadSnapshotFailed) response).cause().getMessage()));
+                                }
                                 return Optional.empty();
                             });
             return futureThing.exceptionally(error -> Optional.empty());

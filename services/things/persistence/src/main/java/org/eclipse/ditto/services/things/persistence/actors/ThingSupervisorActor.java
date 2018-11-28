@@ -181,7 +181,11 @@ public final class ThingSupervisorActor extends AbstractActor {
 
         @Override
         public void doApply(final Terminated message) {
-            log.info("Persistence actor for Thing with ID <{}> terminated abnormally.", thingId);
+            log.warning("Persistence actor for Thing with ID <{}> terminated abnormally.", thingId);
+            if (message.getAddressTerminated()) {
+                log.error("Persistence actor for Thing with ID <{}> terminated abnormally " +
+                        "because it crashed or because of network failure!", thingId);
+            }
             child = null;
             final Duration restartDelay = calculateRestartDelay();
             getContext().system()

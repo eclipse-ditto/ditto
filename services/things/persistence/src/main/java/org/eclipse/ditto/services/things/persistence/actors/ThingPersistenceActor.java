@@ -60,7 +60,9 @@ import akka.japi.pf.FI;
 import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.AbstractPersistentActor;
 import akka.persistence.RecoveryCompleted;
+import akka.persistence.RecoveryTimedOut;
 import akka.persistence.SnapshotOffer;
+import scala.Option;
 import scala.concurrent.duration.Duration;
 
 /**
@@ -250,6 +252,7 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
 
     @Override
     public void postStop() {
+        log.debug("Stopping PersistenceActor for Thing with ID - {}", thingId);
         super.postStop();
         thingSnapshotter.postStop();
         if (activityChecker != null) {
@@ -283,6 +286,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     }
 
     @Override
+    public void onRecoveryFailure(final Throwable cause, final Option<Object> event) {
+        super.onRecoveryFailure(cause, event);
+        log.error("Recovery Failure for Thing with ID {} and cause {}", thingId, cause.getMessage());
+    }
+
+    @Override
     public Receive createReceiveRecover() {
         // defines how state is updated during recovery
         return handleThingEvents.orElse(ReceiveBuilder.create()
@@ -293,6 +302,10 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                     thing = thingSnapshotter.recoverThingFromSnapshotOffer(ss);
                 })
 
+                // # Recovery timeout
+                .match(RecoveryTimedOut.class, rto -> {
+                    log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", thingId);
+                })
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
                     if (thing != null) {
