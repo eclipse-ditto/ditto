@@ -17,8 +17,11 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -77,7 +80,7 @@ public class SubstitutionStrategyRegistryTest {
     }
 
     @Test
-    public void allSubstitutionStrategiesHaveBeenConfigured() {
+    public void allSubstitutionStrategiesHaveBeenConfigured() throws UnsupportedEncodingException {
         final List<SubstitutionStrategy> strategies = underTest.getStrategies();
         final List<Class<? extends SubstitutionStrategy>> actualStrategyClasses =
                 strategies.stream().map(SubstitutionStrategy::getClass).collect(Collectors.toList());
@@ -85,7 +88,9 @@ public class SubstitutionStrategyRegistryTest {
         final List<Class<? extends SubstitutionStrategy>> expectedStrategyClasses = getAllStrategyClasses();
         assertThat(actualStrategyClasses).hasSameElementsAs(expectedStrategyClasses);
     }
-    private static List<Class<? extends SubstitutionStrategy>> getAllStrategyClasses() {
+
+    private static List<Class<? extends SubstitutionStrategy>> getAllStrategyClasses()
+            throws UnsupportedEncodingException {
         final String packageName = SubstitutionStrategyRegistry.class.getPackage().getName();
         final List<Class> allClasses = getClasses(packageName);
 
@@ -94,15 +99,14 @@ public class SubstitutionStrategyRegistryTest {
                 .filter(SubstitutionStrategy.class::isAssignableFrom)
                 .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers()))
                 .map(clazz -> {
-                    @SuppressWarnings("unchecked")
-                    final Class<? extends SubstitutionStrategy> castedClazz =
+                    @SuppressWarnings("unchecked") final Class<? extends SubstitutionStrategy> castedClazz =
                             (Class<? extends SubstitutionStrategy>) clazz;
                     return castedClazz;
                 })
                 .collect(Collectors.toList());
     }
 
-    private static List<Class> getClasses(final String packageName) {
+    private static List<Class> getClasses(final String packageName) throws UnsupportedEncodingException {
         final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         final String path = packageName.replace('.', '/');
         final Enumeration<URL> resources;
@@ -115,7 +119,8 @@ public class SubstitutionStrategyRegistryTest {
         final List<File> dirs = new ArrayList<>();
         while (resources.hasMoreElements()) {
             final URL resource = resources.nextElement();
-            dirs.add(new File(resource.getFile()));
+            final String decodedResource = URLDecoder.decode(resource.getFile(), StandardCharsets.UTF_8.name());
+            dirs.add(new File(decodedResource));
         }
 
         final List<Class> classes = new ArrayList<>();
@@ -153,4 +158,5 @@ public class SubstitutionStrategyRegistryTest {
 
         return classes;
     }
+
 }
