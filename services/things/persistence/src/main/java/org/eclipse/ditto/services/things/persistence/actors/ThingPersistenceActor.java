@@ -303,9 +303,9 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
                 })
 
                 // # Recovery timeout
-                .match(RecoveryTimedOut.class, rto -> {
-                    log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", thingId);
-                })
+                .match(RecoveryTimedOut.class, rto ->
+                    log.warning("RecoveryTimeout occurred during recovery for Thing with ID {}", thingId)
+                )
                 // # Recovery handling
                 .match(RecoveryCompleted.class, rc -> {
                     if (thing != null) {
