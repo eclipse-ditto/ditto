@@ -12,6 +12,9 @@ package org.eclipse.ditto.services.concierge.cache;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
@@ -31,6 +34,23 @@ public final class CacheFactory {
     /**
      * Creates a cache.
      *
+     * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
+     * @param cacheName the name of the cache. Used as metric label.
+     * @param <K> the type of the cache keys.
+     * @param <V> the type of the cache values.
+     * @return the created cache.
+     */
+    public static <K, V> Cache<K, V> createCache(final CacheConfigReader cacheConfigReader,
+            final String cacheName) {
+        requireNonNull(cacheConfigReader);
+        requireNonNull(cacheName);
+
+        return CaffeineCache.of(caffeine(cacheConfigReader, defaultExecutor()), cacheName);
+    }
+
+    /**
+     * Creates a cache.
+     *
      * @param cacheLoader the cache loader.
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
@@ -45,13 +65,21 @@ public final class CacheFactory {
         requireNonNull(cacheConfigReader);
         requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader), cacheLoader, cacheName);
+        return CaffeineCache.of(caffeine(cacheConfigReader, defaultExecutor()), cacheLoader, cacheName);
     }
 
-    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader) {
+
+    private static Caffeine<Object, Object> caffeine(final CacheConfigReader cacheConfigReader,
+            final Executor executor) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
         caffeine.maximumSize(cacheConfigReader.maximumSize());
         caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
+        caffeine.executor(executor);
         return caffeine;
     }
+
+    private static Executor defaultExecutor() {
+        return Executors.newCachedThreadPool();
+    }
+
 }
