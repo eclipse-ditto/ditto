@@ -117,6 +117,15 @@ public abstract class DistributedData<R extends ReplicatedData> {
     }
 
     /**
+     * Request updates when the distributed data changes.
+     *
+     * @param subscriber whom to notify of changes.
+     */
+    public void subscribeForChanges(final ActorRef subscriber) {
+        replicator.tell(new Replicator.Subscribe<>(getKey(), subscriber), ActorRef.noSender());
+    }
+
+    /**
      * @return reference to the distributed data replicator.
      */
     public ActorRef getReplicator() {

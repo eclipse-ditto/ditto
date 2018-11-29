@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.cache;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -200,6 +201,12 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             metricStatsCounter.recordInvalidation();
         }
         return currentlyExisting;
+    }
+
+    // optimized batch invalidation method for caffeine
+    @Override
+    public void invalidateAll(final Collection<K> keys) {
+        synchronousCacheView.invalidateAll(keys);
     }
 
     @Override

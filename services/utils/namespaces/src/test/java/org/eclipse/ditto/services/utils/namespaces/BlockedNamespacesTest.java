@@ -20,6 +20,8 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
+import akka.cluster.ddata.ORSet;
+import akka.cluster.ddata.Replicator;
 import akka.event.Logging;
 import akka.testkit.javadsl.TestKit;
 
@@ -71,6 +73,41 @@ public final class BlockedNamespacesTest {
             watch(underTest.getReplicator());
             expectTerminated(underTest.getReplicator());
         }};
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void subscribeForChanges() throws Exception {
+        new TestKit(actorSystem) {{
+            final BlockedNamespaces underTest = BlockedNamespaces.of(actorSystem);
+            underTest.subscribeForChanges(getRef());
+
+            final String namespace = "ns1";
+            assertThat(underTest.contains(namespace).toCompletableFuture().get()).isFalse();
+
+            // wait for a round trip to the replicator to ensure subscription is active
+            underTest.add(namespace).toCompletableFuture().get();
+            assertThat(underTest.contains(namespace).toCompletableFuture().get()).isTrue();
+
+            final ORSet change1 = (ORSet) expectMsgClass(Replicator.Changed.class).dataValue();
+
+            underTest.remove(namespace).toCompletableFuture().get();
+            assertThat(underTest.contains(namespace).toCompletableFuture().get()).isFalse();
+
+            final ORSet change2 = (ORSet) expectMsgClass(Replicator.Changed.class).dataValue();
+
+            underTest.add("ns2");
+            final ORSet change3 = (ORSet) expectMsgClass(Replicator.Changed.class).dataValue();
+
+            underTest.add("ns3");
+            final ORSet change4 = (ORSet) expectMsgClass(Replicator.Changed.class).dataValue();
+
+            assertThat(change1.getElements()).containsExactly("ns1");
+            assertThat(change2.getElements()).isEmpty();
+            assertThat(change3.getElements()).containsExactly("ns2");
+            assertThat(change4.getElements()).containsExactly("ns2", "ns3");
+        }};
+
     }
 
     private static void testCRUD(final BlockedNamespaces underTest, final ActorSystem actorSystem) throws Exception {

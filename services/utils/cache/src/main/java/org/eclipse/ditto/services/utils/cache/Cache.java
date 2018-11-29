@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -79,4 +80,13 @@ public interface Cache<K, V> {
      * @see com.github.benmanes.caffeine.cache.Cache
      */
     ConcurrentMap<K, V> asMap();
+
+    /**
+     * Invalidate a collection of keys.
+     *
+     * @param keys all keys to invalidate.
+     */
+    default void invalidateAll(final Collection<K> keys) {
+        keys.forEach(this::invalidate);
+    }
 }

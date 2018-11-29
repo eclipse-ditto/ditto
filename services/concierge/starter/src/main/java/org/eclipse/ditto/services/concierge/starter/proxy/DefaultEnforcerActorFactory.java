@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.concierge.starter.proxy;
 import static org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants.CLUSTER_ROLE;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.concierge.enforcement.PolicyCommandEnforcement
 import org.eclipse.ditto.services.concierge.enforcement.ThingCommandEnforcement;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.PlaceholderSubstitution;
 import org.eclipse.ditto.services.concierge.enforcement.validators.CommandWithOptionalEntityValidator;
+import org.eclipse.ditto.services.concierge.starter.actors.CachedNamespaceInvalidator;
 import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActorCreator;
 import org.eclipse.ditto.services.concierge.util.config.ConciergeConfigReader;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
@@ -124,6 +126,11 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         final Props policyCacheUpdateActorProps =
                 PolicyCacheUpdateActor.props(policyEnforcerCache, pubSubMediator, instanceIndex);
         context.actorOf(policyCacheUpdateActorProps, PolicyCacheUpdateActor.ACTOR_NAME);
+
+        final Props cachedNamespaceInvalidatorProps =
+                CachedNamespaceInvalidator.props(blockedNamespaces,
+                        Arrays.asList(thingIdCache, policyEnforcerCache, aclEnforcerCache));
+        context.actorOf(cachedNamespaceInvalidatorProps, CachedNamespaceInvalidator.ACTOR_NAME);
 
         // start cluster singleton that writes to the distributed cache of blocked namespaces
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
