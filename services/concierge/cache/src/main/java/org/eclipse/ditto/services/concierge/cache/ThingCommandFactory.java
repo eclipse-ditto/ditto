@@ -53,11 +53,12 @@ final class ThingCommandFactory {
         String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
         if (null == correlationId) {
             correlationId = UUID.randomUUID().toString();
-            LOGGER.debug("Found no correlation-id for SudoRetrieveThing on Thing <{}>. Using new correlation-id: {}",
-                    thingId, correlationId);
+            LOGGER.debug("Found no correlation-id for SudoRetrieveThing on Thing <{}>. " +
+                    "Using new correlation-id: {}", thingId, correlationId);
             return correlationId;
         } else {
-            LOGGER.debug("Found correlation-id [{}] in MDC for SudoRetrieveThing on Thing <{}>.", correlationId, thingId);
+            LOGGER.debug("Found correlation-id [{}] in MDC for SudoRetrieveThing on Thing <{}>.",
+                    correlationId, thingId);
             return correlationId;
         }
     }

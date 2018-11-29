@@ -45,13 +45,13 @@ final class PolicyCommandFactory {
         String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
         if (null == correlationId) {
             correlationId = UUID.randomUUID().toString();
-            LOGGER.debug("Found no correlation-id for SudoRetrievePolicy on Policy <{}>. Using new correlation-id: {}",
-                    policyId, correlationId);
+            LOGGER.debug("Found no correlation-id for SudoRetrievePolicy on Policy <{}>. " +
+                    "Using new correlation-id: {}", policyId, correlationId);
             return correlationId;
         } else {
-            LOGGER.debug("Found correlation-id [{}] in MDC for SudoRetrievePolicy on Policy <{}>. ", correlationId, policyId);
+            LOGGER.debug("Found correlation-id [{}] in MDC for SudoRetrievePolicy on Policy <{}>.",
+                    correlationId, policyId);
             return correlationId;
         }
     }
-
 }
