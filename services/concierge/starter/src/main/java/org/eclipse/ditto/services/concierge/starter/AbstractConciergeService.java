@@ -15,14 +15,9 @@ import java.util.function.Function;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.concierge.starter.actors.ConciergeRootActor;
 import org.eclipse.ditto.services.concierge.util.config.AbstractConciergeConfigReader;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.DropwizardMetricsPrometheusReporter;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.MetricRegistryFactory;
-import org.eclipse.ditto.services.utils.metrics.dropwizard.NamedMetricRegistry;
 import org.slf4j.Logger;
 
 import com.typesafe.config.Config;
-
-import akka.actor.ActorSystem;
 
 /**
  * Abstract base implementation for starting a concierge service with configurable actors.
@@ -36,12 +31,6 @@ public abstract class AbstractConciergeService<C extends AbstractConciergeConfig
 
     protected AbstractConciergeService(final Logger logger, final Function<Config, C> configReaderCreator) {
         super(logger, SERVICE_NAME, ConciergeRootActor.ACTOR_NAME, configReaderCreator);
-    }
-
-    @Override
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
-        final NamedMetricRegistry mongo = MetricRegistryFactory.mongoDb(actorSystem, configReader.getRawConfig());
-        DropwizardMetricsPrometheusReporter.addMetricRegistry(mongo);
     }
 
 }
