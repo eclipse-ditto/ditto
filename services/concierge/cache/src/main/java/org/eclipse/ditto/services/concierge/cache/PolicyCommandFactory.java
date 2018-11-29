@@ -17,7 +17,6 @@ import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePoli
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 /**
  * Creates commands to access the Policies service.
@@ -42,16 +41,12 @@ final class PolicyCommandFactory {
     }
 
     private static String getCorrelationId(final String policyId) {
-        String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
-        if (null == correlationId) {
-            correlationId = UUID.randomUUID().toString();
+        return LogUtil.getCorrelationId(() -> {
+            final String correlationId = UUID.randomUUID().toString();
             LOGGER.debug("Found no correlation-id for SudoRetrievePolicy on Policy <{}>. " +
                     "Using new correlation-id: {}", policyId, correlationId);
             return correlationId;
-        } else {
-            LOGGER.debug("Found correlation-id [{}] in MDC for SudoRetrievePolicy on Policy <{}>.",
-                    correlationId, policyId);
-            return correlationId;
-        }
+        });
     }
+
 }

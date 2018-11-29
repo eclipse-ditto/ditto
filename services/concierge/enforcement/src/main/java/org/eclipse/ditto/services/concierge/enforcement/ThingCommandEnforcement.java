@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -98,7 +97,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
-import org.slf4j.MDC;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -155,7 +153,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     @Override
     public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
-        MDC.put(LogUtil.X_CORRELATION_ID, signal.getDittoHeaders().getCorrelationId().orElse(UUID.randomUUID().toString()));
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
