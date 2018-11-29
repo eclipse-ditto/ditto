@@ -156,7 +156,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             MDC.put(LogUtil.X_CORRELATION_ID, correlationId);
             final String entityId = getEntityId(key);
             return getCommand(resourceType, entityId);
-        }).thenCompose(command -> {
+        }, executor).thenCompose(command -> {
             final ActorRef entityRegion = getEntityRegion(key.getResourceType());
             LOGGER.debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
             return PatternsCS.ask(entityRegion, command, askTimeoutMillis)

@@ -16,6 +16,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -38,6 +39,7 @@ final class ThingCommandFactory {
      * @return the created command.
      */
     static SudoRetrieveThing sudoRetrieveThing(final String thingId) {
+        LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
         final JsonFieldSelector jsonFieldSelector = JsonFieldSelector.newInstance(
                 Thing.JsonFields.ID.getPointer(),
                 Thing.JsonFields.REVISION.getPointer(),
@@ -48,7 +50,7 @@ final class ThingCommandFactory {
     }
 
     private static String getCorrelationId(final String thingId) {
-        String correlationId = MDC.get("x-correlation-id");
+        String correlationId = MDC.get(LogUtil.X_CORRELATION_ID);
         if (null == correlationId) {
             correlationId = UUID.randomUUID().toString();
             LOGGER.debug("Found no correlation-id for SudoRetrieveThing on Thing <{}>. Using new correlation-id: {}",
