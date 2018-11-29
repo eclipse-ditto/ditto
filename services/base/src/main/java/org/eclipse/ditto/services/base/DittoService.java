@@ -74,7 +74,6 @@ import kamon.system.SystemMetrics;
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
- * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
  * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
  * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
  * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -308,7 +307,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * is overridden, the following methods will not be called automatically:</em>
      * </p>
      * <ul>
-     * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
      * <li>{@link #getMainRootActorProps(ServiceConfigReader, ActorRef, ActorMaterializer)},</li>
      * <li>{@link #startMainRootActor(ActorSystem, Props)},</li>
      * <li>{@link #getAdditionalRootActorsInformation(ServiceConfigReader, ActorRef, ActorMaterializer)} and</li>
@@ -324,8 +322,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
-            addDropwizardMetricRegistries(actorSystem, configReader);
-
             final ActorRef pubSubMediator = getDistributedPubSubMediatorActor(actorSystem);
             final ActorMaterializer materializer = createActorMaterializer(actorSystem);
 
@@ -335,16 +331,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(configReader, pubSubMediator,
                     materializer));
         });
-    }
-
-    /**
-     * May be overridden to add custom dropwizard metric registries. <em>The base implementation does nothing.</em>
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param configReader the configuration reader of this service.
-     */
-    protected void addDropwizardMetricRegistries(final ActorSystem actorSystem, final C configReader) {
-        // Does nothing by default.
     }
 
     /**
