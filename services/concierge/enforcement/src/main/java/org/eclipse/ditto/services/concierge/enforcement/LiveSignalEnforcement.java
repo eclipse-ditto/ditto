@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.models.policies.Permission.WRITE;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +31,7 @@ import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.signals.base.Signal;
@@ -43,6 +45,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedE
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.slf4j.MDC;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -120,6 +123,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
     @Override
     public CompletionStage<Void> enforce(final Signal signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
+        MDC.put(LogUtil.X_CORRELATION_ID, signal.getDittoHeaders().getCorrelationId().orElse(UUID.randomUUID().toString()));
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 final Enforcer enforcer = enforcerEntry.getValue();

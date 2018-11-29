@@ -84,17 +84,21 @@ public class PolicyCommandEnforcementTest {
 
     private static final String NAMESPACE = "my.namespace";
     private static final String POLICY_ID = NAMESPACE + ":policyId";
+    private static final String CORRELATION_ID = "test-correlation-id";
     private static final String RESOURCE_TYPE = PolicyCommand.RESOURCE_TYPE;
     private static final EntityId ENTITY_ID = EntityId.of(RESOURCE_TYPE, POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationSubjects(AUTH_SUBJECT_ID)
+            .correlationId(CORRELATION_ID)
             .build();
 
-    private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
+    private static final DittoHeaders DITTO_HEADERS_WITH_CORRELATION_ID = DittoHeaders.newBuilder()
+            .correlationId(CORRELATION_ID)
+            .build();
 
     private static final SudoRetrievePolicy SUDO_RETRIEVE_POLICY =
-            SudoRetrievePolicy.of(POLICY_ID, EMPTY_DITTO_HEADERS);
+            SudoRetrievePolicy.of(POLICY_ID, DITTO_HEADERS_WITH_CORRELATION_ID);
 
     private static final ResourceKey POLICIES_ROOT_RESOURCE_KEY = PoliciesResourceType
             .policyResource("/");
@@ -416,7 +420,7 @@ public class PolicyCommandEnforcementTest {
     }
 
     private static SudoRetrievePolicyResponse createDefaultPolicyResponse() {
-        return SudoRetrievePolicyResponse.of(POLICY_ID, POLICY, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, POLICY, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private static SudoRetrievePolicyResponse createPolicyResponseWithoutRead() {
@@ -428,7 +432,7 @@ public class PolicyCommandEnforcementTest {
                 .set(revokeWriteEntry)
                 .build();
 
-        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private static SudoRetrievePolicyResponse createPolicyResponseWithoutWrite() {
@@ -440,7 +444,7 @@ public class PolicyCommandEnforcementTest {
                 .set(revokeWriteEntry)
                 .build();
 
-        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private static SudoRetrievePolicyResponse createPolicyResponseWithoutReadOnEntries() {
@@ -452,7 +456,7 @@ public class PolicyCommandEnforcementTest {
                 .set(revokeWriteEntry)
                 .build();
 
-        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private static SudoRetrievePolicyResponse createPolicyResponseWithOnlyReadOnEntries() {
@@ -466,7 +470,7 @@ public class PolicyCommandEnforcementTest {
                 .set(readOnEntries)
                 .build();
 
-        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private static SudoRetrievePolicyResponse createPolicyResponseWithoutWriteOnEntries() {
@@ -478,7 +482,7 @@ public class PolicyCommandEnforcementTest {
                 .set(revokeWriteEntry)
                 .build();
 
-        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, EMPTY_DITTO_HEADERS);
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
     }
 
     private TestProbe createPoliciesShardRegionProbe() {

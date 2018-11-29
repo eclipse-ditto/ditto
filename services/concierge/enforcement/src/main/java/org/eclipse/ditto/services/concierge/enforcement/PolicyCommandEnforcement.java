@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -43,6 +45,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
+import org.slf4j.MDC;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -158,6 +161,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
 
     @Override
     public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
+        MDC.put(LogUtil.X_CORRELATION_ID, signal.getDittoHeaders().getCorrelationId().orElse(UUID.randomUUID().toString()));
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
