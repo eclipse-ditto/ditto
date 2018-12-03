@@ -71,7 +71,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal> {
         requireNonNull(aclEnforcerCache);
         enforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
-        final Caffeine caffeine = Caffeine.newBuilder()
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
                 .expireAfterWrite(CACHE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         responseReceivers = CaffeineCache.of(caffeine);
     }

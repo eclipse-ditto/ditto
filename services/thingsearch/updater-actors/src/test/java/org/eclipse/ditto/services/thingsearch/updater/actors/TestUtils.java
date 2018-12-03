@@ -24,7 +24,9 @@ import org.mockito.Mockito;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -105,6 +107,15 @@ public final class TestUtils {
      */
     static Props getForwarderActorProps(final ActorRef... receivers) {
         return ForwarderActor.props(receivers);
+    }
+
+    /**
+     * Disable logging for 1 actor system to prevent stack trace printing. Comment out to debug the test.
+     *
+     * @param actorSystem the actor system.
+     */
+    static void disableLogging(final ActorSystem actorSystem) {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 
     /**

@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.things.starter;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
+import static org.eclipse.ditto.services.models.things.ThingsMessagingConstants.CLUSTER_ROLE;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -23,12 +24,14 @@ import org.eclipse.ditto.services.base.config.HealthConfigReader;
 import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
+import org.eclipse.ditto.services.things.persistence.actors.ThingNamespaceOpsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.things.persistence.snapshotting.ThingSnapshotter;
 import org.eclipse.ditto.services.things.starter.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -150,13 +153,17 @@ final class ThingsRootActor extends AbstractActor {
 
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(getContext().system())
-                        .withRole(ThingsMessagingConstants.CLUSTER_ROLE);
+                        .withRole(CLUSTER_ROLE);
 
         final ActorRef thingsShardRegion = ClusterSharding.get(getContext().system())
                 .start(ThingsMessagingConstants.SHARD_REGION,
                         thingSupervisorProps,
                         shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+
+        // start cluster singleton for namespace ops
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, ThingNamespaceOpsActor.ACTOR_NAME,
+                ThingNamespaceOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);
@@ -275,7 +282,7 @@ final class ThingsRootActor extends AbstractActor {
         final Duration maxBackOff = config.getDuration(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
         final double randomFactor = config.getDouble(ConfigKeys.Thing.SUPERVISOR_EXPONENTIAL_BACKOFF_RANDOM_FACTOR);
 
-        return ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
+        return ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
                 ThingPersistenceActorPropsFactory.getInstance(pubSubMediator, thingSnapshotterCreate));
     }
 

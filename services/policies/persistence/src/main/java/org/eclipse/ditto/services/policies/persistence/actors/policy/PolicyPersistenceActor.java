@@ -158,12 +158,12 @@ public final class PolicyPersistenceActor extends AbstractPersistentActor {
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-journal";
+    static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+    static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final String policyId;

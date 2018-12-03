@@ -14,6 +14,7 @@
 
 
     <logger name="org.eclipse.ditto" level="DEBUG"/>
+    <logger name="org.apache.qpid.jms.provider.ProviderFactory" level="OFF"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

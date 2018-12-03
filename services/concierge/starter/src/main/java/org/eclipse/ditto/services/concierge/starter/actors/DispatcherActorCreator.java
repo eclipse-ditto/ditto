@@ -115,23 +115,23 @@ public final class DispatcherActorCreator {
      * Create a graph to dispatch search commands and sudo search commands.
      * <pre>
      * {@code
-     *              +-----------------------+ output       +-----+
-     *      * input +----->+searchCommandFilter    +------------->+     |
-     *      *              +-----------+-----------+          in0 |     |
-     *      *                          |                          |     |
-     *      *                          | unhandled                |     | out       +--------------------+
-     *      *       +------------------+                          |fanIn+---------->+forwardToSearchActor|
-     *      *       |                                             |     |           +--------------------+
-     *      *       |                                             |     |
-     *      *       |      +-----------------------+ output       |     |
-     *      *       +----->+sudoSearchCommandFilter+------------->+     |
-     *      *       input  +-----------+-----------+          in1 +-----+
-     *      *                          |
-     *      *                          | unhandled
-     *      *                          |
-     *      *                          v
-     *      * }
-     *      * </pre>
+     *               +-----------------------+ output       +-----+
+     *  input +----->+searchCommandFilter    +------------->+     |
+     *               +-----------+-----------+          in0 |     |
+     *                           |                          |     |
+     *                           | unhandled                |     | out       +--------------------+
+     *        +------------------+                          |fanIn+---------->+forwardToSearchActor|
+     *        |                                             |     |           +--------------------+
+     *        |                                             |     |
+     *        |      +-----------------------+ output       |     |
+     *        +----->+sudoSearchCommandFilter+------------->+     |
+     *        input  +-----------+-----------+          in1 +-----+
+     *                           |
+     *                           | unhandled
+     *                           |
+     *                           v
+     * }
+     * </pre>
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @return Akka stream graph that forwards relevant commands to the search actor.

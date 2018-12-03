@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -24,6 +26,7 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     private static final String PATH_HTTP = "http";
     private static final String PATH_METRICS = "metrics";
     protected static final String PATH_LIMITS = "limits";
+    private static final String PATH_DEVOPS = "devops";
 
     private final Config rawConfig;
 
@@ -82,6 +85,11 @@ public class AbstractServiceConfigReader extends AbstractConfigReader implements
     @Override
     public LimitsConfigReader limits() {
         return new DittoLimitsConfigReader(getChildOrEmpty(PATH_LIMITS));
+    }
+
+    @Override
+    public DevOpsConfigReader devops() {
+        return new DevOpsConfigReader(getChildOrEmpty(PATH_DEVOPS));
     }
 
     private static Config getOrEmpty(final Config config, final String path) {

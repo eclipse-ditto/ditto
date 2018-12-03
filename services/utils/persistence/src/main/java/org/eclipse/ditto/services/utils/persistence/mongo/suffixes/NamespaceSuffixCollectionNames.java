@@ -35,6 +35,7 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
 
     /**
      * Injects the {@link SuffixBuilderConfig} to use for the instance of this service.
+     *
      * @param suffixBuilderConfig the SuffixBuilderConfig to use
      */
     public static void setConfig(final SuffixBuilderConfig suffixBuilderConfig) {
@@ -82,6 +83,16 @@ public final class NamespaceSuffixCollectionNames implements CanSuffixCollection
      */
     @Override
     public String validateMongoCharacters(final String input) {
+        return doValidateMongoCharacters(input);
+    }
+
+    /**
+     * Removes all characters that are forbidden in mongodb collection names.
+     *
+     * @param input The original input
+     * @return The input without forbidden characters which  are replaced by "#"
+     */
+    static String doValidateMongoCharacters(final String input) {
         final String escaped = input.replaceAll(REPLACE_REGEX, "#");
         // the max length of a collection or index name (including the DB name) in MongoDB is 120 bytes
         // so we assume that we need ~66 characters for the longest "static" part of the collection/index name, e.g.:

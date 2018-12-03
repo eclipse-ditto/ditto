@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -103,6 +104,7 @@ public class MessageMappingProcessorActorTest {
 
     @Test
     public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessedExpectErrorResponse() {
+        disableLogging(actorSystem);
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
@@ -169,6 +171,8 @@ public class MessageMappingProcessorActorTest {
 
     @Test
     public void testUnknownPlaceholdersExpectUnresolvedPlaceholderException() {
+        disableLogging(actorSystem);
+
         final String placeholderKey = "header:unknown";
         final String placeholder = "{{" + placeholderKey + "}}";
         final AuthorizationContext contextWithUnknownPlaceholder = AuthorizationModelFactory.newAuthContext(
