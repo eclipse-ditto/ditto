@@ -15,6 +15,7 @@ import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
@@ -104,11 +105,18 @@ public final class ThingDocumentMapper {
     }
 
     private static Object handleNumberAttribute(final JsonValue jsonValue) {
-        try {
-            return jsonValue.asLong();
-        } catch (final NumberFormatException e) {
-            return jsonValue.asDouble();
+        final Number result;
+
+        final JsonNumber jsonNumber = (JsonNumber) jsonValue;
+        if (jsonNumber.isInt()) {
+            result = jsonNumber.asInt();
+        } else if (jsonNumber.isLong()) {
+            result = jsonNumber.asLong();
+        } else {
+            result = jsonNumber.asDouble();
         }
+
+        return result;
     }
 
 }
