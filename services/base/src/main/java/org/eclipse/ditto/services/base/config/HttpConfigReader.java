@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.base.config;
 
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
+
 import com.typesafe.config.Config;
 
 /**

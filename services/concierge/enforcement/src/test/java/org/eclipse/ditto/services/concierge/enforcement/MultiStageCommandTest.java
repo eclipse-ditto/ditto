@@ -375,7 +375,7 @@ public final class MultiStageCommandTest {
 
             // THEN: initial requester receives failure
             final ThingNotCreatableException error = expectMsgClass(ThingNotCreatableException.class);
-            assertThat(error.getMessage()).contains("implicit Policy", "already existing");
+            assertThat(error.getMessage()).contains("implicit Policy", "creation", "failed");
         }};
     }
 

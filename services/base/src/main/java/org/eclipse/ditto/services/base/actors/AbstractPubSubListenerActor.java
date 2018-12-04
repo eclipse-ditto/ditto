@@ -8,9 +8,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.concierge.cache.update;
+package org.eclipse.ditto.services.base.actors;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Set;
 
@@ -39,10 +39,10 @@ public abstract class AbstractPubSubListenerActor extends AbstractActor {
     protected AbstractPubSubListenerActor(final ActorRef pubSubMediator,
             final Set<String> eventTopics,
             final String instanceIndex) {
-        requireNonNull(eventTopics);
+        checkNotNull(eventTopics, "Event Topics");
 
-        final String group = getSelf().path().name() + "-" + instanceIndex;
-        eventTopics.forEach(topic -> {
+        final String group = getSelf().path().name() + "-" +instanceIndex;
+        eventTopics.forEach(topic ->{
             log.info("Subscribing for pub/sub topic <{}> with group <{}>", topic, group);
             pubSubMediator.tell(subscribe(topic, group), getSelf());
         });

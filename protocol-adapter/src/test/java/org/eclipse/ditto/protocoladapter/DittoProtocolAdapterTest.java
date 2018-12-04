@@ -44,7 +44,7 @@ public final class DittoProtocolAdapterTest {
     private DittoProtocolAdapter underTest;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = DittoProtocolAdapter.newInstance();
     }
 

@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.policies.starter;
 
 import static akka.http.javadsl.server.Directives.logRequest;
 import static akka.http.javadsl.server.Directives.logResult;
+import static org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants.CLUSTER_ROLE;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -25,10 +26,12 @@ import org.eclipse.ditto.services.base.config.HttpConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.policies.persistence.actors.policies.PoliciesPersistenceStreamingActorCreator;
+import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicyNamespaceOpsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.policy.PolicySupervisorActor;
 import org.eclipse.ditto.services.policies.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
@@ -136,7 +139,7 @@ public final class PoliciesRootActor extends AbstractActor {
         final Config config = configReader.getRawConfig();
 
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(getContext().system()).withRole(PoliciesMessagingConstants.CLUSTER_ROLE);
+                ClusterShardingSettings.create(getContext().system()).withRole(CLUSTER_ROLE);
 
         final Duration minBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Policy.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
@@ -154,6 +157,10 @@ public final class PoliciesRootActor extends AbstractActor {
         final ActorRef policiesShardRegion = ClusterSharding.get(getContext().system())
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(numberOfShards, getContext().getSystem()));
+
+        // start cluster singleton for namespace ops
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, PolicyNamespaceOpsActor.ACTOR_NAME,
+                PolicyNamespaceOpsActor.props(pubSubMediator, config));
 
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);

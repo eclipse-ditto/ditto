@@ -23,6 +23,7 @@ import java.util.function.Function;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
 import org.eclipse.ditto.services.things.persistence.strategies.AbstractReceiveStrategy;
 import org.eclipse.ditto.services.things.persistence.strategies.ReceiveStrategy;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -59,6 +60,7 @@ public final class ThingSupervisorActor extends AbstractActor {
     private final Duration maxBackOff;
     private final double randomFactor;
     private final SupervisorStrategy supervisorStrategy;
+    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     private ActorRef child;
     private long restartCount;
@@ -67,7 +69,8 @@ public final class ThingSupervisorActor extends AbstractActor {
             final Duration maxBackOff,
             final double randomFactor,
             final Function<String, Props> thingPersistenceActorPropsFactory,
-            final SupervisorStrategy supervisorStrategy) {
+            final SupervisorStrategy supervisorStrategy,
+            final ActorRef pubSubMediator) {
 
         try {
             thingId = URLDecoder.decode(getSelf().path().name(), StandardCharsets.UTF_8.name());
@@ -80,6 +83,8 @@ public final class ThingSupervisorActor extends AbstractActor {
         this.randomFactor = randomFactor;
         this.supervisorStrategy = supervisorStrategy;
 
+        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
+
         child = null;
     }
 
@@ -90,6 +95,7 @@ public final class ThingSupervisorActor extends AbstractActor {
      * {@link NullPointerException}'s, stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
+     * @param pubSubMediator Akka pub-sub mediator.
      * @param minBackOff minimum (initial) duration until the child actor will started again, if it is terminated.
      * @param maxBackOff the exponential back-off is capped to this duration.
      * @param randomFactor after calculation of the exponential back-off an additional random delay based on this factor
@@ -98,7 +104,8 @@ public final class ThingSupervisorActor extends AbstractActor {
      * {@link ThingPersistenceActor}s.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final Duration minBackOff,
+    public static Props props(final ActorRef pubSubMediator,
+            final Duration minBackOff,
             final Duration maxBackOff,
             final double randomFactor,
             final Function<String, Props> thingPersistenceActorPropsFactory) {
@@ -115,7 +122,7 @@ public final class ThingSupervisorActor extends AbstractActor {
                         .build());
 
                 return new ThingSupervisorActor(minBackOff, maxBackOff, randomFactor, thingPersistenceActorPropsFactory,
-                        oneForOneStrategy);
+                        oneForOneStrategy, pubSubMediator);
             }
         });
     }
@@ -147,7 +154,8 @@ public final class ThingSupervisorActor extends AbstractActor {
         final StrategyAwareReceiveBuilder strategyAwareReceiveBuilder = new StrategyAwareReceiveBuilder(log);
         strategyAwareReceiveBuilder.matchEach(receiveStrategies);
         strategyAwareReceiveBuilder.matchAny(new MatchAnyStrategy());
-        return strategyAwareReceiveBuilder.build();
+
+        return shutdownNamespaceBehavior.createReceive().build().orElse(strategyAwareReceiveBuilder.build());
     }
 
     private void startChild() {
@@ -163,9 +171,10 @@ public final class ThingSupervisorActor extends AbstractActor {
      * mechanism.
      */
     static final class ManualReset {
+
         static final ManualReset INSTANCE = new ManualReset();
 
-        private ManualReset(){
+        private ManualReset() {
         }
     }
 
@@ -212,9 +221,10 @@ public final class ThingSupervisorActor extends AbstractActor {
      * Message that is sent to the actor by itself to restart the child.
      */
     private static final class StartChild {
+
         private static final StartChild INSTANCE = new StartChild();
 
-        private StartChild(){
+        private StartChild() {
         }
     }
 
@@ -232,7 +242,7 @@ public final class ThingSupervisorActor extends AbstractActor {
         public void doApply(final StartChild message) {
             startChild();
         }
-        
+
     }
 
     /**

@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.base.actors.ShutdownNamespaceBehavior;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
@@ -144,10 +145,11 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final CircuitBreaker circuitBreaker;
     private final Materializer materializer;
+    private final ShutdownNamespaceBehavior shutdownNamespaceBehavior;
 
     // transducer state-transition table
-    private final Receive eventProcessingBehavior = createEventProcessingBehavior();
-    private final Receive awaitSyncResultBehavior = createAwaitSyncResultBehavior();
+    private final Receive eventProcessingBehavior;
+    private final Receive awaitSyncResultBehavior;
 
     // maintenance and book-keeping
     private boolean transactionActive;
@@ -169,7 +171,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     private String syncSessionId = NO_SYNC_SESSION_ID;
     private Cancellable syncTimeout = null;
 
-    private ThingUpdater(final java.time.Duration thingsTimeout,
+    private ThingUpdater(final ActorRef pubSubMediator,
+            final java.time.Duration thingsTimeout,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
@@ -190,6 +193,9 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
         materializer = ActorMaterializer.create(getContext());
         transactionActive = false;
         syncAttempts = 0;
+        shutdownNamespaceBehavior = ShutdownNamespaceBehavior.fromId(thingId, pubSubMediator, getSelf());
+        eventProcessingBehavior = createEventProcessingBehavior();
+        awaitSyncResultBehavior = createAwaitSyncResultBehavior();
 
         scheduleCheckForThingActivity();
         searchUpdaterPersistence.getThingMetadata(thingId)
@@ -227,6 +233,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     /**
      * Creates Akka configuration object for this actor.
      *
+     * @param pubSubMediator Akka pub-sub mediator.
      * @param searchUpdaterPersistence persistence to write thing- and policy-updates to.
      * @param circuitBreaker circuit breaker to protect {@code searchUpdaterPersistence} from excessive load.
      * @param thingsShardRegion the {@link ActorRef} of the Things shard region.
@@ -237,7 +244,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
      * @param maxBulkSize maximum number of events to update in a bulk.
      * @return the Akka configuration Props object
      */
-    static Props props(final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
+    static Props props(final ActorRef pubSubMediator,
+            final ThingsSearchUpdaterPersistence searchUpdaterPersistence,
             final CircuitBreaker circuitBreaker,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
@@ -250,7 +258,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
             @Override
             public ThingUpdater create() {
-                return new ThingUpdater(thingsTimeout, thingsShardRegion, policiesShardRegion,
+                return new ThingUpdater(pubSubMediator, thingsTimeout, thingsShardRegion, policiesShardRegion,
                         searchUpdaterPersistence, circuitBreaker, activityCheckInterval, maxBulkSize);
             }
         });
@@ -264,7 +272,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     // the behavior before the actor is initialized.
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create()
+        return newReceiveForAllBehaviors()
                 .match(ThingMetadata.class, retrievedThingMetadata -> {
                     sequenceNumber = retrievedThingMetadata.getThingRevision();
                     policyId = retrievedThingMetadata.getPolicyId();
@@ -276,6 +284,13 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
                 .match(CheckForActivity.class, this::checkActivity)
                 .matchAny(msg -> stashWithErrorsIgnored())
                 .build();
+    }
+
+    /**
+     * @return a new ReceiveBuilder that handles messages meaningful in all states.
+     */
+    private ReceiveBuilder newReceiveForAllBehaviors() {
+        return shutdownNamespaceBehavior.createReceive();
     }
 
     private void scheduleCheckForThingActivity() {
@@ -340,7 +355,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private Receive createEventProcessingBehavior() {
-        return ReceiveBuilder.create()
+        return shutdownNamespaceBehavior.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
@@ -626,7 +641,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private Receive createAwaitSyncThingBehavior(final String sessionId) {
         log.debug("Becoming 'awaitSyncThingBehavior' for thing <{}> ...", thingId);
-        return ReceiveBuilder.create()
+        return newReceiveForAllBehaviors()
                 .match(AskTimeoutException.class, handleSyncTimeout(sessionId, "Timeout after SudoRetrieveThing"))
                 .match(SudoRetrieveThingResponse.class, this::handleSyncThingResponse)
                 .match(ThingErrorResponse.class, this::handleErrorResponse)
@@ -671,7 +686,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
 
     private Receive createAwaitSyncPolicyBehavior(final String sessionId, final Thing syncedThing) {
         log.debug("Becoming 'awaitSyncPolicyBehavior' for thing <{}> ...", thingId);
-        return ReceiveBuilder.create()
+        return newReceiveForAllBehaviors()
                 .match(AskTimeoutException.class, handleSyncTimeout(sessionId, "Timeout after SudoRetrievePolicy"))
                 .match(SudoRetrievePolicyResponse.class, response -> handleSyncPolicyResponse(syncedThing, response))
                 .match(PolicyErrorResponse.class, this::handleErrorResponse)
@@ -692,7 +707,7 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
     }
 
     private Receive createAwaitSyncResultBehavior() {
-        return ReceiveBuilder.create()
+        return newReceiveForAllBehaviors()
                 .match(SyncSuccess.class, s -> {
                     syncAttempts = 0;
                     ackSync(true);
@@ -910,7 +925,8 @@ final class ThingUpdater extends AbstractActorWithDiscardOldStash
             return CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_POLICY_UPDATE).tag(UPDATE_TYPE_TAG, "update").build();
+        final StartedTimer timer =
+                DittoMetrics.expiringTimer(TRACE_POLICY_UPDATE).tag(UPDATE_TYPE_TAG, "update").build();
         return circuitBreaker.callWithCircuitBreakerCS(() -> searchUpdaterPersistence
                 .updatePolicy(thing, policyEnforcer)
                 .via(stopTimer(timer))

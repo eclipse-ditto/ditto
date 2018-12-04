@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors;
 
+import java.util.function.Consumer;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 import akka.actor.AbstractActor;
@@ -42,6 +44,19 @@ public final class StrategyAwareReceiveBuilder {
     public <T> StrategyAwareReceiveBuilder match(final ReceiveStrategy<T> strategy) {
         delegationTarget.match(strategy.getMatchingClass(), strategy.getPredicate(), strategy.getApplyFunction());
         delegationTarget.match(strategy.getMatchingClass(), strategy.getUnhandledFunction());
+        return this;
+    }
+
+    /**
+     * Add a simple message handler for a dedicated message class.
+     *
+     * @param clazz the class of handled messages.
+     * @param handler the handler.
+     * @param <T> the type of handled messages.
+     * @return this builder.
+     */
+    public <T> StrategyAwareReceiveBuilder match(final Class<T> clazz, final Consumer<T> handler) {
+        delegationTarget.match(clazz, handler::accept);
         return this;
     }
 

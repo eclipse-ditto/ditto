@@ -78,12 +78,12 @@ public final class ThingPersistenceActor extends AbstractPersistentActor impleme
     /**
      * The ID of the journal plugin this persistence actor uses.
      */
-    private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-journal";
+    static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-journal";
 
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
-    private static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
+    static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
     private static final CommandReceiveStrategy COMMAND_RECEIVE_STRATEGY = CommandReceiveStrategy.getInstance();
     private static final CreateThingStrategy CREATE_THING_STRATEGY = CreateThingStrategy.getInstance();
