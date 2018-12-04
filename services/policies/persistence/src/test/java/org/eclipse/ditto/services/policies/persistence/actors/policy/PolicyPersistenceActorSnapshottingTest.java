@@ -423,6 +423,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 withValue(ConfigKeys.Policy.SNAPSHOT_THRESHOLD, ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
+        disableLogging();
         new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor("fail");

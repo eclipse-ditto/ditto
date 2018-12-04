@@ -18,6 +18,7 @@ import static akka.http.javadsl.server.Directives.pathEndOrSingleSlash;
 import static akka.http.javadsl.server.Directives.post;
 import static akka.http.javadsl.server.Directives.rawPathPrefix;
 import static akka.http.javadsl.server.Directives.route;
+import static akka.http.javadsl.server.Directives.withRequestTimeout;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.CustomPathMatchers.mergeDoubleSlashes;
 
 import java.nio.ByteBuffer;
@@ -27,6 +28,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -145,16 +147,28 @@ final class MessagesRoute extends AbstractRoute {
     private Route claimMessages(final RequestContext ctx, final DittoHeaders dittoHeaders, final String thingId) {
         return rawPathPrefix(mergeDoubleSlashes().concat(PATH_INBOX), () -> // /inbox
                 rawPathPrefix(mergeDoubleSlashes().concat(PATH_CLAIM), () -> // /inbox/claim
-                        post(() -> pathEndOrSingleSlash(() ->
-                                parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
-                                        optionalTimeout ->
-                                                extractDataBytes(payloadSource ->
-                                                        handleMessage(ctx, payloadSource,
-                                                                buildSendClaimMessage(ctx, dittoHeaders, thingId,
-                                                                        optionalTimeout))
-                                                )
+                        post(() ->
+                                pathEndOrSingleSlash(() ->
+                                        parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
+                                                optionalTimeout ->
+                                                        withCustomRequestTimeout(optionalTimeout,
+                                                                this::checkClaimTimeout,
+                                                                defaultClaimTimeout,
+                                                                timeout ->
+                                                                        extractDataBytes(payloadSource ->
+                                                                                handleMessage(ctx, payloadSource,
+                                                                                        buildSendClaimMessage(
+                                                                                                ctx,
+                                                                                                dittoHeaders,
+                                                                                                thingId,
+                                                                                                timeout
+                                                                                        )
+                                                                                )
+                                                                        )
+                                                        )
+                                        )
                                 )
-                        ))
+                        )
                 )
         );
     }
@@ -174,15 +188,22 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
                                 parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
                                         optionalTimeout ->
-                                                extractDataBytes(payloadSource ->
-                                                        handleMessage(ctx, payloadSource, buildSendThingMessage(
-                                                                direction,
-                                                                ctx,
-                                                                dittoHeaders,
-                                                                thingId,
-                                                                msgSubject,
-                                                                optionalTimeout)
-                                                        )
+                                                withCustomRequestTimeout(optionalTimeout,
+                                                        this::checkMessageTimeout,
+                                                        defaultMessageTimeout,
+                                                        timeout ->
+                                                                extractDataBytes(payloadSource ->
+                                                                        handleMessage(ctx, payloadSource,
+                                                                                buildSendThingMessage(
+                                                                                        direction,
+                                                                                        ctx,
+                                                                                        dittoHeaders,
+                                                                                        thingId,
+                                                                                        msgSubject,
+                                                                                        timeout
+                                                                                )
+                                                                        )
+                                                                )
                                                 )
                                 )
                         )
@@ -205,20 +226,40 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
                                 parameterOptional(Unmarshaller.sync(Long::parseLong), TIMEOUT_PARAMETER,
                                         optionalTimeout ->
-                                                extractDataBytes(payloadSource ->
-                                                        handleMessage(ctx, payloadSource, buildSendFeatureMessage(
-                                                                direction,
-                                                                ctx,
-                                                                dittoHeaders,
-                                                                thingId,
-                                                                featureId,
-                                                                msgSubject,
-                                                                optionalTimeout)
-                                                        )
+                                                withCustomRequestTimeout(optionalTimeout,
+                                                        this::checkMessageTimeout,
+                                                        defaultMessageTimeout,
+                                                        timeout ->
+                                                                extractDataBytes(payloadSource ->
+                                                                        handleMessage(ctx, payloadSource,
+                                                                                buildSendFeatureMessage(
+                                                                                        direction,
+                                                                                        ctx,
+                                                                                        dittoHeaders,
+                                                                                        thingId,
+                                                                                        featureId,
+                                                                                        msgSubject,
+                                                                                        timeout
+                                                                                )
+                                                                        )
+                                                                )
                                                 )
                                 )
                         )
         );
+    }
+
+    private Route withCustomRequestTimeout(final Optional<Long> optionalTimeout,
+            final java.util.function.Function<Long, Duration> checkTimeoutFunction, final Duration defaultTimeout,
+            final java.util.function.Function<Duration, Route> inner) {
+        final Duration customRequestTimeout = optionalTimeout.map(checkTimeoutFunction).orElse(defaultTimeout);
+
+        // adds 1 second in order to avoid race conditions with internal receiveTimeouts which shall return "408"
+        // in case of message timeouts:
+        final scala.concurrent.duration.Duration duration =
+                scala.concurrent.duration.Duration.create(customRequestTimeout.getSeconds(), TimeUnit.SECONDS)
+                        .plus(scala.concurrent.duration.Duration.create(1, TimeUnit.SECONDS));
+        return withRequestTimeout(duration, () -> inner.apply(customRequestTimeout));
     }
 
     private Function<ByteBuffer, MessageCommand<?, ?>> buildSendThingMessage(final MessageDirection direction,
@@ -226,7 +267,7 @@ final class MessagesRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders,
             final String thingId,
             final String msgSubject,
-            final Optional<Long> optionalTimeout) {
+            final Duration timeout) {
 
         return payload -> {
             final HttpRequest httpRequest = ctx.getRequest();
@@ -235,7 +276,7 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilder(direction, thingId, normalizeSubject(msgSubject))
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
-                    .timeout(optionalTimeout.map(this::checkMessageTimeout).orElse(defaultMessageTimeout))
+                    .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(dittoHeaders)
                     .build();
@@ -251,7 +292,7 @@ final class MessagesRoute extends AbstractRoute {
             final String thingId,
             final String featureId,
             final String msgSubject,
-            final Optional<Long> optionalTimeout) {
+            final Duration timeout) {
 
         final HttpRequest httpRequest = ctx.getRequest();
 
@@ -264,7 +305,7 @@ final class MessagesRoute extends AbstractRoute {
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType
                             .toString())
-                    .timeout(optionalTimeout.map(this::checkMessageTimeout).orElse(defaultMessageTimeout))
+                    .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
                     .validationUrl(httpRequest.getHeader(X_DITTO_VALIDATION_URL)
                             .map(HttpHeader::value)
@@ -287,7 +328,7 @@ final class MessagesRoute extends AbstractRoute {
     private Function<ByteBuffer, MessageCommand<?, ?>> buildSendClaimMessage(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final String thingId,
-            final Optional<Long> optionalTimeout) {
+            final Duration timeout) {
 
         return payload -> {
             final ContentType contentType = ctx.getRequest()
@@ -297,7 +338,7 @@ final class MessagesRoute extends AbstractRoute {
             final MessageHeaders headers = MessageHeaders.newBuilderForClaiming(thingId)
                     .correlationId(dittoHeaders.getCorrelationId().orElse(null))
                     .contentType(contentType.toString())
-                    .timeout(optionalTimeout.map(this::checkClaimTimeout).orElse(defaultClaimTimeout))
+                    .timeout(timeout)
                     .timestamp(OffsetDateTime.now())
                     .putHeaders(dittoHeaders)
                     .build();
@@ -345,7 +386,7 @@ final class MessagesRoute extends AbstractRoute {
                         HttpRequestActor.COMPLETE_MESSAGE))
                 .run(materializer);
 
-        return completeWithFuture(httpResponseFuture);
+        return completeWithFuture(preprocessResponse(httpResponseFuture));
     }
 
     private Duration checkMessageTimeout(final long timeoutInSeconds) {

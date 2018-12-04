@@ -96,7 +96,7 @@ public class KamonGauge implements Gauge {
     @Override
     public boolean reset() {
         getKamonInternalGauge().set(0);
-        LOGGER.debug("Reset histogram with name <{}>.", name);
+        LOGGER.trace("Reset histogram with name <{}>.", name);
         return true;
     }
 

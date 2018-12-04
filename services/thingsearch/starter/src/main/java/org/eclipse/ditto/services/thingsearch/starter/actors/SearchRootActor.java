@@ -109,8 +109,8 @@ public final class SearchRootActor extends AbstractActor {
 
         final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
 
-        final ActorRef healthCheckingActor = initializeHealthCheckActor(configReader, mongoClientWrapper,
-                thingsSyncPersistence, policiesSyncPersistence);
+        final ActorRef healthCheckingActor =
+                initializeHealthCheckActor(configReader, thingsSyncPersistence, policiesSyncPersistence);
 
         pubSubMediator.tell(new DistributedPubSubMediator.Put(searchActor), getSelf());
 
@@ -148,15 +148,12 @@ public final class SearchRootActor extends AbstractActor {
                 SearchActor.props(aggregationQueryActor, apiV1QueryActor, thingsSearchPersistence));
     }
 
-    private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader, final MongoClientWrapper mongoClientWrapper,
+    private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
-        final ActorRef mongoHealthCheckActor = startChildActor(MongoReactiveHealthCheckActor.ACTOR_NAME,
-                MongoReactiveHealthCheckActor.props(mongoClientWrapper));
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
-                SearchHealthCheckingActorFactory.props(configReader, mongoHealthCheckActor, thingsSyncPersistence,
-                        policiesSyncPersistence));
+                SearchHealthCheckingActorFactory.props(configReader, thingsSyncPersistence, policiesSyncPersistence));
     }
 
     private void createHealthCheckingActorHttpBinding(final HttpConfigReader httpConfig,

@@ -46,6 +46,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -86,6 +87,7 @@ public abstract class PersistenceActorTestBase {
 
 
     protected ActorSystem actorSystem = null;
+    protected TestProbe pubSubTestProbe = null;
     protected ActorRef pubSubMediator = null;
     protected DittoHeaders dittoHeadersV1;
     protected DittoHeaders dittoHeadersV2;
@@ -145,7 +147,8 @@ public abstract class PersistenceActorTestBase {
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
 
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
-        pubSubMediator = new TestProbe(actorSystem, "mock-pubSub-mediator").ref();
+        pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
+        pubSubMediator = pubSubTestProbe.ref();
 
         dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, AUTH_SUBJECT);
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, AUTH_SUBJECT);
@@ -178,7 +181,7 @@ public abstract class PersistenceActorTestBase {
         final Duration maxBackOff = Duration.ofSeconds(60);
         final double randomFactor = 0.2;
 
-        final Props props = ThingSupervisorActor.props(minBackOff, maxBackOff, randomFactor,
+        final Props props = ThingSupervisorActor.props(pubSubMediator, minBackOff, maxBackOff, randomFactor,
                 this::getPropsOfThingPersistenceActor);
 
         return actorSystem.actorOf(props, thingId);
@@ -199,5 +202,12 @@ public abstract class PersistenceActorTestBase {
         protected void starting(final org.junit.runner.Description description) {
             logger.info("Testing: {}#{}()", description.getTestClass().getSimpleName(), description.getMethodName());
         }
+    }
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    protected void disableLogging() {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 }

@@ -109,14 +109,21 @@ public class ConciergeForwarderActor extends AbstractActor {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
-        if (transformedSignal.getId().isEmpty()) {
-            log.debug("Signal does not contain ID, forwarding to concierge-dispatcherActor: <{}>.", transformedSignal);
+        LogUtil.enhanceLogWithCorrelationId(log, signal);
+        final String signalId = transformedSignal.getId();
+        final String signalType = transformedSignal.getType();
+        if (signalId.isEmpty()) {
+            log.info("Sending signal without ID and type <{}> to concierge-dispatcherActor", signalType);
+            log.debug("Sending signal without ID and type <{}> to concierge-dispatcherActor: <{}>", signalType,
+                    transformedSignal);
             final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
             log.debug("Sending message to concierge-dispatcherActor: <{}>.", msg);
             pubSubMediator.tell(msg, sender);
         } else {
-            log.debug("Signal has ID <{}>, forwarding to concierge-shard-region: <{}>.",
-                    transformedSignal.getId(), transformedSignal);
+            log.info("Sending signal with ID <{}> and type <{}> to concierge-shard-region",
+                    signalId, signalType);
+            log.debug("Sending signal with ID <{}> and type <{}> to concierge-shard-region: <{}>",
+                    signalId, signalType, transformedSignal);
             final ShardedMessageEnvelope msg;
             try {
                 msg = ConciergeWrapper.wrapForEnforcer(transformedSignal);
@@ -126,7 +133,7 @@ public class ConciergeForwarderActor extends AbstractActor {
                 sender.tell(e, getSelf());
                 return;
             }
-            log.debug("Sending message to concierge-shard-region: <{}>.", msg);
+            log.debug("Sending message to concierge-shard-region: <{}>", msg);
             conciergeShardRegion.tell(msg, sender);
         }
     }

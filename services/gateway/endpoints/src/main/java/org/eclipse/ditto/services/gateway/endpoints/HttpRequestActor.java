@@ -155,7 +155,7 @@ public final class HttpRequestActor extends AbstractActor {
                 })
                 .match(CommandResponse.class, commandResponse -> {
                     LogUtil.enhanceLogWithCorrelationId(logger, commandResponse);
-                    logger.warning("Got 'CommandResponse' message which did not implement the required interfaces "
+                    logger.error("Got 'CommandResponse' message which did not implement the required interfaces "
                             + "'WithEntity' / 'WithOptionalEntity': {}", commandResponse);
                     completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
                 })
@@ -291,7 +291,9 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void logDittoRuntimeException(final DittoRuntimeException dre) {
-        LogUtil.enhanceLogWithCorrelationId(logger, dre);
+        if (dre.getDittoHeaders().getCorrelationId().isPresent()) {
+            LogUtil.enhanceLogWithCorrelationId(logger, dre);
+        }
         logger.info("DittoRuntimeException '{}': {}", dre.getErrorCode(), dre.getMessage());
     }
 
@@ -393,7 +395,7 @@ public final class HttpRequestActor extends AbstractActor {
         final Optional<HttpStatusCode> responseStatusCode =
                 Optional.of(messageCommandResponse.getStatusCode())
                         .filter(code -> StatusCodes.lookup(code.toInt()).isPresent())
-        // only allow status code which are known to akka-http
+                        // only allow status code which are known to akka-http
                         .filter(code -> !HttpStatusCode.BAD_GATEWAY.equals(code));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
@@ -445,16 +447,14 @@ public final class HttpRequestActor extends AbstractActor {
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         if (messageTimeout != null && !isFireAndForgetMessage) {
-            logger.info("Got ReceiveTimeout when a message response was expected: {}", receiveTimeout);
-            final MessageTimeoutException mte = new MessageTimeoutException(messageTimeout.getSeconds());
-            completeWithResult(HttpResponse.create().withStatus(mte.getStatusCode().toInt())
-                    .withEntity(CONTENT_TYPE_JSON, ByteString.fromString(mte.toJsonString())));
+            logger.info("Got ReceiveTimeout when a message response was expected after timeout {}", messageTimeout);
+            handleDittoRuntimeException(new MessageTimeoutException(messageTimeout.getSeconds()));
         } else {
             logger.warning("No response within server request timeout ({}), shutting actor down.",
                     serverRequestTimeout);
             // note that we do not need to send a response here, this is handled by RequestTimeoutHandlingDirective
+            stop();
         }
-        stop();
     }
 
     private void handleDittoRuntimeException(final DittoRuntimeException dre) {
@@ -480,12 +480,12 @@ public final class HttpRequestActor extends AbstractActor {
     }
 
     private void completeWithResult(final HttpResponse response) {
-        httpResponseFuture.complete(response);
         final int statusCode = response.status().intValue();
-        logger.debug("Responding with HttpResponse code '{}'", statusCode);
         if (logger.isDebugEnabled()) {
+            logger.debug("Responding with HttpResponse code '{}'", statusCode);
             logger.debug("Responding with Entity: {}", response.entity());
         }
+        httpResponseFuture.complete(response);
         stop();
     }
 

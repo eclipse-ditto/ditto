@@ -5,7 +5,9 @@ keywords: operating, docker, docker-compose, devops, logging, logstash, elk, mon
 permalink: installation-operating.html
 ---
 
-After Ditto was once successfully started, the next step is to set it up for continuously operating it.
+[pubsubmediator]: https://doc.akka.io/docs/akka/current/distributed-pub-sub.html
+
+Once you have successfully started Ditto, proceed with setting it up for continuous operation.
 
 This page shows the basics for operating Ditto.
 
@@ -15,32 +17,35 @@ This page shows the basics for operating Ditto.
 Gathering logs for a running Ditto installation can be achieved by:
 
 * grepping log output from STDOUT/STDERR via Docker's [logging drivers](https://docs.docker.com/engine/admin/logging/overview/)
-   * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", ...)
+   * Benefits: simple, works with all Docker logging drivers (e.g. "awslogs", "splunk", etc.)
 
 This option may also use an ELK stack with the right Docker logging driver.
 
 
 ## Monitoring
 
-Additionally to the obligatory logging monitoring is included in the Ditto images. That means that certain metrics are 
-automatically gathered and published on a HTTP port where it can be scraped from a [Prometheus](https://prometheus.io) 
-backend from where the metrics can be accessed to display in dashboards (e.g. with [Grafana](https://grafana.com)).
+In addition to logging, the Ditto images include monitoring features. Specific metrics are
+automatically gathered and published on a HTTP port. There it can be scraped by a [Prometheus](https://prometheus.io)
+backend, from where the metrics can be accessed to display in dashboards (e.g. with [Grafana](https://grafana.com)).
 
 ### Configuring
 
-In the default configuration each Ditto service opens a HTTP endpoint where it provides the Prometheus metrics on port
+In the default configuration, each Ditto service opens a HTTP endpoint, where it provides the Prometheus metrics on port
 `9095`. This can be changed via the environment variable `PROMETHEUS_PORT`.
 
 Ditto will automatically publish gathered metrics at the endpoint `http://<container-host-or-ip>:9095/`.
 
-Prometheus can then be configured to poll on all Ditto service endpoints in order to persist the historical metrics.
+Further, Prometheus can be configured to poll on all Ditto service endpoints in order to persist the historical metrics.
 Grafana can add a Prometheus server as its data source and can display 
 the metrics based on the keys mentioned in section ["Gathered metrics"](#gathered-metrics).
 
 ### Gathered metrics
 
 In order to inspect which metrics are exported to Prometheus, just visit the Prometheus HTTP endpoint of a Ditto service:
-`http://<container-host-or-ip>:9095/`, e.g. for the [gateway-service](architecture-services-gateway.html) an excerpt:
+`http://<container-host-or-ip>:9095/`.
+
+The following example shows an excerpt of metrics gathered for the
+[gateway-service](architecture-services-gateway.html).
 
 ```
 #Kamon Metrics
@@ -68,7 +73,7 @@ jvm_memory_bytes_count{component="system-metrics",measure="used",segment="miscel
 jvm_memory_bytes_sum{component="system-metrics",measure="used",segment="miscellaneous-non-heap-storage"} 786350080.0
 ```
 
-So what Ditto reports in a nutshell:
+To put it in a nutshell, Ditto reports:
 
 * JVM metrics for all services
     * amount of garbage collections + GC times
@@ -89,12 +94,9 @@ So what Ditto reports in a nutshell:
 
 ## DevOps commands
 
-Starting with Ditto Milestone 0.1.0-M2, an HTTP API for so called "DevOps commands" was added.<br/>
-This API is intended for making operating Ditto easier by reducing the need to restart Ditto services for configuration
-changes.
+The "DevOps commands" API allows Ditto operators to make changes to a running installation without restarts.
 
-Following DevOps commands are supported:
-
+The following DevOps commands are supported:
 
 * Dynamically retrieve and change log levels
 * Piggyback commands
@@ -102,13 +104,15 @@ Following DevOps commands are supported:
 
 ### Dynamically adjust log levels
 
-Dynamically changing the log levels is a very useful tool when debugging a problem occurring only in production without
-the need to restart the server and thereby fixing the bug.
+Changing the log levels dynamically is very useful when debugging an accidental problem,
+since the cause of the problem could be lost on service restart.
 
 #### Retrieve all log levels
 
-Example response for retrieving all currently configured log levels:<br/>
+Example for retrieving all currently configured log levels:<br/>
 `GET /devops/logging`
+
+Response:
 
 ```json
 {
@@ -162,6 +166,8 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 Example response for retrieving all currently configured log levels of gateways services:<br/>
 `GET /devops/logging/gateway`
 
+Response:
+
 ```json
 {
     "1": {
@@ -183,9 +189,11 @@ Example response for retrieving all currently configured log levels of gateways 
 }
 ```
 
-#### Change a specific log level for one services
+#### Change a specific log level for one service
 
-Example request payload to change the log level of logger `org.eclipse.ditto` in all gateway services to `DEBUG`:<br/>
+Example request payload to change the log level of logger `org.eclipse.ditto` in all
+instances of gateway-service to `DEBUG`:
+
 `PUT /devops/logging/gateway`
 
 ```json
@@ -197,8 +205,9 @@ Example request payload to change the log level of logger `org.eclipse.ditto` in
 
 ### Piggyback commands
 
-You can use a DevOps command to send a command to another actor in the cluster. Those special commands are named
-piggyback commands. A piggyback command must conform to the following schema:
+You can use a DevOps command to send a command to another actor in the cluster.
+Those special commands are called piggyback commands.
+A piggyback command must conform to the following schema:
 
 {% include docson.html schema="jsonschema/piggyback-command.json" %}
 
@@ -217,6 +226,175 @@ Example:
 }
 ```
 
-Currently piggybacks are only used to configure Dittos connectivity service. More information on this can be found in
+#### Managing connections
+
+Piggybacks are used to configure Dittos connectivity service. More information on this can be found in
 the [Manage Connections](connectivity-manage-connections.html) section.
 
+#### Erasing data within a namespace
+
+Ditto supports erasure of _all_ data within a namespace during live operations.
+To do so safely, perform the following steps in sequence.
+
+1. [Block all messages to the namespace](#block-all-messages-to-a-namespace)
+   so that actors will not spawn in the namespace.
+2. [Shutdown all actors in the namespace](#shutdown-all-actors-in-a-namespace)
+   so that no actor will generate data in the namespace.
+3. [Erase data from the persistence](#erase-all-data-in-a-namespace-from-the-persistence).
+4. [Unblock messages to the namespace](#unblock-messages-to-a-namespace)
+   so that the old namespace could be reused at a later point in time.
+
+##### Block all messages to a namespace
+
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:blockNamespace`
+to block all messages sent to actors belonging to a namespace.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:blockNamespace",
+    "namespace": "namespaceToBlock"
+  }
+}
+```
+
+Once a namespace is blocked on all members of the Ditto cluster, you will get a response
+similar to the one below. The namespace will remain blocked for the lifetime of the Ditto cluster,
+or until you proceed with [step 4](#unblock-messages-to-a-namespace), which unblocks it.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:blockNamespace",
+      "status": 200,
+      "namespace": "namespaceToBlock",
+      "resourceType": "namespaces"
+    }
+  }
+}
+```
+
+##### Shutdown all actors in a namespace
+
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `common.commands:shutdown`
+to request all actors in a namespace to shut down. The value of `piggybackCommand/reason/type` must be
+`purge-namespace`; otherwise, the namespace's actors will not stop themselves.
+
+`PUT /devops/piggygack?timeout=0`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "piggybackCommand": {
+    "type": "common.commands:shutdown",
+    "reason": {
+      "type": "purge-namespace",
+      "details": "namespaceToShutdown"
+    }
+  }
+}
+```
+
+The shutdown command has no response because the number of actors shutting down can be very large.
+The response will always be `408` timeout.
+Feel free to send the shutdown command several times to make sure.
+
+##### Erase all data in a namespace from the persistence
+
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:purgeNamespace`
+to erase all data from the persistence.
+It is better to purge a namespace after
+[blocking](#block-all-messages-to-a-namespace) it and
+[shutting down](#shutdown-all-actors-in-a-namespace)
+all its actors so that no data is written in the namespace while erasing is ongoing.
+
+The erasure may take a long time if the namespace has a lot of data associated with it or if the persistent storage is
+slow. Set the timeout to a safe margin above the estimated erasure time in milliseconds.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": true
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:purgeNamespace",
+    "namespace": "namespaceToPurge"
+  }
+}
+```
+
+The response contains results of the data purge, one for each resource type.
+Note that to see responses from multiple resource types, the header `aggregate` must not be `false`.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing",
+      "successful": true
+    },
+    "?1": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "policy",
+      "successful": true
+    },
+    "?2": {
+      "type": "namespaces.responses:purgeNamespace",
+      "status": 200,
+      "namespace": "namespaceToPurge",
+      "resourceType": "thing-search",
+      "successful": true
+    }
+  }
+}
+```
+
+##### Unblock messages to a namespace
+
+Send a piggyback command to [Akka's pub-sub-mediator][pubsubmediator] with type `namespaces.commands:unblockNamespace`
+to stop blocking messages to a namespace.
+
+`PUT /devops/piggygack?timeout=10000`
+
+```json
+{
+  "targetActorSelection": "/system/distributedPubSubMediator",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "namespaces.commands:unblockNamespace",
+    "namespace": "namespaceToUnblock"
+  }
+}
+```
+
+A response will come once the namespace's blockade is released on all members of the Ditto cluster.
+
+```json
+{
+  "?": {
+    "?": {
+      "type": "namespaces.responses:unblockNamespace",
+      "status": 200,
+      "namespace": "namespaceToUnblock",
+      "resourceType": "namespaces"
+    }
+  }
+}
+```

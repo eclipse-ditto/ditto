@@ -771,6 +771,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 ConfigValueFactory.fromAnyRef(-1));
         setup(customConfig);
 
+        disableLogging();
         new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createPersistenceActorFor("fail");

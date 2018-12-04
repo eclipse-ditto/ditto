@@ -38,13 +38,13 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActo
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientActor;
+import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -58,15 +58,12 @@ import akka.actor.ActorSystem;
 import akka.actor.CoordinatedShutdown;
 import akka.actor.InvalidActorNameException;
 import akka.actor.OneForOneStrategy;
-import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.Cluster;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.contrib.persistence.mongodb.JavaDslMongoReadJournal;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.http.javadsl.ConnectHttp;
@@ -91,7 +88,8 @@ public final class ConnectivityRootActor extends AbstractActor {
     public static final String ACTOR_NAME = "connectivityRoot";
 
     private static final String CLUSTER_ROLE = "connectivity";
-    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-reconnect-readjournal";
+    private static final String RECONNECT_READ_JOURNAL_PLUGIN_ID =
+            "akka-contrib-mongodb-persistence-reconnect-readjournal";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
@@ -163,14 +161,9 @@ public final class ConnectivityRootActor extends AbstractActor {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final ActorRef mongoClient = startChildActor(MongoClientActor.ACTOR_NAME, MongoClientActor
-                .props(config.getString(ConfigKeys.MONGO_URI),
-                        config.getDuration(ConfigKeys.HealthCheck.PERSISTENCE_TIMEOUT),
-                        MongoConfig.getSSLEnabled(config)));
-
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, mongoClient));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
         final Duration minBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MIN);
         final Duration maxBackoff = config.getDuration(ConfigKeys.Connection.SUPERVISOR_EXPONENTIAL_BACKOFF_MAX);
@@ -310,9 +303,7 @@ public final class ConnectivityRootActor extends AbstractActor {
     }
 
     private void startClusterSingletonActor(final String actorName, final Props props) {
-        final ClusterSingletonManagerSettings settings =
-                ClusterSingletonManagerSettings.create(getContext().system()).withRole(CLUSTER_ROLE);
-        getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, actorName, props);
     }
 
     private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {

@@ -45,6 +45,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
@@ -56,6 +57,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableEx
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.junit.After;
@@ -465,6 +467,22 @@ public final class ThingCommandEnforcementTest {
             assertThat(response.getErrorCode()).isEqualTo(PolicyInvalidException.ERROR_CODE);
         }};
 
+    }
+
+    @Test
+    public void transformModifyThingToCreateThing() {
+        final Thing thingInPayload = newThing().setId(null).build();
+
+        new TestKit(system) {{
+            final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
+            final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers(V_1));
+            underTest.tell(modifyThing, getRef());
+
+            expectMsgClass(SudoRetrieveThing.class);
+            reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
+
+            expectMsgClass(CreateThing.class);
+        }};
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {

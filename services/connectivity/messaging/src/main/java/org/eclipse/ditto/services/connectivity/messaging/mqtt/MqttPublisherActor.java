@@ -17,13 +17,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -35,6 +34,7 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
 import akka.japi.Pair;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorMaterializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.alpakka.mqtt.MqttMessage;
@@ -95,53 +95,16 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     }
 
     @Override
-    public Receive createReceive() {
-        return receiveBuilder()
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        receiveBuilder
                 .match(OutboundSignal.WithExternalMessage.class, this::isDryRun, outbound ->
                         log.info("Message dropped in dryrun mode: {}", outbound)
-                )
-                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
-                    final ExternalMessage response = outbound.getExternalMessage();
-                    final String correlationId =
-                            response.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received mapped response {} ", response);
+                );
+    }
 
-                    final String replyTo = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    if (replyTo != null) {
-                        final MqttPublishTarget replyTarget = toPublishTarget(replyTo);
-                        final MqttQoS defaultQoS = MqttQoS.atMostOnce();
-                        publishMessage(replyTarget, defaultQoS, response);
-                    } else {
-                        log.info("Response dropped, missing replyTo address: {}", response);
-                    }
-                })
-                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
-                    final ExternalMessage message = outbound.getExternalMessage();
-                    final String correlationId =
-                            message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received mapped message {} ", message);
-
-                    log.debug("Publishing message to targets <{}>: {} ", outbound.getTargets(), message);
-                    outbound.getTargets().forEach(target -> {
-                        final MqttPublishTarget mqttTarget = toPublishTarget(target.getAddress());
-                        final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
-                        final MqttQoS targetQoS = MqttValidator.getQoS(qos);
-                        publishMessage(mqttTarget, targetQoS, message);
-                    });
-                })
-                .match(RetrieveAddressMetric.class, ram -> {
-                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric != null ? addressMetric.getStatus() : ConnectionStatus.UNKNOWN,
-                            addressMetric != null ? addressMetric.getStatusDetails().orElse(null) : null,
-                            publishedMessages, lastMessagePublishedAt), getSelf());
-                })
-                .matchAny(message -> {
-                    unhandled(message);
-                    log.info("Unknown message: {}", message.getClass().getName());
-                })
-                .build();
+    @Override
+    protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
+        // noop
     }
 
     @Override
@@ -149,11 +112,28 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         return MqttPublishTarget.of(address);
     }
 
-    private void publishMessage(final MqttPublishTarget replyTarget,
-            final MqttQoS qos,
-            final ExternalMessage externalMessage) {
+    @Override
+    protected MqttPublishTarget toReplyTarget(final String replyToAddress) {
+        return MqttPublishTarget.of(replyToAddress);
+    }
 
-        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, externalMessage);
+    @Override
+    protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
+            final ExternalMessage message) {
+
+        final MqttQoS targetQoS;
+        if (target == null) {
+            targetQoS = MqttQoS.atMostOnce();
+        } else {
+            final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
+            targetQoS = MqttValidator.getQoS(qos);
+        }
+        publishMessage(publishTarget, targetQoS, message);
+    }
+
+    private void publishMessage(final MqttPublishTarget replyTarget, final MqttQoS qos, final ExternalMessage message) {
+
+        final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, message);
         sourceActor.tell(mqttMessage, getSelf());
 
         publishedMessages++;
@@ -208,5 +188,10 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             mqttClientActor.tell(new Status.Failure(exception), getSelf());
         }
         return done;
+    }
+
+    @Override
+    protected DiagnosticLoggingAdapter log() {
+        return log;
     }
 }

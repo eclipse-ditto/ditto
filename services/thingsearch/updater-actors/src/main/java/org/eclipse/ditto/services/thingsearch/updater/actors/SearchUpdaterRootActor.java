@@ -20,6 +20,8 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventT
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
@@ -31,11 +33,12 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.PoisonPill;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.cluster.sharding.ShardRegion;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.Logging;
@@ -62,13 +65,18 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
     private final ActorRef thingsUpdaterActor;
+    private final MongoClientWrapper mongoDbClientWrapper;
 
-    private SearchUpdaterRootActor(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer, final StreamMetadataPersistence thingsSyncPersistence,
+    private SearchUpdaterRootActor(final ServiceConfigReader configReader,
+            final ActorRef pubSubMediator,
+            final ActorMaterializer materializer,
+            final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
+
         final int numberOfShards = configReader.cluster().numberOfShards();
 
         final Config config = configReader.getRawConfig();
+        final ActorSystem actorSystem = getContext().getSystem();
 
         final CommandListener kamonCommandListener = config.getBoolean(ConfigKeys.MONITORING_COMMANDS_ENABLED) ?
                 new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
@@ -76,16 +84,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 config.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        final MongoClientWrapper mongoClientWrapper = MongoClientWrapper.newInstance(config,
-                kamonCommandListener, kamonConnectionPoolListener);
+        mongoDbClientWrapper =
+                MongoClientWrapper.newInstance(config, kamonCommandListener, kamonConnectionPoolListener);
+
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
-                inizializeThingsSearchUpdaterPersistence(mongoClientWrapper, materializer, config);
+                inizializeThingsSearchUpdaterPersistence(mongoDbClientWrapper, materializer, config);
 
         final int maxFailures = config.getInt(ConfigKeys.MONGO_CIRCUIT_BREAKER_FAILURES);
         final Duration callTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_CALL);
         final Duration resetTimeout = config.getDuration(ConfigKeys.MONGO_CIRCUIT_BREAKER_TIMEOUT_RESET);
         final CircuitBreaker circuitBreaker =
-                new CircuitBreaker(getContext().dispatcher(), getContext().system().scheduler(), maxFailures,
+                new CircuitBreaker(getContext().dispatcher(), actorSystem.scheduler(), maxFailures,
                         callTimeout, resetTimeout);
         circuitBreaker.onOpen(() -> log.warning(
                 "The circuit breaker for this search updater instance is open which means that all ThingUpdaters" +
@@ -103,13 +112,19 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final Duration thingUpdaterActivityCheckInterval =
                 config.getDuration(ConfigKeys.THINGS_ACTIVITY_CHECK_INTERVAL);
-        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(getContext().getSystem());
+        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final int maxBulkSize = config.hasPath(ConfigKeys.MAX_BULK_SIZE)
                 ? config.getInt(ConfigKeys.MAX_BULK_SIZE)
                 : ThingUpdater.UNLIMITED_MAX_BULK_SIZE;
-        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, ThingsUpdater
-                .props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize));
+
+        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
+        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME,
+                ThingsUpdater.props(numberOfShards, shardRegionFactory, searchUpdaterPersistence, circuitBreaker,
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces));
+
+        // start namespace ops actor as cluster singleton
+        startClusterSingletonActor(ThingsSearchNamespaceOpsActor.ACTOR_NAME,
+                ThingsSearchNamespaceOpsActor.props(pubSubMediator, searchUpdaterPersistence));
 
         final boolean thingsSynchronizationActive = config.getBoolean(ConfigKeys.THINGS_SYNCER_ACTIVE);
         if (thingsSynchronizationActive) {
@@ -136,7 +151,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final boolean deletionEnabled = config.getBoolean(ConfigKeys.DELETION_ENABLED);
         if (deletionEnabled) {
             startClusterSingletonActor(ThingsSearchIndexDeletionActor.ACTOR_NAME,
-                    ThingsSearchIndexDeletionActor.props(mongoClientWrapper));
+                    ThingsSearchIndexDeletionActor.props(mongoDbClientWrapper));
         } else {
             log.warning("Deletion of marked as deleted Things from search index is not enabled");
         }
@@ -194,10 +209,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param policiesSyncPersistence persistence for background synchronization of policies.
      * @return a Props object to create this actor.
      */
-    public static Props props(final ServiceConfigReader configReader, final ActorRef pubSubMediator,
+    public static Props props(final ServiceConfigReader configReader,
+            final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
             final StreamMetadataPersistence thingsSyncPersistence,
             final StreamMetadataPersistence policiesSyncPersistence) {
+
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -207,6 +224,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         policiesSyncPersistence);
             }
         });
+    }
+
+    @Override
+    public void postStop() throws Exception {
+        mongoDbClientWrapper.close();
+        super.postStop();
     }
 
     @Override
@@ -232,9 +255,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     private void startClusterSingletonActor(final String actorName, final Props props) {
-        final ClusterSingletonManagerSettings settings =
-                ClusterSingletonManagerSettings.create(getContext().system()).withRole(ConfigKeys.SEARCH_ROLE);
-        getContext().actorOf(ClusterSingletonManager.props(props, PoisonPill.getInstance(), settings), actorName);
+        ClusterUtil.startSingleton(getContext(), ConfigKeys.SEARCH_ROLE, actorName, props);
     }
 
 }

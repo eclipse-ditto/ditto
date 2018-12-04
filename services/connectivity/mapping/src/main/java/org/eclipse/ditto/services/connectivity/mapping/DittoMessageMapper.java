@@ -82,6 +82,7 @@ public final class DittoMessageMapper implements MessageMapper {
         final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
         return Optional.of(
                 ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withTopicPath(adaptable.getTopicPath())
                         .withText(jsonString)
                         .asResponse(isResponse)
                         .asError(isError)

@@ -165,9 +165,11 @@ public final class AggregatedDevOpsCommandResponse
             final DittoHeaders dittoHeaders) {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
-        commandResponses.forEach(cmdR ->
-                builder.set("/" + calculateServiceName(cmdR) + "/" + calculateInstance(cmdR),
-                        cmdR.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
+        int i = 0;
+        for (final CommandResponse<?> cmdR : commandResponses) {
+            builder.set("/" + calculateServiceName(cmdR) + "/" + calculateInstance(cmdR, i++),
+                    cmdR.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST)));
+        }
 
         if (builder.isEmpty()) {
             return JsonFactory.nullObject();
@@ -184,11 +186,12 @@ public final class AggregatedDevOpsCommandResponse
         }
     }
 
-    private static String calculateInstance(final CommandResponse<?> commandResponse) {
+    private static String calculateInstance(final CommandResponse<?> commandResponse, int i) {
         if (commandResponse instanceof DevOpsCommandResponse) {
-            return ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?");
+            return ((DevOpsCommandResponse<?>) commandResponse).getInstance()
+                    .orElse("?" + (i == 0 ? "" : String.valueOf(i)));
         } else {
-            return "?";
+            return "?" + (i == 0 ? "" : String.valueOf(i));
         }
     }
 

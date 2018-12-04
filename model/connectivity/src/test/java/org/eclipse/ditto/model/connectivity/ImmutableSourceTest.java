@@ -16,8 +16,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.junit.Test;
@@ -32,6 +37,13 @@ public final class ImmutableSourceTest {
     private static final AuthorizationContext ctx = AuthorizationModelFactory.newAuthContext(
             AuthorizationModelFactory.newAuthSubject("eclipse"), AuthorizationModelFactory.newAuthSubject("ditto"));
 
+    private static Map<String, String> mapping = new HashMap<>();
+    static {
+        mapping.put("correlation-id", "{{ header:message-id }}");
+        mapping.put("thing-id", "{{ header:device_id }}");
+        mapping.put("eclipse", "ditto");
+    }
+
     private static final String AMQP_SOURCE1 = "amqp/source1";
     private static final Source SOURCE_WITH_AUTH_CONTEXT =
             ConnectivityModelFactory.newSourceBuilder()
@@ -39,12 +51,17 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
+                    .headerMapping(ConnectivityModelFactory.newHeaderMapping(mapping))
                     .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(Source.JsonFields.HEADER_MAPPING,
+                    JsonFactory.newObjectBuilder().setAll(mapping.entrySet().stream()
+                            .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
+                            .collect(Collectors.toList())).build())
             .build();
 
     private static final JsonObject SOURCE_JSON_WITH_AUTH_CONTEXT = SOURCE_JSON.toBuilder()
@@ -62,7 +79,7 @@ public final class ImmutableSourceTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableSource.class, areImmutable(),
-                provided(AuthorizationContext.class, Enforcement.class).isAlsoImmutable());
+                provided(AuthorizationContext.class, Enforcement.class, HeaderMapping.class).isAlsoImmutable());
     }
 
     @Test

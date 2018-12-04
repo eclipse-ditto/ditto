@@ -201,7 +201,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             "id": "hono-sandbox-connection-1",
             "connectionType": "amqp-10",
             "connectionStatus": "open",
-            "uri": "amqp://consumer@HONO:verysecret@hono.eclipse.org:15672",
+            "uri": "amqp://consumer%40HONO:verysecret@hono.eclipse.org:15672",
             "failoverEnabled": true,
             "sources": [{
                 "addresses": [

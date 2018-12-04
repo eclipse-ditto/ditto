@@ -77,11 +77,13 @@ public final class RequestTimeoutHandlingDirective {
                         final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
 
                             final int statusCode = response.status().intValue();
-                            final StoppedTimer stoppedTimer = timer
-                                    .tag(TracingTags.STATUS_CODE, statusCode)
-                                    .stop();
-                            LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
-                            checkDurationWarning(stoppedTimer, correlationId);
+                            if (timer.isRunning()) {
+                                final StoppedTimer stoppedTimer = timer
+                                        .tag(TracingTags.STATUS_CODE, statusCode)
+                                        .stop();
+                                LOGGER.debug("Finished timer <{}> with status <{}>", timer, statusCode);
+                                checkDurationWarning(stoppedTimer, correlationId);
+                            }
                             return response;
                         }, inner);
 
@@ -138,10 +140,14 @@ public final class RequestTimeoutHandlingDirective {
             final String rawRequestUri = getRawRequestUri(request);
             logger.debug("Raw request URI was: {}", rawRequestUri);
 
-            timer.tag(TracingTags.STATUS_CODE, statusCode)
-                    .stop();
-
-            logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            if (timer.isRunning()) {
+                timer.tag(TracingTags.STATUS_CODE, statusCode)
+                        .stop();
+                logger.debug("Finished mutable timer <{}> after a request timeout with status <{}>", timer, statusCode);
+            } else {
+                logger.warn("Wanted to stop() timer which was already stopped indicating that a requestTimeout" +
+                        " was detected where it should not have been");
+            }
         });
 
         /* We have to add security response headers explicitly here because SecurityResponseHeadersDirective won't be
