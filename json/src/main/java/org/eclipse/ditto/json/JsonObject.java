@@ -24,12 +24,34 @@ import javax.annotation.Nullable;
 public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
 
     /**
+     * Creates a {@code JsonObject} from the given string.
+     *
+     * @param jsonObjectString the string that represents the JSON object.
+     * @return the JSON object that has been created from the string.
+     * @throws NullPointerException if {@code jsonObjectString} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonObjectString} is empty.
+     * @throws JsonParseException if {@code jsonObjectString} does not represent a valid JSON object.
+     */
+    static JsonObject of(final String jsonObjectString) {
+        return JsonFactory.newObject(jsonObjectString);
+    }
+
+    /**
      * Returns a new mutable builder with a fluent API for a {@code JsonObject}.
      *
      * @return the builder.
      */
     static JsonObjectBuilder newBuilder() {
         return JsonFactory.newObjectBuilder();
+    }
+
+    /**
+     * Returns an empty instance of {@code JsonObject}.
+     *
+     * @return the instance.
+     */
+    static JsonObject empty() {
+        return JsonFactory.newObject();
     }
 
     /**

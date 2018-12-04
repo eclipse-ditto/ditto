@@ -57,7 +57,10 @@ public final class ImmutableJsonFieldTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableJsonField.class).usingGetClass().verify();
+        EqualsVerifier.forClass(ImmutableJsonField.class)
+                .usingGetClass()
+                .withIgnoredFields("definition")
+                .verify();
     }
 
     @Test(expected = NullPointerException.class)

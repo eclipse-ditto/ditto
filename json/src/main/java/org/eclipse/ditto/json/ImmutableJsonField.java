@@ -98,13 +98,12 @@ final class ImmutableJsonField implements JsonField {
             return false;
         }
         final ImmutableJsonField that = (ImmutableJsonField) o;
-        return Objects.equals(key, that.key) && Objects.equals(value, that.value)
-                && Objects.equals(definition, that.definition);
+        return Objects.equals(key, that.key) && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, value, definition);
+        return Objects.hash(key, value);
     }
 
     @Override

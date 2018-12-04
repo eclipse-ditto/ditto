@@ -10,7 +10,12 @@
  */
 package org.eclipse.ditto.json;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Optional;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
 
 /**
  * Represents a JSON array. A JSON array is an ordered collection of JSON values. Duplicate values are permitted.
@@ -19,6 +24,71 @@ import java.util.Optional;
  * </p>
  */
 public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
+
+    /**
+     * Creates a new {@code JsonArray} from the given string.
+     *
+     * @param jsonArrayString the string that represents the JSON array.
+     * @return the JSON array that has been created from the string.
+     * @throws NullPointerException if {@code jsonArrayString} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonArrayString} is empty.
+     * @throws JsonParseException if {@code jsonArrayString} does not represent a valid JSON array.
+     */
+    static JsonArray of(final String jsonArrayString) {
+        return JsonFactory.newArray(jsonArrayString);
+    }
+
+    /**
+     * Returns an empty {@code JsonArray} object.
+     *
+     * @return the empty array.
+     */
+    static JsonArray empty() {
+        return JsonFactory.newArray();
+    }
+
+    /**
+     * Returns an instance of {@code JsonArray} which contains the given values.
+     * This method tries to determine the appropriate {@link org.eclipse.ditto.json.JsonValue}-counterpart for each
+     * given value.
+     *
+     * @param value the mandatory value of the returned JsonArray.
+     * @param furtherValues further optional values of the returned JsonArray.
+     * @return the JsonArray.
+     * @throws NullPointerException if {@code furtherValues} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if either {@code value} or any item of {@code furtherValues}
+     * cannot be converted to {@code JsonValue}.
+     */
+    @SuppressWarnings("unchecked")
+    static <T> JsonArray of(@Nullable final T value, final T... furtherValues) {
+        final JsonArrayBuilder arrayBuilder = newBuilder();
+        arrayBuilder.add(JsonFactory.getAppropriateValue(value));
+        for (final T furtherValue : furtherValues) {
+            arrayBuilder.add(JsonFactory.getAppropriateValue(furtherValue));
+        }
+        return arrayBuilder.build();
+    }
+
+    /**
+     * Returns an instance of {@code JsonArray} which contains the given values.
+     * This method tries to determine the appropriate {@link org.eclipse.ditto.json.JsonValue}-counterpart for each
+     * item of the specified Iterable.
+     *
+     * @param values the values of the returned JsonArray. {@code null}  items are
+     * @return the JsonArray.
+     * @throws NullPointerException if {@code values} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if any item of {@code values} cannot be converted to
+     * {@code JsonValue}.
+     */
+    static <T> JsonArray of(final Iterable<T> values) {
+        requireNonNull(values, "The values of the array must not be null!");
+        if (values instanceof JsonValue) {
+            return JsonFactory.newArrayBuilder().add((JsonValue) values).build();
+        }
+        return StreamSupport.stream(values.spliterator(), false)
+                .map(JsonFactory::getAppropriateValue)
+                .collect(JsonCollectors.valuesToArray());
+    }
 
     /**
      * Returns a new mutable builder with a fluent API for a {@code JsonArray}.

@@ -12,38 +12,26 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.IOException;
 import java.io.Reader;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.ParseException;
-
 /**
- * The main entry point for the Eclipse Ditto JSON API. It provides a lot of convenience methods. Apart from
- * {@link #newArrayBuilder()} and {@link #newObjectBuilder()} all methods of this class return
+ * The main entry point for the Eclipse Ditto JSON API.
+ * It provides a lot of convenience methods.
+ * Apart from {@link #newArrayBuilder()} and {@link #newObjectBuilder()} all methods of this class return
  * <em>immutable objects.</em>
  */
 @Immutable
 public final class JsonFactory {
-
-    private static final JsonObject EMPTY_JSON_OBJECT = ImmutableJsonObject.empty();
-    private static final JsonArray EMPTY_JSON_ARRAY = ImmutableJsonArray.empty();
-    private static final JsonObject NULL_JSON_OBJECT = ImmutableJsonObjectNull.newInstance();
-    private static final JsonArray NULL_JSON_ARRAY = ImmutableJsonArrayNull.newInstance();
-    private static final JsonValue NULL_LITERAL = ImmutableJsonNull.newInstance();
 
     /*
      * This utility class is not meant to be instantiated.
@@ -71,7 +59,7 @@ public final class JsonFactory {
      * @return the {@code null} JSON literal.
      */
     public static JsonValue nullLiteral() {
-        return NULL_LITERAL;
+        return ImmutableJsonNull.getInstance();
     }
 
     /**
@@ -88,11 +76,19 @@ public final class JsonFactory {
         if (null == value) {
             result = nullLiteral();
         } else if (value instanceof JsonValue) {
-            result = ((JsonValue) value);
-        } else if (value instanceof String || value instanceof CharSequence) {
+            result = (JsonValue) value;
+        } else if (value instanceof Boolean) {
+            result = newValue((Boolean) value);
+        } else if (value instanceof Integer) {
+            result = newValue((Integer) value);
+        } else if (value instanceof Long) {
+            result = newValue((Long) value);
+        } else if (value instanceof Double) {
+            result = newValue((Double) value);
+        } else if (value instanceof CharSequence) {
             result = newValue(String.valueOf(value));
         } else {
-            result = convert(tryToRead(String.valueOf(value)));
+            result = JsonValueParser.fromString().apply(String.valueOf(value));
         }
 
         return result;
@@ -105,7 +101,7 @@ public final class JsonFactory {
      * @return a JSON literal that represents the given boolean value.
      */
     public static JsonValue newValue(final boolean value) {
-        return value ? ImmutableJsonLiteral.TRUE : ImmutableJsonLiteral.FALSE;
+        return value ? ImmutableJsonBoolean.TRUE : ImmutableJsonBoolean.FALSE;
     }
 
     /**
@@ -115,7 +111,7 @@ public final class JsonFactory {
      * @return a JSON number that represents the given value.
      */
     public static JsonValue newValue(final int value) {
-        return ImmutableJsonNumber.of(Json.value(value));
+        return ImmutableJsonInt.of(value);
     }
 
     /**
@@ -125,7 +121,7 @@ public final class JsonFactory {
      * @return a JSON number that represents the given value.
      */
     public static JsonValue newValue(final long value) {
-        return ImmutableJsonNumber.of(Json.value(value));
+        return ImmutableJsonLong.of(value);
     }
 
     /**
@@ -135,7 +131,7 @@ public final class JsonFactory {
      * @return a JSON number that represents the given value.
      */
     public static JsonValue newValue(final double value) {
-        return ImmutableJsonNumber.of(Json.value(value));
+        return ImmutableJsonDouble.of(value);
     }
 
     /**
@@ -152,9 +148,9 @@ public final class JsonFactory {
         final JsonValue result;
 
         if (null != jsonString) {
-            result = ImmutableJsonString.of(Json.value(jsonString));
+            result = ImmutableJsonString.of(jsonString);
         } else {
-            result = NULL_LITERAL;
+            result = nullLiteral();
         }
 
         return result;
@@ -164,30 +160,18 @@ public final class JsonFactory {
      * Reads the given string and creates a JSON value based on the read data. The actual type of this JSON value is
      * unknown but can be obtained by invoking the {@code is...} methods.
      *
-     * @param json the JSON document to read.
+     * @param jsonString the JSON document to read.
      * @return a JSON value representing the read document. This value can be a JSON literal, a JSON object and so on.
-     * @throws NullPointerException if {@code json} is empty.
-     * @throws JsonParseException if {@code json} is empty or if it is no valid JSON.
+     * @throws NullPointerException if {@code jsonString} is empty.
+     * @throws JsonParseException if {@code jsonString} is empty or if it is no valid JSON.
      */
-    public static JsonValue readFrom(final String json) {
-        requireNonNull(json, "The JSON to read from must not be null!");
-        if (json.isEmpty()) {
-            throw new JsonParseException("The JSON to read from must not be empty!");
+    public static JsonValue readFrom(final String jsonString) {
+        requireNonNull(jsonString, "The JSON string to read from must not be null!");
+        if (jsonString.isEmpty()) {
+            throw new JsonParseException("The JSON string to read from must not be empty!");
         }
 
-        final com.eclipsesource.json.JsonValue minimalJsonValue = tryToRead(json);
-        return convert(minimalJsonValue);
-    }
-
-    private static com.eclipsesource.json.JsonValue tryToRead(final String json) {
-        try {
-            return Json.parse(json);
-        } catch (final ParseException | StackOverflowError e) {
-            throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format("Failed to parse ''{0}''!", json))
-                    .cause(e)
-                    .build();
-        }
+        return JsonValueParser.fromString().apply(jsonString);
     }
 
     /**
@@ -204,20 +188,7 @@ public final class JsonFactory {
      * @throws JsonParseException if an I/O error occurred or if the input is no valid JSON.
      */
     public static JsonValue readFrom(final Reader reader) {
-        requireNonNull(reader, "The reader must not be null!");
-        final com.eclipsesource.json.JsonValue minimalJsonValue = tryToRead(reader);
-        return convert(minimalJsonValue);
-    }
-
-    private static com.eclipsesource.json.JsonValue tryToRead(final Reader reader) {
-        try {
-            return Json.parse(reader);
-        } catch (final ParseException | IOException | StackOverflowError e) {
-            throw JsonParseException.newBuilder()
-                    .message("Failed to parse JSON from reader!")
-                    .cause(e)
-                    .build();
-        }
+        return JsonValueParser.fromReader().apply(reader);
     }
 
     /**
@@ -241,9 +212,7 @@ public final class JsonFactory {
     public static JsonObjectBuilder newObjectBuilder(final Iterable<JsonField> jsonFields) {
         requireNonNull(jsonFields, "The initial JSON fields must not be null!");
 
-        final JsonObjectBuilder result = ImmutableJsonObjectBuilder.newInstance();
-        result.setAll(jsonFields);
-        return result;
+        return newObjectBuilder().setAll(jsonFields);
     }
 
     /**
@@ -252,7 +221,7 @@ public final class JsonFactory {
      * @return an empty JSON object.
      */
     public static JsonObject newObject() {
-        return EMPTY_JSON_OBJECT;
+        return ImmutableJsonObject.empty();
     }
 
     /**
@@ -270,12 +239,20 @@ public final class JsonFactory {
             throw new IllegalArgumentException("The JSON string to create a JSON object from must not be empty!");
         }
 
-        if (Objects.equals(Json.NULL.toString(), jsonString)) {
-            return NULL_JSON_OBJECT;
+        if (isJsonNullLiteralString(jsonString)) {
+            return nullObject();
         } else {
-            final com.eclipsesource.json.JsonObject jsonObject = tryToReadJsonObjectFrom(jsonString);
-            return ImmutableJsonObject.of(toMap(jsonObject));
+            final JsonValue jsonValue = JsonValueParser.fromString().apply(jsonString);
+            if (!jsonValue.isObject()) {
+                final String msgPattern = "<{0}> is not a valid JSON object!";
+                throw JsonParseException.newBuilder().message(MessageFormat.format(msgPattern, jsonString)).build();
+            }
+            return jsonValue.asObject();
         }
+    }
+
+    private static boolean isJsonNullLiteralString(final String s) {
+        return "null".equals(s);
     }
 
     /**
@@ -287,7 +264,7 @@ public final class JsonFactory {
      */
     public static JsonObject newObject(final Map<JsonKey, JsonValue> fields) {
         final Map<String, JsonField> jsonFields = new LinkedHashMap<>(fields.size());
-        fields.forEach(((jsonKey, jsonValue) -> jsonFields.put(jsonKey.toString(), newField(jsonKey, jsonValue))));
+        fields.forEach((jsonKey, jsonValue) -> jsonFields.put(jsonKey.toString(), newField(jsonKey, jsonValue)));
         return ImmutableJsonObject.of(jsonFields);
     }
 
@@ -297,14 +274,10 @@ public final class JsonFactory {
      * given {code jsonFields}.
      */
     public static JsonObject newObject(final Iterable<JsonField> jsonFields) {
-
-        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
-            return JsonFactory.nullObject();
-        } else {
-            return JsonFactory.newObjectBuilder()
-                    .setAll(jsonFields)
-                    .build();
+        if (jsonFields instanceof JsonObject && ((JsonValue) jsonFields).isNull()) {
+            return nullObject();
         }
+        return newObjectBuilder(jsonFields).build();
     }
 
     /**
@@ -313,31 +286,7 @@ public final class JsonFactory {
      * @return an object typed JSON NULL literal.
      */
     public static JsonObject nullObject() {
-        return NULL_JSON_OBJECT;
-    }
-
-    private static com.eclipsesource.json.JsonObject tryToReadJsonObjectFrom(final String jsonString) {
-        try {
-            final com.eclipsesource.json.JsonValue parsedJsonString = Json.parse(jsonString);
-            return parsedJsonString.asObject();
-        } catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
-            throw JsonParseException.newBuilder()
-                    .message("Failed to create JSON object from string!")
-                    .cause(e)
-                    .build();
-        }
-    }
-
-    private static Map<String, JsonField> toMap(final com.eclipsesource.json.JsonObject minimalJsonObject) {
-        final Map<String, JsonField> result = new LinkedHashMap<>(minimalJsonObject.size());
-
-        for (final com.eclipsesource.json.JsonObject.Member member : minimalJsonObject) {
-            final JsonKey key = newKey(member.getName());
-            final JsonValue value = convert(member.getValue());
-            result.put(key.toString(), newField(key, value));
-        }
-
-        return result;
+        return ImmutableJsonObjectNull.getInstance();
     }
 
     /**
@@ -357,9 +306,7 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code values} is {@code null}.
      */
     public static JsonArrayBuilder newArrayBuilder(final Iterable<? extends JsonValue> values) {
-        final JsonArrayBuilder result = ImmutableJsonArrayBuilder.newInstance();
-        result.addAll(values);
-        return result;
+        return newArrayBuilder().addAll(values);
     }
 
     /**
@@ -368,7 +315,7 @@ public final class JsonFactory {
      * @return a new empty JSON array.
      */
     public static JsonArray newArray() {
-        return EMPTY_JSON_ARRAY;
+        return ImmutableJsonArray.empty();
     }
 
     /**
@@ -385,34 +332,16 @@ public final class JsonFactory {
         if (jsonString.isEmpty()) {
             throw new IllegalArgumentException("The JSON string to create a JSON array from must not be empty!");
         }
-        if (jsonString.equals(Json.NULL.toString())) {
-            return NULL_JSON_ARRAY;
+        if (isJsonNullLiteralString(jsonString)) {
+            return nullArray();
         } else {
-            final com.eclipsesource.json.JsonArray jsonArray = tryToReadMinimalJsonArrayFrom(jsonString);
-            return ImmutableJsonArray.of(toList(jsonArray));
+            final JsonValue jsonValue = JsonValueParser.fromString().apply(jsonString);
+            if (!jsonValue.isArray()) {
+                final String msgPattern = "<{0}> is not a valid JSON array!";
+                throw JsonParseException.newBuilder().message(MessageFormat.format(msgPattern, jsonString)).build();
+            }
+            return jsonValue.asArray();
         }
-    }
-
-    private static com.eclipsesource.json.JsonArray tryToReadMinimalJsonArrayFrom(final String jsonString) {
-        try {
-            final com.eclipsesource.json.JsonValue parsedJsonString = Json.parse(jsonString);
-            return parsedJsonString.asArray();
-        } catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
-            throw JsonParseException.newBuilder()
-                    .message("Failed to create JSON array from string!")
-                    .cause(e)
-                    .build();
-        }
-    }
-
-    private static List<JsonValue> toList(final com.eclipsesource.json.JsonArray minimalJsonArray) {
-        final List<JsonValue> result = new ArrayList<>(minimalJsonArray.size());
-
-        for (final com.eclipsesource.json.JsonValue minimalJsonValue : minimalJsonArray) {
-            result.add(convert(minimalJsonValue));
-        }
-
-        return result;
     }
 
     /**
@@ -421,7 +350,7 @@ public final class JsonFactory {
      * @return an array typed JSON NULL literal.
      */
     public static JsonArray nullArray() {
-        return NULL_JSON_ARRAY;
+        return ImmutableJsonArrayNull.getInstance();
     }
 
     /**
@@ -433,7 +362,7 @@ public final class JsonFactory {
      * @throws NullPointerException if {@code key} is null;
      */
     public static JsonField newField(final JsonKey key, @Nullable final JsonValue value) {
-        return ImmutableJsonField.newInstance(key, (null != value) ? value : NULL_LITERAL);
+        return newField(key, value, null);
     }
 
     /**
@@ -448,7 +377,7 @@ public final class JsonFactory {
     public static JsonField newField(final JsonKey key, @Nullable final JsonValue value,
             @Nullable final JsonFieldDefinition definition) {
 
-        return ImmutableJsonField.newInstance(key, (null != value) ? value : NULL_LITERAL, definition);
+        return ImmutableJsonField.newInstance(key, null != value ? value : nullLiteral(), definition);
     }
 
     /**
@@ -566,9 +495,9 @@ public final class JsonFactory {
      * @param fieldSelectorString string to be transformed into a JSON field selector object.
      * @param options the JsonParseOptions to apply when parsing the {@code fieldSelectorString}.
      * @return a new JSON field selector.
-     * @throws JsonFieldSelectorInvalidException if {@code fieldSelectorString} is empty or if {@code
-     * fieldSelectorString} does not contain a closing parenthesis ({@code )}) for each opening parenthesis ({@code
-     * (}).
+     * @throws JsonFieldSelectorInvalidException if {@code fieldSelectorString} is empty or if
+     * {@code fieldSelectorString} does not contain a closing parenthesis ({@code )}) for each opening parenthesis
+     * ({@code (}).
      * @throws IllegalStateException if {@code fieldSelectorString} cannot be decoded as UTF-8.
      */
     public static JsonFieldSelector newFieldSelector(@Nullable final String fieldSelectorString,
@@ -588,9 +517,9 @@ public final class JsonFactory {
     }
 
     /**
-     * Returns a new JSON field selector which is based on the given set of {@link JsonPointer}s. If the set of JSON
-     * pointers string is empty this means that no fields were selected thus this method returns an empty JSON field
-     * selector.
+     * Returns a new JSON field selector which is based on the given set of {@link JsonPointer}s.
+     * If the set of JSON pointers string is empty this means that no fields were selected thus this method returns an
+     * empty JSON field selector.
      *
      * @param pointers the JSON pointers of the field selector to be created.
      * @return a new JSON field selector.
@@ -814,88 +743,6 @@ public final class JsonFactory {
     }
 
     /**
-     * Converts the specified JSON value of the Minimal JSON library to a matching object of our own JSON
-     * implementation.
-     *
-     * @param minimalJsonValue the value to be converted.
-     * @return a {@link JsonValue} which matches {@code minimalJsonValue} or {@code null} if {@code minimalJsonValue} is
-     * {@code null}.
-     * @throws IllegalStateException if {@code minimalJsonValue} cannot be converted for some reason.
-     */
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity",
-            "checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck"})
-    @Nullable
-    static JsonValue convert(@Nullable final com.eclipsesource.json.JsonValue minimalJsonValue) {
-        final JsonValue result;
-
-        if (null == minimalJsonValue) {
-            result = null;
-        } else if (minimalJsonValue.isObject()) {
-            final Map<String, JsonField> jsonFields = toMap(minimalJsonValue.asObject());
-            result = ImmutableJsonObject.of(jsonFields);
-        } else if (minimalJsonValue.isString()) {
-            result = ImmutableJsonString.of(minimalJsonValue);
-        } else if (minimalJsonValue.isArray()) {
-            final List<JsonValue> jsonValues = toList(minimalJsonValue.asArray());
-            result = ImmutableJsonArray.of(jsonValues);
-        } else if (minimalJsonValue.isBoolean()) {
-            result = newValue(minimalJsonValue.asBoolean());
-        } else if (minimalJsonValue.isNull()) {
-            result = NULL_LITERAL;
-        } else if (minimalJsonValue.isNumber()) {
-            result = ImmutableJsonNumber.of(minimalJsonValue);
-        } else {
-            throw new IllegalStateException(
-                    MessageFormat.format("Failed to convert {0} to JsonValue!", minimalJsonValue));
-        }
-
-        return result;
-    }
-
-    /**
-     * Converts the specified JSON value to a matching {@link com.eclipsesource.json.JsonValue} object.
-     *
-     * @param jsonValue the value to be converted.
-     * @return a {@link com.eclipsesource.json.JsonValue} which matches {@code jsonValue} or {@code null} if {@code
-     * jsonValue} is {@code null}.
-     * @throws IllegalStateException if {@code jsonValue} cannot be converted for some reason.
-     */
-    @SuppressWarnings({"checkstyle:com.puppycrawl.tools.checkstyle.checks.metrics.CyclomaticComplexityCheck",
-            "squid:MethodCyclomaticComplexity"})
-    @Nullable
-    static com.eclipsesource.json.JsonValue convert(@Nullable final JsonValue jsonValue) {
-        final com.eclipsesource.json.JsonValue result;
-
-        if (null == jsonValue) {
-            result = null;
-        } else if (jsonValue.isNull()) {
-            result = Json.NULL;
-        } else if (jsonValue.isString()) {
-            result = Json.value(jsonValue.asString());
-        } else if (jsonValue.isBoolean()) {
-            result = Json.value(jsonValue.asBoolean());
-        } else if (jsonValue.isNumber()) {
-            final Double doubleValue = jsonValue.asDouble();
-            if (doubleValue.intValue() == doubleValue) {
-                result = Json.value(doubleValue.intValue());
-            } else if (doubleValue.longValue() == doubleValue) {
-                result = Json.value(doubleValue.longValue());
-            } else {
-                result = Json.value(doubleValue);
-            }
-        } else if (jsonValue.isObject()) {
-            result = Json.parse(jsonValue.toString());
-        } else if (jsonValue.isArray()) {
-            result = Json.parse(jsonValue.toString());
-        } else {
-            throw new IllegalStateException(
-                    MessageFormat.format("Failed to convert {0} to JsonValue of Minimal JSON!", jsonValue));
-        }
-
-        return result;
-    }
-
-    /**
      * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
      *
      * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
@@ -909,9 +756,9 @@ public final class JsonFactory {
         final JsonPointer result;
 
         if (isPointer(keyOrPointer)) {
-            result = JsonFactory.newPointer(keyOrPointer);
+            result = newPointer(keyOrPointer);
         } else {
-            final JsonKey jsonKey = JsonFactory.newKey(keyOrPointer);
+            final JsonKey jsonKey = newKey(keyOrPointer);
             result = jsonKey.asPointer();
         }
         if (result.isEmpty()) {
@@ -925,8 +772,8 @@ public final class JsonFactory {
         return null != charSequence &&
                 !JsonKey.class.isAssignableFrom(charSequence.getClass()) &&
                 (JsonPointer.class.isAssignableFrom(charSequence.getClass()) ||
-                        (0 == charSequence.length()) ||
-                        ('/' == charSequence.charAt(0))
+                        0 == charSequence.length() ||
+                        '/' == charSequence.charAt(0)
                 );
     }
 
