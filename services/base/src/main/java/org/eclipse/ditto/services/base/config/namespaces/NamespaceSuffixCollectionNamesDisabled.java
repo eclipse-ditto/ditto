@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistence.mongo.suffixes;
+package org.eclipse.ditto.services.base.config.namespaces;
 
 import akka.contrib.persistence.mongodb.CanSuffixCollectionNames;
 

@@ -10,7 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.cache.update;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Set;
 

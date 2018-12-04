@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
