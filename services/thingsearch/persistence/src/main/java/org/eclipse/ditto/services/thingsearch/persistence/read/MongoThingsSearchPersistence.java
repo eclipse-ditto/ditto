@@ -12,7 +12,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.read;
 
 import static com.mongodb.client.model.Filters.and;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -22,8 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
-import org.bson.BsonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.query.Query;
@@ -86,7 +86,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      * @return the BSON filter.
      */
     public static BsonDocument filterNotDeleted() {
-        return new BsonDocument().append(FIELD_DELETED, BsonNull.VALUE);
+        return new BsonDocument().append(FIELD_DELETED_FLAG, BsonBoolean.FALSE);
     }
 
     @Override

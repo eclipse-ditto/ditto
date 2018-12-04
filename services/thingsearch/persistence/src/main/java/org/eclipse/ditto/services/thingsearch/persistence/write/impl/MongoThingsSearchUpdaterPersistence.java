@@ -16,6 +16,7 @@ import static com.mongodb.client.model.Filters.lt;
 import static com.mongodb.client.model.Filters.lte;
 import static com.mongodb.client.model.Filters.or;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
@@ -137,6 +138,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     }
 
     private static Document toUpdate(final Document document) {
+        document.put(FIELD_DELETED_FLAG, false);
         return new Document().append(SET, document).append(UNSET, new Document(FIELD_DELETED, 1));
     }
 
@@ -183,7 +185,10 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
     public final Source<Boolean, NotUsed> delete(final String thingId) {
         log.debug("Deleting Thing with ThingId <{}>", thingId);
         final Bson filter = eq(FIELD_ID, thingId);
-        final Bson document = new Document(SET, new Document(FIELD_DELETED, new Date()));
+        final Document deletedDocument = new Document()
+                .append(FIELD_DELETED, new Date())
+                .append(FIELD_DELETED_FLAG, true);
+        final Bson document = new Document(SET, deletedDocument);
         return delete(thingId, filter, document);
     }
 
@@ -196,6 +201,7 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         final Bson filter = filterWithLowerRevision(thingId, revision);
         final Document delete = new Document()
                 .append(FIELD_DELETED, new Date())
+                .append(FIELD_DELETED_FLAG, true)
                 .append(FIELD_REVISION, revision);
         final Bson document = new Document(SET, delete);
         return delete(thingId, filter, document);
@@ -399,7 +405,8 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 
     @Override
     public final CompletionStage<Void> initializeIndices() {
-        return indexInitializer.initialize(PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME, Indices.Policies.all())
+        return indexInitializer.initialize(PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME,
+                Indices.Policies.all())
                 .exceptionally(t -> {
                     log.error(t, "Index-Initialization failed: {}", t.getMessage());
                     return null;
