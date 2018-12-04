@@ -27,7 +27,6 @@ import org.eclipse.ditto.signals.base.WithId;
 import akka.actor.ActorSystem;
 import akka.cluster.sharding.ShardRegion;
 
-
 /**
  * Implementation of {@link ShardRegion.MessageExtractor} which does a {@code hashCode} based sharding with the
  * configured amount of overall shards. This number has to be same on each cluster node.
@@ -75,6 +74,8 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
             return ((ShardedMessageEnvelope) message).getId();
         } else if (message instanceof WithId) {
             return ((WithId) message).getId();
+        } else if (message instanceof ShardRegion.StartEntity) {
+            return ((ShardRegion.StartEntity) message).entityId();
         }
         return null;
     }
@@ -101,8 +102,11 @@ public final class ShardRegionExtractor implements ShardRegion.MessageExtractor 
     @Override
     public String shardId(final Object message) {
         final String entityId = entityId(message);
-        if (entityId != null && entityId.hashCode() != Integer.MIN_VALUE) {
-            return Integer.toString(Math.abs(entityId.hashCode()) % numberOfShards);
+        if (entityId != null) {
+            final int hashcode = entityId.hashCode();
+            // make sure not to negate Integer.MIN_VALUE because -Integer.MIN_VALUE == Integer.MIN_VALUE < 0.
+            final int nonNegativeHashcode = hashcode == Integer.MIN_VALUE ? 0 : Math.abs(hashcode);
+            return Integer.toString(nonNegativeHashcode % numberOfShards);
         }
         return null;
     }

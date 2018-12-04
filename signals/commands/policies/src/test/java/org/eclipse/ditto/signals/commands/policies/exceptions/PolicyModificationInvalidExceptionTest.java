@@ -14,6 +14,8 @@ import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assert
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -34,7 +36,8 @@ public class PolicyModificationInvalidExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     TestConstants.Policy.POLICY_MODIFICATION_INVALID_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Policy.POLICY_MODIFICATION_INVALID_EXCEPTION.getHref().toString())
+                    TestConstants.Policy.POLICY_MODIFICATION_INVALID_EXCEPTION.getHref()
+                            .map(Objects::toString).orElse(null))
             .build();
 
 

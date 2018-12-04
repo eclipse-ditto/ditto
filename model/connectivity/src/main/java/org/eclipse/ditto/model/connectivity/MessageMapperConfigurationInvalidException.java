@@ -35,15 +35,19 @@ public final class MessageMapperConfigurationInvalidException extends DittoRunti
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.mapper.config.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "The message mapper was not configured correctly as property ''{0}'' was missing from the mapper's configuration.";
+    private static final String MESSAGE_TEMPLATE =
+            "The message mapper was not configured correctly as property ''{0}'' was missing from the mapper's configuration.";
 
-    private static final String DEFAULT_DESCRIPTION = "Make sure to add the missing property to the mapper's configuration.";
+    private static final String DEFAULT_DESCRIPTION =
+            "Make sure to add the missing property to the mapper's configuration.";
 
     private static final long serialVersionUID = -2538489434734124572L;
 
-    private MessageMapperConfigurationInvalidException(final DittoHeaders dittoHeaders, @Nullable final String message,
+    private MessageMapperConfigurationInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
             @Nullable final String description,
-            @Nullable final Throwable cause, @Nullable final URI href) {
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
@@ -82,7 +86,12 @@ public final class MessageMapperConfigurationInvalidException extends DittoRunti
      * JsonFields#MESSAGE} field.
      */
     public static MessageMapperConfigurationInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -101,8 +110,11 @@ public final class MessageMapperConfigurationInvalidException extends DittoRunti
         }
 
         @Override
-        protected MessageMapperConfigurationInvalidException doBuild(final DittoHeaders dittoHeaders, @Nullable final String message,
-                @Nullable final String description, @Nullable final Throwable cause, @Nullable final URI href) {
+        protected MessageMapperConfigurationInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new MessageMapperConfigurationInvalidException(dittoHeaders, message, description, cause, href);
         }
     }

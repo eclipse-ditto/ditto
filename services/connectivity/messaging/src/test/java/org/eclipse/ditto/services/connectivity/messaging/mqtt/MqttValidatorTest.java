@@ -74,6 +74,20 @@ public final class MqttValidatorTest {
     }
 
     @Test
+    public void testInvalidHeaderMapping() {
+
+        final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
+                ConnectionStatus.OPEN, "tcp://localhost:1883")
+                .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .headerMapping(TestConstants.HEADER_MAPPING)
+                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                        .build()))
+                .build();
+
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection);
+    }
+
+    @Test
     public void testWithDefaultSource() {
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder("mqtt", ConnectionType.MQTT,
                 ConnectionStatus.OPEN, "tcp://localhost:1883")
@@ -128,7 +142,8 @@ public final class MqttValidatorTest {
         final MqttSource mqttSource =
                 ConnectivityModelFactory.newMqttSourceBuilder()
                         .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(TestConstants.asSet("things/{{ thing:id }}")))
+                        .enforcement(ConnectivityModelFactory.newSourceAddressEnforcement(
+                                TestConstants.asSet("things/{{ thing:id }}")))
                         .address(source)
                         .qos(1)
                         .build();

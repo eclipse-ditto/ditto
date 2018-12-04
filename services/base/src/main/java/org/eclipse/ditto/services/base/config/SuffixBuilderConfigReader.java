@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
 import org.eclipse.ditto.services.base.config.namespaces.SuffixBuilderConfig;
 
 import com.typesafe.config.Config;

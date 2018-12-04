@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.createRandomConnectionId;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.timeout;
@@ -35,6 +36,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
+import javax.jms.CompletionListener;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -65,6 +67,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
+import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -99,7 +102,7 @@ import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AmqpClientActorTest {
+public class AmqpClientActorTest extends WithMockServers {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
@@ -171,7 +174,7 @@ public class AmqpClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUri())
+                ConnectionType.AMQP_10, ConnectionStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .specificConfig(specificOptions)
                 .sources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
@@ -505,7 +508,7 @@ public class AmqpClientActorTest {
 
             getLastSender().tell(responseSupplier.apply(command.getId(), command.getDittoHeaders()), getRef());
 
-            verify(mockProducer, timeout(2000)).send(expectedJmsResponse);
+            verify(mockProducer, timeout(2000)).send(same(expectedJmsResponse), any(CompletionListener.class));
         }};
     }
 
@@ -521,12 +524,12 @@ public class AmqpClientActorTest {
 
             final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(singletonList(""));
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT,
+                    singleton(ConnectivityModelFactory.newTarget("target", Authorization.AUTHORIZATION_CONTEXT, null,
                             Topic.TWIN_EVENTS)));
 
             amqpClientActor.tell(outboundSignal, getRef());
 
-            verify(mockProducer, timeout(2000)).send(mockTextMessage);
+            verify(mockProducer, timeout(2000)).send(same(mockTextMessage), any(CompletionListener.class));
         }};
     }
 

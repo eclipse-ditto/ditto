@@ -72,6 +72,14 @@ public interface SourceBuilder<T extends SourceBuilder> {
     T enforcement(@Nullable Enforcement enforcement);
 
     /**
+     * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.
+     *
+     * @param headerMapping the headerMapping
+     * @return this builder
+     */
+    T headerMapping(@Nullable HeaderMapping headerMapping);
+
+    /**
      * Build the source instance.
      *
      * @return the new source instance

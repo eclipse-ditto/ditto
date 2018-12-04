@@ -12,10 +12,12 @@ package org.eclipse.ditto.services.thingsearch.persistence.write;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.utils.persistence.mongo.namespace.NamespaceOps;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
@@ -24,7 +26,7 @@ import akka.stream.javadsl.Source;
 /**
  * The persistence for the search updater service.
  */
-public interface ThingsSearchUpdaterPersistence {
+public interface ThingsSearchUpdaterPersistence extends NamespaceOps<String> {
 
     /**
      * Inserts or updates a passed in {@link Thing}, enforcing restrictions on its properties.
@@ -101,5 +103,12 @@ public interface ThingsSearchUpdaterPersistence {
      * @return a {@link Source} holding the publisher to execute the operation.
      */
     Source<ThingMetadata, NotUsed> getThingMetadata(String thingId);
+
+    /**
+     * Initializes the search updater index if necessary.
+     *
+     * @return a {@link java.util.concurrent.CompletionStage} which can be either used for blocking or non-blocking initialization.
+     */
+    CompletionStage<Void> initializeIndices();
 
 }

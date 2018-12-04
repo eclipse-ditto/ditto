@@ -37,6 +37,11 @@ public final class IdentityCache implements Cache<EntityId, Entry<EntityId>> {
     }
 
     @Override
+    public CompletableFuture<Optional<Entry<EntityId>>> getIfPresent(final EntityId key) {
+        return get(key);
+    }
+
+    @Override
     public Optional<Entry<EntityId>> getBlocking(final EntityId key) {
         return Optional.of(Entry.permanent(key));
     }

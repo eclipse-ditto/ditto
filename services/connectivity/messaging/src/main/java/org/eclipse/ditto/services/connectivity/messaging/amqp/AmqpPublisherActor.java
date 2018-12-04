@@ -11,35 +11,37 @@
 package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.amqp.JmsExceptionThrowingBiConsumer.wrap;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
 import javax.jms.BytesMessage;
+import javax.jms.CompletionListener;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
+import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
@@ -55,22 +57,31 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     static final String ACTOR_NAME = "amqpPublisherActor";
 
+    private static final Map<String, BiConsumer<Message, String>> JMS_HEADER_MAPPING = new HashMap<>();
+
+    static {
+        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), wrap(Message::setJMSCorrelationID));
+        JMS_HEADER_MAPPING.put("message-id", wrap(Message::setJMSMessageID));
+        JMS_HEADER_MAPPING.put("reply-to", wrap((message, value) -> message.setJMSReplyTo(new JmsQueue(value))));
+        JMS_HEADER_MAPPING.put("subject", wrap(Message::setJMSType));
+        JMS_HEADER_MAPPING.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), wrap((message, value) -> {
+            if (message instanceof JmsMessage) {
+                final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
+                if (facade instanceof AmqpJmsMessageFacade) {
+                    ((AmqpJmsMessageFacade) facade).setContentType(value);
+                }
+            }
+        }));
+    }
+
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    private AddressMetric addressMetric;
-    private long publishedMessages = 0L;
-    private Instant lastMessagePublishedAt;
-
-
     private AmqpPublisherActor(final Session session) {
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
-        addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
-                        0, null);
     }
 
     /**
@@ -91,43 +102,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(OutboundSignal.WithExternalMessage.class, this::isResponseOrError, outbound -> {
-                    final ExternalMessage response = outbound.getExternalMessage();
-                    final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received response or error {} ", response);
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        // noop
+    }
 
-                    final String replyToFromHeader = response.getHeaders().get(ExternalMessage.REPLY_TO_HEADER);
-                    if (replyToFromHeader != null) {
-                        final AmqpTarget amqpTarget = AmqpTarget.fromTargetAddress(replyToFromHeader);
-                        sendMessage(amqpTarget, response);
-                    } else {
-                        log.info("Response dropped, missing replyTo address: {}", response);
-                    }
-                })
-                .match(OutboundSignal.WithExternalMessage.class, outbound -> {
-                    final ExternalMessage message = outbound.getExternalMessage();
-                    final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
-                    LogUtil.enhanceLogWithCorrelationId(log, correlationId);
-                    log.debug("Received mapped message {} ", message);
-
-                    outbound.getTargets().stream()
-                            .map(t -> toPublishTarget(t.getAddress()))
-                            .forEach(amqpTarget -> sendMessage(amqpTarget, message));
-                })
-                .match(AddressMetric.class, this::handleAddressMetric)
-                .match(RetrieveAddressMetric.class, ram -> {
-                    getSender().tell(ConnectivityModelFactory.newAddressMetric(
-                            addressMetric.getStatus(),
-                            addressMetric.getStatusDetails().orElse(null),
-                            publishedMessages, lastMessagePublishedAt), getSelf());
-                })
-                .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
-                    unhandled(m);
-                }).build();
+    @Override
+    protected void postEnhancement(final ReceiveBuilder receiveBuilder) {
+        // noop
     }
 
     @Override
@@ -135,24 +116,53 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return AmqpTarget.fromTargetAddress(address);
     }
 
-    private void handleAddressMetric(final AddressMetric addressMetric) {
-        this.addressMetric = addressMetric;
+    @Override
+    protected AmqpTarget toReplyTarget(final String replyToAddress) {
+        return AmqpTarget.fromTargetAddress(replyToAddress);
     }
 
-    private void sendMessage(final AmqpTarget target, final ExternalMessage message) {
+    @Override
+    protected void publishMessage(@Nullable final Target target, final AmqpTarget publishTarget,
+            final ExternalMessage message) {
         try {
-            final MessageProducer producer = getProducer(target.getJmsDestination());
+            final MessageProducer producer = getProducer(publishTarget.getJmsDestination());
             if (producer != null) {
                 final Message jmsMessage = toJmsMessage(message);
-                producer.send(jmsMessage);
-                publishedMessages++;
-                lastMessagePublishedAt = Instant.now();
+
+                final ActorRef origin = getSender();
+                producer.send(jmsMessage, new CompletionListener() {
+                    @Override
+                    public void onCompletion(final Message message) {
+                        publishedMessages++;
+                        lastMessagePublishedAt = Instant.now();
+                        log.debug("Message {} sent successfully.", message);
+                    }
+
+                    @Override
+                    public void onException(final Message messageFailedToSend, final Exception exception) {
+                        handleSendException(message, exception, origin);
+                    }
+                });
             } else {
-                log.warning("No producer for destination {} available.", target);
+                log.warning("No producer for destination {} available.", publishTarget);
+                final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
+                        .message("Failed to send message, no producer available.")
+                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                        .build();
+                getSender().tell(sendFailedException, getSelf());
             }
         } catch (final JMSException e) {
-            log.info("Failed to send JMS response: {}", e.getMessage());
+            handleSendException(message, e, getSender());
         }
+    }
+
+    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender) {
+        log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
+        final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
+                .cause(e)
+                .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                .build();
+        sender.tell(sendFailedException, getSelf());
     }
 
     private Message toJmsMessage(final ExternalMessage externalMessage) throws JMSException {
@@ -167,21 +177,31 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } else {
             message = session.createMessage();
         }
+
+        // some headers must be handled differently to be passed to amqp message
+        final Map<String, String> headers = externalMessage.getHeaders();
+        JMS_HEADER_MAPPING.entrySet().stream()
+                .filter(entry -> headers.containsKey(entry.getKey()))
+                .forEach(entry -> entry.getValue().accept(message, headers.get(entry.getKey())));
+
         if (message instanceof JmsMessage) {
             final JmsMessageFacade facade = ((JmsMessage) message).getFacade();
             if (facade instanceof AmqpJmsMessageFacade) {
                 final AmqpJmsMessageFacade amqpJmsMessageFacade = (AmqpJmsMessageFacade) facade;
                 externalMessage.getHeaders()
-                        .forEach((key, value) -> {
+                        .entrySet()
+                        .stream()
+                        // skip special jms properties in generic mapping
+                        .filter(h -> !JMS_HEADER_MAPPING.keySet().contains(h.getKey()))
+                        .forEach(entry -> {
                             try {
-                                amqpJmsMessageFacade.setApplicationProperty(key, value);
-                            } catch (final JMSException e) {
-                                log.warning("Could not set application-property <{}>", key);
+                                amqpJmsMessageFacade.setApplicationProperty(entry.getKey(), entry.getValue());
+                            } catch (final JMSException ex) {
+                                log.warning("Could not set application-property <{}>", entry.getKey());
                             }
                         });
             }
         }
-        message.setJMSCorrelationID(externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         return message;
     }
 
@@ -215,5 +235,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         jmsException.getMessage());
             }
         });
+    }
+
+    @Override
+    protected DiagnosticLoggingAdapter log() {
+        return log;
     }
 }

@@ -15,10 +15,16 @@ function mapToDittoProtocolMsg(
 
     // ###
     // Insert your mapping logic here:
-    // ###
-    if (headers) {
-        return null;
+    if (contentType === 'application/vnd.eclipse.ditto+json') {
+        let dittoProtocolMsg = JSON.parse(textPayload);
+        Object.assign(dittoProtocolMsg.headers, headers);
+        return dittoProtocolMsg;
     }
+    if (headers) {
+        return null; // returning 'null' means that the message will be dropped
+        // TODO replace with something useful
+    }
+    // ###
 
     return Ditto.buildDittoProtocolMsg(
         namespace,

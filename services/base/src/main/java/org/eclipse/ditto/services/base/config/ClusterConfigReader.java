@@ -12,6 +12,8 @@ package org.eclipse.ditto.services.base.config;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
+
 import com.typesafe.config.Config;
 
 /**
@@ -34,7 +36,6 @@ public final class ClusterConfigReader extends AbstractConfigReader {
      */
     public static final Duration DEFAULT_MAJORITY_CHECK_DELAY = Duration.ofSeconds(30L);
 
-    private static final String PATH_INSTANCE_INDEX = "instance-index";
     private static final String PATH_NUMBER_OF_SHARDS = "number-of-shards";
     private static final String PATH_MAJORITY_CHECK = "majority-check";
     private static final String PATH_MAJORITY_CHECK_ENABLED = path(PATH_MAJORITY_CHECK, "enabled");
@@ -42,15 +43,6 @@ public final class ClusterConfigReader extends AbstractConfigReader {
 
     ClusterConfigReader(final Config config) {
         super(config);
-    }
-
-    /**
-     * Retrieve the instance index of the cluster node.
-     *
-     * @return instance index.
-     */
-    public int instanceIndex() {
-        return getIfPresent(PATH_INSTANCE_INDEX, config::getInt).orElse(-1);
     }
 
     /**

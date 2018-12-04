@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionUriInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
+import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.TopicParseException;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommonErrorRegistry;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
@@ -71,23 +73,52 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
         final CommonErrorRegistry commonErrorRegistry = CommonErrorRegistry.newInstance();
         commonErrorRegistry.getTypes().forEach(type -> parseStrategies.put(type, commonErrorRegistry));
 
+        // exceptions in package org.eclipse.ditto.signals.commands.connectivity.exceptions
+        parseStrategies.put(ConnectionConflictException.ERROR_CODE,
+                ConnectionConflictException::fromJson);
+
+        parseStrategies.put(ConnectionFailedException.ERROR_CODE,
+                ConnectionFailedException::fromJson);
+
+        parseStrategies.put(ConnectionIdNotExplicitlySettableException.ERROR_CODE,
+                ConnectionIdNotExplicitlySettableException::fromJson);
+
+        parseStrategies.put(ConnectionNotAccessibleException.ERROR_CODE,
+                ConnectionNotAccessibleException::fromJson);
+
+        parseStrategies.put(ConnectionSignalIllegalException.ERROR_CODE,
+                ConnectionSignalIllegalException::fromJson);
+
+        parseStrategies.put(ConnectionUnavailableException.ERROR_CODE,
+                ConnectionUnavailableException::fromJson);
+
+        // exceptions in package org.eclipse.ditto.model.connectivity
         parseStrategies.put(ConnectionConfigurationInvalidException.ERROR_CODE,
                 ConnectionConfigurationInvalidException::fromJson);
-        parseStrategies.put(ConnectionUriInvalidException.ERROR_CODE, ConnectionUriInvalidException::fromJson);
-        parseStrategies.put(MessageMappingFailedException.ERROR_CODE, MessageMappingFailedException::fromJson);
-        parseStrategies.put(MessageMapperConfigurationInvalidException.ERROR_CODE,
-                MessageMapperConfigurationInvalidException::fromJson);
-        parseStrategies.put(MessageMapperConfigurationFailedException.ERROR_CODE,
-                MessageMapperConfigurationFailedException::fromJson);
-        parseStrategies.put(UnresolvedPlaceholderException.ERROR_CODE, UnresolvedPlaceholderException::fromJson);
-        parseStrategies.put(TopicParseException.ERROR_CODE, TopicParseException::fromJson);
-        parseStrategies.put(ConnectionNotAccessibleException.ERROR_CODE, ConnectionNotAccessibleException::fromJson);
-        parseStrategies.put(ConnectionUnavailableException.ERROR_CODE, ConnectionUnavailableException::fromJson);
-        parseStrategies.put(ConnectionFailedException.ERROR_CODE, ConnectionFailedException::fromJson);
-        parseStrategies.put(ConnectionConflictException.ERROR_CODE, ConnectionConflictException::fromJson);
-        parseStrategies.put(ConnectionSignalIllegalException.ERROR_CODE, ConnectionSignalIllegalException::fromJson);
+
         parseStrategies.put(ConnectionSignalIdEnforcementFailedException.ERROR_CODE,
                 ConnectionSignalIdEnforcementFailedException::fromJson);
+
+        parseStrategies.put(ConnectionUriInvalidException.ERROR_CODE,
+                ConnectionUriInvalidException::fromJson);
+
+        parseStrategies.put(MessageMapperConfigurationFailedException.ERROR_CODE,
+                MessageMapperConfigurationFailedException::fromJson);
+
+        parseStrategies.put(MessageMapperConfigurationInvalidException.ERROR_CODE,
+                MessageMapperConfigurationInvalidException::fromJson);
+
+        parseStrategies.put(MessageMappingFailedException.ERROR_CODE,
+                MessageMappingFailedException::fromJson);
+
+        parseStrategies.put(MessageSendingFailedException.ERROR_CODE,
+                MessageSendingFailedException::fromJson);
+
+        parseStrategies.put(TopicParseException.ERROR_CODE,
+                TopicParseException::fromJson);
+
+        parseStrategies.put(UnresolvedPlaceholderException.ERROR_CODE,
+                UnresolvedPlaceholderException::fromJson);
 
         return new ConnectivityErrorRegistry(parseStrategies);
     }

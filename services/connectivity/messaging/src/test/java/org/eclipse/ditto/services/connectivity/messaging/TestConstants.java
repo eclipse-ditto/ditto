@@ -23,12 +23,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -38,6 +40,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
@@ -68,9 +71,13 @@ import akka.actor.ActorSystem;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
+import akka.event.Logging;
 import akka.japi.Creator;
 
 public class TestConstants {
+
+    // concurrent mutable collection of all running mock servers
+    private static final ConcurrentLinkedQueue<ServerSocket> MOCK_SERVERS = new ConcurrentLinkedQueue<>();
 
     public static final Config CONFIG = ConfigFactory.load("test");
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
@@ -78,6 +85,25 @@ public class TestConstants {
     private static final String URI_TEMPLATE = "amqps://username:password@%s:%s";
 
     public static final String CORRELATION_ID = "cid";
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    public static void disableLogging(final ActorSystem system) {
+        system.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+    }
+
+    public static HeaderMapping HEADER_MAPPING;
+
+    static {
+        final HashMap<String, String> map = new HashMap<>();
+        map.put("eclipse", "ditto");
+        map.put("thing_id", "{{ thing:id }}");
+        map.put("device_id", "{{ header:device_id }}");
+        map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
+        map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
+        HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
+    }
 
     public static class Things {
 
@@ -127,16 +153,18 @@ public class TestConstants {
 
     public static class Targets {
 
+        private static final HeaderMapping HEADER_MAPPING = null;
+
         static final Target TARGET_WITH_PLACEHOLDER =
-                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT,
+                newTarget("target:{{ thing:namespace }}/{{thing:name}}", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         Topic.TWIN_EVENTS);
         static final Target TWIN_TARGET =
-                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT,
+                newTarget("twinEventExchange/twinEventRoutingKey", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING,
                         Topic.TWIN_EVENTS);
         private static final Target TWIN_TARGET_UNAUTHORIZED =
-                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, Topic.TWIN_EVENTS);
+                newTarget("twin/key", Authorization.UNAUTHORIZED_AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.TWIN_EVENTS);
         private static final Target LIVE_TARGET =
-                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, Topic.LIVE_EVENTS);
+                newTarget("live/key", Authorization.AUTHORIZATION_CONTEXT, HEADER_MAPPING, Topic.LIVE_EVENTS);
         private static final Set<Target> TARGETS = asSet(TWIN_TARGET, TWIN_TARGET_UNAUTHORIZED, LIVE_TARGET);
     }
 
@@ -186,7 +214,13 @@ public class TestConstants {
         return "connection-" + UUID.randomUUID();
     }
 
-    public static String getUri() {
+    /**
+     * Mock a listener on the server socket to fool connection client actors
+     * into not failing the connections immediately. Close the server socket to stop the mock server.
+     *
+     * @return server socket of the mock server.
+     */
+    public static ServerSocket newMockServer() {
         final ServerSocket serverSocket;
         try {
             serverSocket = new ServerSocket(0);
@@ -194,14 +228,52 @@ public class TestConstants {
             throw new IllegalStateException(e);
         }
         Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                final Socket clientSocket = serverSocket.accept();
-            } catch (final IOException e) {
-                throw new IllegalStateException(e);
+            // accept many client sockets
+            while (true) {
+                try (final Socket clientSocket = serverSocket.accept()) {
+                    // close socket immediately
+                } catch (final IOException e) {
+                    // break the loop
+                    throw new IllegalStateException(e);
+                }
             }
         });
+        return serverSocket;
+    }
+
+    /**
+     * Create a mock connection URI to a local server socket.
+     *
+     * @param serverSocket the server socket to connect to.
+     * @return the mock connection URI.
+     */
+    public static String getUriOfMockServer(final ServerSocket serverSocket) {
         final int localPort = serverSocket.getLocalPort();
         return String.format(URI_TEMPLATE, "127.0.0.1", localPort);
+    }
+
+    /**
+     * Create a mock connection URI and start a mock server on the same port.
+     * Stop the mock servers by calling {@code stopMockServers()}.
+     */
+    public static String getUriOfNewMockServer() {
+        final ServerSocket serverSocket = newMockServer();
+        MOCK_SERVERS.add(serverSocket);
+        return getUriOfMockServer(serverSocket);
+    }
+
+    /**
+     * Stop mock servers started by the unit tests to release resources.
+     */
+    public static void stopMockServers() {
+        MOCK_SERVERS.forEach(serverSocket -> {
+            try {
+                serverSocket.close();
+            } catch (final IOException e) {
+                // don't care, close remaining sockets anyway
+            }
+        });
+        MOCK_SERVERS.clear();
     }
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem) {
@@ -215,7 +287,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final ConnectionStatus status, final List<Source> sources) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUri())
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, status, getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .build();
@@ -223,7 +295,7 @@ public class TestConstants {
 
     public static Connection createConnection(final String connectionId, final ActorSystem actorSystem,
             final Target... targets) {
-        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUri())
+        return ConnectivityModelFactory.newConnectionBuilder(connectionId, TYPE, STATUS, getUriOfNewMockServer())
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(asSet(targets))
                 .build();

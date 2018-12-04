@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.event.Logging;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -132,6 +133,9 @@ public class LastSuccessfulStreamCheckingActorTest {
 
     @Test
     public void triggerHealthRetrievalWithExceptionWhenAskingForLastSyncTime() {
+        // disable logging to suppress stack trace. comment out to debug test.
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
+
         final LastSuccessfulStreamCheckingActorConfigurationProperties streamHealthCheckConfigurationProperties =
                 buildConfigProperties(true, searchSyncPersistence, syncWarningOffset, syncErrorOffset);
         underTest =

@@ -56,11 +56,7 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-akka</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-cluster</artifactId>
+            <artifactId>ditto-services-utils-namespaces</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

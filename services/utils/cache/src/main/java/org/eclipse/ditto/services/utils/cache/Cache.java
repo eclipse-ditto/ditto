@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -31,6 +32,15 @@ public interface Cache<K, V> {
      * @throws NullPointerException if {@code key} is {@code null}.
      */
     CompletableFuture<Optional<V>> get(K key);
+
+    /**
+     * Retrieve the value associated with a key in a future if it exists in the cache, or a future empty optional if
+     * it does not. The cache loader will never be called.
+     *
+     * @param key the key.
+     * @return the optional associated value in a future.
+     */
+    CompletableFuture<Optional<V>> getIfPresent(K key);
 
     /**
      * Returns the value which is associated with the specified key.
@@ -60,13 +70,15 @@ public interface Cache<K, V> {
     /**
      * Associates the {@code value} with the {@code key} in this cache.
      * <p>
-     * Prefer using a cache-loader instead.
-     *</p>
+     * Prefer using a cache-loader instead. The current thread will not wait for cache update to complete.
+     * </p>
+     *
      * @param key the key.
      * @param value the value.
      * @throws NullPointerException if either the given {@code key} or {@code value} is null.
      */
     void put(final K key, final V value);
+
     /**
      * Returns a synchronous view of the entries stored in this cache as a (thread-safe) map.
      * Modifications directly affect the cache.
@@ -75,4 +87,13 @@ public interface Cache<K, V> {
      * @see com.github.benmanes.caffeine.cache.Cache
      */
     ConcurrentMap<K, V> asMap();
+
+    /**
+     * Invalidate a collection of keys.
+     *
+     * @param keys all keys to invalidate.
+     */
+    default void invalidateAll(final Collection<K> keys) {
+        keys.forEach(this::invalidate);
+    }
 }

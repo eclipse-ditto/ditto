@@ -11,6 +11,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -40,6 +41,11 @@ abstract class DelegateTarget implements Target {
     @Override
     public AuthorizationContext getAuthorizationContext() {
         return delegate.getAuthorizationContext();
+    }
+
+    @Override
+    public Optional<HeaderMapping> getHeaderMapping() {
+        return delegate.getHeaderMapping();
     }
 
     @Override

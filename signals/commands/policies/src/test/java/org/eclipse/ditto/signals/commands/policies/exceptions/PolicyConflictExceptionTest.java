@@ -14,6 +14,8 @@ import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assert
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
@@ -33,7 +35,8 @@ public class PolicyConflictExceptionTest {
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     TestConstants.Policy.POLICY_CONFLICT_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Policy.POLICY_CONFLICT_EXCEPTION.getHref().toString())
+                    TestConstants.Policy.POLICY_CONFLICT_EXCEPTION.getHref()
+                            .map(Objects::toString).orElse(null))
             .build();
 
 
@@ -45,6 +48,7 @@ public class PolicyConflictExceptionTest {
 
     @Test
     public void checkPolicyErrorCodeWorks() {
+
         final DittoRuntimeException actual =
                 PolicyErrorRegistry.newInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 

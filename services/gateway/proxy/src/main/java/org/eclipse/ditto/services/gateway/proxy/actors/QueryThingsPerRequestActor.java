@@ -11,10 +11,12 @@
 package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
+import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
@@ -24,12 +26,14 @@ import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThingsResponse;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.Creator;
+import scala.concurrent.duration.Duration;
 
 /**
- * Actor which is started for each {@link QueryThings} command in the gateway handling the response from "things-search",
- * retrieving the found things from "things" via the {@code aggregatorProxyActor} and responding to the
+ * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
+ * "things-search", retrieving the found things from "things" via the {@code aggregatorProxyActor} and responding to the
  * {@code originatingSender} with the combined result.
  * <p>
  * This is needed in gateway so that we can maintain the max. cluster-message size in Ditto while still being able to
@@ -48,10 +52,16 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
     private QueryThingsPerRequestActor(final QueryThings queryThings, final ActorRef aggregatorProxyActor,
             final ActorRef originatingSender) {
+
         this.queryThings = queryThings;
         this.aggregatorProxyActor = aggregatorProxyActor;
         this.originatingSender = originatingSender;
         queryThingsResponse = null;
+
+        final Duration timeout = Duration.create(getContext().system().settings().config()
+                        .getDuration(ConfigKeys.AKKA_HTTP_SERVER_REQUEST_TIMEOUT).getSeconds(),
+                TimeUnit.SECONDS);
+        getContext().setReceiveTimeout(timeout);
     }
 
     /**
@@ -74,6 +84,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return receiveBuilder()
+                .match(ReceiveTimeout.class, receiveTimeout -> {
+                    log.debug("Got ReceiveTimeout");
+                    stopMyself();
+                })
                 .match(QueryThingsResponse.class, qtr -> {
                     LogUtil.enhanceLogWithCorrelationId(log, qtr);
                     queryThingsResponse = qtr;
@@ -87,6 +101,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     if (thingIds.isEmpty()) {
                         // shortcut - for no search results we don't have to lookup the things
                         originatingSender.tell(qtr, getSelf());
+
+                        stopMyself();
                     } else {
                         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(thingIds)
                                 .dittoHeaders(qtr.getDittoHeaders())
@@ -114,14 +130,19 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                                 rtr);
                     }
 
-                    getContext().stop(getSelf());
+                    stopMyself();
                 })
                 .matchAny(any -> {
                     // all other messages (e.g. DittoRuntimeExceptions) are directly returned to the sender:
                     originatingSender.tell(any, getSender());
-                    getContext().stop(getSelf());
+
+                    stopMyself();
                 })
                 .build();
+    }
+
+    private void stopMyself() {
+        getContext().stop(getSelf());
     }
 
 

@@ -55,7 +55,6 @@ public final class MessageTimeoutException extends DittoRuntimeException impleme
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.REQUEST_TIMEOUT, dittoHeaders, message, description, cause, href);
     }
 
@@ -93,6 +92,9 @@ public final class MessageTimeoutException extends DittoRuntimeException impleme
         return new Builder()
                 .loadJson(jsonObject)
                 .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -118,7 +120,6 @@ public final class MessageTimeoutException extends DittoRuntimeException impleme
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new MessageTimeoutException(dittoHeaders, message, description, cause, href);
         }
 

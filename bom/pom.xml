@@ -24,11 +24,6 @@
     <name>Eclipse Ditto :: BOM</name>
 
     <properties>
-        <!-- globally set version for checking binary compatibility against -->
-        <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
-        <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally broke something -->
-        <binary-compatibility-check.version>0.8.0-M2c</binary-compatibility-check.version>
-
         <scala.version>2.12</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
         <scala.full.version>2.12.6</scala.full.version>
 
@@ -88,7 +83,7 @@
         <junit.version>4.12</junit.version>
         <assertj.version>3.8.0</assertj.version>
         <mutability-detector.version>0.9.6</mutability-detector.version>
-        <equals-verifier.version>2.3</equals-verifier.version>
+        <equals-verifier.version>2.5.2</equals-verifier.version>
         <mockito.version>2.9.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
         <awaitility.version>3.1.0</awaitility.version>
@@ -123,6 +118,11 @@
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-cluster_${scala.version}</artifactId>
+                <version>${akka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-distributed-data_${scala.version}</artifactId>
                 <version>${akka.version}</version>
             </dependency>
             <dependency>
@@ -517,6 +517,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-model-namespaces</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-model-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -543,7 +548,17 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-commands-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-signals-commands-devops</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-commands-namespaces</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -637,6 +652,11 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-ddata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-devops</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -648,6 +668,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-utils-jwt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-services-utils-namespaces</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

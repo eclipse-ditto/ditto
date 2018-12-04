@@ -17,6 +17,7 @@ import static com.mongodb.client.model.Filters.lte;
 import static com.mongodb.client.model.Filters.or;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_NAMESPACE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
@@ -26,20 +27,26 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.UNSET;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
+import org.bson.BsonRegularExpression;
+import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
+import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.mapping.ThingDocumentMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.AbstractThingsSearchUpdaterPersistence;
@@ -48,6 +55,9 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.IndexLengthRestr
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingMetadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceOps;
+import org.eclipse.ditto.services.utils.persistence.mongo.namespace.MongoNamespaceSelection;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.reactivestreams.Publisher;
 
@@ -63,11 +73,13 @@ import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.event.LoggingAdapter;
 import akka.japi.function.Function;
 import akka.japi.pf.PFBuilder;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
 
@@ -78,10 +90,12 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
 
     private static final int MONGO_DUPLICATE_KEY_ERROR_CODE = 11000;
     private static final int MONGO_INDEX_VALUE_ERROR_CODE = 17280;
+    private final MongoDatabase database;
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> policiesCollection;
     private final EventToPersistenceStrategyFactory<Bson, PolicyUpdate>
             persistenceStrategyFactory;
+    private final IndexInitializer indexInitializer;
 
     /**
      * Constructor.
@@ -92,10 +106,13 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
      */
     public MongoThingsSearchUpdaterPersistence(final MongoClientWrapper clientWrapper,
             final LoggingAdapter log,
-            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory) {
+            final EventToPersistenceStrategyFactory<Bson, PolicyUpdate> persistenceStrategyFactory,
+            final Materializer materializer) {
         super(log);
-        collection = clientWrapper.getDatabase().getCollection(THINGS_COLLECTION_NAME);
-        policiesCollection = clientWrapper.getDatabase().getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        database = clientWrapper.getDatabase();
+        collection = database.getCollection(THINGS_COLLECTION_NAME);
+        policiesCollection = database.getCollection(POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME);
+        indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
 
         this.persistenceStrategyFactory = persistenceStrategyFactory;
     }
@@ -390,6 +407,15 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
                 doc.containsKey(FIELD_POLICY_REVISION) ? doc.getLong(FIELD_POLICY_REVISION) : -1L);
     }
 
+    @Override
+    public final CompletionStage<Void> initializeIndices() {
+        return indexInitializer.initialize(PersistenceConstants.POLICIES_BASED_SEARCH_INDEX_COLLECTION_NAME, Indices.Policies.all())
+                .exceptionally(t -> {
+                    log.error(t, "Index-Initialization failed: {}", t.getMessage());
+                    return null;
+                });
+    }
+
     private static List<WriteModel<Document>> createPolicyIndexModels(final Bson policiesFilter,
             final Collection<Document> policyEntries) {
 
@@ -441,4 +467,25 @@ public final class MongoThingsSearchUpdaterPersistence extends AbstractThingsSea
         return expectedErrorCode == error.getCode();
     }
 
+    @Override
+    public Source<Optional<Throwable>, NotUsed> purge(final String namespace) {
+        final MongoNamespaceOps mongoNamespaceOps = MongoNamespaceOps.of(database);
+        final List<MongoNamespaceSelection> namespaceSelections =
+                Arrays.asList(thingNamespaceSelection(namespace), policyNamespaceSelection(namespace));
+        return mongoNamespaceOps.purgeAll(namespaceSelections)
+                .map(errors -> errors.isEmpty() ? Optional.empty() : Optional.of(errors.get(0)));
+    }
+
+    private MongoNamespaceSelection thingNamespaceSelection(final String namespace) {
+        final String collectionName = collection.getNamespace().getCollectionName();
+        final Document filter = new Document().append(FIELD_NAMESPACE, new BsonString(namespace));
+        return MongoNamespaceSelection.of(collectionName, filter);
+    }
+
+    private MongoNamespaceSelection policyNamespaceSelection(final String namespace) {
+        final String collectionName = policiesCollection.getNamespace().getCollectionName();
+        final String idRegex = String.format("^%s:", namespace);
+        final Document filter = new Document().append(FIELD_ID, new BsonRegularExpression(idRegex));
+        return MongoNamespaceSelection.of(collectionName, filter);
+    }
 }

@@ -24,8 +24,12 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandRegistr
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoCommandResponseRegistry;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandRegistry;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingErrorRegistry;
@@ -36,9 +40,20 @@ import org.eclipse.ditto.signals.events.things.ThingEventRegistry;
  */
 public final class ThingsMappingStrategy implements MappingStrategy {
 
+    @Override
+    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
+        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
+
+        addThingsStrategies(builder);
+        addCommonStrategies(builder);
+        addDevOpsStrategies(builder);
+        addNamespacesStrategies(builder);
+
+        return builder.build();
+    }
+
     private static void addThingsStrategies(final MappingStrategiesBuilder builder) {
-        builder
-                .add(ThingErrorRegistry.newInstance())
+        builder.add(ThingErrorRegistry.newInstance())
                 .add(ThingCommandRegistry.newInstance())
                 .add(ThingCommandResponseRegistry.newInstance())
                 .add(ThingEventRegistry.newInstance())
@@ -53,18 +68,19 @@ public final class ThingsMappingStrategy implements MappingStrategy {
                 .build();
     }
 
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
+    }
+
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
         builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
-    @Override
-    public Map<String, BiFunction<JsonObject, DittoHeaders, Jsonifiable>> determineStrategy() {
-        final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
-
-        addThingsStrategies(builder);
-        addDevOpsStrategies(builder);
-
-        return builder.build();
+    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(NamespaceCommandRegistry.getInstance());
+        builder.add(NamespaceCommandResponseRegistry.getInstance());
+        builder.add(NamespaceErrorRegistry.getInstance());
     }
+
 }

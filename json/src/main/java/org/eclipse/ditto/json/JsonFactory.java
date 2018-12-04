@@ -182,8 +182,7 @@ public final class JsonFactory {
     private static com.eclipsesource.json.JsonValue tryToRead(final String json) {
         try {
             return Json.parse(json);
-        }
-        catch (final ParseException | StackOverflowError e) {
+        } catch (final ParseException | StackOverflowError e) {
             throw JsonParseException.newBuilder()
                     .message(MessageFormat.format("Failed to parse ''{0}''!", json))
                     .cause(e)
@@ -213,8 +212,7 @@ public final class JsonFactory {
     private static com.eclipsesource.json.JsonValue tryToRead(final Reader reader) {
         try {
             return Json.parse(reader);
-        }
-        catch (final ParseException | IOException | StackOverflowError e) {
+        } catch (final ParseException | IOException | StackOverflowError e) {
             throw JsonParseException.newBuilder()
                     .message("Failed to parse JSON from reader!")
                     .cause(e)
@@ -294,6 +292,22 @@ public final class JsonFactory {
     }
 
     /**
+     * @param jsonFields the json fields to create a new JsonObject from.
+     * @return a null object if {@code jsonFields} is a null json object. Else this returns a new object containing the
+     * given {code jsonFields}.
+     */
+    public static JsonObject newObject(final Iterable<JsonField> jsonFields) {
+
+        if (jsonFields instanceof JsonObject && ((JsonObject) jsonFields).isNull()) {
+            return JsonFactory.nullObject();
+        } else {
+            return JsonFactory.newObjectBuilder()
+                    .setAll(jsonFields)
+                    .build();
+        }
+    }
+
+    /**
      * Returns a JSON NULL literal which is typed as JSON object.
      *
      * @return an object typed JSON NULL literal.
@@ -306,8 +320,7 @@ public final class JsonFactory {
         try {
             final com.eclipsesource.json.JsonValue parsedJsonString = Json.parse(jsonString);
             return parsedJsonString.asObject();
-        }
-        catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
+        } catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
             throw JsonParseException.newBuilder()
                     .message("Failed to create JSON object from string!")
                     .cause(e)
@@ -384,8 +397,7 @@ public final class JsonFactory {
         try {
             final com.eclipsesource.json.JsonValue parsedJsonString = Json.parse(jsonString);
             return parsedJsonString.asArray();
-        }
-        catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
+        } catch (final ParseException | UnsupportedOperationException | StackOverflowError e) {
             throw JsonParseException.newBuilder()
                     .message("Failed to create JSON array from string!")
                     .cause(e)
@@ -500,9 +512,9 @@ public final class JsonFactory {
      * too, they have to be escaped with {@code "~0"}. For example, parsing the string
      * {@code "/foo/~0dum~1~0die~1~0dum/baz"} would result in a JsonPointer consisting of the JsonKeys
      * <ol>
-     *     <li>{@code "foo"},</li>
-     *     <li>{@code "~dum/~die/~dum"} and</li>
-     *     <li>{@code "baz"}.</li>
+     * <li>{@code "foo"},</li>
+     * <li>{@code "~dum/~die/~dum"} and</li>
+     * <li>{@code "baz"}.</li>
      * </ol>
      *
      * @param slashDelimitedCharSequence a string representing a JSON pointer.
@@ -885,6 +897,7 @@ public final class JsonFactory {
 
     /**
      * Converts the specified char sequence to a {@link JsonPointer} which is guaranteed to be not empty.
+     *
      * @param keyOrPointer a string representation of a JSON pointer or a JsonKey.
      * @return the pointer.
      * @throws NullPointerException if {@code keyOrPointer} is {@code null}.

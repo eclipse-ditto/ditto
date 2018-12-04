@@ -44,8 +44,11 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
 
     private static final long serialVersionUID = -3418662685041958745L;
 
-    private PolicyModificationInvalidException(final DittoHeaders dittoHeaders, final String message,
-            final String description, final Throwable cause, final URI href) {
+    private PolicyModificationInvalidException(final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -105,7 +108,12 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
      */
     public static PolicyModificationInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -125,8 +133,11 @@ public final class PolicyModificationInvalidException extends DittoRuntimeExcept
         }
 
         @Override
-        protected PolicyModificationInvalidException doBuild(final DittoHeaders dittoHeaders, final String message,
-                final String description, final Throwable cause, final URI href) {
+        protected PolicyModificationInvalidException doBuild(final DittoHeaders dittoHeaders,
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyModificationInvalidException(dittoHeaders, message, description, cause, href);
         }
     }

@@ -15,7 +15,11 @@ import java.util.Map;
 /**
  * Factory used to create instances of {@link ExternalMessage}s.
  */
-public class ExternalMessageFactory {
+public final class ExternalMessageFactory {
+
+    private ExternalMessageFactory() {
+        throw new AssertionError();
+    }
 
     /**
      * Creates a new ExternalMessageBuilder initialized with the passed {@code headers}.

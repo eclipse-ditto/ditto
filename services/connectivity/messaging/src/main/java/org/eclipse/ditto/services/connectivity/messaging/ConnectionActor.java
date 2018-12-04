@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -406,7 +407,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         log.debug("Forwarding signal <{}> to client actor with targets: {}.", signal.getType(), filteredTargets);
 
         final OutboundSignal outbound = OutboundSignalFactory.newOutboundSignal(signal, filteredTargets);
-        clientActorRouter.tell(outbound, getSelf());
+        clientActorRouter.tell(outbound, getSender());
     }
 
     private void testConnection(final TestConnection command) {

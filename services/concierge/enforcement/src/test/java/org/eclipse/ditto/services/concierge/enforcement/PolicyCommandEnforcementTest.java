@@ -491,13 +491,16 @@ public class PolicyCommandEnforcementTest {
     private ActorRef createEnforcer() {
         final ActorRef pubSubMediator =
                 new TestProbe(system, createUniqueName("pubSubMediator-")).ref();
+        final ActorRef conciergeForwarder =
+                new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
 
         final PolicyCommandEnforcement.Provider enforcementProvider =
                 new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), policyCache, enforcerCache);
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
-        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10)),
+        return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
+                conciergeForwarder),
                 ENTITY_ID.toString());
     }
 

@@ -14,3 +14,5 @@ permalink: protocol-examples-creatething.html
 {% capture event %}{% include_relative protocol/things/events/thingcreated.md %}{% endcapture %}
 {{ event | markdownify }}
 
+{% capture command %}{% include_relative protocol/things/commands/modify/createthingalternatives.md %}{% endcapture %}
+{{ command | markdownify }}

@@ -135,6 +135,7 @@ public class DefaultStreamSupervisorTest {
      */
     @Test
     public void errorWhenUpdatingLastSuccessfulStreamEnd() throws Exception {
+        disableLogging();
         new TestKit(actorSystem) {{
             final ActorRef streamSupervisor = createStreamSupervisor();
             final Instant expectedQueryEnd = KNOWN_LAST_SYNC.plus(STREAM_INTERVAL);
@@ -161,6 +162,7 @@ public class DefaultStreamSupervisorTest {
 
     @Test
     public void streamIsRetriggeredOnTimeout() throws Exception {
+        disableLogging();
         new TestKit(actorSystem) {{
             final Duration smallMaxIdleTime = Duration.ofMillis(10);
             final ActorRef streamSupervisor = createStreamSupervisor(smallMaxIdleTime);
@@ -294,5 +296,12 @@ public class DefaultStreamSupervisorTest {
             throws AssertionError {
         testKit.watch(actor);
         testKit.expectTerminated(FiniteDuration.apply(timeout.toNanos(), TimeUnit.NANOSECONDS), actor);
+    }
+
+    /**
+     * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
+     */
+    private void disableLogging() {
+        actorSystem.eventStream().setLogLevel(Logging.levelFor("off").get().asInt());
     }
 }

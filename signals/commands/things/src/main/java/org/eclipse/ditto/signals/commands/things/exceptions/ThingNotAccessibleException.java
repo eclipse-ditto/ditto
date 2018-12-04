@@ -51,7 +51,6 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -111,6 +110,7 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
                 .dittoHeaders(dittoHeaders)
                 .message(readMessage(jsonObject))
                 .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -135,7 +135,6 @@ public final class ThingNotAccessibleException extends DittoRuntimeException imp
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-
             return new ThingNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
 

@@ -27,6 +27,7 @@ function mapFromDittoProtocolMsg(
     // Insert your mapping logic here:
     let headers = dittoHeaders;
     let textPayload = JSON.stringify(Ditto.buildDittoProtocolMsg(namespace, id, group, channel, criterion, action, path, dittoHeaders, value));
+    // TODO replace with something useful, this will publish the message in Ditto Protocol JSON
     let bytePayload = null;
     let contentType = 'application/vnd.eclipse.ditto+json';
     // ###

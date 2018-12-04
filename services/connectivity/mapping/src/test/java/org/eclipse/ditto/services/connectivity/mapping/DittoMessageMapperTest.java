@@ -48,12 +48,12 @@ public class DittoMessageMapperTest {
     @SuppressWarnings("NullableProblems") private DittoMessageMapper underTest;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         underTest = new DittoMessageMapper();
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     @Test
@@ -102,6 +102,7 @@ public class DittoMessageMapperTest {
                 .build());
 
         final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build();
         final Optional<Adaptable> expected = Optional.of(ProtocolFactory.newAdaptableBuilder(adaptable).build());
@@ -172,6 +173,7 @@ public class DittoMessageMapperTest {
 
         Optional<ExternalMessage> message =
                 Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withTopicPath(adaptable.getTopicPath())
                         .withText(adaptable.toJsonString())
                         .build());
         mappings.put(adaptable, message);
@@ -185,6 +187,7 @@ public class DittoMessageMapperTest {
                 .withHeaders(DittoHeaders.of(headers)).build());
 
         message = Optional.of(ExternalMessageFactory.newExternalMessageBuilder(headers)
+                .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .build());
         mappings.put(adaptable, message);

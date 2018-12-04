@@ -17,11 +17,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
+import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessagePayloadSizeTooLargeException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
 import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
+import org.eclipse.ditto.model.messages.ThingIdInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.signals.base.AbstractErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonParsable;
@@ -46,10 +48,12 @@ public final class MessageErrorRegistry extends AbstractErrorRegistry<DittoRunti
 
         parseStrategies.put(AuthorizationSubjectBlockedException.ERROR_CODE,
                 AuthorizationSubjectBlockedException::fromJson);
+        parseStrategies.put(FeatureIdInvalidException.ERROR_CODE, FeatureIdInvalidException::fromJson);
         parseStrategies.put(MessageFormatInvalidException.ERROR_CODE, MessageFormatInvalidException::fromJson);
         parseStrategies.put(MessageSendNotAllowedException.ERROR_CODE, MessageSendNotAllowedException::fromJson);
         parseStrategies.put(MessageTimeoutException.ERROR_CODE, MessageTimeoutException::fromJson);
         parseStrategies.put(SubjectInvalidException.ERROR_CODE, SubjectInvalidException::fromJson);
+        parseStrategies.put(ThingIdInvalidException.ERROR_CODE, ThingIdInvalidException::fromJson);
         parseStrategies.put(TimeoutInvalidException.ERROR_CODE, TimeoutInvalidException::fromJson);
         parseStrategies.put(MessagePayloadSizeTooLargeException.ERROR_CODE, MessagePayloadSizeTooLargeException::fromJson);
 

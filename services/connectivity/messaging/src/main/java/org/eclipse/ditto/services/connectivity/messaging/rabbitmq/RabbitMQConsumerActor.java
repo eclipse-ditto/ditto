@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
+import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -77,19 +78,22 @@ public final class RabbitMQConsumerActor extends AbstractActor {
     private final ActorRef messageMappingProcessor;
     private final AuthorizationContext authorizationContext;
     private final EnforcementFilterFactory<Map<String, String>, String> headerEnforcementFilterFactory;
+    @Nullable private final HeaderMapping headerMapping;
 
     private long consumedMessages = 0L;
     private Instant lastMessageConsumedAt;
     @Nullable private AddressMetric addressMetric = null;
 
     private RabbitMQConsumerActor(final String sourceAddress, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext, @Nullable Enforcement enforcement) {
+    AuthorizationContext authorizationContext, @Nullable Enforcement enforcement,
+            @Nullable final HeaderMapping headerMapping) {
         this.sourceAddress = checkNotNull(sourceAddress, "source");
         this.messageMappingProcessor = checkNotNull(messageMappingProcessor, "messageMappingProcessor");
         this.authorizationContext = authorizationContext;
         headerEnforcementFilterFactory =
                 enforcement != null ? EnforcementFactoryFactory.newEnforcementFilterFactory(enforcement,
                 PlaceholderFactory.newHeadersPlaceholder()) : input -> null;
+        this.headerMapping = headerMapping;
     }
 
     /**
@@ -99,10 +103,12 @@ public final class RabbitMQConsumerActor extends AbstractActor {
      * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
      * @param authorizationContext the authorization context of this source
      * @param enforcement the enforcement configuration
+     * @param headerMapping optional header mappings
      * @return the Akka configuration Props object.
      */
     static Props props(final String source, final ActorRef messageMappingProcessor, final
-    AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement) {
+    AuthorizationContext authorizationContext, @Nullable final Enforcement enforcement,
+            @Nullable final HeaderMapping headerMapping) {
         return Props.create(
                 RabbitMQConsumerActor.class, new Creator<RabbitMQConsumerActor>() {
                     private static final long serialVersionUID = 1L;
@@ -110,7 +116,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
                     @Override
                     public RabbitMQConsumerActor create() {
                         return new RabbitMQConsumerActor(source, messageMappingProcessor, authorizationContext,
-                                enforcement);
+                                enforcement, headerMapping);
                     }
                 });
     }
@@ -153,7 +159,6 @@ public final class RabbitMQConsumerActor extends AbstractActor {
         Map<String, String> headers = null;
         try {
             headers = extractHeadersFromMessage(properties, envelope);
-            headers.put(DittoHeaderDefinition.SOURCE.getKey(), sourceAddress);
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
@@ -165,6 +170,7 @@ public final class RabbitMQConsumerActor extends AbstractActor {
             }
             externalMessageBuilder.withAuthorizationContext(authorizationContext);
             externalMessageBuilder.withEnforcement(headerEnforcementFilterFactory.getFilter(headers));
+            externalMessageBuilder.withHeaderMapping(headerMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             messageMappingProcessor.forward(externalMessage, getContext());
         } catch (final DittoRuntimeException e) {

@@ -13,6 +13,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -102,6 +104,7 @@ public class MessageMappingProcessorActorTest {
 
     @Test
     public void testThingIdEnforcementExternalMessageInDittoProtocolIsProcessedExpectErrorResponse() {
+        disableLogging(actorSystem);
         final Enforcement mqttEnforcement =
                 ConnectivityModelFactory.newEnforcement("{{ test:placeholder }}",
                         "mqtt/topic/{{ thing:namespace }}/{{ thing:name }}");
@@ -161,11 +164,15 @@ public class MessageMappingProcessorActorTest {
             assertThat(modifyAttribute.getType()).isEqualTo(ModifyAttribute.TYPE);
             assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(correlationId);
             assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext()).isEqualTo(expectedAuthContext);
+            assertThat(modifyAttribute.getDittoHeaders().getSource()).contains(
+                    "integration:" + correlationId + ":hub-application/json");
         });
     }
 
     @Test
     public void testUnknownPlaceholdersExpectUnresolvedPlaceholderException() {
+        disableLogging(actorSystem);
+
         final String placeholderKey = "header:unknown";
         final String placeholder = "{{" + placeholderKey + "}}";
         final AuthorizationContext contextWithUnknownPlaceholder = AuthorizationModelFactory.newAuthContext(
@@ -194,10 +201,11 @@ public class MessageMappingProcessorActorTest {
             headers.put("content-type", "application/json");
             final ModifyAttribute modifyCommand = ModifyAttribute.of("my:thing", JsonPointer.of("foo"),
                     JsonValue.of(42), DittoHeaders.empty());
+            final JsonifiableAdaptable adaptable = ProtocolFactory
+                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand));
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                    .withText(ProtocolFactory
-                            .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(modifyCommand))
-                            .toJsonString())
+                    .withTopicPath(adaptable.getTopicPath())
+                    .withText(adaptable.toJsonString())
                     .withAuthorizationContext(context)
                     .build();
 

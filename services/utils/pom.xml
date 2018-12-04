@@ -30,9 +30,11 @@
         <module>cluster</module>
         <module>conditional-headers</module>
         <module>config</module>
+        <module>ddata</module>
         <module>devops</module>
         <module>health</module>
         <module>jwt</module>
+        <module>namespaces</module>
         <module>persistence</module>
         <module>protocol</module>
         <module>test</module>

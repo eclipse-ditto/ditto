@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -25,13 +26,20 @@ import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
+import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
+import org.eclipse.ditto.services.models.thingsearch.ThingsSearchConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
+import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
+import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
+import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
+import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -48,6 +56,7 @@ import akka.event.Logging;
 import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.CircuitBreaker;
+import akka.pattern.PatternsCS;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
@@ -72,6 +81,8 @@ final class ThingsUpdater extends AbstractActor {
     private final ThingsSearchUpdaterPersistence searchUpdaterPersistence;
     private final Materializer materializer;
     private final Cache<EntityId, Entry<Policy>> policyCache;
+    private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
+    private final BlockNamespaceBehavior namespaceBlockingBehavior;
 
     private ThingsUpdater(final ServiceConfigReader configReader,
             final int numberOfShards,
@@ -80,7 +91,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final BlockedNamespaces blockedNamespaces) {
 
         final ActorSystem actorSystem = context().system();
 
@@ -99,8 +111,9 @@ final class ThingsUpdater extends AbstractActor {
         policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
 
         final Props thingUpdaterProps =
-                ThingUpdater.props(searchUpdaterPersistence, circuitBreaker, thingsShardRegion, policiesShardRegion,
-                        thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT, maxBulkSize,
+                ThingUpdater.props(pubSubMediator, searchUpdaterPersistence, circuitBreaker, thingsShardRegion,
+                        policiesShardRegion, thingUpdaterActivityCheckInterval, ThingUpdater.DEFAULT_THINGS_TIMEOUT,
+                        maxBulkSize,
                         policyCache)
                         .withMailbox("akka.actor.custom-updater-mailbox");
 
@@ -108,12 +121,17 @@ final class ThingsUpdater extends AbstractActor {
         this.searchUpdaterPersistence = searchUpdaterPersistence;
         materializer = ActorMaterializer.create(getContext());
 
+        retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(shardRegion,
+                ThingsSearchConstants.SHARD_REGION, log);
+
         if (eventProcessingActive) {
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(ThingEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
                     self());
             pubSubMediator.tell(new DistributedPubSubMediator.Subscribe(PolicyEvent.TYPE_PREFIX, UPDATER_GROUP, self()),
                     self());
         }
+
+        namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
     }
 
     /**
@@ -125,6 +143,7 @@ final class ThingsUpdater extends AbstractActor {
      * @param thingUpdaterActivityCheckInterval the interval at which is checked, if the corresponding Thing is still
      * actively updated
      * @param maxBulkSize maximum number of events to update in a bulk.
+     * @param blockedNamespaces cache of namespaces to block.
      * @return the Akka configuration Props object
      */
     static Props props(final ServiceConfigReader configReader,
@@ -134,7 +153,8 @@ final class ThingsUpdater extends AbstractActor {
             final CircuitBreaker circuitBreaker,
             final boolean eventProcessingActive,
             final Duration thingUpdaterActivityCheckInterval,
-            final int maxBulkSize) {
+            final int maxBulkSize,
+            final BlockedNamespaces blockedNamespaces) {
 
         return Props.create(ThingsUpdater.class, new Creator<ThingsUpdater>() {
             private static final long serialVersionUID = 1L;
@@ -143,7 +163,7 @@ final class ThingsUpdater extends AbstractActor {
             public ThingsUpdater create() {
                 return new ThingsUpdater(configReader, numberOfShards, shardRegionFactory, searchUpdaterPersistence,
                         circuitBreaker,
-                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize);
+                        eventProcessingActive, thingUpdaterActivityCheckInterval, maxBulkSize, blockedNamespaces);
             }
         });
     }
@@ -153,6 +173,7 @@ final class ThingsUpdater extends AbstractActor {
         return ReceiveBuilder.create()
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
                         shardRegion.forward(getShardRegionState, getContext()))
+                .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(PolicyEvent.class, this::processPolicyEvent)
                 .match(ThingTag.class, this::processThingTag)
@@ -162,6 +183,12 @@ final class ThingsUpdater extends AbstractActor {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {
+        log.info("Sending the namespace stats of the search-updater shard as requested..");
+        PatternsCS.pipe(retrieveStatisticsDetailsResponseSupplier
+                .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
     private void processThingTag(final ThingTag thingTag) {
@@ -186,11 +213,18 @@ final class ThingsUpdater extends AbstractActor {
 
     private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
         LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-        policyCache.invalidate(EntityId.of(PoliciesResourceType.POLICY, policyEvent.getPolicyId()));
-        thingIdsForPolicy(policyEvent.getPolicyId())
-                .thenAccept(thingIds ->
-                        thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id))
-                );
+        final String policyId = policyEvent.getPolicyId();
+
+        policyCache.invalidate(EntityId.of(PoliciesResourceType.POLICY, policyId));
+
+        namespaceBlockingBehavior.block(policyEvent)
+                .thenCompose(event -> thingIdsForPolicy(policyId))
+                .thenAccept(thingIds -> thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id)))
+                .exceptionally(error -> {
+                    LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
+                    log.info("Policy event ''{}'' not applied due to ''{}''", policyEvent, error);
+                    return null;
+                });
     }
 
     private CompletionStage<Set<String>> thingIdsForPolicy(final String policyId) {
@@ -228,7 +262,24 @@ final class ThingsUpdater extends AbstractActor {
         final JsonObject jsonObject = toJson.apply(message);
         final DittoHeaders dittoHeaders = getDittoHeaders.apply(message);
         final ShardedMessageEnvelope messageEnvelope = ShardedMessageEnvelope.of(id, type, jsonObject, dittoHeaders);
-        shardRegion.forward(messageEnvelope, context());
+
+        final ActorRef sender = getSender();
+        final ActorRef deadLetters = getContext().getSystem().deadLetters();
+
+        namespaceBlockingBehavior
+                .block(messageEnvelope)
+                .thenAccept(m -> shardRegion.tell(m, sender))
+                .exceptionally(throwable -> {
+                    if (!Objects.equals(sender, deadLetters)) {
+                        // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.
+                        if (message instanceof IdentifiableStreamingMessage) {
+                            final StreamAck streamAck =
+                                    StreamAck.success(((IdentifiableStreamingMessage) message).asIdentifierString());
+                            sender.tell(streamAck, getSelf());
+                        }
+                    }
+                    return null;
+                });
     }
 
     private void forwardPolicyEventToShardRegion(final PolicyEvent<?> policyEvent, final String thingId) {

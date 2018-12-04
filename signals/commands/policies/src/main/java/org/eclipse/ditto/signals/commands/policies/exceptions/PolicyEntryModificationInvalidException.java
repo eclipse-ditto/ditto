@@ -13,6 +13,7 @@ package org.eclipse.ditto.signals.commands.policies.exceptions;
 import java.net.URI;
 import java.text.MessageFormat;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -44,11 +45,10 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
     private static final long serialVersionUID = -3234448123780175035L;
 
     private PolicyEntryModificationInvalidException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
-
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -72,7 +72,6 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromMessage(final String message,
             final DittoHeaders dittoHeaders) {
-
         return fromMessage(message, null, dittoHeaders);
     }
 
@@ -86,7 +85,6 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromMessage(final String message, final String description,
             final DittoHeaders dittoHeaders) {
-
         final DittoRuntimeExceptionBuilder<PolicyEntryModificationInvalidException> builder =
                 new PolicyEntryModificationInvalidException.Builder()
                         .dittoHeaders(dittoHeaders)
@@ -109,8 +107,12 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
      */
     public static PolicyEntryModificationInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-
-        return fromMessage(readMessage(jsonObject), readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION), dittoHeaders);
+        return new Builder()
+                .dittoHeaders(dittoHeaders)
+                .message(readMessage(jsonObject))
+                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
+                .href(readHRef(jsonObject).orElse(null))
+                .build();
     }
 
     /**
@@ -131,11 +133,10 @@ public final class PolicyEntryModificationInvalidException extends DittoRuntimeE
 
         @Override
         protected PolicyEntryModificationInvalidException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
-
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
             return new PolicyEntryModificationInvalidException(dittoHeaders, message, description, cause, href);
         }
 

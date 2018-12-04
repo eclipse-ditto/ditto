@@ -18,6 +18,9 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
+import org.eclipse.ditto.services.base.actors.AbstractPubSubListenerActor;
+import org.eclipse.ditto.services.models.concierge.EntityId;
+import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -41,7 +44,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
     private PolicyCacheUpdateActor(
             final Cache<EntityId, Entry<Policy>> policyCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final ActorRef pubSubMediator, final int instanceIndex) {
+            final ActorRef pubSubMediator, final String instanceIndex) {
 
         super(pubSubMediator, Collections.singleton(PolicyEvent.TYPE_PREFIX), instanceIndex);
         this.policyCache = requireNonNull(policyCache);
@@ -60,7 +63,7 @@ public class PolicyCacheUpdateActor extends AbstractPubSubListenerActor {
     public static Props props(
             final Cache<EntityId, Entry<Policy>> policyCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-            final ActorRef pubSubMediator, final int instanceIndex) {
+            final ActorRef pubSubMediator, final String instanceIndex) {
         requireNonNull(policyEnforcerCache);
         requireNonNull(pubSubMediator);
 

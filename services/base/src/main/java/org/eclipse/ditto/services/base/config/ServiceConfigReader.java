@@ -32,15 +32,6 @@ public interface ServiceConfigReader {
     CachesConfigReader caches();
 
     /**
-     * Get the index of this service instance.
-     *
-     * @return the instance index.
-     */
-    default int instanceIndex() {
-        return cluster().instanceIndex();
-    }
-
-    /**
      * Retrieve a health configuration reader.
      *
      * @return the health configuration of the service.
@@ -74,6 +65,13 @@ public interface ServiceConfigReader {
      * @return the limits configuration of the service.
      */
     LimitsConfigReader limits();
+
+    /**
+     * Retrieve DevOps configuration reader.
+     *
+     * @return the DevOps configuration reader.
+     */
+    DevOpsConfigReader devops();
 
     /**
      * Retrieve the underlying {@code Config} object for backward compatibility.

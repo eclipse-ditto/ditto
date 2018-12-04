@@ -13,6 +13,9 @@ package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -44,6 +47,29 @@ public final class RabbitMQValidatorTest {
                 .build();
 
         UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
+    public void testValidHeaderMapping() {
+        final Source source = newSourceBuilder()
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .build();
+
+        UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource");
+    }
+
+    @Test
+    public void testInvalidHeaderMappingThrowsException() {
+        final Map<String, String> mapping = new HashMap<>(TestConstants.HEADER_MAPPING.getMapping());
+        mapping.put("thingId", "{{ thing:invalid }}");
+
+        final Source source = newSourceBuilder()
+                .headerMapping(ConnectivityModelFactory.newHeaderMapping(mapping))
+                .build();
+
+        Assertions.assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> UNDER_TEST.validateSource(source, DittoHeaders.empty(), () -> "testSource"))
+                .withCauseInstanceOf(UnresolvedPlaceholderException.class);
     }
 
     @Test

@@ -66,43 +66,33 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
         final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies =
                 new HashMap<>(additionalParseStrategies);
 
-        parseStrategies.put(AclInvalidException.ERROR_CODE, AclInvalidException::fromJson);
-        parseStrategies.put(AclEntryInvalidException.ERROR_CODE, AclEntryInvalidException::fromJson);
-        parseStrategies.put(AclNotAllowedException.ERROR_CODE, AclNotAllowedException::fromJson);
-        parseStrategies.put(AclModificationInvalidException.ERROR_CODE, AclModificationInvalidException::fromJson);
-        parseStrategies.put(AclNotAccessibleException.ERROR_CODE, AclNotAccessibleException::fromJson);
-        parseStrategies.put(AclNotModifiableException.ERROR_CODE, AclNotModifiableException::fromJson);
-        parseStrategies.put(ThingConflictException.ERROR_CODE, ThingConflictException::fromJson);
-        parseStrategies.put(ThingIdInvalidException.ERROR_CODE, ThingIdInvalidException::fromJson);
-        parseStrategies.put(ThingTooLargeException.ERROR_CODE, ThingTooLargeException::fromJson);
-        parseStrategies.put(ThingIdNotExplicitlySettableException.ERROR_CODE,
-                ThingIdNotExplicitlySettableException::fromJson);
-        parseStrategies.put(ThingNotAccessibleException.ERROR_CODE, ThingNotAccessibleException::fromJson);
-        parseStrategies.put(ThingNotDeletableException.ERROR_CODE, ThingNotDeletableException::fromJson);
-        parseStrategies.put(ThingNotCreatableException.ERROR_CODE, ThingNotCreatableException::fromJson);
-        parseStrategies.put(ThingNotModifiableException.ERROR_CODE, ThingNotModifiableException::fromJson);
-        parseStrategies.put(PolicyIdNotAccessibleException.ERROR_CODE, PolicyIdNotAccessibleException::fromJson);
-        parseStrategies.put(PolicyIdNotModifiableException.ERROR_CODE, PolicyIdNotModifiableException::fromJson);
-        parseStrategies.put(PolicyIdNotAllowedException.ERROR_CODE, PolicyIdNotAllowedException::fromJson);
-        parseStrategies.put(PolicyNotAllowedException.ERROR_CODE, PolicyNotAllowedException::fromJson);
-        parseStrategies.put(PolicyInvalidException.ERROR_CODE, PolicyInvalidException::fromJson);
-        parseStrategies.put(PolicyIdMissingException.ERROR_CODE, PolicyIdMissingException::fromJson);
-        parseStrategies.put(ThingUnavailableException.ERROR_CODE, ThingUnavailableException::fromJson);
-        parseStrategies.put(ThingTooManyModifyingRequestsException.ERROR_CODE,
-                ThingTooManyModifyingRequestsException::fromJson);
-        parseStrategies.put(AttributesNotAccessibleException.ERROR_CODE, AttributesNotAccessibleException::fromJson);
-        parseStrategies.put(AttributeNotAccessibleException.ERROR_CODE, AttributeNotAccessibleException::fromJson);
-        parseStrategies.put(AttributesNotModifiableException.ERROR_CODE, AttributesNotModifiableException::fromJson);
-        parseStrategies.put(AttributeNotModifiableException.ERROR_CODE, AttributeNotModifiableException::fromJson);
-        parseStrategies.put(AttributePointerInvalidException.ERROR_CODE, AttributePointerInvalidException::fromJson);
-        parseStrategies.put(FeaturesNotAccessibleException.ERROR_CODE, FeaturesNotAccessibleException::fromJson);
-        parseStrategies.put(FeaturesNotModifiableException.ERROR_CODE, FeaturesNotModifiableException::fromJson);
-        parseStrategies.put(FeatureNotAccessibleException.ERROR_CODE, FeatureNotAccessibleException::fromJson);
-        parseStrategies.put(FeatureNotModifiableException.ERROR_CODE, FeatureNotModifiableException::fromJson);
+        // org.eclipse.ditto.signals.commands.things.exceptions
+        parseStrategies.put(AclModificationInvalidException.ERROR_CODE,
+                AclModificationInvalidException::fromJson);
+        parseStrategies.put(AclNotAccessibleException.ERROR_CODE,
+                AclNotAccessibleException::fromJson);
+        parseStrategies.put(AclNotModifiableException.ERROR_CODE,
+                AclNotModifiableException::fromJson);
+        parseStrategies.put(AttributeNotAccessibleException.ERROR_CODE,
+                AttributeNotAccessibleException::fromJson);
+        parseStrategies.put(AttributeNotModifiableException.ERROR_CODE,
+                AttributeNotModifiableException::fromJson);
+        parseStrategies.put(AttributePointerInvalidException.ERROR_CODE,
+                AttributePointerInvalidException::fromJson);
+        parseStrategies.put(AttributesNotAccessibleException.ERROR_CODE,
+                AttributesNotAccessibleException::fromJson);
+        parseStrategies.put(AttributesNotModifiableException.ERROR_CODE,
+                AttributesNotModifiableException::fromJson);
+        parseStrategies.put(EventSendNotAllowedException.ERROR_CODE,
+                EventSendNotAllowedException::fromJson);
         parseStrategies.put(FeatureDefinitionNotAccessibleException.ERROR_CODE,
                 FeatureDefinitionNotAccessibleException::fromJson);
         parseStrategies.put(FeatureDefinitionNotModifiableException.ERROR_CODE,
                 FeatureDefinitionNotModifiableException::fromJson);
+        parseStrategies.put(FeatureNotAccessibleException.ERROR_CODE,
+                FeatureNotAccessibleException::fromJson);
+        parseStrategies.put(FeatureNotModifiableException.ERROR_CODE,
+                FeatureNotModifiableException::fromJson);
         parseStrategies.put(FeaturePropertiesNotAccessibleException.ERROR_CODE,
                 FeaturePropertiesNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertiesNotModifiableException.ERROR_CODE,
@@ -111,12 +101,60 @@ public final class ThingErrorRegistry extends AbstractErrorRegistry<DittoRuntime
                 FeaturePropertyNotAccessibleException::fromJson);
         parseStrategies.put(FeaturePropertyNotModifiableException.ERROR_CODE,
                 FeaturePropertyNotModifiableException::fromJson);
-        parseStrategies.put(FeatureDefinitionEmptyException.ERROR_CODE, FeatureDefinitionEmptyException::fromJson);
+        parseStrategies.put(FeaturesNotAccessibleException.ERROR_CODE,
+                FeaturesNotAccessibleException::fromJson);
+        parseStrategies.put(FeaturesNotModifiableException.ERROR_CODE,
+                FeaturesNotModifiableException::fromJson);
+        parseStrategies.put(MissingThingIdsException.ERROR_CODE, MissingThingIdsException::fromJson);
+        parseStrategies.put(PolicyIdNotAccessibleException.ERROR_CODE,
+                PolicyIdNotAccessibleException::fromJson);
+        parseStrategies.put(PolicyIdNotAllowedException.ERROR_CODE,
+                PolicyIdNotAllowedException::fromJson);
+        parseStrategies.put(PolicyIdNotModifiableException.ERROR_CODE,
+                PolicyIdNotModifiableException::fromJson);
+        parseStrategies.put(PolicyInvalidException.ERROR_CODE,
+                PolicyInvalidException::fromJson);
+        parseStrategies.put(PolicyNotAllowedException.ERROR_CODE,
+                PolicyNotAllowedException::fromJson);
+        parseStrategies.put(PoliciesConflictingException.ERROR_CODE, PoliciesConflictingException::fromJson);
+        parseStrategies.put(ThingConflictException.ERROR_CODE,
+                ThingConflictException::fromJson);
+        parseStrategies.put(ThingIdNotExplicitlySettableException.ERROR_CODE,
+                ThingIdNotExplicitlySettableException::fromJson);
+        parseStrategies.put(ThingNotAccessibleException.ERROR_CODE,
+                ThingNotAccessibleException::fromJson);
+        parseStrategies.put(ThingNotCreatableException.ERROR_CODE,
+                ThingNotCreatableException::fromJson);
+        parseStrategies.put(ThingNotDeletableException.ERROR_CODE,
+                ThingNotDeletableException::fromJson);
+        parseStrategies.put(ThingNotModifiableException.ERROR_CODE,
+                ThingNotModifiableException::fromJson);
+        parseStrategies.put(ThingPreconditionFailedException.ERROR_CODE,
+                ThingPreconditionFailedException::fromJson);
+        parseStrategies.put(ThingPreconditionNotModifiedException.ERROR_CODE,
+                ThingPreconditionNotModifiedException::fromJson);
+        parseStrategies.put(ThingTooManyModifyingRequestsException.ERROR_CODE,
+                ThingTooManyModifyingRequestsException::fromJson);
+        parseStrategies.put(ThingUnavailableException.ERROR_CODE,
+                ThingUnavailableException::fromJson);
+
+        // org.eclipse.ditto.model.things
+        parseStrategies.put(AclEntryInvalidException.ERROR_CODE,
+                AclEntryInvalidException::fromJson);
+        parseStrategies.put(AclInvalidException.ERROR_CODE,
+                AclInvalidException::fromJson);
+        parseStrategies.put(AclNotAllowedException.ERROR_CODE,
+                AclNotAllowedException::fromJson);
+        parseStrategies.put(FeatureDefinitionEmptyException.ERROR_CODE,
+                FeatureDefinitionEmptyException::fromJson);
         parseStrategies.put(FeatureDefinitionIdentifierInvalidException.ERROR_CODE,
                 FeatureDefinitionIdentifierInvalidException::fromJson);
-        parseStrategies.put(MissingThingIdsException.ERROR_CODE, MissingThingIdsException::fromJson);
-        parseStrategies.put(ThingPreconditionNotModifiedException.ERROR_CODE, ThingPreconditionNotModifiedException::fromJson);
-        parseStrategies.put(ThingPreconditionFailedException.ERROR_CODE, ThingPreconditionFailedException::fromJson);
+        parseStrategies.put(PolicyIdMissingException.ERROR_CODE,
+                PolicyIdMissingException::fromJson);
+        parseStrategies.put(ThingIdInvalidException.ERROR_CODE,
+                ThingIdInvalidException::fromJson);
+        parseStrategies.put(ThingTooLargeException.ERROR_CODE,
+                ThingTooLargeException::fromJson);
 
         return new ThingErrorRegistry(parseStrategies);
     }

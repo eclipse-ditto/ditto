@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MqttSource;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
@@ -92,6 +94,7 @@ public class MqttClientActorTest {
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
     private static final Target TARGET = newMqttTarget("target", AUTHORIZATION_CONTEXT, 1, Topic.TWIN_EVENTS);
+    private static final Source SOURCE = newMqttSource(1, 1, "foo");
     private static final String SOURCE_ADDRESS = "source";
     private static final MqttSource MQTT_SOURCE = ConnectivityModelFactory
             .newMqttSourceBuilder()
@@ -171,6 +174,8 @@ public class MqttClientActorTest {
 
     @Test
     public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
+        disableLogging(actorSystem);
+
         final MqttSource mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
                 "eclipse/+/+" // subscribed topic
@@ -317,6 +322,7 @@ public class MqttClientActorTest {
                     ExternalMessageFactory.newExternalMessageBuilder(new HashMap<>()).withText(expectedJson).build();
             when(mappedSignal.getExternalMessage()).thenReturn(externalMessage);
             when(mappedSignal.getTargets()).thenReturn(singleton(TARGET));
+            when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
             underTest.tell(mappedSignal, getRef());
 
             final MqttMessage receivedMessage = expectMsgClass(MqttMessage.class);

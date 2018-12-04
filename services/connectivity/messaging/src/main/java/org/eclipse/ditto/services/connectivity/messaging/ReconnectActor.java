@@ -93,7 +93,7 @@ public final class ReconnectActor extends AbstractActor {
         final FiniteDuration initialDelay =
                 FiniteDuration.apply(reconnectInitialDelay.toMillis(), TimeUnit.MILLISECONDS);
         final FiniteDuration interval = FiniteDuration.apply(reconnectInterval.toMillis(), TimeUnit.MILLISECONDS);
-        final ReconnectConnections message = ReconnectConnections.INSTANCE;
+        final ReconnectMessages message = ReconnectMessages.START_RECONNECT;
         log.info("Scheduling reconnect for all connections with initial delay {} and interval {}.",
                 reconnectInitialDelay, reconnectInterval);
         return getContext().getSystem()
@@ -131,14 +131,15 @@ public final class ReconnectActor extends AbstractActor {
                                 exception.getClass().getSimpleName(),
                                 exception.getDittoHeaders().getCorrelationId().orElse("<unknown>"),
                                 exception.getMessage()))
-                .matchEquals(ReconnectConnections.INSTANCE, rc -> this.handleReconnectConnections())
+                .matchEquals(ReconnectMessages.START_RECONNECT, msg -> handleStartReconnect())
+                .matchEquals(ReconnectMessages.END_RECONNECT, msg -> handleEndReconnect())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
 
-    private void handleReconnectConnections() {
+    private void handleStartReconnect() {
         if (reconnectInProgress) {
             log.info("Another reconnect iteration is currently in progress. Next iteration will be started after {}.",
                     reconnectInterval);
@@ -153,12 +154,17 @@ public final class ReconnectActor extends AbstractActor {
                         .runForeach(this::reconnect, materializer)
                         .thenRun(() -> {
                             log.info("Sending reconnects completed.");
-                            reconnectInProgress = false;
+                            getSelf().tell(ReconnectMessages.END_RECONNECT, getSelf());
                         });
             } else {
                 log.warning("Failed to create new persistence id source for connection recovery.");
             }
         }
+    }
+
+    private void handleEndReconnect() {
+        log.info("Got reconnects completed.");
+        reconnectInProgress = false;
     }
 
     private void reconnect(final String persistenceId) {
@@ -188,8 +194,9 @@ public final class ReconnectActor extends AbstractActor {
                 : Optional.empty();
     }
 
-    enum ReconnectConnections {
-        INSTANCE
+    enum ReconnectMessages {
+        START_RECONNECT,
+        END_RECONNECT
     }
 
 }

@@ -14,6 +14,7 @@ Currently the following protocol bindings are supported:
 * [WebSocket](httpapi-protocol-bindings-websocket.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
+* [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
 
 
 ## Content Type

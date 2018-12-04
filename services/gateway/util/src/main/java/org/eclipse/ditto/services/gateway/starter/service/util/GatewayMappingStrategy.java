@@ -24,11 +24,15 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 
 /**
  * {@link MappingStrategy} for the Gateway service containing all {@link Jsonifiable} types known to Gateway.
@@ -41,24 +45,13 @@ public final class GatewayMappingStrategy implements MappingStrategy {
     private final ThingSearchMappingStrategy thingSearchMappingStrategy;
 
     /**
-     * Constructs a new Mapping Strategy for Gateway.
+     * Constructs a new {@code GatewayMappingStrategy} object.
      */
     public GatewayMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
         thingsMappingStrategy = new ThingsMappingStrategy();
         connectivityMappingStrategy = new ConnectivityMappingStrategy(thingsMappingStrategy);
         thingSearchMappingStrategy = new ThingSearchMappingStrategy();
-    }
-
-    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(MessageCommandRegistry.newInstance());
-        builder.add(MessageCommandResponseRegistry.newInstance());
-        builder.add(MessageErrorRegistry.newInstance());
-    }
-
-    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
-        builder.add(DevOpsCommandRegistry.newInstance());
-        builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
 
     @Override
@@ -75,10 +68,33 @@ public final class GatewayMappingStrategy implements MappingStrategy {
                 jsonObject -> StreamingAck.fromJson(jsonObject)); // do not replace with lambda!
 
         addMessagesStrategies(builder);
+        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
+        addNamespacesStrategies(builder);
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
+    }
+
+    private static void addMessagesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(MessageCommandRegistry.newInstance());
+        builder.add(MessageCommandResponseRegistry.newInstance());
+        builder.add(MessageErrorRegistry.newInstance());
+    }
+
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
+    }
+
+    private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(DevOpsCommandRegistry.newInstance());
+        builder.add(DevOpsCommandResponseRegistry.newInstance());
+    }
+
+    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(NamespaceCommandRegistry.getInstance());
+        builder.add(NamespaceCommandResponseRegistry.getInstance());
+        builder.add(NamespaceErrorRegistry.getInstance());
     }
 
 }

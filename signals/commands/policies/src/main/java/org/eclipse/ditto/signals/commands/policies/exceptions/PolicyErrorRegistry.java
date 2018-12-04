@@ -42,34 +42,79 @@ public final class PolicyErrorRegistry extends AbstractErrorRegistry<DittoRuntim
     public static PolicyErrorRegistry newInstance() {
         final Map<String, JsonParsable<DittoRuntimeException>> parseStrategies = new HashMap<>();
 
-        parseStrategies.put(PolicyConflictException.ERROR_CODE, PolicyConflictException::fromJson);
-        parseStrategies.put(PolicyIdInvalidException.ERROR_CODE, PolicyIdInvalidException::fromJson);
-        parseStrategies.put(PolicyTooLargeException.ERROR_CODE, PolicyTooLargeException::fromJson);
-        parseStrategies.put(PolicyEntryInvalidException.ERROR_CODE, PolicyEntryInvalidException::fromJson);
-        parseStrategies.put(SubjectIdInvalidException.ERROR_CODE, SubjectIdInvalidException::fromJson);
-        parseStrategies.put(PolicyNotAccessibleException.ERROR_CODE, PolicyNotAccessibleException::fromJson);
-        parseStrategies.put(PolicyNotModifiableException.ERROR_CODE, PolicyNotModifiableException::fromJson);
-        parseStrategies.put(PolicyIdNotExplicitlySettableException.ERROR_CODE,
-                PolicyIdNotExplicitlySettableException::fromJson);
-        parseStrategies.put(PolicyUnavailableException.ERROR_CODE, PolicyUnavailableException::fromJson);
-        parseStrategies.put(PolicyTooManyModifyingRequestsException.ERROR_CODE,
-                PolicyTooManyModifyingRequestsException::fromJson);
-        parseStrategies.put(PolicyEntryNotAccessibleException.ERROR_CODE, PolicyEntryNotAccessibleException::fromJson);
-        parseStrategies.put(PolicyPreconditionFailedException.ERROR_CODE, PolicyPreconditionFailedException::fromJson);
-        parseStrategies.put(PolicyPreconditionNotModifiedException.ERROR_CODE,
-                PolicyPreconditionNotModifiedException::fromJson);
-        parseStrategies.put(PolicyEntryNotModifiableException.ERROR_CODE, PolicyEntryNotModifiableException::fromJson);
+        // exceptions in package org.eclipse.ditto.signals.commands.policies.exceptions
+        parseStrategies.put(PolicyConflictException.ERROR_CODE,
+                PolicyConflictException::fromJson);
+
         parseStrategies.put(PolicyEntryModificationInvalidException.ERROR_CODE,
                 PolicyEntryModificationInvalidException::fromJson);
+
+        parseStrategies.put(PolicyEntryNotAccessibleException.ERROR_CODE,
+                PolicyEntryNotAccessibleException::fromJson);
+
+        parseStrategies.put(PolicyEntryNotModifiableException.ERROR_CODE,
+                PolicyEntryNotModifiableException::fromJson);
+
+        parseStrategies.put(PolicyIdNotExplicitlySettableException.ERROR_CODE,
+                PolicyIdNotExplicitlySettableException::fromJson);
+
         parseStrategies.put(PolicyModificationInvalidException.ERROR_CODE,
                 PolicyModificationInvalidException::fromJson);
-        parseStrategies.put(ResourcesNotModifiableException.ERROR_CODE, ResourcesNotModifiableException::fromJson);
-        parseStrategies.put(ResourceNotAccessibleException.ERROR_CODE, ResourceNotAccessibleException::fromJson);
-        parseStrategies.put(ResourcesNotAccessibleException.ERROR_CODE, ResourcesNotAccessibleException::fromJson);
-        parseStrategies.put(ResourceNotModifiableException.ERROR_CODE, ResourceNotModifiableException::fromJson);
-        parseStrategies.put(SubjectsNotModifiableException.ERROR_CODE, SubjectsNotModifiableException::fromJson);
-        parseStrategies.put(SubjectNotAccessibleException.ERROR_CODE, SubjectNotAccessibleException::fromJson);
-        parseStrategies.put(SubjectNotModifiableException.ERROR_CODE, SubjectNotModifiableException::fromJson);
+
+        parseStrategies.put(PolicyNotAccessibleException.ERROR_CODE,
+                PolicyNotAccessibleException::fromJson);
+
+        parseStrategies.put(PolicyNotModifiableException.ERROR_CODE,
+                PolicyNotModifiableException::fromJson);
+
+        parseStrategies.put(PolicyPreconditionFailedException.ERROR_CODE,
+                PolicyPreconditionFailedException::fromJson);
+
+        parseStrategies.put(PolicyPreconditionNotModifiedException.ERROR_CODE,
+                PolicyPreconditionNotModifiedException::fromJson);
+
+        parseStrategies.put(PolicyTooManyModifyingRequestsException.ERROR_CODE,
+                PolicyTooManyModifyingRequestsException::fromJson);
+
+        parseStrategies.put(PolicyUnavailableException.ERROR_CODE,
+                PolicyUnavailableException::fromJson);
+
+        parseStrategies.put(ResourceNotAccessibleException.ERROR_CODE,
+                ResourceNotAccessibleException::fromJson);
+
+        parseStrategies.put(ResourceNotModifiableException.ERROR_CODE,
+                ResourceNotModifiableException::fromJson);
+
+        parseStrategies.put(ResourcesNotAccessibleException.ERROR_CODE,
+                ResourcesNotAccessibleException::fromJson);
+
+        parseStrategies.put(ResourcesNotModifiableException.ERROR_CODE,
+                ResourcesNotModifiableException::fromJson);
+
+        parseStrategies.put(SubjectNotAccessibleException.ERROR_CODE,
+                SubjectNotAccessibleException::fromJson);
+
+        parseStrategies.put(SubjectNotModifiableException.ERROR_CODE,
+                SubjectNotModifiableException::fromJson);
+
+        parseStrategies.put(SubjectsNotAccessibleException.ERROR_CODE,
+                SubjectsNotAccessibleException::fromJson);
+
+        parseStrategies.put(SubjectsNotModifiableException.ERROR_CODE,
+                SubjectsNotModifiableException::fromJson);
+
+        // exceptions in package org.eclipse.ditto.model.policies
+        parseStrategies.put(PolicyEntryInvalidException.ERROR_CODE,
+                PolicyEntryInvalidException::fromJson);
+
+        parseStrategies.put(PolicyIdInvalidException.ERROR_CODE,
+                PolicyIdInvalidException::fromJson);
+
+        parseStrategies.put(PolicyTooLargeException.ERROR_CODE,
+                PolicyTooLargeException::fromJson);
+
+        parseStrategies.put(SubjectIdInvalidException.ERROR_CODE,
+                SubjectIdInvalidException::fromJson);
 
         return new PolicyErrorRegistry(parseStrategies);
     }

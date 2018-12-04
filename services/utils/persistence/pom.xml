@@ -30,6 +30,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>ditto-signals-commands-namespaces</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -133,6 +138,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/services/utils/persistence/mongo/assertions/*</include>
+                                <include>org/eclipse/ditto/services/utils/persistence/mongo/namespace/*</include>
                             </includes>
                         </configuration>
                     </execution>

@@ -147,15 +147,16 @@ public final class ThingsRoute extends AbstractRoute {
                         ),
                         post(() -> // POST /things
                                 extractDataBytes(payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource, thingJson ->
-                                                CreateThing.of(createThingForPost(thingJson),
-                                                        createInlinePolicyJson(thingJson), dittoHeaders))
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                thingJson -> CreateThing.of(createThingForPost(thingJson),
+                                                        createInlinePolicyJson(thingJson), getCopyPolicyFrom(thingJson),
+                                                        dittoHeaders)
+                                        )
                                 )
                         )
                 )
         );
     }
-
 
     private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return parameter(ThingsParameter.IDS.toString(), idsString ->
@@ -192,6 +193,12 @@ public final class ThingsRoute extends AbstractRoute {
                 .orElse(null);
     }
 
+    private static String getCopyPolicyFrom(final String jsonString) {
+        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
+                .orElse(null);
+    }
+
     /*
      * Describes {@code /things/<thingId>} route.
      * @return {@code /things/<thingId>} route.
@@ -212,6 +219,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 thingJson -> ModifyThing.of(thingId, ThingsModelFactory.newThing(
                                                         createThingJsonObjectForPut(thingJson, thingId)),
                                                         createInlinePolicyJson(thingJson),
+                                                        getCopyPolicyFrom(thingJson),
                                                         dittoHeaders))
                                 )
                         ),

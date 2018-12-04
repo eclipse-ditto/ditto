@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.QueryOperators;
 import com.mongodb.client.model.Filters;
+import com.mongodb.reactivestreams.client.ListCollectionsPublisher;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 
 import akka.NotUsed;
@@ -34,7 +36,8 @@ import akka.contrib.persistence.mongodb.JournallingFieldNames$;
 import akka.stream.javadsl.Source;
 
 /**
- * Reads the event journal of com.github.scullxbones.akka-persistence-mongo plugin. In the Akka system configuration,
+ * Reads the event journal of com.github.scullxbones.akka-persistence-mongo plugin.
+ * In the Akka system configuration,
  * <ul>
  * <li>
  * {@code akka.persistence.journal.auto-start-journals} must contain exactly 1 configuration key {@code
@@ -48,7 +51,6 @@ import akka.stream.javadsl.Source;
  */
 @AllValuesAreNonnullByDefault
 public class MongoReadJournal {
-
     // not a final class to test with Mockito
 
     private static final String AKKA_PERSISTENCE_JOURNAL_AUTO_START_JOURNALS =
@@ -83,11 +85,10 @@ public class MongoReadJournal {
     private final Pattern journalCollectionPrefix;
     private final MongoClientWrapper clientWrapper;
 
-    private MongoReadJournal(final Pattern journalCollectionPrefix,
-            final MongoClientWrapper clientWrapper) {
+    private MongoReadJournal(final Pattern journalCollectionPrefix, final MongoClientWrapper clientWrapper) {
         this.journalCollectionPrefix = journalCollectionPrefix;
         this.clientWrapper = clientWrapper;
-        this.log = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
+        log = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
     }
 
     /**
@@ -98,7 +99,6 @@ public class MongoReadJournal {
      * @return A {@code MongoReadJournal} object.
      */
     public static MongoReadJournal newInstance(final Config config, final MongoClientWrapper clientWrapper) {
-
         return new MongoReadJournal(resolveJournalCollectionPrefix(config), clientWrapper);
     }
 
@@ -111,10 +111,11 @@ public class MongoReadJournal {
      * @return source of persistence IDs and sequence numbers written within the given time window.
      */
     public Source<PidWithSeqNr, NotUsed> getPidWithSeqNrsByInterval(final Instant start, final Instant end) {
-
+        final MongoDatabase database = clientWrapper.getDatabase();
         final Document filterDocument = createFilterObject(start, end);
-        return resolveJournalCollectionNames(journalCollectionPrefix, clientWrapper)
-                .map(collectionName -> clientWrapper.getDatabase().getCollection(collectionName))
+
+        return resolveJournalCollectionNames(journalCollectionPrefix, database)
+                .map(database::getCollection)
                 .map(journal -> journal.find(filterDocument, Document.class)
                         .projection(PROJECT_DOCUMENT)
                         .sort(SORT_DOCUMENT)
@@ -155,7 +156,7 @@ public class MongoReadJournal {
 
     private static Document toDocument(final Object[][] keyValuePairs) {
         final Map<String, Object> map = new HashMap<>(keyValuePairs.length);
-        for (Object[] keyValuePair : keyValuePairs) {
+        for (final Object[] keyValuePair : keyValuePairs) {
             map.put(keyValuePair[0].toString(), keyValuePair[1]);
         }
         return new Document(map);
@@ -201,16 +202,17 @@ public class MongoReadJournal {
      * Resolves all event journal collection names starting with the passed {@code journalCollectionPrefix}.
      *
      * @param journalCollectionPrefix the prefix of the journal collections to resolve.
-     * @param clientWrapper the MongoClient wrapper to use for resolving collection names.
+     * @param database the MongoDB database to use for resolving collection names.
      * @return a source of resolved journal collection names which matched the prefix.
      */
     private static Source<String, NotUsed> resolveJournalCollectionNames(final Pattern journalCollectionPrefix,
-            final MongoClientWrapper clientWrapper) {
+            final MongoDatabase database) {
 
         // starts with "journalCollectionPrefix":
+        final ListCollectionsPublisher<Document> documentListCollectionsPublisher = database.listCollections();
         return Source.fromPublisher(
-                clientWrapper.getDatabase().listCollections()
-                        .filter(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix))
+                documentListCollectionsPublisher.filter(Filters.regex(COLLECTION_NAME_FIELD, journalCollectionPrefix))
         ).map(document -> document.getString(COLLECTION_NAME_FIELD));
     }
+
 }

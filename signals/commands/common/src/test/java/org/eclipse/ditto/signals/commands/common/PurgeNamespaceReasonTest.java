@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) 2017-2018 Bosch Software Innovations GmbH.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-2.0/index.php
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.signals.commands.common;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
+import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
+import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
+
+/**
+ * Unit test for {@link org.eclipse.ditto.signals.commands.common.PurgeNamespaceReason}.
+ */
+public final class PurgeNamespaceReasonTest {
+
+    private static ShutdownReasonType purgeNamespaceType;
+    private static String knownNamespace;
+    private static JsonObject knownJsonRepresentation;
+
+    private PurgeNamespaceReason underTest;
+
+    @BeforeClass
+    public static void initTestConstants() {
+        purgeNamespaceType = ShutdownReasonType.Known.PURGE_NAMESPACE;
+        knownNamespace = "com.example.test";
+        knownJsonRepresentation = JsonFactory.newObjectBuilder()
+                .set(ShutdownReason.JsonFields.TYPE, purgeNamespaceType.toString())
+                .set(ShutdownReason.JsonFields.DETAILS, knownNamespace)
+                .build();
+    }
+
+    @Before
+    public void setUp() {
+        underTest = PurgeNamespaceReason.of(knownNamespace);
+    }
+
+    @Test
+    public void assertImmutability() {
+        assertInstancesOf(PurgeNamespaceReason.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
+    }
+
+    @Test
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(PurgeNamespaceReason.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void getTypeReturnsPurgeNamespace() {
+        assertThat(underTest.getType()).isEqualTo(purgeNamespaceType);
+    }
+
+    @Test
+    public void getDetailsReturnsNamespace() {
+        assertThat(underTest.getDetails()).contains(knownNamespace);
+    }
+
+    @Test
+    public void getNamespaceReturnsNamespace() {
+        assertThat(underTest.getNamespace()).isEqualTo(knownNamespace);
+    }
+
+    @Test
+    public void tryToGetInstanceWithEmptyNamespace() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> PurgeNamespaceReason.of(""))
+                .withMessageContaining("namespace")
+                .withMessageContaining("not be empty")
+                .withNoCause();
+    }
+
+    @Test
+    public void toJsonWithoutSchemaVersionAndPredicateReturnsExpected() {
+        assertThat(underTest.toJson()).isEqualTo(knownJsonRepresentation);
+    }
+
+    @Test
+    public void toJsonWithHiddenFieldsOnlyReturnsEmptyJsonObject() {
+        assertThat(underTest.toJson(FieldType.HIDDEN)).isEmpty();
+    }
+
+    @Test
+    public void toStringContainsExpected() {
+        assertThat(underTest.toString())
+                .contains(underTest.getClass().getSimpleName())
+                .contains(purgeNamespaceType)
+                .contains(knownNamespace);
+    }
+
+}

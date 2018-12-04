@@ -150,6 +150,15 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 .collect(Collectors.toList());
 
         jmsParams.add("jms.clientID=" + encodedId);
+
+        // set default for sendTimeout and requestTimeout, qpid jms default waits indefinitely
+        if (!specificConfig.containsKey("jms.sendTimeout")) {
+            jmsParams.add("jms.sendTimeout=" + 5000);
+        }
+        if (!specificConfig.containsKey("jms.requestTimeout")) {
+            jmsParams.add("jms.requestTimeout=" + 5000);
+        }
+
         if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
             jmsParams.add("jms.username=" + username);
             jmsParams.add("jms.password=" + password);

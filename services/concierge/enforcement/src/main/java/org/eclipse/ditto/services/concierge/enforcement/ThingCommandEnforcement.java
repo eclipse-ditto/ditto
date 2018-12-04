@@ -19,8 +19,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -40,6 +47,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -56,6 +64,8 @@ import org.eclipse.ditto.model.things.AclInvalidException;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AclValidator;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
+import org.eclipse.ditto.services.concierge.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.services.models.caching.EntityId;
 import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
@@ -64,7 +74,10 @@ import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.IdentityCache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayServiceTimeoutException;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
@@ -120,13 +133,16 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final Cache<EntityId, Entry<EntityId>> thingIdCache;
     private final Cache<EntityId, Entry<Policy>> policyCache;
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces;
     private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+    private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
     private ThingCommandEnforcement(final Context data, final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final Cache<EntityId, Entry<Policy>> policyCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces,
             final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         super(data);
@@ -138,9 +154,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         this.policyCache = requireNonNull(policyCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
+        this.blockCachedNamespaces = blockCachedNamespaces;
         thingEnforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
+        policyIdReferencePlaceholderResolver =
+                PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskTimeout());
     }
 
     @Override
@@ -171,6 +190,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         private final Cache<EntityId, Entry<Policy>> policyCache;
         private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
         private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+        private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces;
         private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
 
         /**
@@ -182,14 +202,16 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param policyCache the policy cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param aclEnforcerCache the acl-enforcer cache.
+         * @param blockCachedNamespaces pre-enforcer function to block undesirable messages to policies shard region.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<Policy>> policyCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces) {
             this(thingsShardRegion, policiesShardRegion, thingIdCache, policyCache, policyEnforcerCache, aclEnforcerCache,
-                    DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
+                    blockCachedNamespaces, DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
         }
 
         /**
@@ -204,19 +226,24 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param subjectIssuersForPolicyMigration a list of {@link SubjectIssuer}s for which a {@link Subject} will
          * be created per ACL SID. E.g. when {@link SubjectIssuer#GOOGLE} is specified, for the ACL SID "123", a
          * {@link Subject} "google:123" will be created.
+         * @param blockCachedNamespaces pre-enforcer function to block undesirable messages to policies shard region.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<Policy>> policyCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces,
                 final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
+
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyCache = requireNonNull(policyCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
+            this.blockCachedNamespaces =
+                    Optional.ofNullable(blockCachedNamespaces).orElse(CompletableFuture::completedFuture);
             this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
         }
 
@@ -235,9 +262,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         @Override
         public AbstractEnforcement<ThingCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyCache, policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
-            );
+                    policyCache, policyEnforcerCache, aclEnforcerCache, blockCachedNamespaces, subjectIssuersForPolicyMigration);
         }
+
     }
 
     /**
@@ -507,7 +534,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final RetrieveThing retrieveThing,
             final RetrievePolicy retrievePolicy) {
 
-        return PatternsCS.ask(policiesShardRegion, retrievePolicy, getAskTimeout().toMillis())
+        return blockCachedNamespaces.apply(retrievePolicy)
+                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, getAskTimeout().toMillis()))
                 .handleAsync((response, error) -> {
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
@@ -771,7 +799,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         final ThingCommand thingCommand = transformModifyThingToCreateThing(receivedThingCommand);
         final Optional<CreateThingWithEnforcer> result;
         if (thingCommand instanceof CreateThing) {
-            final CreateThing createThing = (CreateThing) thingCommand;
+            final CreateThing createThing = replaceInitialPolicyWithCopiedPolicyIfPresent((CreateThing) thingCommand);
             final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
             if (initialPolicyOptional.isPresent()) {
                 result = enforceCreateThingByOwnInlinedPolicy(createThing, initialPolicyOptional.get(), sender);
@@ -796,6 +824,97 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             result = Optional.empty();
         }
         return result;
+    }
+
+    private CreateThing replaceInitialPolicyWithCopiedPolicyIfPresent(final CreateThing createThing) {
+
+        final JsonObject initialPolicyOrCopiedPolicy = getInitialPolicyOrCopiedPolicy(createThing).orElse(null);
+        return CreateThing.of(createThing.getThing(), initialPolicyOrCopiedPolicy, createThing.getDittoHeaders());
+    }
+
+    private Optional<JsonObject> getInitialPolicyOrCopiedPolicy(final CreateThing createThing) {
+
+        final DittoHeaders dittoHeaders = createThing.getDittoHeaders();
+        final Optional<String> policyId = createThing.getPolicyIdOrPlaceholder()
+                .flatMap(ReferencePlaceholder::fromCharSequence)
+                .map(referencePlaceholder -> {
+                    log(createThing).debug(
+                            "CreateThing command contains a reference placeholder for the policy it wants to copy: {}",
+                            referencePlaceholder);
+                    return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder, dittoHeaders);
+                })
+                .map(policyIdCompletionStage -> awaitPolicyIdCompletionStage(policyIdCompletionStage, createThing))
+                .map(Optional::of)
+                .orElse(createThing.getPolicyIdOrPlaceholder());
+
+        if (policyId.isPresent()) {
+            log(dittoHeaders).debug("CreateThing command wants to use a copy of Policy <{}>", policyId.get());
+            final Policy policy = retrievePolicyWithEnforcement(policyId.get(), dittoHeaders);
+            final JsonObject jsonPolicyWithoutId = policy.toJson(JsonSchemaVersion.V_2).remove("policyId");
+            return Optional.of(jsonPolicyWithoutId);
+        }
+
+        log(dittoHeaders).debug("CreateThing command did not contain a policy that should be copied.");
+        return createThing.getInitialPolicy();
+    }
+
+    private String awaitPolicyIdCompletionStage(final CompletionStage<String> policyIdCompletionStage,
+            final CreateThing createThing) {
+
+        try {
+            return policyIdCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            log(createThing).error(e, "An error occurred when trying to resolve policy id.");
+            throw GatewayServiceTimeoutException.newBuilder().dittoHeaders(createThing.getDittoHeaders()).build();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DittoRuntimeException) {
+                throw (DittoRuntimeException) e.getCause();
+            } else {
+                throw GatewayInternalErrorException.newBuilder()
+                        .dittoHeaders(createThing.getDittoHeaders())
+                        .cause(e.getCause())
+                        .build();
+            }
+        }
+    }
+
+    private Policy retrievePolicyWithEnforcement(final String policyId, final DittoHeaders dittoHeaders) {
+
+        final CompletionStage<Policy> policyCompletionStage =
+                PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
+                        .thenApply(response -> {
+                            if (response instanceof RetrievePolicyResponse) {
+                                return ((RetrievePolicyResponse) response).getPolicy();
+                            } else if (response instanceof PolicyErrorResponse) {
+                                throw ((PolicyErrorResponse) response).getDittoRuntimeException();
+                            } else if (response instanceof DittoRuntimeException) {
+                                throw (DittoRuntimeException) response;
+                            } else {
+                                log(dittoHeaders).error(
+                                        "Got an unexpected response while retrieving a Policy that should be copied" +
+                                                " during Thing creation: {}", response);
+                                throw GatewayInternalErrorException.newBuilder().build();
+                            }
+                        });
+
+        return awaitPolicyCompletionStage(policyCompletionStage, dittoHeaders);
+
+    }
+
+    private Policy awaitPolicyCompletionStage(final CompletionStage<Policy> policyCompletionStage,
+            final DittoHeaders dittoHeaders) {
+        try {
+            return policyCompletionStage.toCompletableFuture().get(getAskTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | TimeoutException e) {
+            log(dittoHeaders).error(e, "An error occurred when trying to retrieve policy.");
+            throw GatewayServiceTimeoutException.newBuilder().build();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DittoRuntimeException) {
+                throw (DittoRuntimeException) e.getCause();
+            } else {
+                throw GatewayInternalErrorException.newBuilder().cause(e.getCause()).build();
+            }
+        }
     }
 
     private Optional<CreateThingWithEnforcer> enforceCreateThingByAuthorizationContext(final CreateThing createThing) {
@@ -905,7 +1024,11 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         if (receivedCommand instanceof ModifyThing) {
             final ModifyThing modifyThing = (ModifyThing) receivedCommand;
             final JsonObject initialPolicy = modifyThing.getInitialPolicy().orElse(null);
-            return CreateThing.of(modifyThing.getThing(), initialPolicy, modifyThing.getDittoHeaders());
+            final String policyIdOrPlaceholder = modifyThing.getPolicyIdOrPlaceholder().orElse(null);
+            final Thing newThing = modifyThing.getThing().toBuilder()
+                    .setId(modifyThing.getThingId())
+                    .build();
+            return CreateThing.of(newThing, initialPolicy, policyIdOrPlaceholder, modifyThing.getDittoHeaders());
         } else {
             return receivedCommand;
         }
@@ -1000,6 +1123,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             this.createThing = createThing;
             this.enforcer = enforcer;
         }
+
     }
 
     private void handleInitialCreateThing(final CreateThing createThing, final Enforcer enforcer,
@@ -1148,19 +1272,22 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 createThingWithoutPolicyId.getDittoHeaders());
 
         invalidatePolicyCache(createPolicy.getId());
-        PatternsCS.ask(policiesShardRegion, createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
-            final Optional<CreateThing> nextStep =
-                    handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse, policyError, sender);
+        blockCachedNamespaces.apply(createPolicy)
+                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, timeout))
+                .handleAsync((policyResponse, policyError) -> {
+                    final Optional<CreateThing> nextStep = handlePolicyResponseForCreateThing(createPolicy, createThing,
+                            policyResponse, policyError, sender);
 
-            nextStep.ifPresent(cmd -> {
-                invalidateThingCaches(cmd.getThingId());
-                PatternsCS.ask(thingsShardRegion, cmd, timeout)
-                        .handleAsync((thingResponse, thingError) ->
-                                handleThingResponseForCreateThing(createThing, thingResponse, thingError, sender));
-            });
+                    nextStep.ifPresent(cmd -> {
+                        invalidateThingCaches(cmd.getThingId());
+                        PatternsCS.ask(thingsShardRegion, cmd, timeout)
+                                .handleAsync((thingResponse, thingError) ->
+                                        handleThingResponseForCreateThing(createThing, thingResponse, thingError,
+                                                sender));
+                    });
 
-            return null;
-        });
+                    return null;
+                });
 
         return true;
     }
@@ -1176,8 +1303,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
             return Optional.of(createThing);
 
-        } else if (policyResponse instanceof PolicyConflictException ||
-                policyResponse instanceof PolicyNotAccessibleException) {
+        } else if (shouldReportInitialPolicyCreationFailure(policyResponse, policyError)) {
 
             reportInitialPolicyCreationFailure(createPolicy.getId(), createThing, sender);
 
@@ -1196,6 +1322,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         return Optional.empty();
+    }
+
+    private boolean shouldReportInitialPolicyCreationFailure(final Object policyResponse, final Throwable policyError) {
+        return policyResponse instanceof PolicyConflictException ||
+                policyResponse instanceof PolicyNotAccessibleException ||
+                policyError instanceof NamespaceBlockedException;
     }
 
     private Void handleThingResponseForCreateThing(
@@ -1229,8 +1361,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final CreateThing command,
             final ActorRef sender) {
 
-        log(command).info("The Policy with ID '{}' is already existing, the CreateThing " +
-                "command which would have created an implicit Policy for the Thing with ID '{}' " +
+        log(command).info("Failed to create Policy with ID '{}' is already existing, the CreateThing " +
+                "command which would have created a Policy for the Thing with ID '{}' " +
                 "is therefore not handled", policyId, command.getThingId());
         final ThingNotCreatableException error =
                 ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingId(), policyId)
@@ -1259,4 +1391,5 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 org.eclipse.ditto.services.models.policies.Permission.DEFAULT_POLICY_PERMISSIONS)
                         .build());
     }
+
 }
