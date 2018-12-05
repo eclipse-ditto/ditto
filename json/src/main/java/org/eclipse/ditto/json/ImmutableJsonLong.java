@@ -10,6 +10,8 @@
  */
 package org.eclipse.ditto.json;
 
+import java.util.Objects;
+
 import javax.annotation.concurrent.Immutable;
 
 /**
@@ -32,24 +34,25 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
     }
 
     @Override
+    public boolean isInt() {
+        final Long value = getValue();
+        return value.intValue() == value;
+    }
+
+    @Override
     public boolean isLong() {
         return true;
     }
 
     @Override
-    public long asLong() {
-        return getValue();
-    }
-
-    @Override
     public boolean equals(final Object o) {
-        if (super.equals(o)) {
+        if (this == o) {
             return true;
         }
         if (o instanceof AbstractJsonNumber) {
             final AbstractJsonNumber that = (AbstractJsonNumber) o;
-            if (that.isInt()) {
-                return getValue() == that.asInt();
+            if (that.isLong()) {
+                return Objects.equals(getValue(), that.asLong());
             }
         }
         return false;
@@ -57,7 +60,11 @@ final class ImmutableJsonLong extends AbstractJsonNumber<Long> {
 
     @Override
     public int hashCode() {
-        return super.hashCode();
+        final Long value = getValue();
+        if (isInt()) {
+            return value.intValue();
+        }
+        return value.hashCode();
     }
 
 }

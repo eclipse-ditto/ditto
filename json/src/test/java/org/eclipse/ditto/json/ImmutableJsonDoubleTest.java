@@ -32,9 +32,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJsonDoubleTest {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Double> intValues() {
+    public static Collection<Double> doubleValues() {
         return Arrays.asList(Double.NEGATIVE_INFINITY, Double.MIN_VALUE, Double.MAX_VALUE, Double.POSITIVE_INFINITY,
-                13.3742D, 1.081542E124D);
+                0D, 0.0D, -0D, -0.0D, 13.3742D, 1.081542E124D);
     }
 
     @Parameterized.Parameter
@@ -54,10 +54,51 @@ public final class ImmutableJsonDoubleTest {
 
     @Test
     public void testHashCodeAndEquals() {
+        final Double red = 23.0D;
+        final Double black = 42.23D;
+
         EqualsVerifier.forClass(ImmutableJsonDouble.class)
                 .withRedefinedSuperclass()
                 .usingGetClass()
+                .withNonnullFields("value")
+                .withPrefabValues(Number.class, red, black)
                 .verify();
+    }
+
+    @Test
+    public void jsonDoubleEqualsJsonIntIfSameValue() {
+        final int value = Integer.MAX_VALUE;
+        final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+
+        assertThat(underTest).isEqualTo(intValue);
+    }
+
+    @Test
+    public void jsonDoubleHasSameHashCodeAsJsonIntIfSameValue() {
+        final int value = Integer.MAX_VALUE;
+        final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+
+        assertThat(underTest.hashCode()).isEqualTo(intValue.hashCode());
+    }
+
+    @Test
+    public void jsonDoubleEqualsJsonLongIfSameValue() {
+        final long value = Long.MAX_VALUE;
+        final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+
+        assertThat(underTest).isEqualTo(longValue);
+    }
+
+    @Test
+    public void jsonDoubleHasSameHashCodeAsJsonLongIfSameValue() {
+        final long value = Long.MAX_VALUE;
+        final ImmutableJsonLong longValue = ImmutableJsonLong.of(value);
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(value);
+
+        assertThat(underTest.hashCode()).isEqualTo(longValue.hashCode());
     }
 
     @Test
@@ -91,12 +132,45 @@ public final class ImmutableJsonDoubleTest {
     }
 
     @Test
-    public void isNotInt() {
+    public void isIntReturnsExpected() {
+        assertThat(underTest.isInt()).isEqualTo(isDoubleValueWithinIntegerRange());
+    }
+
+    @Test
+    public void jsonDoubleWithFractionsIsNotInt() {
+        final double doubleValue = 23.42D;
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
+
         assertThat(underTest.isInt()).isFalse();
     }
 
     @Test
-    public void isNotLong() {
+    public void jsonDoubleWithZeroFractionsWithinIntRangeIsEqualToSameInt() {
+        final double doubleValueWithFractions = 23.0D;
+        final int equivalentIntValue = 23;
+
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValueWithFractions);
+
+        assertThat(underTest.isDouble()).isTrue();
+        assertThat(underTest.isInt()).isTrue();
+        assertThat(underTest.isLong()).isTrue();
+        assertThat(underTest.asInt()).isEqualTo(equivalentIntValue);
+    }
+
+    @Test
+    public void isLongReturnsExpected() {
+        if (isDoubleValueWithinIntegerRange() || isDoubleValueWithinLongRange()) {
+            assertThat(underTest.isLong()).isTrue();
+        } else {
+            assertThat(underTest.isLong()).isFalse();
+        }
+    }
+
+    @Test
+    public void jsonDoubleWithFractionsIsNotLong() {
+        final double doubleValue = 23.42D;
+        final ImmutableJsonDouble underTest = ImmutableJsonDouble.of(doubleValue);
+
         assertThat(underTest.isLong()).isFalse();
     }
 
@@ -129,19 +203,27 @@ public final class ImmutableJsonDoubleTest {
     }
 
     @Test
-    public void tryToGetAsInt() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asInt())
-                .withMessage("This JSON value is not an int: %s", underTest)
-                .withNoCause();
+    public void getAsIntBehavesCorrectly() {
+        if (underTest.isInt()) {
+            assertThat(underTest.asInt()).isEqualTo(Double.valueOf(doubleValue).intValue());
+        } else {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asInt())
+                    .withMessage("This JSON value is not an int: %s", underTest)
+                    .withNoCause();
+        }
     }
 
     @Test
-    public void tryToGetAsLong() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asLong())
-                .withMessage("This JSON value is not a long: %s", underTest)
-                .withNoCause();
+    public void getAsLongBehavesCorrectly() {
+        if (underTest.isLong()) {
+            assertThat(underTest.asLong()).isEqualTo(Double.valueOf(doubleValue).longValue());
+        } else {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asLong())
+                    .withMessage("This JSON value is not a long: %s", underTest)
+                    .withNoCause();
+        }
     }
 
     @Test
@@ -166,6 +248,18 @@ public final class ImmutableJsonDoubleTest {
                 .isThrownBy(() -> underTest.asArray())
                 .withMessage("This JSON value is not an array: %s", underTest)
                 .withNoCause();
+    }
+
+    private boolean isDoubleValueWithinIntegerRange() {
+        return Integer.MIN_VALUE <= doubleValue && Integer.MAX_VALUE >= doubleValue && hasNoFraction();
+    }
+
+    private boolean hasNoFraction() {
+        return 0 == doubleValue % 1;
+    }
+
+    private boolean isDoubleValueWithinLongRange() {
+        return Long.MIN_VALUE <= doubleValue && Long.MAX_VALUE >= doubleValue && hasNoFraction();
     }
 
 }

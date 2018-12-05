@@ -32,8 +32,8 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJsonLongTest {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<Long> intValues() {
-        return Arrays.asList(Long.MIN_VALUE, Long.MAX_VALUE, 23420815L);
+    public static Collection<Long> doubleValues() {
+        return Arrays.asList(Long.MIN_VALUE, Long.MAX_VALUE, 0L, 23420815L);
     }
 
     @Parameterized.Parameter
@@ -48,14 +48,19 @@ public final class ImmutableJsonLongTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonInt.class, areImmutable());
+        assertInstancesOf(ImmutableJsonLong.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableJsonInt.class)
+        final Long red = longValue / 2;
+        final Long black = red + 1;
+
+        EqualsVerifier.forClass(ImmutableJsonLong.class)
                 .withRedefinedSuperclass()
                 .usingGetClass()
+                .withNonnullFields("value")
+                .withPrefabValues(Number.class, red, black)
                 .verify();
     }
 
@@ -69,6 +74,29 @@ public final class ImmutableJsonLongTest {
     }
 
     @Test
+    public void jsonLongHasSameHashCodeAsJsonIntIfSameValue() {
+        final int value = Integer.MAX_VALUE;
+        final ImmutableJsonInt intValue = ImmutableJsonInt.of(value);
+        final ImmutableJsonLong underTest = ImmutableJsonLong.of(value);
+
+        assertThat(underTest.hashCode()).isEqualTo(intValue.hashCode());
+    }
+
+    @Test
+    public void jsonLongEqualsJsonDoubleIfSameValue() {
+        final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(longValue);
+
+        assertThat(underTest).isEqualTo(doubleValue);
+    }
+
+    @Test
+    public void jsonLongHasSameHashCodeAsJsonDoubleIfSameValue() {
+        final ImmutableJsonDouble doubleValue = ImmutableJsonDouble.of(longValue);
+
+        assertThat(underTest.hashCode()).isEqualTo(doubleValue.hashCode());
+    }
+
+    @Test
     public void getValueReturnsExpected() {
         assertThat(underTest.getValue()).isEqualTo(longValue);
     }
@@ -76,6 +104,11 @@ public final class ImmutableJsonLongTest {
     @Test
     public void asLongReturnsExpected() {
         assertThat(underTest.asLong()).isEqualTo(longValue);
+    }
+
+    @Test
+    public void asDoubleReturnsExpected() {
+        assertThat(underTest.asDouble()).isEqualTo(longValue);
     }
 
     @Test
@@ -99,8 +132,8 @@ public final class ImmutableJsonLongTest {
     }
 
     @Test
-    public void isNotInt() {
-        assertThat(underTest.isInt()).isFalse();
+    public void isIntReturnsExpected() {
+        assertThat(underTest.isInt()).isEqualTo(isLongValueWithinIntegerRange());
     }
 
     @Test
@@ -109,8 +142,8 @@ public final class ImmutableJsonLongTest {
     }
 
     @Test
-    public void isNotDouble() {
-        assertThat(underTest.isDouble()).isFalse();
+    public void isDouble() {
+        assertThat(underTest.isDouble()).isTrue();
     }
 
     @Test
@@ -137,19 +170,15 @@ public final class ImmutableJsonLongTest {
     }
 
     @Test
-    public void tryToGetAsInt() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asInt())
-                .withMessage("This JSON value is not an int: %s", underTest)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToGetAsDouble() {
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> underTest.asDouble())
-                .withMessage("This JSON value is not a double: %s", underTest)
-                .withNoCause();
+    public void getAsIntBehavesCorrectly() {
+        if (isLongValueWithinIntegerRange()) {
+            assertThat(underTest.asInt()).isEqualTo(Long.valueOf(longValue).intValue());
+        } else {
+            assertThatExceptionOfType(UnsupportedOperationException.class)
+                    .isThrownBy(() -> underTest.asInt())
+                    .withMessage("This JSON value is not an int: %s", underTest)
+                    .withNoCause();
+        }
     }
 
     @Test
@@ -174,6 +203,10 @@ public final class ImmutableJsonLongTest {
                 .isThrownBy(() -> underTest.asArray())
                 .withMessage("This JSON value is not an array: %s", underTest)
                 .withNoCause();
+    }
+
+    private boolean isLongValueWithinIntegerRange() {
+        return Integer.MIN_VALUE <= longValue && Integer.MAX_VALUE >= longValue;
     }
 
 }

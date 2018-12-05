@@ -12,8 +12,6 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Objects;
-
 /**
  * Abstract base implementation of JSON number types.
  * This class provides common functionality in order to keep its sub-classes as small as possible.
@@ -45,13 +43,34 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
     }
 
     @Override
+    public int asInt() {
+        if (isInt()) {
+            return value.intValue();
+        }
+        return super.asInt();
+    }
+
+    @Override
     public boolean isLong() {
         return false;
     }
 
     @Override
+    public long asLong() {
+        if (isLong()) {
+            return value.longValue();
+        }
+        return super.asLong();
+    }
+
+    @Override
     public boolean isDouble() {
-        return false;
+        return true;
+    }
+
+    @Override
+    public double asDouble() {
+        return value.doubleValue();
     }
 
     /**
@@ -61,23 +80,6 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
      */
     T getValue() {
         return value;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        final AbstractJsonNumber<?> that = (AbstractJsonNumber<?>) o;
-        return Objects.equals(value, that.value);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value);
     }
 
     @Override
