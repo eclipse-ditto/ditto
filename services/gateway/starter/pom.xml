@@ -139,6 +139,12 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-log-reporter_2.12</artifactId>
+            <version>0.6.8</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -12,8 +12,15 @@ package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -28,8 +35,13 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ImmutableMeasurement;
+import org.eclipse.ditto.model.connectivity.Measurement;
+import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -48,19 +60,19 @@ public final class RetrieveConnectionMetricsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionMetrics.NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_CONNECTION_METRICS =
-            JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                    JsonSchemaVersion.V_2);
-
     private final String connectionId;
     private final ConnectionMetrics connectionMetrics;
+    private final SourceMetrics sourceMetrics;
+    private final TargetMetrics targetMetrics;
 
     private RetrieveConnectionMetricsResponse(final String connectionId, final ConnectionMetrics connectionMetrics,
-            final DittoHeaders dittoHeaders) {
+            final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
 
         this.connectionId = connectionId;
         this.connectionMetrics = connectionMetrics;
+        this.sourceMetrics = sourceMetrics;
+        this.targetMetrics = targetMetrics;
     }
 
     /**
@@ -73,11 +85,39 @@ public final class RetrieveConnectionMetricsResponse
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionMetricsResponse of(final String connectionId,
-            final ConnectionMetrics connectionMetrics, final DittoHeaders dittoHeaders) {
+            final ConnectionMetrics connectionMetrics, final SourceMetrics sourceMetrics,
+            final TargetMetrics targetMetrics, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionMetrics, "Connection Status");
 
-        return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, dittoHeaders);
+        return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, sourceMetrics,
+                targetMetrics, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveConnectionMetricsResponse}.
+     *
+     * @param connectionId the identifier of the connection.
+     * @param dittoHeaders the headers of the request.
+     * @return a new RetrieveConnectionMetricsResponse response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveConnectionMetricsResponse of(final String connectionId, final SourceMetrics sourceMetrics,
+            final TargetMetrics targetMetrics, final DittoHeaders dittoHeaders) {
+        checkNotNull(connectionId, "Connection ID");
+        final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
+        final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());
+        final ConnectionMetrics connectionMetrics = ConnectivityModelFactory.newConnectionMetrics(mergeAddressMetric(fromSources, fromTargets));
+        return new RetrieveConnectionMetricsResponse(connectionId, connectionMetrics, sourceMetrics,
+                targetMetrics, dittoHeaders);
+    }
+
+    private static AddressMetric mergeAllMetrics(final Collection<AddressMetric> metrics) {
+        AddressMetric result = ConnectivityModelFactory.emptyAddressMetric();
+        for (AddressMetric metric : metrics) {
+            result = mergeAddressMetric(result, metric);
+        }
+        return result;
     }
 
     /**
@@ -113,10 +153,69 @@ public final class RetrieveConnectionMetricsResponse
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionMetrics readConnectionMetrics = ConnectivityModelFactory.connectionMetricsFromJson(
-                            jsonObject.getValueOrThrow(JSON_CONNECTION_METRICS));
+                            jsonObject.getValueOrThrow(JsonFields.JSON_CONNECTION_METRICS));
+                    final SourceMetrics readSourceMetrics = ConnectivityModelFactory.sourceMetricsFromJson(
+                            jsonObject.getValueOrThrow(JsonFields.JSON_SOURCE_METRICS));
+                    final TargetMetrics readTargetMetrics = ConnectivityModelFactory.targetMetricsFromJson(
+                            jsonObject.getValueOrThrow(JsonFields.JSON_TARGET_METRICS));
 
-                    return of(readConnectionId, readConnectionMetrics, dittoHeaders);
+                    return of(readConnectionId, readConnectionMetrics, readSourceMetrics, readTargetMetrics,
+                            dittoHeaders);
                 });
+    }
+
+    public RetrieveConnectionMetricsResponse mergeWith(RetrieveConnectionMetricsResponse other) {
+
+        final SourceMetrics mergedSourceMetrics =
+                ConnectivityModelFactory.newSourceMetrics(mergeAddressMetricMap(getSourceMetrics().getAddressMetrics(),
+                        other.getSourceMetrics().getAddressMetrics()));
+
+        final TargetMetrics mergedTargetMetrics =
+                ConnectivityModelFactory.newTargetMetrics(mergeAddressMetricMap(getTargetMetrics().getAddressMetrics(),
+                        other.getTargetMetrics().getAddressMetrics()));
+
+        final ConnectionMetrics mergedConnectionMetrics =
+                ConnectivityModelFactory.newConnectionMetrics(mergeAddressMetric(getConnectionMetrics().getMetrics(),
+                        other.getConnectionMetrics().getMetrics()));
+
+        return RetrieveConnectionMetricsResponse.of(connectionId, mergedConnectionMetrics, mergedSourceMetrics,
+                mergedTargetMetrics, getDittoHeaders());
+    }
+
+    private static Map<String, AddressMetric> mergeAddressMetricMap(Map<String, AddressMetric> a,
+            Map<String, AddressMetric> b) {
+        final Map<String, AddressMetric> result = new HashMap<>(a);
+        b.forEach((k, v) -> result.merge(k, v, RetrieveConnectionMetricsResponse::mergeAddressMetric));
+        return result;
+    }
+
+    private static AddressMetric mergeAddressMetric(final AddressMetric a, AddressMetric b) {
+        final Map<String, Measurement> mapA = asMap(a);
+        final Map<String, Measurement> mapB = asMap(b);
+        final Map<String, Measurement> result = new HashMap<>(mapA);
+        mapB.forEach((keyFromA, measurementFromA) -> result.merge(keyFromA, measurementFromA,
+                (measurementA, measurementB) -> {
+                    final Map<Duration, Long> merged =
+                            mergeMeasurements(measurementA.getCounts(), measurementB.getCounts());
+                    return new ImmutableMeasurement(measurementA.getType(), measurementA.isSuccess(), merged,
+                            latest(measurementA.getLastMessageAt(), measurementB.getLastMessageAt()));
+                }));
+        return ConnectivityModelFactory.newAddressMetric(new HashSet<>(result.values()));
+    }
+
+    private static Instant latest(final Instant instantA, final Instant instantB) {
+        return Instant.ofEpochMilli(Math.max(instantA.toEpochMilli(), instantB.toEpochMilli()));
+    }
+
+    private static Map<String, Measurement> asMap(final AddressMetric a) {
+        return a.getMeasurements().stream().collect(Collectors.toMap(m -> m.getType() + ":" + m.isSuccess(), m -> m));
+    }
+
+    private static Map<Duration, Long> mergeMeasurements(final Map<Duration, Long> measurementA,
+            final Map<Duration, Long> measurementB) {
+        final Map<Duration, Long> result = new HashMap<>(measurementA);
+        measurementB.forEach((k, v) -> result.merge(k, v, Long::sum));
+        return result;
     }
 
     /**
@@ -128,12 +227,32 @@ public final class RetrieveConnectionMetricsResponse
         return connectionMetrics;
     }
 
+    /**
+     * Returns the retrieved {@code ConnectionMetrics}.
+     *
+     * @return the ConnectionMetrics.
+     */
+    public SourceMetrics getSourceMetrics() {
+        return sourceMetrics;
+    }
+
+    /**
+     * Returns the retrieved {@code ConnectionMetrics}.
+     *
+     * @return the ConnectionMetrics.
+     */
+    public TargetMetrics getTargetMetrics() {
+        return targetMetrics;
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JSON_CONNECTION_METRICS, connectionMetrics.toJson(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_CONNECTION_METRICS, connectionMetrics.toJson(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_SOURCE_METRICS, sourceMetrics.toJson(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_TARGET_METRICS, targetMetrics.toJson(), predicate);
     }
 
     @Override
@@ -153,7 +272,7 @@ public final class RetrieveConnectionMetricsResponse
 
     @Override
     public RetrieveConnectionMetricsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(connectionId, connectionMetrics, dittoHeaders);
+        return of(connectionId, connectionMetrics, sourceMetrics, targetMetrics, dittoHeaders);
     }
 
     @Override
@@ -168,12 +287,14 @@ public final class RetrieveConnectionMetricsResponse
         if (!super.equals(o)) {return false;}
         final RetrieveConnectionMetricsResponse that = (RetrieveConnectionMetricsResponse) o;
         return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(connectionMetrics, that.connectionMetrics);
+                Objects.equals(connectionMetrics, that.connectionMetrics) &&
+                Objects.equals(sourceMetrics, that.sourceMetrics) &&
+                Objects.equals(targetMetrics, that.targetMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionMetrics);
+        return Objects.hash(super.hashCode(), connectionId, connectionMetrics, sourceMetrics, targetMetrics);
     }
 
     @Override
@@ -182,7 +303,26 @@ public final class RetrieveConnectionMetricsResponse
                 super.toString() +
                 ", connectionId=" + connectionId +
                 ", connectionMetrics=" + connectionMetrics +
+                ", sourceMetrics=" + sourceMetrics +
+                ", targetMetrics=" + targetMetrics +
                 "]";
+    }
+
+    /**
+     * An enumeration of the known {@code JsonField}s of a {@code RetrieveConnectionMetricsResponse}.
+     */
+    @Immutable
+    static final class JsonFields {
+
+        static final JsonFieldDefinition<JsonObject> JSON_CONNECTION_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("connectionMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<JsonObject> JSON_SOURCE_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("sourceMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<JsonObject> JSON_TARGET_METRICS =
+                JsonFactory.newJsonObjectFieldDefinition("targetMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                        JsonSchemaVersion.V_2);
     }
 
 }

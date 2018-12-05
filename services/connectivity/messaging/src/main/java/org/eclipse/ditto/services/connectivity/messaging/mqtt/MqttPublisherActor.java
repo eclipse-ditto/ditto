@@ -17,12 +17,12 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -56,13 +56,12 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
     private final ActorRef sourceActor;
     private final ActorRef mqttClientActor;
 
-    private long publishedMessages = 0L;
-    private Instant lastMessagePublishedAt;
-    private final AddressMetric addressMetric;
     private final boolean dryRun;
 
-    private MqttPublisherActor(final MqttConnectionFactory factory, final ActorRef mqttClientActor,
+    private MqttPublisherActor(final String connectionId, final MqttConnectionFactory factory,
+            final ActorRef mqttClientActor,
             final boolean dryRun) {
+        super(connectionId);
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
@@ -70,7 +69,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
         final Pair<ActorRef, CompletionStage<Done>> materializedValues =
                 Source.<MqttMessage>actorRef(100, OverflowStrategy.dropHead())
-                        .map(this::countPublishedMqttMessage)
                         .toMat(mqttSink, Keep.both())
                         .run(ActorMaterializer.create(getContext()));
 
@@ -78,18 +76,17 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
         sourceActor = materializedValues.first();
 
-        addressMetric =
-                ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN, "Started at " + Instant.now(),
-                        0, null);
+        resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "Started at " + Instant.now());
     }
 
-    static Props props(final MqttConnectionFactory factory, final ActorRef mqttClientActor, final boolean dryRun) {
+    static Props props(final String connectionId, final MqttConnectionFactory factory, final ActorRef mqttClientActor,
+            final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttPublisherActor create() {
-                return new MqttPublisherActor(factory, mqttClientActor, dryRun);
+                return new MqttPublisherActor(connectionId, factory, mqttClientActor, dryRun);
             }
         });
     }
@@ -119,7 +116,7 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     @Override
     protected void publishMessage(@Nullable final Target target, final MqttPublishTarget publishTarget,
-            final ExternalMessage message) {
+            final ExternalMessage message, final ConnectionMetricsCollector publishedCounter) {
 
         final MqttQoS targetQoS;
         if (target == null) {
@@ -128,16 +125,15 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             final int qos = ((org.eclipse.ditto.model.connectivity.MqttTarget) target).getQos();
             targetQoS = MqttValidator.getQoS(qos);
         }
-        publishMessage(publishTarget, targetQoS, message);
+        publishMessage(publishTarget, targetQoS, message, publishedCounter);
     }
 
-    private void publishMessage(final MqttPublishTarget replyTarget, final MqttQoS qos, final ExternalMessage message) {
+    private void publishMessage(final MqttPublishTarget replyTarget, final MqttQoS qos, final ExternalMessage message,
+            final ConnectionMetricsCollector publishedCounter) {
 
         final MqttMessage mqttMessage = mapExternalMessageToMqttMessage(replyTarget, qos, message);
         sourceActor.tell(mqttMessage, getSelf());
-
-        publishedMessages++;
-        lastMessagePublishedAt = Instant.now();
+        publishedCounter.recordSuccess();
     }
 
     private boolean isDryRun(final Object message) {
@@ -165,14 +161,6 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
             payload = ByteString.empty();
         }
         return MqttMessage.create(mqttTarget.getTopic(), payload, qos);
-    }
-
-    /*
-     * Called inside stream - must be thread-safe.
-     */
-    private <T> T countPublishedMqttMessage(final T message) {
-        mqttClientActor.tell(new MqttClientActor.CountPublishedMqttMessage(), getSelf());
-        return message;
     }
 
     /*

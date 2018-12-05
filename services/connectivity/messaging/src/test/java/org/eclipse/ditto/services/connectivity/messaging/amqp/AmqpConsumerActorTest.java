@@ -57,7 +57,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
         final MessageConsumer messageConsumer = Mockito.mock(MessageConsumer.class);
-        return AmqpConsumerActor.props("consumer", messageConsumer, mappingActor,
+        return AmqpConsumerActor.props(CONNECTION_ID, "consumer", messageConsumer, mappingActor,
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .enforcement(ENFORCEMENT)
@@ -151,7 +151,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props("foo", Mockito.mock(MessageConsumer.class), processor,
+                    AmqpConsumerActor.props(CONNECTION_ID, "foo", Mockito.mock(MessageConsumer.class), processor,
                             source));
 
             final String plainPayload = "hello world!";
@@ -228,7 +228,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props("foo123", Mockito.mock(MessageConsumer.class), processor,
+                    AmqpConsumerActor.props(CONNECTION_ID, "foo123", Mockito.mock(MessageConsumer.class), processor,
                             source));
 
             final String correlationId = "cor-";

@@ -130,6 +130,11 @@ public interface ExternalMessage {
     Optional<HeaderMapping> getHeaderMapping();
 
     /**
+     * @return optional source address, where this message was received
+     */
+    Optional<String> getSourceAddress();
+
+    /**
      * The known payload types of ExternalMessages.
      */
     enum PayloadType {

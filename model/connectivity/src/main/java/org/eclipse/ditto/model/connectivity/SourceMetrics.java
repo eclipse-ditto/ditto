@@ -34,11 +34,6 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     * @return the total count of consumed messages on this source
-     */
-    long getConsumedMessages();
-
-    /**
      * Returns all non hidden marked fields of this {@code SourceMetrics}.
      *
      * @return a JSON object representation of this SourceMetrics including only non hidden marked fields.
@@ -71,13 +66,6 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
                 JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the amount of consumed messages.
-         */
-        public static final JsonFieldDefinition<Long> CONSUMED_MESSAGES =
-                JsonFactory.newLongFieldDefinition("consumedMessages", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

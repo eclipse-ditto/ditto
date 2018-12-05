@@ -21,6 +21,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.HashMap;
@@ -96,6 +97,8 @@ public class TestConstants {
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
+
+    public static Instant INSTANT = Instant.now();
 
     public static class Things {
 

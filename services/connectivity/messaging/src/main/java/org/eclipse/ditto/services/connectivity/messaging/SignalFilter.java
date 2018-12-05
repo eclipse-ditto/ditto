@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.base.WithThingId;
@@ -77,13 +78,19 @@ final class SignalFilter {
      *
      * @param signal the signal to filter / determine the {@link Target}s for
      * @return the determined Targets for the passed in {@code signal}
-     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a Target
-     * cannot be mapped to a valid criterion
+     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
+     * Target cannot be mapped to a valid criterion
      */
     Set<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
+                // count authorized targets
+                .peek(authorizedTarget -> ConnectivityCounterRegistry.getOutboundCounter(connection.getId(),
+                        authorizedTarget.getAddress()).recordSuccess())
                 .filter(t -> isTargetSubscribedForTopic(t, signal))
+                // count authorized + filtered targets
+                .peek(filteredTarget -> ConnectivityCounterRegistry.getOutboundFilteredCounter(connection.getId(),
+                        filteredTarget.getAddress()).recordSuccess())
                 .collect(Collectors.toSet());
     }
 
@@ -133,7 +140,8 @@ final class SignalFilter {
     }
 
     /**
-     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be mapped to a
+     * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be
+     * mapped to a
      * valid criterion
      */
     private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

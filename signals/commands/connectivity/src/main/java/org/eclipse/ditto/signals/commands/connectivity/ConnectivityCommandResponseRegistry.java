@@ -57,9 +57,6 @@ public final class ConnectivityCommandResponseRegistry
         parseStrategies.put(RetrieveConnectionResponse.TYPE, RetrieveConnectionResponse::fromJson);
         parseStrategies.put(RetrieveConnectionStatusResponse.TYPE, RetrieveConnectionStatusResponse::fromJson);
         parseStrategies.put(RetrieveConnectionMetricsResponse.TYPE, RetrieveConnectionMetricsResponse::fromJson);
-        parseStrategies.put(AggregatedConnectivityCommandResponse.TYPE,
-                (jsonObject, dittoHeaders) -> AggregatedConnectivityCommandResponse.fromJson(jsonObject, dittoHeaders,
-                        parseStrategies));
 
         parseStrategies.put(ConnectivityErrorResponse.TYPE, ConnectivityErrorResponse::fromJson);
 

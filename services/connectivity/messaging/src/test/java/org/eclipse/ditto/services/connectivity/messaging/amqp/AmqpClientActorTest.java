@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +57,7 @@ import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
@@ -77,8 +78,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSign
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -99,6 +99,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -210,6 +211,9 @@ public class AmqpClientActorTest extends WithMockServers {
     @Test
     public void testConnectionHandling() {
         new TestKit(actorSystem) {{
+            final TestProbe aggregator = new TestProbe(actorSystem);
+
+
             final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
                     (connection1, exceptionListener) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
@@ -218,8 +222,18 @@ public class AmqpClientActorTest extends WithMockServers {
             amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
+            amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
+            final ResourceStatus resourceStatus1 = aggregator.expectMsgClass(ResourceStatus.class);
+            System.out.println(resourceStatus1); // TODO remove
+
+
+
             amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
+
+            amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
+            final ResourceStatus resourceStatus2 = aggregator.expectMsgClass(ResourceStatus.class);
+            System.out.println(resourceStatus2); // TODO remove
         }};
     }
 
@@ -251,42 +265,46 @@ public class AmqpClientActorTest extends WithMockServers {
 
     @Test
     public void testReconnectAndVerifyConnectionStatus() {
-        new TestKit(actorSystem) {
-            {
-                final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
-                        (connection1, exceptionListener) -> mockConnection);
-                final ActorRef amqpClientActor = actorSystem.actorOf(props);
-                watch(amqpClientActor);
+        new TestKit(actorSystem) {{
+            final TestProbe aggregator = new TestProbe(actorSystem);
 
-                amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-                expectMsg(CONNECTED_SUCCESS);
+            final Props props = AmqpClientActor.propsForTests(connection, connectionStatus, getRef(),
+                    (connection1, exceptionListener) -> mockConnection);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+            watch(amqpClientActor);
 
-                amqpClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
-                final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
-                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
+            amqpClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(CONNECTED_SUCCESS);
 
-                final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
+            amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
+            final ResourceStatus resourceStatus = aggregator.expectMsgClass(ResourceStatus.class);
+            System.out.println(resourceStatus);
 
-                connectionListener.onConnectionInterrupted(DUMMY);
-                Awaitility.await().until(() -> awaitStatusInMetricsResponse(amqpClientActor, ConnectionStatus.FAILED));
+            final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
-                connectionListener.onConnectionRestored(DUMMY);
-                Awaitility.await().until(() -> awaitStatusInMetricsResponse(amqpClientActor, ConnectionStatus.OPEN));
+            connectionListener.onConnectionInterrupted(DUMMY);
+            verifyConnectionStatus(amqpClientActor, aggregator, ConnectionStatus.FAILED);
 
-                amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
-                expectMsg(DISCONNECTED_SUCCESS);
+            connectionListener.onConnectionRestored(DUMMY);
+            verifyConnectionStatus(amqpClientActor, aggregator, ConnectionStatus.OPEN);
 
-            }
-
-            private Boolean awaitStatusInMetricsResponse(final ActorRef amqpClientActor, final ConnectionStatus open) {
-                amqpClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
-                final RetrieveConnectionMetricsResponse metrics =
-                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
-                return open.equals(metrics.getConnectionMetrics().getConnectionStatus());
-            }
-        };
+            amqpClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
+            expectMsg(DISCONNECTED_SUCCESS);
+        }};
     }
 
+    private void verifyConnectionStatus(final ActorRef amqpClientActor, final TestProbe aggregator,
+            final ConnectionStatus open) {
+        amqpClientActor.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), aggregator.ref());
+        Awaitility.await().until(() -> awaitStatusInStatusResponse(aggregator, open));
+    }
+
+    private Boolean awaitStatusInStatusResponse(final TestProbe aggregator,
+            final ConnectionStatus expectedStatus) {
+        final ResourceStatus status = aggregator.expectMsgClass(ResourceStatus.class);
+        System.out.println("waiting for " + expectedStatus + ", received: " + status);
+        return expectedStatus.getName().equals(status.getStatus());
+    }
 
     @Test
     public void sendCommandDuringInit() {
@@ -535,14 +553,65 @@ public class AmqpClientActorTest extends WithMockServers {
 
     @Test
     public void testSpecialCharactersInSourceAndRequestMetrics() throws JMSException {
-        new TestKit(actorSystem) {{
+        new TestKit(actorSystem) {
+            {
+                final String sourceWithSpecialCharacters =
+                        IntStream.range(32, 255).mapToObj(i -> (char) i)
+                                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                                .toString();
+                final String sourceWithUnicodeCharacters =
+                        "\uD83D\uDE00\uD83D\uDE01\uD83D\uDE02\uD83D\uDE03\uD83D\uDE04" +
+                                "\uD83D\uDE05\uD83D\uDE06\uD83D\uDE07\uD83D\uDE08\uD83D\uDE09\uD83D\uDE0A\uD83D\uDE0B\uD83D\uDE0C" +
+                                "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
+
+                final Source source = ConnectivityModelFactory.newSourceBuilder()
+                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                        .address(sourceWithSpecialCharacters)
+                        .address(sourceWithUnicodeCharacters)
+                        .build();
+
+                final String connectionId = createRandomConnectionId();
+                final Connection connectionWithSpecialCharacters =
+                        TestConstants.createConnection(connectionId, actorSystem, singletonList(source));
+
+                testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
+                    // nothing to do here
+                }, ref -> {
+                    ref.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getRef());
+
+                    fishForMessage(duration("3s"), "fishing for OPEN status",
+                            msg -> isExpectedMessage(msg, sourceWithSpecialCharacters, sourceWithUnicodeCharacters));
+                    fishForMessage(duration("3s"), "fishing for OPEN status",
+                            msg -> isExpectedMessage(msg, sourceWithSpecialCharacters, sourceWithUnicodeCharacters));
+                });
+            }
+
+            private boolean isExpectedMessage(final Object o, String... expectedSources) {
+                if (!(o instanceof ResourceStatus)) {
+                    return false;
+                }
+                final ResourceStatus resourceStatus = (ResourceStatus) o;
+                return resourceStatus.getResourceType() == ResourceStatus.ResourceType.SOURCE
+                        && Arrays.asList(expectedSources).contains(resourceStatus.getAddress().orElse(null))
+                        && ConnectionStatus.OPEN.getName().equals(resourceStatus.getStatus());
+            }
+        };
+    }
+
+
+
+    @Test
+    public void testRetrieveConnectionStatus() throws JMSException {
+        new TestKit(actorSystem)
+        {{
             final String sourceWithSpecialCharacters =
                     IntStream.range(32, 255).mapToObj(i -> (char) i)
                             .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
                             .toString();
-            final String sourceWithUnicodeCharacters = "\uD83D\uDE00\uD83D\uDE01\uD83D\uDE02\uD83D\uDE03\uD83D\uDE04" +
-                    "\uD83D\uDE05\uD83D\uDE06\uD83D\uDE07\uD83D\uDE08\uD83D\uDE09\uD83D\uDE0A\uD83D\uDE0B\uD83D\uDE0C" +
-                    "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
+            final String sourceWithUnicodeCharacters =
+                    "\uD83D\uDE00\uD83D\uDE01\uD83D\uDE02\uD83D\uDE03\uD83D\uDE04" +
+                            "\uD83D\uDE05\uD83D\uDE06\uD83D\uDE07\uD83D\uDE08\uD83D\uDE09\uD83D\uDE0A\uD83D\uDE0B\uD83D\uDE0C" +
+                            "\uD83D\uDE0D\uD83D\uDE0E\uD83D\uDE0F";
 
             final Source source = ConnectivityModelFactory.newSourceBuilder()
                     .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -556,27 +625,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
             testConsumeMessageAndExpectForwardToConciergeForwarder(connectionWithSpecialCharacters, 1, (cmd) -> {
                 // nothing to do here
-            }, ref -> {
-                ref.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
-
-                final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
-                        expectMsgClass(RetrieveConnectionMetricsResponse.class);
-
-                assertThat(retrieveConnectionMetricsResponse.getConnectionMetrics()
-                        .getSourcesMetrics()
-                        .stream()
-                        .findFirst()
-                        .map(metrics -> metrics.getAddressMetrics().get(sourceWithSpecialCharacters + "-0"))
-                        .map(AddressMetric::getStatus))
-                        .contains(ConnectionStatus.OPEN);
-                assertThat(retrieveConnectionMetricsResponse.getConnectionMetrics()
-                        .getSourcesMetrics()
-                        .stream()
-                        .findFirst()
-                        .map(metrics -> metrics.getAddressMetrics().get(sourceWithUnicodeCharacters + "-0"))
-                        .map(AddressMetric::getStatus))
-                        .contains(ConnectionStatus.OPEN);
-            });
+            }, ref -> ref.tell(RetrieveConnectionStatus.of(connectionId, DittoHeaders.empty()), getRef()));
         }};
     }
 

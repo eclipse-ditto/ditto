@@ -96,34 +96,37 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code ConnectionMetrics}.
      *
-     * @param connectionStatus the ConnectionStatus of the metrics to create
-     * @param connectionStatusDetails the optional details about the connection status
-     * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus
-     * @param clientState the current state of the Client performing the connection
-     * @param sourcesMetrics the metrics of all sources of the Connection
-     * @param targetsMetrics the metrics of all targets of the Connection
+     * @param overallMetrics the aggregated overall metrics
      * @return a new ConnectionMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static ConnectionMetrics newConnectionMetrics(final ConnectionStatus connectionStatus,
-            final @Nullable String connectionStatusDetails, final Instant inConnectionStatusSince,
-            final String clientState,
-            final List<SourceMetrics> sourcesMetrics, final List<TargetMetrics> targetsMetrics) {
-        return ImmutableConnectionMetrics.of(connectionStatus, connectionStatusDetails, inConnectionStatusSince,
-                clientState, sourcesMetrics, targetsMetrics);
+    public static ConnectionMetrics newConnectionMetrics(final AddressMetric overallMetrics) {
+        return ImmutableConnectionMetrics.of(overallMetrics);
+    }
+
+    /**
+     * @return a new ConnectionMetrics which is empty
+     */
+    public static ConnectionMetrics emptyConnectionMetrics() {
+        return ImmutableConnectionMetrics.of(emptyAddressMetric());
     }
 
     /**
      * Returns a new {@code SourceMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the source
-     * @param consumedMessages the amount of consumed messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static SourceMetrics newSourceMetrics(final Map<String, AddressMetric> addressMetrics,
-            final long consumedMessages) {
-        return ImmutableSourceMetrics.of(addressMetrics, consumedMessages);
+    public static SourceMetrics newSourceMetrics(final Map<String, AddressMetric> addressMetrics) {
+        return ImmutableSourceMetrics.of(addressMetrics);
+    }
+
+    /**
+     * @return a new SourceMetrics which is empty
+     */
+    public static SourceMetrics emptySourceMetrics() {
+        return ImmutableSourceMetrics.of(Collections.emptyMap());
     }
 
     /**
@@ -142,13 +145,18 @@ public final class ConnectivityModelFactory {
      * Returns a new {@code TargetMetrics}.
      *
      * @param addressMetrics the AddressMetrics of all addresses in the target
-     * @param publishedMessages the amount of published messages
      * @return a new SourceMetrics which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code connectionStatus} is {@code null}.
      */
-    public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics,
-            final long publishedMessages) {
-        return ImmutableTargetMetrics.of(addressMetrics, publishedMessages);
+    public static TargetMetrics newTargetMetrics(final Map<String, AddressMetric> addressMetrics) {
+        return ImmutableTargetMetrics.of(addressMetrics);
+    }
+
+    /**
+     * @return a new TargetMetrics which is empty
+     */
+    public static TargetMetrics emptyTargetMetrics() {
+        return ImmutableTargetMetrics.of(Collections.emptyMap());
     }
 
     /**
@@ -164,18 +172,141 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Returns a new {@code AddressMetric}.
+     * Returns a new client {@code ResourceStatus}.
      *
+     * @param address a client identifier e.g. on which node this client is running
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
-     * @param messageCount the amount of totally consumed/published messages
-     * @param lastMessageAt the timestamp when the last message was consumed/published
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static AddressMetric newAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long messageCount, @Nullable final Instant lastMessageAt) {
-        return ImmutableAddressMetric.of(status, statusDetails, messageCount, lastMessageAt);
+    public static ResourceStatus newClientStatus(
+            final String address, final ConnectionStatus status,
+            @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status.getName(),
+                statusDetails);
+    }
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param address a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param inStateSince the instant since the resource is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newClientStatus(
+            final String address, final ConnectionStatus status,
+            @Nullable final String statusDetails, final Instant inStateSince) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status.getName(),
+                statusDetails, inStateSince);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param address the address identifier
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newSourceStatus(final String address, final ConnectionStatus status, @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status.getName(),
+                statusDetails);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param address the address identifier
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newSourceStatus(final String address, final String status,
+            @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status,
+                statusDetails);
+    }
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newTargetStatus(final ConnectionStatus status,
+            @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, null, status.getName(),
+                statusDetails);
+    }
+
+    /**
+     * Returns a new generic {@code ResourceStatus} update.
+     *
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newStatusUpdate(final ConnectionStatus status, @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, null, status.getName(),
+                statusDetails);
+    }
+
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the instant since the resource is in the described status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newStatusUpdate(final ConnectionStatus status, @Nullable final String statusDetails,
+     final Instant inStatusSince) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, null, status.getName(),
+                statusDetails, inStatusSince);
+    }
+
+    /**
+     * Returns a new {@code AddressMetric}.
+     *
+     * @param measurements set of measurements for this address
+     * @return a new AddressMetric which is initialised with the given measurements.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric newAddressMetric(final Set<Measurement> measurements) {
+        return ImmutableAddressMetric.of(measurements);
+    }
+
+    /**
+     * Merges an existing {@code AddressMetric} with additional measurements to a new {@code AddressMetric}.
+     *
+     * @param addressMetric the existing address metric
+     * @param additionalMeasurements the additional measurements
+     * @return a new AddressMetric with the existing and additional measurements merged.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric newAddressMetric(final AddressMetric addressMetric,
+            final Set<Measurement> additionalMeasurements) {
+        final Set<Measurement> set = new HashSet<>(addressMetric.getMeasurements());
+        set.addAll(additionalMeasurements);
+        return ImmutableAddressMetric.of(set);
+    }
+
+    /**
+     * Returns a new empty {@code AddressMetric}.
+     *
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static AddressMetric emptyAddressMetric() {
+        return ImmutableAddressMetric.of(Collections.emptySet());
     }
 
     /**
@@ -273,7 +404,9 @@ public final class ConnectivityModelFactory {
      * @return the created {@link Target}
      */
     public static Target newTarget(final Target target, final String address) {
-        return newTarget(address, target.getAuthorizationContext(), target.getHeaderMapping().orElse(null),
+        return newTarget(address, target.getOriginalAddress(),
+                target.getAuthorizationContext(),
+                target.getHeaderMapping().orElse(null),
                 target.getTopics());
     }
 
@@ -288,7 +421,31 @@ public final class ConnectivityModelFactory {
      */
     public static Target newTarget(final String address, final AuthorizationContext authorizationContext,
             @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
-        return new ImmutableTarget.Builder().address(address)
+        return new ImmutableTarget.Builder()
+                .address(address)
+                .originalAddress(address) // addresses are the same before placeholders are resolved
+                .authorizationContext(authorizationContext)
+                .topics(topics)
+                .headerMapping(headerMapping)
+                .build();
+    }
+
+    /**
+     * Creates a new {@link Target}.
+     *
+     * @param address the address where the signals will be published
+     * @param originalAddress address the address before placeholders were resolved
+     * @param authorizationContext the authorization context of the new {@link Target}
+     * @param headerMapping the {@link HeaderMapping} of the new Target
+     * @param topics the FilteredTopics for which this target will receive signals
+     * @return the created {@link Target}
+     */
+    public static Target newTarget(final String address, final String originalAddress,
+            final AuthorizationContext authorizationContext,
+            @Nullable final HeaderMapping headerMapping, final Set<FilteredTopic> topics) {
+        return new ImmutableTarget.Builder()
+                .address(address)
+                .originalAddress(originalAddress) // addresses are the same before placeholders are resolved
                 .authorizationContext(authorizationContext)
                 .topics(topics)
                 .headerMapping(headerMapping)
@@ -540,4 +697,5 @@ public final class ConnectivityModelFactory {
     public static HeaderMapping newHeaderMapping(Map<String, String> mapping) {
         return new ImmutableHeaderMapping(mapping);
     }
+
 }

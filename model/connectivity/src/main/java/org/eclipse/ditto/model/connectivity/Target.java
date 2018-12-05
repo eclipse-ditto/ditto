@@ -37,6 +37,12 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      */
     String getAddress();
 
+
+    /**
+     * @return the original address (before placeholders were resolved)
+     */
+    String getOriginalAddress();
+
     /**
      * Create a copy of this object with the target address replaced.
      *

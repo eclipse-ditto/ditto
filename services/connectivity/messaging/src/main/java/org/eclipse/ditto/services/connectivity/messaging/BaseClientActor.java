@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,7 +37,6 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -47,10 +45,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -58,10 +56,12 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressMetric;
+import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConfigKeys;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
@@ -71,6 +71,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
 import com.typesafe.config.Config;
 
@@ -80,13 +81,10 @@ import akka.actor.FSM;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
-import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
-import akka.pattern.PatternsCS;
 import akka.routing.DefaultResizer;
 import akka.routing.Resizer;
 import akka.routing.RoundRobinPool;
-import akka.util.Timeout;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 import scala.util.Either;
@@ -105,7 +103,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     protected static final int CONNECTING_TIMEOUT = 10;
     protected static final int TEST_CONNECTION_TIMEOUT = 10;
-    protected static final int RETRIEVE_METRICS_TIMEOUT = 2;
 
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
@@ -114,9 +111,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     @Nullable private ActorRef messageMappingProcessorActor;
 
-    private long consumedMessageCounter = 0L;
-    private long publishedMessageCounter = 0L;
-
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
@@ -124,6 +118,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             final ActorRef conciergeForwarder) {
 
         checkNotNull(connection, "connection");
+        LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connection.getId());
 
         final Config config = getContext().getSystem().settings().config();
         final java.time.Duration javaInitTimeout = config.getDuration(ConfigKeys.Client.INIT_TIMEOUT);
@@ -203,7 +198,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param source the Source to retrieve the connection status for.
      * @return the result as Map containing an entry for each source.
      */
-    protected abstract CompletionStage<Map<String, AddressMetric>> getSourceConnectionStatus(final Source source);
+//    protected abstract CompletionStage<Map<String, ResourceStatus>> getSourceConnectionStatus(final Source source);
 
     /**
      * Retrieves the connection status of the passed {@link Target}.
@@ -211,7 +206,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param target the Target to retrieve the connection status for.
      * @return the result as Map containing an entry for each target.
      */
-    protected abstract CompletionStage<Map<String, AddressMetric>> getTargetConnectionStatus(final Target target);
+//    protected abstract CompletionStage<Map<String, ResourceStatus>> getTargetConnectionStatus(final Target target);
 
     /**
      * Release any temporary resources allocated during a connection operation when the operation times out.
@@ -246,6 +241,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inAnyState() {
         return matchEvent(RetrieveConnectionMetrics.class, BaseClientData.class, this::retrieveConnectionMetrics)
+                .event(RetrieveConnectionStatus.class, BaseClientData.class, this::retrieveConnectionStatus)
                 .event(OutboundSignal.WithExternalMessage.class, BaseClientData.class, (outboundSignal, data) -> {
                     handleExternalMessage(outboundSignal);
                     return stay();
@@ -254,61 +250,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
                     handleOutboundSignal(signal);
                     return stay();
                 });
-    }
-
-
-    /**
-     * Retrieves the {@link AddressMetric} of a single address which is handled by a child actor with the passed
-     * {@code childActorName}.
-     *
-     * @param addressIdentifier the identifier used as first entry in the Pair of CompletableFuture
-     * @param childActorLabel what to call the child actor
-     * @param childActorRef the actor reference of the child to ask for the AddressMetric
-     * @return a CompletableFuture with the addressIdentifier and the retrieved AddressMetric
-     */
-    protected final CompletableFuture<Pair<String, AddressMetric>> retrieveAddressMetric(
-            final String addressIdentifier, final String childActorLabel, @Nullable final ActorRef childActorRef) {
-
-        if (childActorRef != null) {
-            final Timeout timeout = Timeout.apply(RETRIEVE_METRICS_TIMEOUT, TimeUnit.SECONDS);
-            return PatternsCS.ask(childActorRef, RetrieveAddressMetric.getInstance(), timeout)
-                    .handle((response, throwable) -> {
-                        if (response != null) {
-                            return Pair.create(addressIdentifier, (AddressMetric) response);
-                        } else {
-                            return Pair.create(addressIdentifier,
-                                    ConnectivityModelFactory.newAddressMetric(
-                                            ConnectionStatus.FAILED,
-                                            throwable.getClass().getSimpleName() + ": " + throwable.getMessage(),
-                                            -1, Instant.now()));
-                        }
-                    }).toCompletableFuture();
-        } else {
-            log.warning("Consumer actor child <{}> was not found in child actors <{}>", childActorLabel,
-                    StreamSupport
-                            .stream(getContext().getChildren().spliterator(), false)
-                            .map(ref -> ref.path().name())
-                            .collect(Collectors.toList()));
-            return CompletableFuture.completedFuture(Pair.create(addressIdentifier,
-                    ConnectivityModelFactory.newAddressMetric(
-                            ConnectionStatus.FAILED,
-                            "child <" + childActorLabel + "> not found!",
-                            -1, Instant.now())));
-        }
-    }
-
-    /**
-     * Increments the consumed message counter by 1.
-     */
-    protected final void incrementConsumedMessageCounter() {
-        consumedMessageCounter++;
-    }
-
-    /**
-     * Increments the published message counter by 1.
-     */
-    protected final void incrementPublishedMessageCounter() {
-        publishedMessageCounter++;
     }
 
     /**
@@ -710,39 +651,49 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         }
     }
 
+    private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(
+            final RetrieveConnectionStatus command,
+            final BaseClientData data) {
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.debug("Received RetrieveConnectionStatus message from {}, forwarding to consumers and publishers.",
+                getSender());
+
+        // send to all children (consumers, publishers, except mapping actor)
+        getContext().getChildren().forEach(child -> {
+            if (messageMappingProcessorActor != child) {
+
+
+                log.debug("Forwarding RetrieveAddressStatus to child: {}", child.path());
+                child.tell(RetrieveAddressStatus.getInstance(), getSender());
+            }
+        });
+
+        final ResourceStatus clientStatus =
+                ConnectivityModelFactory.newClientStatus(ConfigUtil.instanceIdentifier(),
+                        data.getConnectionStatus(),
+                        "[" + stateName().name() + "] " + data.getConnectionStatusDetails().orElse(""),
+                        getInConnectionStatusSince());
+        getSender().tell(clientStatus, getSelf());
+
+        return stay();
+    }
+
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionMetrics(
             final RetrieveConnectionMetrics command,
             final BaseClientData data) {
 
-        final ActorRef sender = getSender();
-        final ActorRef self = getSelf();
-
+        LogUtil.enhanceLogWithCorrelationId(log, command);
+        log.debug("Received RetrieveConnectionMetrics message, gathering metrics.");
         final DittoHeaders dittoHeaders = command.getDittoHeaders().toBuilder()
                 .source(org.eclipse.ditto.services.utils.config.ConfigUtil.instanceIdentifier())
                 .build();
 
-        final CompletionStage<List<SourceMetrics>> sourceMetricsFuture = getCurrentSourcesMetrics();
-        final CompletionStage<List<TargetMetrics>> targetMetricsFuture = getCurrentTargetsMetrics();
+        final SourceMetrics sourceMetrics = ConnectivityCounterRegistry.aggregateSourceMetrics(connectionId());
+        final TargetMetrics targetMetrics = ConnectivityCounterRegistry.aggregateTargetMetrics(connectionId());
 
-        final CompletionStage<ConnectionMetrics> metricsFuture =
-                sourceMetricsFuture.thenCompose(sourceMetrics ->
-                        targetMetricsFuture.thenApply(targetMetrics ->
-                                ConnectivityModelFactory.newConnectionMetrics(
-                                        getCurrentConnectionStatus(),
-                                        getCurrentConnectionStatusDetails().orElse(null),
-                                        getInConnectionStatusSince(),
-                                        stateName().name(),
-                                        sourceMetrics,
-                                        targetMetrics)
-                        )
-                );
-
-        metricsFuture.thenAccept(connectionMetrics -> {
-            final Object response =
-                    RetrieveConnectionMetricsResponse.of(connectionId(), connectionMetrics, dittoHeaders);
-            sender.tell(response, self);
-        });
-
+        this.getSender().tell(
+                RetrieveConnectionMetricsResponse.of(connectionId(), sourceMetrics, targetMetrics, dittoHeaders),
+                this.getSelf());
         return stay();
     }
 
@@ -814,10 +765,7 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     }
 
     private void handleExternalMessage(final OutboundSignal.WithExternalMessage mappedOutboundSignal) {
-        getPublisherActor().ifPresent(publisher -> {
-            incrementPublishedMessageCounter();
-            publisher.forward(mappedOutboundSignal, getContext());
-        });
+        getPublisherActor().ifPresent(publisher -> publisher.forward(mappedOutboundSignal, getContext()));
     }
 
     private ConnectionStatus getCurrentConnectionStatus() {
@@ -830,27 +778,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
 
     private Optional<String> getCurrentConnectionStatusDetails() {
         return stateData().getConnectionStatusDetails();
-    }
-
-    private CompletionStage<List<SourceMetrics>> getCurrentSourcesMetrics() {
-        final long consumedMessages = consumedMessageCounter;
-        return collectAsList(getSourcesOrEmptySet()
-                .stream()
-                .map(this::getSourceConnectionStatus)
-                .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newSourceMetrics(status, consumedMessages)
-                ))
-        );
-    }
-
-    private CompletionStage<List<TargetMetrics>> getCurrentTargetsMetrics() {
-        final long publishedMessages = publishedMessageCounter;
-        return collectAsList(getTargetsOrEmptySet()
-                .stream()
-                .map(this::getTargetConnectionStatus)
-                .map(future -> future.thenApply(status ->
-                        ConnectivityModelFactory.newTargetMetrics(status, publishedMessages)
-                )));
     }
 
     private CompletionStage<Status.Status> testMessageMappingProcessor(@Nullable final MappingContext mappingContext) {

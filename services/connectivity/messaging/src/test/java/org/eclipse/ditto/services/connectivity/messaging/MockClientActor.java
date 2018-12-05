@@ -10,12 +10,15 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -84,6 +87,22 @@ public class MockClientActor extends AbstractActor {
                     log.info("Deleting connection...");
                     forward(dc);
                     sender().tell(new Status.Success("mock"), getSelf());
+                })
+                .match(RetrieveConnectionStatus.class, rcs -> {
+                    log.info("Retrieve connection status...");
+                    sender().tell(ConnectivityModelFactory.newClientStatus("client1",
+                            ConnectionStatus.OPEN, "connection is open", TestConstants.INSTANT),
+                            getSelf());
+
+                    // simulate consumer and pusblisher actor response
+                    sender().tell(ConnectivityModelFactory.newSourceStatus("source1",
+                            ConnectionStatus.OPEN, "consumer started"),
+                            getSelf());
+                    sender().tell(ConnectivityModelFactory.newSourceStatus("source2",
+                            ConnectionStatus.OPEN, "consumer started"),
+                            getSelf());
+                    sender().tell(ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "publisher started"),
+                            getSelf());
                 })
                 .matchAny(unhandled -> {
                     log.info("Received unhandled message: {}", unhandled.getClass().getName());

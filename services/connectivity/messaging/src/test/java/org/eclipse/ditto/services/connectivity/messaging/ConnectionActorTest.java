@@ -10,8 +10,10 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -20,18 +22,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.connectivity.AggregatedConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -131,9 +130,19 @@ public final class ConnectionActorTest extends WithMockServers {
         retrieveModifiedConnectionResponse =
                 RetrieveConnectionResponse.of(modifiedConnection, DittoHeaders.empty());
         retrieveConnectionStatusOpenResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.OPEN,
+                        asList(ConnectivityModelFactory.newClientStatus("client1", ConnectionStatus.OPEN, "connection is open", INSTANT)),
+                        asList(
+                            ConnectivityModelFactory.newSourceStatus("source1", ConnectionStatus.OPEN, "consumer started"),
+                            ConnectivityModelFactory.newSourceStatus("source2", ConnectionStatus.OPEN, "consumer started")
+                        ),
+                        asList(ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "publisher started")),
+                        DittoHeaders.empty());
         retrieveConnectionStatusClosedResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED,
+                        Collections.singletonList(ConnectivityModelFactory.newClientStatus(null,
+                                ConnectionStatus.CLOSED, "connection is closed", Instant.EPOCH)),
+                        Collections.emptyList(), Collections.emptyList(), DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -242,17 +251,13 @@ public final class ConnectionActorTest extends WithMockServers {
             underTest.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
             probe.expectNoMessage();
 
-            final ConnectionMetrics metrics =
-                    ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.CLOSED, "connection is closed",
-                            Instant.EPOCH, BaseClientState.DISCONNECTED.name(), Collections.emptyList(),
-                            Collections.emptyList());
             final RetrieveConnectionMetricsResponse metricsResponse =
-                    RetrieveConnectionMetricsResponse.of(connectionId, metrics, DittoHeaders.empty());
-            final AggregatedConnectivityCommandResponse aggregatedConnectivityCommandResponse =
-                    AggregatedConnectivityCommandResponse.of(connectionId,
-                            Collections.singletonList(metricsResponse), metricsResponse.getType(), HttpStatusCode.OK,
+                    RetrieveConnectionMetricsResponse.of(connectionId,
+                            ConnectivityModelFactory.emptyConnectionMetrics(),
+                            ConnectivityModelFactory.emptySourceMetrics(),
+                            ConnectivityModelFactory.emptyTargetMetrics(),
                             DittoHeaders.empty());
-            expectMsg(aggregatedConnectivityCommandResponse);
+            expectMsg(metricsResponse);
         }};
     }
 

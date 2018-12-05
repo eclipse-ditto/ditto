@@ -131,15 +131,6 @@ public final class ImmutableConnectionTest {
             .build();
 
     @Test
-    public void test() {
-        final String uri = "amqps://messaging%40tst_suite_broker_e15794b408ad43ba8905ee1ba604eb14_hub" +
-                ":We5w8dMuSHRooVJZ3p8s@35.158.186.142:5671/";
-
-        System.out.println(ConnectionUri.of(uri).toString());
-
-    }
-
-    @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableConnection.class)
                 .usingGetClass()

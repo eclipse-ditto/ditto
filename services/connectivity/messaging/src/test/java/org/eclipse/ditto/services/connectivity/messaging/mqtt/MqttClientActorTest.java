@@ -388,44 +388,6 @@ public class MqttClientActorTest {
 
                 final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                         expectMsgClass(RetrieveConnectionMetricsResponse.class);
-
-                final ConnectionMetrics connectionMetrics = retrieveConnectionMetricsResponse.getConnectionMetrics();
-                assertThat((Object) connectionMetrics.getConnectionStatus()).isEqualTo(ConnectionStatus.OPEN);
-                assertThat(connectionMetrics.getClientState()).isEqualTo(BaseClientState.CONNECTED.name());
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, SOURCE_ADDRESS))
-                        .hasValueSatisfying(m -> assertThat(m.getMessageCount()).isEqualTo(1L));
-                assertThat(findSourceMetricsForTopic(connectionMetrics, SOURCE_ADDRESS))
-                        .hasValueSatisfying(m -> assertThat(m.getConsumedMessages()).isEqualTo(1L));
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic1")).isNotEmpty();
-                assertThat(findSourceAddressMetricForTopic(connectionMetrics, "topic2")).isNotEmpty();
-                assertThat(findTargetMetricsForTopic(connectionMetrics, TARGET.getAddress())).isNotEmpty();
-            }
-
-            private Optional<AddressMetric> findSourceAddressMetricForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-
-                System.out.println(connectionMetrics.toJsonString());
-
-                return connectionMetrics.getSourcesMetrics().stream()
-                        .flatMap(metric -> metric.getAddressMetrics()
-                                .entrySet()
-                                .stream()
-                                .filter(e -> e.getKey().contains(address))
-                                .map(Map.Entry::getValue))
-                        .findFirst();
-            }
-
-            private Optional<SourceMetrics> findSourceMetricsForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-                return connectionMetrics.getSourcesMetrics().stream()
-                        .filter(metric -> metric.getAddressMetrics().containsKey(address)).findFirst();
-            }
-
-            private Optional<TargetMetrics> findTargetMetricsForTopic(final ConnectionMetrics connectionMetrics,
-                    final String address) {
-                return connectionMetrics.getTargetsMetrics().stream()
-                        .filter(metric -> metric.getAddressMetrics().keySet().contains(address))
-                        .findFirst();
             }
         };
     }

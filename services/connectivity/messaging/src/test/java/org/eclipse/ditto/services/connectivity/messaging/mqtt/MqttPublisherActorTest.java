@@ -13,32 +13,17 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
-
-import javax.jms.JMSException;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQPublisherActor;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
-import com.newmotion.akka.rabbitmq.ChannelCreated;
-import com.newmotion.akka.rabbitmq.ChannelMessage;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.alpakka.mqtt.MqttMessage;
@@ -65,7 +50,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props(mqttConnectionFactory, probe.ref(), false );
+        return MqttPublisherActor.props("theConnection", mqttConnectionFactory, probe.ref(), false);
     }
 
     @Override

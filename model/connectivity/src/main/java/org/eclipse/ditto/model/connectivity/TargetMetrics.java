@@ -34,11 +34,6 @@ public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     * @return the total count of published messages on this target
-     */
-    long getPublishedMessages();
-
-    /**
      * Returns all non hidden marked fields of this {@code TargetMetrics}.
      *
      * @return a JSON object representation of this TargetMetrics including only non hidden marked fields.

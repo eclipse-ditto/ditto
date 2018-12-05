@@ -33,34 +33,24 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 final class ImmutableTargetMetrics implements TargetMetrics {
 
     private final Map<String, AddressMetric> addressMetrics;
-    private final long publishedMessages;
 
-
-    private ImmutableTargetMetrics(final Map<String, AddressMetric> addressMetrics, final long publishedMessages) {
+    private ImmutableTargetMetrics(final Map<String, AddressMetric> addressMetrics) {
         this.addressMetrics = Collections.unmodifiableMap(new HashMap<>(addressMetrics));
-        this.publishedMessages = publishedMessages;
     }
 
     /**
      * Creates a new {@code ImmutableTargetMetrics} instance.
      *
      * @param addressMetrics the AddressMetrics for each target
-     * @param publishedMessages the total count of published messages on this source
      * @return a new instance of ImmutableTargetMetrics
      */
-    public static ImmutableTargetMetrics of(final Map<String, AddressMetric> addressMetrics,
-            final long publishedMessages) {
-        return new ImmutableTargetMetrics(addressMetrics, publishedMessages);
+    public static ImmutableTargetMetrics of(final Map<String, AddressMetric> addressMetrics) {
+        return new ImmutableTargetMetrics(addressMetrics);
     }
 
     @Override
     public Map<String, AddressMetric> getAddressMetrics() {
         return addressMetrics;
-    }
-
-    @Override
-    public long getPublishedMessages() {
-        return publishedMessages;
     }
 
     @Override
@@ -72,7 +62,6 @@ final class ImmutableTargetMetrics implements TargetMetrics {
         jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
                 .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
-        jsonObjectBuilder.set(JsonFields.PUBLISHED_MESSAGES, publishedMessages, predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -91,8 +80,7 @@ final class ImmutableTargetMetrics implements TargetMetrics {
                                 f -> f.getKey().toString(),
                                 f -> ConnectivityModelFactory.addressMetricFromJson(f.getValue().asObject()))))
                 .orElse(Collections.emptyMap());
-        final long readPublishedMessages = jsonObject.getValueOrThrow(JsonFields.PUBLISHED_MESSAGES);
-        return ImmutableTargetMetrics.of(readAddressMetrics, readPublishedMessages);
+        return ImmutableTargetMetrics.of(readAddressMetrics);
     }
 
 
@@ -101,20 +89,18 @@ final class ImmutableTargetMetrics implements TargetMetrics {
         if (this == o) {return true;}
         if (!(o instanceof ImmutableTargetMetrics)) {return false;}
         final ImmutableTargetMetrics that = (ImmutableTargetMetrics) o;
-        return publishedMessages == that.publishedMessages &&
-                Objects.equals(addressMetrics, that.addressMetrics);
+        return Objects.equals(addressMetrics, that.addressMetrics);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(addressMetrics, publishedMessages);
+        return Objects.hash(addressMetrics);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "addressMetrics=" + addressMetrics +
-                ", publishedMessages=" + publishedMessages +
                 "]";
     }
 }

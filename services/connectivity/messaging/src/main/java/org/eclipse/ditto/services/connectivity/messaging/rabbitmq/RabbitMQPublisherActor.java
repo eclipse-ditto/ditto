@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
 
@@ -65,7 +66,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Nullable private ActorRef channelActor;
 
-    private RabbitMQPublisherActor(final Set<Target> targets) {
+    private RabbitMQPublisherActor(final Set<Target> targets, final String connectionId) {
+        super(connectionId);
         this.targets = targets;
     }
 
@@ -73,15 +75,16 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
      * @param targets the targets to publish to
+     * @param connectionId the connectionId this publisher belongs to
      * @return the Akka configuration Props object.
      */
-    static Props props(final Set<Target> targets) {
+    static Props props(final Set<Target> targets, final String connectionId) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public RabbitMQPublisherActor create() {
-                return new RabbitMQPublisherActor(targets);
+                return new RabbitMQPublisherActor(targets, connectionId);
             }
         });
     }
@@ -91,8 +94,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         receiveBuilder
                 .match(ChannelCreated.class, channelCreated -> {
                     this.channelActor = channelCreated.channel();
-                    addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
-                            "Started at " + Instant.now(), 0, null);
+                    resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN,
+                            "Started at " + Instant.now());
 
                     final Set<String> exchanges = targets.stream()
                             .map(t -> toPublishTarget(t.getAddress()))
@@ -105,8 +108,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                                 channel.exchangeDeclarePassive(exchange);
                             } catch (final IOException e) {
                                 log.warning("Failed to declare exchange <{}> passively", exchange);
-                                addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.FAILED,
-                                        "Exchange '" + exchange + "' was missing at " + Instant.now(), 0, null);
+                                resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.FAILED,
+                                        "Exchange '" + exchange + "' was missing at " + Instant.now());
                             }
                         });
                         return null;
@@ -137,7 +140,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     @Override
     protected void publishMessage(@Nullable final Target target, final RabbitMQTarget publishTarget,
-            final ExternalMessage message) {
+            final ExternalMessage message, ConnectionMetricsCollector publishedCounter) {
         if (channelActor == null) {
             log.info("No channel available, dropping response.");
             return;
@@ -147,9 +150,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             log.warning("No routing key, dropping message.");
             return;
         }
-
-        publishedMessages++;
-        lastMessagePublishedAt = Instant.now();
 
         final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
         final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
@@ -180,8 +180,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                         publishTarget.getRoutingKey(), basicProperties);
                 channel.basicPublish(publishTarget.getExchange(), publishTarget.getRoutingKey(), basicProperties,
                         body);
+                publishedCounter.recordSuccess();
             } catch (final Exception e) {
                 log.warning("Failed to publish message to RabbitMQ: {}", e.getMessage());
+                publishedCounter.recordFailure();
             }
             return null;
         }, false);

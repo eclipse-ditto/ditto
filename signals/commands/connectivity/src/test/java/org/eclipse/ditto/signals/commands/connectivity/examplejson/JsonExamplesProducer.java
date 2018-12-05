@@ -163,13 +163,19 @@ public class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("retrieveConnection.json")), retrieveConnectionResponse);
 
         final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse =
-                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN, DittoHeaders.empty());
+                RetrieveConnectionStatusResponse.of(TestConstants.ID,
+                        ConnectionStatus.OPEN,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionStatus.json")), retrieveConnectionStatusResponse);
 
         final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.of(TestConstants.ID,
-                        ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN, "some status",
-                                Instant.now(), "CONNECTED",  Collections.emptyList(), Collections.emptyList()),
+                        ConnectivityModelFactory.newConnectionMetrics(ConnectivityModelFactory.newAddressMetric(Collections.emptySet())),
+                        ConnectivityModelFactory.newSourceMetrics(Collections.emptyMap()),
+                        ConnectivityModelFactory.newTargetMetrics(Collections.emptyMap()),
                         DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("retrieveConnectionMetrics.json")), retrieveConnectionMetricsResponse);
     }

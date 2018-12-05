@@ -10,12 +10,15 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import java.time.Instant;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -23,7 +26,12 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+
+import com.eclipsesource.json.Json;
 
 /**
  * Immutable implementation of {@link AddressMetric}.
@@ -31,66 +39,40 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAddressMetric implements AddressMetric {
 
-    private final ConnectionStatus status;
-    @Nullable private final String statusDetails;
-    private final long messageCount;
-    @Nullable private final Instant lastMessageAt;
+    public static final JsonKey SUCCESS_KEY = JsonFactory.newKey("success");
+    public static final JsonKey FAILURE_KEY = JsonFactory.newKey("failure");
+    private final Set<Measurement> measurements;
 
-    private ImmutableAddressMetric(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long messageCount, @Nullable final Instant lastMessageAt) {
-        this.status = status;
-        this.statusDetails = statusDetails;
-        this.messageCount = messageCount;
-        this.lastMessageAt = lastMessageAt;
+    private ImmutableAddressMetric(final Set<Measurement> measurements) {
+        this.measurements = Collections.unmodifiableSet(new HashSet<>(measurements));
     }
 
     /**
      * Creates a new {@code ImmutableAddressMetric} instance.
      *
-     * @param status the current status of the connection
-     * @param statusDetails the optional status details
-     * @param consumedMessages the current message count
-     * @param lastMessageAt the timestamp when the last message was consumed/published
+     * @param measurements set of measurements for this address
      * @return a new instance of ImmutableAddressMetric
      */
-    public static ImmutableAddressMetric of(final ConnectionStatus status, @Nullable final String statusDetails,
-            final long consumedMessages, @Nullable final Instant lastMessageAt) {
-        return new ImmutableAddressMetric(status, statusDetails, consumedMessages, lastMessageAt);
+    public static ImmutableAddressMetric of(final Set<Measurement> measurements) {
+        return new ImmutableAddressMetric(ConditionChecker.checkNotNull(measurements, "measurements"));
     }
 
     @Override
-    public ConnectionStatus getStatus() {
-        return status;
-    }
-
-    @Override
-    public Optional<String> getStatusDetails() {
-        return Optional.ofNullable(statusDetails);
-    }
-
-    @Override
-    public long getMessageCount() {
-        return messageCount;
-    }
-
-    @Override
-    public Optional<Instant> getLastMessageAt() {
-        return Optional.ofNullable(lastMessageAt);
+    public Set<Measurement> getMeasurements() {
+        return measurements;
     }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.STATUS, status.getName(), predicate);
-        if (statusDetails != null) {
-            jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
-        }
-        jsonObjectBuilder.set(JsonFields.MESSAGE_COUNT, messageCount, predicate);
-        if (lastMessageAt != null) {
-            jsonObjectBuilder.set(JsonFields.LAST_MESSAGE_AT, lastMessageAt.toString(), predicate);
+
+        for (final Measurement measurement : measurements) {
+            final JsonPointer pointer = JsonFactory.newPointer(
+                    JsonFactory.newKey(measurement.getType()),
+                    measurement.isSuccess() ? SUCCESS_KEY : FAILURE_KEY);
+            jsonObjectBuilder.set(pointer, measurement.toJson().getValue(pointer).orElse(JsonFactory.newObject()));
         }
         return jsonObjectBuilder.build();
     }
@@ -104,40 +86,37 @@ final class ImmutableAddressMetric implements AddressMetric {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static AddressMetric fromJson(final JsonObject jsonObject) {
-        final ConnectionStatus readConnectionStatus = ConnectionStatus.forName(
-                jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectionStatus.UNKNOWN);
-        final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS)
-                .orElse(null);
-        final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.MESSAGE_COUNT);
-        final Instant readLastMessageAt = jsonObject.getValue(JsonFields.LAST_MESSAGE_AT).map(Instant::parse)
-                .orElse(null);
-        return ImmutableAddressMetric.of(readConnectionStatus, readConnectionStatusDetails, readConsumedMessages,
-                readLastMessageAt);
+        final Set<Measurement> readMeasurements = new HashSet<>();
+        jsonObject.stream()
+                .filter(field -> field.getValue().isObject())
+                .forEach(f -> Stream.of(SUCCESS_KEY, FAILURE_KEY)
+                        .map(key -> JsonFactory.newPointer(JsonFactory.newKey(f.getKeyName()), key))
+                        .map(jsonObject::get)
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableMeasurement::fromJson)
+                        .forEach(readMeasurements::add));
+        return ImmutableAddressMetric.of(readMeasurements);
     }
+
 
     @Override
     public boolean equals(final Object o) {
         if (this == o) {return true;}
         if (!(o instanceof ImmutableAddressMetric)) {return false;}
         final ImmutableAddressMetric that = (ImmutableAddressMetric) o;
-        return status == that.status &&
-                Objects.equals(statusDetails, that.statusDetails) &&
-                messageCount == that.messageCount &&
-                Objects.equals(lastMessageAt, that.lastMessageAt);
+        return Objects.equals(measurements, that.measurements);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(status, statusDetails, messageCount, lastMessageAt);
+        return Objects.hash(measurements);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "status=" + status +
-                ", statusDetails=" + statusDetails +
-                ", messageCount=" + messageCount +
-                ", lastMessageAt=" + lastMessageAt +
+                "measurements=" + measurements +
                 "]";
     }
 

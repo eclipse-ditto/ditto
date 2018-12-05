@@ -47,11 +47,23 @@ final class ImmutableTarget implements Target {
     private final String address;
     private final Set<FilteredTopic> topics;
     private final AuthorizationContext authorizationContext;
+    private final String originalAddress;
     @Nullable private final HeaderMapping headerMapping;
 
     private ImmutableTarget(final String address, final Set<FilteredTopic> topics,
             final AuthorizationContext authorizationContext, @Nullable final HeaderMapping headerMapping) {
         this.address = checkNotNull(address, "address");
+        this.originalAddress = this.address;
+        this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
+        this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
+        this.headerMapping = headerMapping;
+    }
+
+    private ImmutableTarget(final String address, final Set<FilteredTopic> topics,
+            final AuthorizationContext authorizationContext, @Nullable final HeaderMapping headerMapping,
+            final String originalAddress) {
+        this.address = checkNotNull(address, "address");
+        this.originalAddress = checkNotNull(originalAddress, "originalAddress");
         this.topics = Collections.unmodifiableSet(new HashSet<>(checkNotNull(topics, "topics")));
         this.authorizationContext = checkNotNull(authorizationContext, "authorizationContext");
         this.headerMapping = headerMapping;
@@ -63,8 +75,13 @@ final class ImmutableTarget implements Target {
     }
 
     @Override
+    public String getOriginalAddress() {
+        return originalAddress;
+    }
+
+    @Override
     public Target withAddress(final String newAddress) {
-        return new ImmutableTarget(newAddress, topics, authorizationContext, headerMapping);
+        return new ImmutableTarget(newAddress, topics, authorizationContext, headerMapping, address);
     }
 
     @Override
@@ -151,18 +168,20 @@ final class ImmutableTarget implements Target {
         return Objects.equals(address, that.address) &&
                 Objects.equals(topics, that.topics) &&
                 Objects.equals(headerMapping, that.headerMapping) &&
+                Objects.equals(originalAddress, that.originalAddress) &&
                 Objects.equals(authorizationContext, that.authorizationContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, authorizationContext, headerMapping);
+        return Objects.hash(address, topics, authorizationContext, headerMapping, originalAddress);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "address=" + address +
+                ", originalAddress=" + originalAddress +
                 ", topics=" + topics +
                 ", authorizationContext=" + authorizationContext +
                 ", headerMapping=" + headerMapping +
@@ -176,6 +195,7 @@ final class ImmutableTarget implements Target {
     static final class Builder implements TargetBuilder {
 
         @Nullable private String address;
+        @Nullable private String originalAddress;
         @Nullable private Set<FilteredTopic> topics;
         @Nullable private AuthorizationContext authorizationContext;
         @Nullable private HeaderMapping headerMapping;
@@ -183,6 +203,12 @@ final class ImmutableTarget implements Target {
         @Override
         public TargetBuilder address(final String address) {
             this.address = address;
+            return this;
+        }
+
+        @Override
+        public TargetBuilder originalAddress(final String originalAddress) {
+            this.originalAddress = originalAddress;
             return this;
         }
 
@@ -223,7 +249,8 @@ final class ImmutableTarget implements Target {
             checkNotNull(address, "address");
             checkNotNull(topics, "topics");
             checkNotNull(authorizationContext, "authorizationContext");
-            return new ImmutableTarget(address, topics, authorizationContext, headerMapping);
+            checkNotNull(originalAddress, "originalAddress");
+            return new ImmutableTarget(address, topics, authorizationContext, headerMapping, originalAddress);
         }
     }
 }

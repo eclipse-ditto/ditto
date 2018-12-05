@@ -17,10 +17,12 @@ import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +40,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
+import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
+import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -88,6 +93,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
     private final Function<InboundExternalMessage, DittoHeaders> mapHeaders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
+    private final ConnectionMetricsCollector responsedCounter;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -103,6 +109,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         adjustHeaders = new AdjustHeaders(connectionId);
         mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
+        responsedCounter = ConnectivityCounterRegistry.getRespondedCounter(connectionId);
     }
 
     /**
@@ -132,7 +139,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ExternalMessage.class, this::handle)
+                .match(ExternalMessage.class, this::handleInboundMessage)
                 .match(CommandResponse.class, this::handleCommandResponse)
                 .match(OutboundSignal.class, this::handleOutboundSignal)
                 .match(Signal.class, this::handleSignal)
@@ -145,13 +152,24 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                 }).build();
     }
 
-    private void handle(final ExternalMessage externalMessage) {
+    private void handleInboundMessage(final ExternalMessage externalMessage) {
         ConditionChecker.checkNotNull(externalMessage);
         final String correlationId = externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         LogUtil.enhanceLogWithCorrelationId(log, correlationId);
         LogUtil.enhanceLogWithCustomField(log, BaseClientData.MDC_CONNECTION_ID, connectionId);
         log.debug("Handling ExternalMessage: {}", externalMessage);
         try {
+            ConnectivityCounterRegistry
+                    .getInboundMappedCounter(connectionId, externalMessage.getSourceAddress().orElse("unknown"))
+                    .record(() -> mapExternalMessageToSignalAndForwardToConcierge(externalMessage));
+        } catch (final DittoRuntimeException e) {
+            handleDittoRuntimeException(e, externalMessage.getHeaders());
+        } catch (final Exception e) {
+            log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
+        }
+    }
+
+    private void mapExternalMessageToSignalAndForwardToConcierge(final ExternalMessage externalMessage) {
             final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
             final Optional<InboundExternalMessage> inboundMessageOpt = processor.process(messageWithAuthSubject);
             inboundMessageOpt.ifPresent(inboundMessage -> {
@@ -170,11 +188,6 @@ public final class MessageMappingProcessorActor extends AbstractActor {
                         .getType());
                 conciergeForwarder.tell(adjustedSignal, getSelf());
             });
-        } catch (final DittoRuntimeException e) {
-            handleDittoRuntimeException(e, externalMessage.getHeaders());
-        } catch (final Exception e) {
-            log.warning("Got <{}> when message was processed: <{}>", e.getClass().getSimpleName(), e.getMessage());
-        }
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -212,9 +225,11 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleCommandResponse(final CommandResponse<?> response) {
         enhanceLogUtil(response);
         finishTrace(response);
+        recordResponse(response);
+
         if (response.getDittoHeaders().isResponseRequired()) {
 
-            if (response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt()) {
+            if (isSuccessResponse(response)) {
                 log.debug("Received response: {}", response);
             } else {
                 log.debug("Received error response: {}", response.toJsonString());
@@ -227,11 +242,22 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
     }
 
+    private void recordResponse(final CommandResponse<?> response) {
+        if (isSuccessResponse(response)) {
+            responsedCounter.recordSuccess();
+        } else {
+            responsedCounter.recordFailure();
+        }
+    }
+
+    private boolean isSuccessResponse(final CommandResponse<?> response) {
+        return response.getStatusCodeValue() < HttpStatusCode.BAD_REQUEST.toInt();
+    }
+
     private void handleOutboundSignal(final OutboundSignal outbound) {
-        final Signal<?> signal = outbound.getSource();
-        enhanceLogUtil(signal);
-        log.debug("Handling outbound signal: {}", signal);
-        mapToExternalMessage(signal)
+        enhanceLogUtil(outbound.getSource());
+        log.debug("Handling outbound signal: {}", outbound.getSource());
+        mapToExternalMessage(outbound)
                 .map(message -> OutboundSignalFactory.newMappedOutboundSignal(outbound, message))
                 .ifPresent(outboundSignal -> publisherActor.forward(outboundSignal, getContext()));
     }
@@ -247,9 +273,14 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         handleOutboundSignal(OutboundSignalFactory.newOutboundSignal(signal, Collections.emptySet()));
     }
 
-    private Optional<ExternalMessage> mapToExternalMessage(final Signal<?> signal) {
+    private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
         try {
-            return processor.process(signal);
+            final Set<ConnectionMetricsCollector> collectors = outbound.getTargets()
+                    .stream()
+                    .map(Target::getOriginalAddress)
+                    .map(address -> ConnectivityCounterRegistry.getOutboundMappedCounter(connectionId, address))
+                    .collect(Collectors.toSet());
+            return ConnectionMetricsCollector.record(collectors, () -> processor.process(outbound.getSource()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
                     e.getDescription().orElse(""));
@@ -381,7 +412,13 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         public void accept(final ExternalMessage externalMessage, final Signal<?> signal) {
             externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
                 log.debug("Connection Signal ID Enforcement enabled: {}", enforcementFilter);
+                try {
                 enforcementFilter.match(signal.getId(), signal.getDittoHeaders());
+                } catch(final DittoRuntimeException ex) {
+                    log.debug("Connection Signal ID Enforcement failed with parameter '{}' and filter '{}'.",
+                            signal.getId(), enforcementFilter);
+                    throw ex;
+                }
             });
         }
     }

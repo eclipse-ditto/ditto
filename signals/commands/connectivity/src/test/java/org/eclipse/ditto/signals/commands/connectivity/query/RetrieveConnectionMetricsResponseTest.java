@@ -12,22 +12,25 @@ package org.eclipse.ditto.signals.commands.connectivity.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.ID;
+import static org.eclipse.ditto.signals.commands.connectivity.TestConstants.Metrics.mergeMeasurements;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
-import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
+import org.eclipse.ditto.signals.commands.connectivity.TestConstants.Metrics;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -37,15 +40,22 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveConnectionMetricsResponseTest {
 
-    private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(ConnectionStatus.OPEN,
-            "some status", Instant.now(),"CONNECTED", Collections.emptyList(),
-            Collections.emptyList());
+    private static final ConnectionMetrics METRICS = ConnectivityModelFactory.newConnectionMetrics(
+            ConnectivityModelFactory.newAddressMetric(Collections.emptySet()));
+
+    private static final SourceMetrics EMPTY_SOURCE_METRICS =
+            ConnectivityModelFactory.newSourceMetrics(new HashMap<>());
+
+    private static final TargetMetrics EMPTY_TARGET_METRICS =
+            ConnectivityModelFactory.newTargetMetrics(new HashMap<>());
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
-            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
-            .set(RetrieveConnectionMetricsResponse.JSON_CONNECTION_METRICS, METRICS.toJson())
+            .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, ID)
+            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_CONNECTION_METRICS, Metrics.Json.CONNECTION_METRICS_JSON)
+            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_SOURCE_METRICS, Metrics.SOURCE_METRICS1.toJson())
+            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_TARGET_METRICS, Metrics.TARGET_METRICS1.toJson())
             .build();
 
     @Test
@@ -58,14 +68,15 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionMetricsResponse.class, areImmutable(),
-                provided(ConnectionMetrics.class).isAlsoImmutable());
+                provided(ConnectionMetrics.class, SourceMetrics.class, TargetMetrics.class).isAlsoImmutable());
     }
 
     @Test
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(
-                        () -> RetrieveConnectionMetricsResponse.of(null, METRICS, DittoHeaders.empty()))
+                        () -> RetrieveConnectionMetricsResponse.of(null, METRICS, EMPTY_SOURCE_METRICS,
+                                EMPTY_TARGET_METRICS, DittoHeaders.empty()))
                 .withMessage("The %s must not be null!", "Connection ID")
                 .withNoCause();
     }
@@ -73,7 +84,10 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void fromJsonReturnsExpected() {
         final RetrieveConnectionMetricsResponse expected =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID, METRICS,
+                RetrieveConnectionMetricsResponse.of(ID,
+                        Metrics.CONNECTION_METRICS,
+                        Metrics.SOURCE_METRICS1,
+                        Metrics.TARGET_METRICS1,
                         DittoHeaders.empty());
 
         final RetrieveConnectionMetricsResponse actual =
@@ -85,10 +99,51 @@ public final class RetrieveConnectionMetricsResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual =
-                RetrieveConnectionMetricsResponse.of(TestConstants.ID, METRICS,
+                RetrieveConnectionMetricsResponse.of(ID,
+                        Metrics.CONNECTION_METRICS,
+                        Metrics.SOURCE_METRICS1,
+                        Metrics.TARGET_METRICS1,
                         DittoHeaders.empty()).toJson();
 
+        System.out.println(actual);
+
         assertThat(actual).isEqualTo(KNOWN_JSON);
+    }
+
+    @Test
+    public void mergeRetrieveConnectionMetricsResponses() {
+
+        final RetrieveConnectionMetricsResponse merged = Metrics.METRICS_RESPONSE1.mergeWith(Metrics.METRICS_RESPONSE2);
+
+        assertThat(merged.getConnectionId()).isEqualTo(ID);
+
+        // check overall sum of connection metrics
+        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
+                .contains(mergeMeasurements("inbound", true, Metrics.INBOUND, 4));
+        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
+                .contains(mergeMeasurements("outbound", true, Metrics.OUTBOUND, 4));
+        assertThat(merged.getConnectionMetrics().getMetrics().getMeasurements())
+                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 8));
+
+        // check source metrics
+        assertThat(merged.getSourceMetrics().getAddressMetrics()).containsKeys("source1", "source2", "source3");
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source1").getMeasurements())
+                .contains(Metrics.INBOUND, Metrics.MAPPING);
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source2").getMeasurements())
+                .contains(mergeMeasurements("inbound", true, Metrics.INBOUND,2),
+                        mergeMeasurements("mapping", true, Metrics.MAPPING, 2));
+        assertThat(merged.getSourceMetrics().getAddressMetrics().get("source3").getMeasurements())
+                .contains(Metrics.INBOUND, Metrics.MAPPING);
+
+        // check target metrics
+        assertThat(merged.getTargetMetrics().getAddressMetrics()).containsKeys("target1", "target2", "target3");
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target1").getMeasurements())
+                .contains(Metrics.MAPPING, Metrics.OUTBOUND);
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target2").getMeasurements())
+                .contains(mergeMeasurements("mapping", true, Metrics.MAPPING, 2),
+                        mergeMeasurements("outbound", true, Metrics.OUTBOUND, 2));
+        assertThat(merged.getTargetMetrics().getAddressMetrics().get("target3").getMeasurements())
+                .contains(Metrics.MAPPING, Metrics.OUTBOUND);
     }
 
 }
