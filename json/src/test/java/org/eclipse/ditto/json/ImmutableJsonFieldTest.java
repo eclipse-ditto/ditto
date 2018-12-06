@@ -130,10 +130,10 @@ public final class ImmutableJsonFieldTest {
     }
 
     @Test
-    public void stringRepresentationContainsExpectedWords() {
+    public void toStringReturnsExpected() {
         final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
-        assertThat(underTest.toString()).contains("key").contains("value").contains("definition");
+        assertThat(underTest.toString()).isEqualTo("\"" + jsonKeyMock + "\"" + ":" + jsonValueMock);
     }
 
     @Test

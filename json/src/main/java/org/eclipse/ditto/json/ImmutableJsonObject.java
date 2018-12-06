@@ -507,7 +507,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
             return jsonFieldMap.values()
                     .stream()
-                    .map(jsonField -> "\"" + jsonField.getKeyName() + "\"" + ":" + jsonField.getValue())
+                    .map(JsonField::toString)
                     .collect(Collectors.joining(",", "{", "}"));
         }
 

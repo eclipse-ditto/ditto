@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.json.ImmutableJsonString.JsonStringEscaper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,21 +24,21 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonValue;
 
 /**
- * Unit test for {@link org.eclipse.ditto.json.JsonStringEscaper}.
+ * Unit test for {@link JsonCharEscaper}.
  * Test cases are oriented on https://tools.ietf.org/html/rfc8259#section-7
  */
-public final class JsonStringEscaperTest {
+public final class JsonCharEscaperTest {
     
-    private JsonStringEscaper underTest;
+    private JsonCharEscaper underTest;
 
     @Before
     public void setUp() {
-        underTest = JsonStringEscaper.getInstance();
+        underTest = JsonCharEscaper.getInstance();
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(JsonStringEscaper.class,
+        assertInstancesOf(JsonCharEscaper.class,
                 areImmutable(),
                 assumingFields("replacements").areNotModifiedAndDoNotEscape());
     }
