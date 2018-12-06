@@ -31,9 +31,17 @@ public class ImmutableTopicPathPlaceholderTest {
     private static final TopicPath.Group KNOWN_GROUP = TopicPath.Group.THINGS;
     private static final TopicPath.Criterion KNOWN_CRITERION = TopicPath.Criterion.COMMANDS;
     private static final TopicPath.Action KNOWN_ACTION = TopicPath.Action.MODIFY;
+    private static final String KNOWN_SUBJECT = "mySubject";
+    private static final String KNOWN_SUBJECT2 = "$set.configuration/steps";
 
     private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
         .twin().things().commands().modify().build();
+
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+        .live().things().messages().subject(KNOWN_SUBJECT).build();
+
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+        .live().things().messages().subject(KNOWN_SUBJECT2).build();
 
     private static final ImmutableTopicPathPlaceholder UNDER_TEST = ImmutableTopicPathPlaceholder.INSTANCE;
 
@@ -92,13 +100,33 @@ public class ImmutableTopicPathPlaceholderTest {
     }
 
     @Test
-    public void testReplaceSubject() {
+    public void testReplaceSubjectEmpty() {
         assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH, "subject")).isEmpty();
+    }
+
+    @Test
+    public void testReplaceSubject() {
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH_SUBJECT1, "subject")).contains(KNOWN_SUBJECT);
+    }
+
+    @Test
+    public void testReplaceWeirdSubject() {
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH_SUBJECT2, "subject")).contains(KNOWN_SUBJECT2);
     }
 
     @Test
     public void testReplaceActionOrSubject() {
         assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH, "action|subject")).contains(KNOWN_ACTION.getName());
+    }
+
+    @Test
+    public void testReplaceActionOrSubjectWithSubject() {
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH_SUBJECT1, "action|subject")).contains(KNOWN_SUBJECT);
+    }
+
+    @Test
+    public void testReplaceActionOrSubjectWithWeirdSubject() {
+        assertThat(UNDER_TEST.apply(KNOWN_TOPIC_PATH_SUBJECT2, "action|subject")).contains(KNOWN_SUBJECT2);
     }
 
     @Test
