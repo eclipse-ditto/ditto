@@ -27,38 +27,34 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ImmutableJsonNullTest {
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonNull.class, areImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         final SoftReference<String> red = new SoftReference<>("red");
         final SoftReference<String> black = new SoftReference<>("black");
 
-        EqualsVerifier.forClass(ImmutableJsonNull.class) //
-                .withPrefabValues(SoftReference.class, red, black) //
-                .withIgnoredFields("stringRepresentation", "wrapped") //
-                .withRedefinedSuperclass() //
+        EqualsVerifier.forClass(ImmutableJsonNull.class)
+                .withPrefabValues(SoftReference.class, red, black)
+                .withRedefinedSuperclass()
                 .verify();
 
-        final JsonValue green = ImmutableJsonNull.newInstance();
-        final JsonValue blue = ImmutableJsonNull.newInstance();
+        final JsonValue green = ImmutableJsonNull.getInstance();
+        final JsonValue blue = ImmutableJsonNull.getInstance();
 
         DittoJsonAssertions.assertThat(green).isEqualTo(blue);
 
-        final ImmutableJsonArrayNull nullArray = ImmutableJsonArrayNull.newInstance();
+        final ImmutableJsonArrayNull nullArray = ImmutableJsonArrayNull.getInstance();
 
         Assertions.assertThat(green.equals(nullArray)).isTrue();
     }
 
-
     @Test
     public void nullBehavesAsExpected() {
-        final JsonValue underTest = ImmutableJsonNull.newInstance();
+        final JsonValue underTest = ImmutableJsonNull.getInstance();
 
         DittoJsonAssertions.assertThat(underTest).isArray();
         DittoJsonAssertions.assertThat(underTest).isNotBoolean();

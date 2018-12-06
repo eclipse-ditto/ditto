@@ -24,10 +24,12 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.HttpRequestActor;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolConfigReader;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -96,7 +98,13 @@ public abstract class AbstractRoute {
 
         materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
                 .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
-                            LOGGER.error("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
+                            if (exc instanceof DittoRuntimeException) {
+                                LogUtil.logWithCorrelationId(LOGGER, (DittoRuntimeException) exc, logger ->
+                                        logger.debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
+                                                exc.getClass().getSimpleName(), exc.getMessage()));
+                            } else {
+                                LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
+                            }
                             return Supervision.stop(); // in any case, stop!
                         }
                 ), actorSystem);

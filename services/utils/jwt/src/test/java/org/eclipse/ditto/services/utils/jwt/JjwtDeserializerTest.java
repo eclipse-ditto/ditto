@@ -25,7 +25,7 @@ import io.jsonwebtoken.Jwts;
 /**
  * Tests both {@link JjwtSerializer} and {@link JjwtDeserializer} by using the JJWT API.
  */
-public class JjwtDeserializerTest {
+public final class JjwtDeserializerTest {
 
     private static final String KNOWN_ISS = "Ditto";
     private static final String KNOWN_SUB = "some-user";
@@ -36,18 +36,22 @@ public class JjwtDeserializerTest {
         final Map<String, Object> claims = new HashMap<>();
         claims.put(Claims.ISSUER, KNOWN_ISS);
         claims.put(Claims.SUBJECT, KNOWN_SUB);
-        final String compact = Jwts.builder().serializeToJsonWith(JjwtSerializer.getInstance())
+        final String compact = Jwts.builder()
+                .serializeToJsonWith(JjwtSerializer.getInstance())
                 .setClaims(claims)
                 .setExpiration(KNOWN_EXP)
                 .compact();
 
-        final Jwt jwt = Jwts.parser().deserializeJsonWith(JjwtDeserializer.getInstance())
+        final Jwt jwt = Jwts.parser()
+                .deserializeJsonWith(JjwtDeserializer.getInstance())
                 .parse(compact);
 
-        Assertions.assertThat(jwt.getBody()).isInstanceOf(Claims.class);
-        Assertions.assertThat(((Claims) jwt.getBody()).get(Claims.ISSUER)).isEqualTo(KNOWN_ISS);
-        Assertions.assertThat(((Claims) jwt.getBody()).get(Claims.SUBJECT)).isEqualTo(KNOWN_SUB);
-        Assertions.assertThat(((Claims) jwt.getBody()).get(Claims.EXPIRATION))
-                .isEqualTo((int) (KNOWN_EXP.getTime() / 1000L));
+        final Object jwtBody = jwt.getBody();
+
+        Assertions.assertThat(jwtBody).isInstanceOf(Claims.class);
+        Assertions.assertThat(((Claims) jwtBody).get(Claims.ISSUER)).isEqualTo(KNOWN_ISS);
+        Assertions.assertThat(((Claims) jwtBody).get(Claims.SUBJECT)).isEqualTo(KNOWN_SUB);
+        Assertions.assertThat(((Claims) jwtBody).get(Claims.EXPIRATION)).isEqualTo((int) (KNOWN_EXP.getTime() / 1000L));
     }
+
 }

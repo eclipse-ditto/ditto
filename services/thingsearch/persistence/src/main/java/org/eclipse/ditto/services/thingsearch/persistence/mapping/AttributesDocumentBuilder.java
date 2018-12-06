@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.Document;
+import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
@@ -107,7 +108,6 @@ final class AttributesDocumentBuilder {
         return tDocument;
     }
 
-
     private AttributesDocumentBuilder attributeInternally(final String key, final Object value) {
         // add attribute to flat representation
         final List<Document> attributesList = ThingDocumentMapper.toList(tDocument, PersistenceConstants.FIELD_INTERNAL);
@@ -127,7 +127,7 @@ final class AttributesDocumentBuilder {
     }
 
     private void addInternalAttributes(final String path, final JsonValue jsonValue) {
-        if ((jsonValue == null) || jsonValue.isNull()) {
+        if (jsonValue == null || jsonValue.isNull()) {
             attributeInternally(path, null);
         } else if (jsonValue.isString()) {
             attributeInternally(path, jsonValue.asString());
@@ -142,10 +142,11 @@ final class AttributesDocumentBuilder {
     }
 
     private void addNumberAttribute(final String path, final JsonValue jsonValue) {
-        try {
-            attributeInternally(path, jsonValue.asLong());
-        } catch (final NumberFormatException e) {
-            attributeInternally(path, jsonValue.asDouble());
+        final JsonNumber jsonNumber = (JsonNumber) jsonValue;
+        if (jsonNumber.isLong()) {
+            attributeInternally(path, jsonNumber.asLong());
+        } else {
+            attributeInternally(path, jsonNumber.asDouble());
         }
     }
 
