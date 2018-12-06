@@ -13,7 +13,6 @@ package org.eclipse.ditto.services.concierge.cache;
 import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import org.eclipse.ditto.services.concierge.util.config.CacheConfigReader;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -36,16 +35,18 @@ public final class CacheFactory {
      *
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
+     * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      */
     public static <K, V> Cache<K, V> createCache(final CacheConfigReader cacheConfigReader,
-            final String cacheName) {
+            final String cacheName,
+            final Executor executor) {
         requireNonNull(cacheConfigReader);
         requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader, defaultExecutor()), cacheName);
+        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheName);
     }
 
     /**
@@ -54,18 +55,20 @@ public final class CacheFactory {
      * @param cacheLoader the cache loader.
      * @param cacheConfigReader the {@link CacheConfigReader} which defines the cache's configuration.
      * @param cacheName the name of the cache. Used as metric label.
+     * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
      * @param <V> the type of the cache values.
      * @return the created cache.
      */
     public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
             final CacheConfigReader cacheConfigReader,
-            final String cacheName) {
+            final String cacheName,
+            final Executor executor) {
         requireNonNull(cacheLoader);
         requireNonNull(cacheConfigReader);
         requireNonNull(cacheName);
 
-        return CaffeineCache.of(caffeine(cacheConfigReader, defaultExecutor()), cacheLoader, cacheName);
+        return CaffeineCache.of(caffeine(cacheConfigReader, executor), cacheLoader, cacheName);
     }
 
 
@@ -76,10 +79,6 @@ public final class CacheFactory {
         caffeine.expireAfterWrite(cacheConfigReader.expireAfterWrite());
         caffeine.executor(executor);
         return caffeine;
-    }
-
-    private static Executor defaultExecutor() {
-        return Executors.newCachedThreadPool();
     }
 
 }
