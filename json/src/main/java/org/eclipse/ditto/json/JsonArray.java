@@ -49,14 +49,14 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
 
     /**
      * Returns an instance of {@code JsonArray} which contains the given values.
-     * This method tries to determine the appropriate {@link org.eclipse.ditto.json.JsonValue}-counterpart for each
+     * This method tries to determine the appropriate {@link JsonValue}-counterpart for each
      * given value.
      *
      * @param value the mandatory value of the returned JsonArray.
      * @param furtherValues further optional values of the returned JsonArray.
      * @return the JsonArray.
      * @throws NullPointerException if {@code furtherValues} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if either {@code value} or any item of {@code furtherValues}
+     * @throws JsonParseException if either {@code value} or any item of {@code furtherValues}
      * cannot be converted to {@code JsonValue}.
      */
     @SuppressWarnings("unchecked")
@@ -71,13 +71,13 @@ public interface JsonArray extends JsonValue, JsonValueContainer<JsonValue> {
 
     /**
      * Returns an instance of {@code JsonArray} which contains the given values.
-     * This method tries to determine the appropriate {@link org.eclipse.ditto.json.JsonValue}-counterpart for each
+     * This method tries to determine the appropriate {@link JsonValue}-counterpart for each
      * item of the specified Iterable.
      *
      * @param values the values of the returned JsonArray. {@code null}  items are
      * @return the JsonArray.
      * @throws NullPointerException if {@code values} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if any item of {@code values} cannot be converted to
+     * @throws JsonParseException if any item of {@code values} cannot be converted to
      * {@code JsonValue}.
      */
     static <T> JsonArray of(final Iterable<T> values) {

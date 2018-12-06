@@ -40,13 +40,13 @@ final class JsonValueParser {
      * Returns a parser which accepts a String and which uses the given handler for object creation.
      * The parsed JsonValue can be obtained from the given handler finally.
      *
-     * @param jsonHandler receives parser events in order to create a {@link org.eclipse.ditto.json.JsonValue}.
+     * @param jsonHandler receives parser events in order to create a {@link JsonValue}.
      * @param <A> the type to be used for parsing JSON arrays.
      * @param <O> the type to be used for parsing JSON objects.
      * @param <V> the type of the value this handler returns.
      * @return the parse Function.
      * @throws NullPointerException if {@code jsonHandler} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the string cannot be parsed.
+     * @throws JsonParseException if the string cannot be parsed.
      * @see DittoJsonHandler#getValue()
      */
     public static <A, O, V> Consumer<String> fromString(final DittoJsonHandler<A, O, V> jsonHandler) {

@@ -105,7 +105,7 @@ public interface JsonValue {
      * @param value the Java value to be converted to its JsonValue counterpart.
      * @param <T> the Java type to be converted.
      * @return the appropriate JsonValue.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code value} cannot be converted to a valid JSON value.
+     * @throws JsonParseException if {@code value} cannot be converted to a valid JSON value.
      */
     static <T> JsonValue of(@Nullable final T value) {
         return JsonFactory.getAppropriateValue(value);
