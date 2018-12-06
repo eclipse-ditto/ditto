@@ -375,7 +375,7 @@ public final class DevOpsCommandsActor extends AbstractActor {
         private static final String TIMEOUT_HEADER = "timeout";
         private static final String AGGREGATE_HEADER = "aggregate";
 
-        private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(100);
+        private static final Duration DEFAULT_RECEIVE_TIMEOUT = Duration.ofMillis(5000);
         private static final boolean DEFAULT_AGGREGATE = true;
 
         private final Boolean aggregateResults;
