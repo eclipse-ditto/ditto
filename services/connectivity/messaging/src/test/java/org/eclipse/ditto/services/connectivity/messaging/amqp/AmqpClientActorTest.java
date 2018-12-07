@@ -52,6 +52,7 @@ import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoConstants;
@@ -615,7 +616,7 @@ public class AmqpClientActorTest extends WithMockServers {
 
     private Message mockMessage() throws JMSException {
         final AmqpJmsTextMessageFacade amqpJmsTextMessageFacade = new AmqpJmsTextMessageFacade();
-        amqpJmsTextMessageFacade.setContentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
+        amqpJmsTextMessageFacade.setContentType(Symbol.getSymbol(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE));
         amqpJmsTextMessageFacade.initialize(Mockito.mock(AmqpConnection.class));
 
         final JmsTextMessage jmsTextMessage = new JmsTextMessage(amqpJmsTextMessageFacade);
