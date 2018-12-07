@@ -191,7 +191,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                 messageMappingProcessor.forward(e.setDittoHeaders(DittoHeaders.of(headers)), getContext());
             }
         } catch (final Exception e) {
-            log.info("Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+            log.error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             try {
                 // we use the manual acknowledge mode so we always have to ack the message
