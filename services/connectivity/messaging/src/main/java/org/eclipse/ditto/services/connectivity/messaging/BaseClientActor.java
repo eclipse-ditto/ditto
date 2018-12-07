@@ -562,6 +562,9 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
         if (event instanceof Failure) {
             message = ((Failure) event).cause();
         }
+        if (event instanceof Status.Failure) {
+            message = ((Status.Failure) event).cause();
+        }
 
         if (message instanceof Throwable) {
             log.error((Throwable) message, "received Exception {} in state {} - status: {} - sender: {}",

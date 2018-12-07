@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.impl;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SET;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.UNSET;
 
@@ -32,12 +33,16 @@ final class ThingUpdateFactory {
     }
 
     /**
-     * Creates an upudate to delete a whole thing.
+     * Creates an update to delete a whole thing.
      *
      * @return the update Bson
      */
     static Bson createDeleteThingUpdate() {
-        return new Document(SET, new Document(FIELD_DELETED, new Date()));
+        final Document delete = new Document()
+                .append(FIELD_DELETED, new Date())
+                .append(FIELD_DELETED_FLAG, true);
+
+        return new Document(SET, delete);
     }
 
     /**
@@ -47,11 +52,13 @@ final class ThingUpdateFactory {
      * @param thing the thing to be set
      * @return the update Bson
      */
-    static Bson createUpdateThingUpdate(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer, final Thing thing) {
+    static Bson createUpdateThingUpdate(final IndexLengthRestrictionEnforcer indexLengthRestrictionEnforcer,
+            final Thing thing) {
         return toUpdate(ThingDocumentMapper.toDocument(indexLengthRestrictionEnforcer.enforceRestrictions(thing)));
     }
 
     private static Document toUpdate(final Document document) {
+        document.put(FIELD_DELETED_FLAG, false);
         return new Document(SET, document).append(UNSET, new Document(FIELD_DELETED, 1));
     }
 

@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURE_PATH_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ID;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_ACL;
@@ -59,7 +60,7 @@ public final class Indices {
                 .withPartialFilterExpression(filterNotDeleted());
 
         private static final Index DELETED = IndexFactory.newInstance("deleted",
-                keys(FIELD_DELETED), false);
+                keys(FIELD_DELETED_FLAG, FIELD_DELETED), false);
 
         private static final Index POLICY = IndexFactory.newInstance("policy",
                 keys(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false)

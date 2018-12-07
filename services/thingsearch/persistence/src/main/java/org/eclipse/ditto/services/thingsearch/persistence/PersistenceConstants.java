@@ -46,9 +46,14 @@ public final class PersistenceConstants {
     public static final String FIELD_REVISION = "__rev";
 
     /**
-     * Field name for deleted field.
+     * Field name for deletion date.
      */
     public static final String FIELD_DELETED = "__deleted";
+
+    /**
+     * Field name for deleted flag (boolean).
+     */
+    public static final String FIELD_DELETED_FLAG = "__deletedFlag";
 
     /**
      * Field name for _id.
@@ -170,9 +175,14 @@ public final class PersistenceConstants {
     public static final String FIELD_REVISION_VARIABLE = "$" + FIELD_REVISION;
 
     /**
-     * Field name for deleted field.
+     * Field name for deleted date field.
      */
     public static final String FIELD_DELETED_VARIABLE = "$" + FIELD_DELETED;
+
+    /**
+     * Field name for deleted flag field.
+     */
+    public static final String FIELD_DELETED_FLAG_VARIABLE = "$" + FIELD_DELETED_FLAG;
 
     /**
      * Holds the variable name for attributes in aggregations.

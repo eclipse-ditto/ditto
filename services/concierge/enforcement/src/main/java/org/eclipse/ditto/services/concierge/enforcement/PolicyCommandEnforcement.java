@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.concierge.cache.IdentityCache;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -157,7 +158,9 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
     }
 
     @Override
-    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender, final DiagnosticLoggingAdapter log) {
+    public CompletionStage<Void> enforce(final PolicyCommand signal, final ActorRef sender,
+            final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             if (enforcerEntry.exists()) {
                 enforcePolicyCommandByEnforcer(signal, enforcerEntry.getValue(), sender);
@@ -301,5 +304,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
         public AbstractEnforcement<PolicyCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
         }
+
     }
+
 }

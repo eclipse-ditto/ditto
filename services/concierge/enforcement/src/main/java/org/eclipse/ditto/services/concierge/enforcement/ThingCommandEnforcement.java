@@ -70,6 +70,7 @@ import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -160,6 +161,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     @Override
     public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);

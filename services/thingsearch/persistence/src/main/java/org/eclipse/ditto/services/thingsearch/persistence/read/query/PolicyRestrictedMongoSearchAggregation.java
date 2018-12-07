@@ -25,6 +25,8 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_FLAG_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DELETED_VARIABLE;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES_VARIABLE;
@@ -191,6 +193,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
                 new BsonField(FIELD_FEATURES, createProjectionDocument(FIRST_PROJECTION, FIELD_FEATURES_VARIABLE)),
                 new BsonField(FIELD_INTERNAL, createProjectionDocument(PUSH_PROJECTION, FIELD_INTERNAL_VARIABLE)),
                 new BsonField(FIELD_DELETED, createProjectionDocument(FIRST_PROJECTION, FIELD_DELETED_VARIABLE)),
+                new BsonField(FIELD_DELETED_FLAG, createProjectionDocument(FIRST_PROJECTION, FIELD_DELETED_FLAG_VARIABLE)),
                 new BsonField(FIELD_REVISION, createProjectionDocument(FIRST_PROJECTION, FIELD_REVISION_VARIABLE)));
     }
 
@@ -206,6 +209,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
                 .append(FIELD_FEATURES, BsonBoolean.TRUE)
                 .append(FIELD_INTERNAL, BsonBoolean.TRUE)
                 .append(FIELD_DELETED, BsonBoolean.TRUE)
+                .append(FIELD_DELETED_FLAG, BsonBoolean.TRUE)
                 .append(FIELD_REVISION, BsonBoolean.TRUE));
     }
 
@@ -297,6 +301,7 @@ final class PolicyRestrictedMongoSearchAggregation implements PolicyRestrictedSe
                 .append(FIELD_FEATURES, BsonBoolean.TRUE)
                 .append(FIELD_INTERNAL, BsonBoolean.TRUE)
                 .append(FIELD_DELETED, BsonBoolean.TRUE)
+                .append(FIELD_DELETED_FLAG, BsonBoolean.TRUE)
                 .append(FIELD_REVISION, BsonBoolean.TRUE);
         return project(projection);
     }

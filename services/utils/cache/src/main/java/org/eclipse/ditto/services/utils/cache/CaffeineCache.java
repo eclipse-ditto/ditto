@@ -194,11 +194,14 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
-        final boolean reportInvalidation = (metricStatsCounter != null) && currentlyExisting;
         synchronousCacheView.invalidate(key);
 
-        if (reportInvalidation) {
-            metricStatsCounter.recordInvalidation();
+        if (metricStatsCounter != null) {
+            if (currentlyExisting) {
+                metricStatsCounter.recordInvalidation();
+            } else {
+                metricStatsCounter.recordInvalidationWithoutItem();
+            }
         }
         return currentlyExisting;
     }
