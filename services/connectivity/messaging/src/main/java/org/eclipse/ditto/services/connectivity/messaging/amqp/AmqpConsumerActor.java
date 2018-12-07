@@ -240,7 +240,7 @@ final class AmqpConsumerActor extends AbstractActor implements MessageListener {
                     .filter(Objects::nonNull)
                     .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
-            final String contentType = amqpJmsMessageFacade.getContentType();
+            final String contentType = amqpJmsMessageFacade.getContentType().toString();
             headersFromJmsProperties.put(ExternalMessage.CONTENT_TYPE_HEADER, contentType);
         } else {
             throw new JMSException("Message facade was not of type AmqpJmsMessageFacade");
