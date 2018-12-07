@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
@@ -134,23 +135,18 @@ final class JsonValueToDbEntityMapper {
     }
 
     private static Number mapJsonNumberToJavaNumber(final JsonValue jsonNumberValue) {
-        Number result;
-        if (isDouble(jsonNumberValue)) {
-            result = jsonNumberValue.asDouble();
+        final Number result;
+
+        final JsonNumber jsonNumber = (JsonNumber) jsonNumberValue;
+        if (jsonNumber.isInt()) {
+            result = jsonNumber.asInt();
+        } else if (jsonNumber.isLong()) {
+            result = jsonNumber.asLong();
         } else {
-            try {
-                result = jsonNumberValue.asInt();
-            } catch (final NumberFormatException e) {
-                result = jsonNumberValue.asLong();
-            }
+            result = jsonNumber.asDouble();
         }
 
         return result;
-    }
-
-    private static boolean isDouble(final JsonValue jsonNumberValue) {
-        final String s = jsonNumberValue.toString();
-        return 0 <= s.indexOf('.');
     }
 
 }

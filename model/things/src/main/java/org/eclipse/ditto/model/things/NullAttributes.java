@@ -271,7 +271,7 @@ final class NullAttributes implements Attributes {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [wrapped=" + wrapped + "]";
+        return wrapped.toString();
     }
 
 }

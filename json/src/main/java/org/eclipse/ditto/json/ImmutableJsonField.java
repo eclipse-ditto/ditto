@@ -98,19 +98,32 @@ final class ImmutableJsonField implements JsonField {
             return false;
         }
         final ImmutableJsonField that = (ImmutableJsonField) o;
-        return Objects.equals(key, that.key) && Objects.equals(value, that.value)
-                && Objects.equals(definition, that.definition);
+        return Objects.equals(key, that.key) && Objects.equals(value, that.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, value, definition);
+        return Objects.hash(key, value);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + "key=" + key + ", value=" + value + ", definition=" + definition +
-                "]";
+        final String valueAsString = value.toString();
+        final StringBuilder stringBuilder = new StringBuilder(key.length() + valueAsString.length() + 4);
+        escapeKeyName(stringBuilder);
+        stringBuilder.append(":");
+        stringBuilder.append(valueAsString);
+        return stringBuilder.toString();
+    }
+
+    private void escapeKeyName(final StringBuilder stringBuilder) {
+        stringBuilder.append("\"");
+        final String keyName = key.toString();
+        final JsonCharEscaper jsonStringEscaper = JsonCharEscaper.getInstance();
+        for (final char c : keyName.toCharArray()) {
+            stringBuilder.append(jsonStringEscaper.apply(c));
+        }
+        stringBuilder.append("\"");
     }
 
 }

@@ -57,7 +57,10 @@ public final class ImmutableJsonFieldTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableJsonField.class).usingGetClass().verify();
+        EqualsVerifier.forClass(ImmutableJsonField.class)
+                .usingGetClass()
+                .withIgnoredFields("definition")
+                .verify();
     }
 
     @Test(expected = NullPointerException.class)
@@ -127,10 +130,10 @@ public final class ImmutableJsonFieldTest {
     }
 
     @Test
-    public void stringRepresentationContainsExpectedWords() {
+    public void toStringReturnsExpected() {
         final JsonField underTest = ImmutableJsonField.newInstance(jsonKeyMock, jsonValueMock, fieldDefinitionMock);
 
-        assertThat(underTest.toString()).contains("key").contains("value").contains("definition");
+        assertThat(underTest.toString()).isEqualTo("\"" + jsonKeyMock + "\"" + ":" + jsonValueMock);
     }
 
     @Test

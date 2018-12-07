@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.mapping;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
@@ -18,10 +19,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.assertj.core.api.Assertions;
 import org.bson.Document;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -38,31 +39,55 @@ public class AttributesDocumentBuilderTest {
     private static final String KEY2 = "key2";
     private static final String VAL1 = "val1";
     private static final String VAL2 = "val2";
+    private static final String KEY_BOOL = "a_boolean";
+    private static final boolean VALUE_BOOL = true;
+    private static final String KEY_INT = "an_integer";
+    private static final int VALUE_INT = Integer.MAX_VALUE;
+    private static final String KEY_LONG = "a_long";
+    private static final long VALUE_LONG = Long.MIN_VALUE;
+    private static final String KEY_DOUBLE = "a_double";
+    private static final double VALUE_DOUBLE = 23.42D;
+    private static final String KEY_OBJECT = "an_object";
+    private static final JsonObject VALUE_OBJECT = JsonObject.newBuilder()
+            .set("key", "value")
+            .set("foo", "bar")
+            .set("on", true)
+            .build();
 
     @Test
     @SuppressWarnings("unchecked")
     public void addAttributes() {
-        final AttributesDocumentBuilder attrsDocBuilder = AttributesDocumentBuilder.create();
-
         final Map<JsonKey, JsonValue> deeperMap = new LinkedHashMap<>();
         deeperMap.put(JsonFactory.newKey(KEY_WITH_SPECIAL_CHARS), JsonFactory.newValue(VAL1));
-        final Attributes attributes =
-                ThingsModelFactory.newAttributesBuilder().set(KEY1, VAL1).set(KEY_WITH_SPECIAL_CHARS, VAL2)
-                        .set(KEY2, JsonFactory.newObject(deeperMap)).build();
-        attrsDocBuilder.attributes(attributes);
+        final Attributes attributes = ThingsModelFactory.newAttributesBuilder()
+                .set(KEY1, VAL1)
+                .set(KEY_WITH_SPECIAL_CHARS, VAL2)
+                .set(KEY2, JsonFactory.newObject(deeperMap))
+                .set(KEY_BOOL, VALUE_BOOL)
+                .set(KEY_INT, VALUE_INT)
+                .set(KEY_LONG, VALUE_LONG)
+                .set(KEY_DOUBLE, VALUE_DOUBLE)
+                .set(KEY_OBJECT, VALUE_OBJECT)
+                .build();
 
-        final Document doc = attrsDocBuilder.build();
+        final AttributesDocumentBuilder underTest = AttributesDocumentBuilder.create();
+        underTest.attributes(attributes);
 
-        Assertions.assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(0).get("k"))
+        final Document doc = underTest.build();
+
+        assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(0).get("k"))
                 .isEqualTo(FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY1);
-        Assertions.assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(0).get("v")).isEqualTo(VAL1);
-        Assertions.assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(1).get("k"))
+        assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(0).get("v")).isEqualTo(VAL1);
+        assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(1).get("k"))
                 .isEqualTo(FIELD_ATTRIBUTE_PREFIX_WITH_ENDING_SLASH + KEY_WITH_SPECIAL_CHARS);
-        Assertions.assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(1).get("v")).isEqualTo(VAL2);
+        assertThat(((List<Document>) doc.get(FIELD_INTERNAL)).get(1).get("v")).isEqualTo(VAL2);
+
         final Document mainAttributesDoc = (Document) doc.get(FIELD_ATTRIBUTES);
-        Assertions.assertThat(mainAttributesDoc.get(KEY1)).isEqualTo(VAL1);
-        Assertions.assertThat(mainAttributesDoc.get(KeyEscapeUtil.escape(KEY_WITH_SPECIAL_CHARS))).isEqualTo(VAL2);
-        Assertions.assertThat(((Map) mainAttributesDoc.get(KEY2)).get(KeyEscapeUtil.escape(KEY_WITH_SPECIAL_CHARS))).isEqualTo(
+
+        assertThat(mainAttributesDoc.get(KEY1)).isEqualTo(VAL1);
+        assertThat(mainAttributesDoc.get(KeyEscapeUtil.escape(KEY_WITH_SPECIAL_CHARS))).isEqualTo(VAL2);
+        assertThat(((Map) mainAttributesDoc.get(KEY2)).get(KeyEscapeUtil.escape(KEY_WITH_SPECIAL_CHARS))).isEqualTo(
                 VAL1);
     }
+
 }

@@ -17,7 +17,7 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * This implementation of {@link org.eclipse.ditto.json.JsonFieldDefinition} is meant to be used for all
+ * This implementation of {@link JsonFieldDefinition} is meant to be used for all
  * {@link JsonValue} types to make parsing a JsonObject easier, and most notably, type safe.
  *
  * A {@code null} value is not mapped to a Java {@code null} but remains a JSON null; thus
