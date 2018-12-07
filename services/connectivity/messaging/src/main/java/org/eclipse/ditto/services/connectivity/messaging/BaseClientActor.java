@@ -558,11 +558,27 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
     private State<BaseClientState, BaseClientData> onUnknownEvent(final Object event,
             final BaseClientData state) {
 
-        log.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
-                event,
-                stateName(),
-                state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
-                getSender());
+        Object message = event;
+        if (event instanceof Failure) {
+            message = ((Failure) event).cause();
+        }
+        if (event instanceof Status.Failure) {
+            message = ((Status.Failure) event).cause();
+        }
+
+        if (message instanceof Throwable) {
+            log.error((Throwable) message, "received Exception {} in state {} - status: {} - sender: {}",
+                    message,
+                    stateName(),
+                    state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
+                    getSender());
+        } else {
+            log.warning("received unknown/unsupported message {} in state {} - status: {} - sender: {}",
+                    message,
+                    stateName(),
+                    state.getConnectionStatus() + ": " + state.getConnectionStatusDetails().orElse(""),
+                    getSender());
+        }
 
         final ActorRef sender = getSender();
         if (!Objects.equals(sender, getSelf()) && !Objects.equals(sender, getContext().system().deadLetters())) {
