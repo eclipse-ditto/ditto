@@ -19,6 +19,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -327,10 +328,11 @@ final class FeaturesUpdateFactory {
         } else if (value.isBoolean()) {
             flatFeatures.add(createFlatSubDocument(path, featureId, value.asBoolean()));
         } else if (value.isNumber()) {
-            try {
-                flatFeatures.add(createFlatSubDocument(path, featureId, value.asLong()));
-            } catch (final NumberFormatException e) {
-                flatFeatures.add(createFlatSubDocument(path, featureId, value.asDouble()));
+            final JsonNumber jsonNumber = (JsonNumber) value;
+            if (jsonNumber.isLong()) {
+                flatFeatures.add(createFlatSubDocument(path, featureId, jsonNumber.asLong()));
+            } else {
+                flatFeatures.add(createFlatSubDocument(path, featureId, jsonNumber.asDouble()));
             }
         } else if (value.isNull()) {
             flatFeatures.add(createFlatSubDocument(path, featureId, null));
