@@ -47,7 +47,7 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
         if (isInt()) {
             return value.intValue();
         }
-        return super.asInt();
+        throw new NumberFormatException("This JSON value is not an int: " + value);
     }
 
     @Override
@@ -60,7 +60,7 @@ abstract class AbstractJsonNumber<T extends Number> extends AbstractJsonValue im
         if (isLong()) {
             return value.longValue();
         }
-        return super.asLong();
+        throw new NumberFormatException("This JSON value is not a long: " + value);
     }
 
     @Override
