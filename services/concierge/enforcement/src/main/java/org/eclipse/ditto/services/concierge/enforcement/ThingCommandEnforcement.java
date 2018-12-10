@@ -877,7 +877,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         final CompletionStage<Policy> policyCompletionStage =
                 PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
-                        .thenApply(response -> {
+                        .thenApplyAsync(response -> {
                             if (response instanceof RetrievePolicyResponse) {
                                 return ((RetrievePolicyResponse) response).getPolicy();
                             } else if (response instanceof PolicyErrorResponse) {
@@ -890,7 +890,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                                 " during Thing creation: {}", response);
                                 throw GatewayInternalErrorException.newBuilder().build();
                             }
-                        });
+                        }, getEnforcementExecutor());
 
         return awaitPolicyCompletionStage(policyCompletionStage, dittoHeaders);
 

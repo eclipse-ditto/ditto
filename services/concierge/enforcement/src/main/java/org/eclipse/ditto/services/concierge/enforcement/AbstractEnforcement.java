@@ -62,8 +62,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
     }
 
     /**
-     * TODO TJ doc
-     * @return
+     * @return the Executor to use in order to perform asynchronous operations in enforcement.
      */
     protected Executor getEnforcementExecutor() {
         return context.enforcerExecutor;
@@ -335,7 +334,7 @@ public abstract class AbstractEnforcement<T extends Signal> {
          *
          * @param actorContext the actor context.
          * @param log the logger.
-         * @param enforcerExecutor TODO TJ log
+         * @param enforcerExecutor the Executor to use in order to perform asynchronous operations in enforcement.
          * @return the created instance.
          */
         public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log,

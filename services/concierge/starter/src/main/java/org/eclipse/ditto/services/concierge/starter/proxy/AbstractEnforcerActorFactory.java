@@ -30,7 +30,7 @@ import akka.cluster.sharding.ClusterShardingSettings;
 public abstract class AbstractEnforcerActorFactory<C extends AbstractConciergeConfigReader> {
 
     /**
-     * TODO TJ doc
+     * The dispatcher name of the Executor to use in order to perform asynchronous operations in enforcement.
      */
     protected static final String ENFORCER_DISPATCHER = "enforcer-dispatcher";
 
