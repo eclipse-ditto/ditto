@@ -174,7 +174,7 @@ public final class ImmutableJsonLongTest {
         if (isLongValueWithinIntegerRange()) {
             assertThat(underTest.asInt()).isEqualTo(Long.valueOf(longValue).intValue());
         } else {
-            assertThatExceptionOfType(UnsupportedOperationException.class)
+            assertThatExceptionOfType(NumberFormatException.class)
                     .isThrownBy(() -> underTest.asInt())
                     .withMessage("This JSON value is not an int: %s", underTest)
                     .withNoCause();
