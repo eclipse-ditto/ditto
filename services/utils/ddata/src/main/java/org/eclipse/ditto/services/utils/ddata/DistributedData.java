@@ -16,6 +16,7 @@ import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import akka.actor.ActorRef;
@@ -24,7 +25,6 @@ import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ReplicatedData;
 import akka.cluster.ddata.Replicator;
 import akka.pattern.PatternsCS;
-import akka.util.Timeout;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
@@ -51,6 +51,8 @@ public abstract class DistributedData<R extends ReplicatedData> {
      */
     protected final ActorRef replicator;
 
+    private final Executor ddataExecutor;
+
     /**
      * Create a wrapper of distributed data replicator.
      *
@@ -58,9 +60,11 @@ public abstract class DistributedData<R extends ReplicatedData> {
      * @param factory creator of this replicator.
      * @throws NullPointerException if {@code configReader} is {@code null}.
      */
-    protected DistributedData(final DistributedDataConfigReader configReader, final ActorRefFactory factory) {
+    protected DistributedData(final DistributedDataConfigReader configReader, final ActorRefFactory factory,
+            final Executor ddataExecutor) {
         requireNonNull(configReader, "The DistributedDataConfigReader must not be null!");
         replicator = createReplicator(configReader, factory);
+        this.ddataExecutor = ddataExecutor;
         readTimeout = configReader.getReadTimeout();
         writeTimeout = configReader.getWriteTimeout();
     }
@@ -97,7 +101,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
     public CompletionStage<Optional<R>> get(final Replicator.ReadConsistency readConsistency) {
         final Replicator.Get<R> replicatorGet = new Replicator.Get<>(getKey(), readConsistency);
         return PatternsCS.ask(replicator, replicatorGet, getAskTimeout(readConsistency.timeout(), readTimeout))
-                .thenApply(this::handleGetResponse);
+                .thenApplyAsync(this::handleGetResponse, ddataExecutor);
     }
 
     /**
@@ -113,7 +117,7 @@ public abstract class DistributedData<R extends ReplicatedData> {
         final Replicator.Update<R> replicatorUpdate =
                 new Replicator.Update<>(getKey(), getInitialValue(), writeConsistency, updateFunction);
         return PatternsCS.ask(replicator, replicatorUpdate, getAskTimeout(writeConsistency.timeout(), writeTimeout))
-                .thenApply(this::handleUpdateResponse);
+                .thenApplyAsync(this::handleUpdateResponse, ddataExecutor);
     }
 
     /**
@@ -166,11 +170,11 @@ public abstract class DistributedData<R extends ReplicatedData> {
      * @param configuredTimeout default timeout.
      * @return the timeout.
      */
-    private static Timeout getAskTimeout(final FiniteDuration defaultTimeout, final Duration configuredTimeout) {
+    private static Duration getAskTimeout(final FiniteDuration defaultTimeout, final Duration configuredTimeout) {
         if (configuredTimeout.isNegative()) {
-            return Timeout.durationToTimeout(defaultTimeout);
+            return Duration.ofMillis(defaultTimeout.toMillis());
         } else {
-            return Timeout.create(configuredTimeout);
+            return configuredTimeout;
         }
     }
 

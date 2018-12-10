@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -119,9 +120,10 @@ public final class DefaultEnforcerActorFactory extends AbstractEnforcerActorFact
         // set activity check interval identical to cache retention
         final Duration activityCheckInterval = configReader.caches().id().expireAfterWrite();
         final ActorRef conciergeForwarder = getInternalConciergeForwarder(context, configReader, pubSubMediator);
+        final Executor enforcerExecutor = actorSystem.dispatchers().lookup(ENFORCER_DISPATCHER);
         final Props enforcerProps =
                 EnforcerActorCreator.props(pubSubMediator, enforcementProviders, enforcementAskTimeout,
-                        conciergeForwarder, preEnforcer, activityCheckInterval);
+                        conciergeForwarder, enforcerExecutor, preEnforcer, activityCheckInterval);
         final ActorRef enforcerShardRegion = startShardRegion(context.system(), configReader.cluster(), enforcerProps);
 
         // start cache updaters

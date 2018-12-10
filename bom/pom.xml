@@ -58,6 +58,7 @@
         <metrics.version>3.1.2</metrics.version>
 
         <kamon-core.version>1.1.2</kamon-core.version>
+        <kamon-executors.version>1.0.2</kamon-executors.version>
         <kamon-system-metrics.version>1.0.0</kamon-system-metrics.version>
         <kamon-prometheus.version>1.1.1</kamon-prometheus.version>
         <prometheus.java-client.version>0.4.0</prometheus.java-client.version>
@@ -407,6 +408,11 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-executors_${scala.version}</artifactId>
+                <version>${kamon-executors.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>

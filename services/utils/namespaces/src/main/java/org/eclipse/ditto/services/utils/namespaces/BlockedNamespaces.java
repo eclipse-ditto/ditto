@@ -44,10 +44,12 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      */
     private static final Key<ORSet<String>> KEY = ORSetKey.create("BlockedNamespaces");
 
+    private static final String BLOCKED_NAMESPACES_DISPATCHER = "blocked-namespaces-dispatcher";
+
     private final Cluster node;
 
     private BlockedNamespaces(final DistributedDataConfigReader configReader, final ActorSystem system) {
-        super(configReader, system);
+        super(configReader, system, system.dispatchers().lookup(BLOCKED_NAMESPACES_DISPATCHER));
         node = Cluster.get(system);
     }
 
