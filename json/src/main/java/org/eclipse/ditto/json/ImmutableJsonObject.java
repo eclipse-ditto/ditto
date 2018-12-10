@@ -705,7 +705,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         @Override
         protected Map<String, JsonField> getValue() {
-            return Collections.unmodifiableMap(value);
+            return value;
         }
 
     }

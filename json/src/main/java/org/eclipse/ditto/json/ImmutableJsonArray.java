@@ -285,7 +285,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         private List<JsonValue> values() {
             List<JsonValue> result = valuesReference.get();
             if (null == result) {
-                result = Collections.unmodifiableList(parseToList(jsonArrayStringRepresentation));
+                result = parseToList(jsonArrayStringRepresentation);
                 valuesReference = new SoftReference<>(result);
             }
             return result;
@@ -429,7 +429,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         @Override
         protected List<JsonValue> getValue() {
-            return Collections.unmodifiableList(value);
+            return value;
         }
 
     }
