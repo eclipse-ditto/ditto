@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.Document;
-import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
@@ -114,11 +113,10 @@ final class FeaturesDocumentBuilder {
     }
 
     private void addNumberFeature(final String path, final JsonValue jsonValue, final String featureId) {
-        final JsonNumber jsonNumber = (JsonNumber) jsonValue;
-        if (jsonNumber.isLong()) {
-            featureInternally(path, jsonNumber.asLong(), featureId);
+        if (jsonValue.isLong()) {
+            featureInternally(path, jsonValue.asLong(), featureId);
         } else {
-            featureInternally(path, jsonNumber.asDouble(), featureId);
+            featureInternally(path, jsonValue.asDouble(), featureId);
         }
     }
 

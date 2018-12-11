@@ -84,6 +84,21 @@ final class ImmutableAttributes implements Attributes {
     }
 
     @Override
+    public boolean isInt() {
+        return wrapped.isInt();
+    }
+
+    @Override
+    public boolean isLong() {
+        return wrapped.isLong();
+    }
+
+    @Override
+    public boolean isDouble() {
+        return wrapped.isDouble();
+    }
+
+    @Override
     public boolean isString() {
         return wrapped.isString();
     }

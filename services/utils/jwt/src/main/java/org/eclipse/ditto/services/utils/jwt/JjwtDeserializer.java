@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
@@ -92,13 +91,12 @@ public final class JjwtDeserializer implements Deserializer {
         } else if (jsonValue.isBoolean()) {
             result = jsonValue.asBoolean();
         } else if (jsonValue.isNumber()) {
-            final JsonNumber jsonNumber = (JsonNumber) jsonValue;
-            if (jsonNumber.isInt()) {
-                result = jsonNumber.asInt();
-            } else if (jsonNumber.isLong()) {
-                result = jsonNumber.asLong();
+            if (jsonValue.isInt()) {
+                result = jsonValue.asInt();
+            } else if (jsonValue.isLong()) {
+                result = jsonValue.asLong();
             } else {
-                result = jsonNumber.asDouble();
+                result = jsonValue.asDouble();
             }
         } else if (jsonValue.isObject()) {
             result = toJavaMap(jsonValue.asObject());
