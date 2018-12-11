@@ -17,7 +17,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.query.criteria.visitors.PredicateVisitor;
 import org.eclipse.ditto.model.things.Thing;
@@ -187,11 +186,10 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         } else if (jsonValue.isNull()) {
             result = null;
         } else if (jsonValue.isNumber()) {
-            final JsonNumber jsonNumber = (JsonNumber) jsonValue;
-            if (jsonNumber.isInt() || jsonNumber.isLong()) {
-                result = jsonNumber.asLong();
+            if (jsonValue.isLong()) {
+                result = jsonValue.asLong();
             } else {
-                result = jsonNumber.asDouble();
+                result = jsonValue.asDouble();
             }
         } else if (jsonValue.isArray()) {
             result = null; // filtering arrays is not supported

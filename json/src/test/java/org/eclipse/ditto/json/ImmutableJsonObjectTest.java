@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -152,6 +153,9 @@ public final class ImmutableJsonObjectTest {
         assertThat(underTest).isNotNumber();
         assertThat(underTest).isNotString();
         assertThat(underTest).isNotArray();
+        assertThat(underTest.isInt()).isFalse();
+        assertThat(underTest.isLong()).isFalse();
+        assertThat(underTest.isDouble()).isFalse();
     }
 
     @Test

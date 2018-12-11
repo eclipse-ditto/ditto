@@ -15,25 +15,4 @@ package org.eclipse.ditto.json;
  */
 public interface JsonNumber extends JsonValue {
 
-    /**
-     * Indicates whether this number is an integer.
-     *
-     * @return {@code true} if an only if this number is an integer.
-     */
-    boolean isInt();
-
-    /**
-     * Indicates whether this number is of type long.
-     *
-     * @return {@code true} if an only if this number is of type long.
-     */
-    boolean isLong();
-
-    /**
-     * Indicates whether this number is of type double.
-     *
-     * @return {@code true} if an only if this number is of type double.
-     */
-    boolean isDouble();
-
 }

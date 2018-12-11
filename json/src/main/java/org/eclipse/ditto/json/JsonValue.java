@@ -126,6 +126,27 @@ public interface JsonValue {
     boolean isNumber();
 
     /**
+     * Indicates whether this value is an integer.
+     *
+     * @return {@code true} if an only if this value is an integer.
+     */
+    boolean isInt();
+
+    /**
+     * Indicates whether this value is of type long.
+     *
+     * @return {@code true} if an only if this value is of type long.
+     */
+    boolean isLong();
+
+    /**
+     * Indicates whether this value is of type double.
+     *
+     * @return {@code true} if an only if this value is of type double.
+     */
+    boolean isDouble();
+
+    /**
      * Indicates whether this value represents a JSON string.
      *
      * @return {@code true} if this value represents a JSON string, {@code false} else.
