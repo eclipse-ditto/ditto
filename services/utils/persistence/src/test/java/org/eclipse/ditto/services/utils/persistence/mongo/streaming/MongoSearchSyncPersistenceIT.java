@@ -38,7 +38,7 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MongoSearchSyncPersistence}.
+ * Tests {@link MongoTimestampPersistence}.
  */
 public final class MongoSearchSyncPersistenceIT {
 
@@ -48,7 +48,7 @@ public final class MongoSearchSyncPersistenceIT {
 
     private ActorSystem actorSystem;
     private ActorMaterializer materializer;
-    private MongoSearchSyncPersistence syncPersistence;
+    private MongoTimestampPersistence syncPersistence;
 
     @BeforeClass
     public static void startMongoResource() {
@@ -78,7 +78,7 @@ public final class MongoSearchSyncPersistenceIT {
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         actorSystem = ActorSystem.create("actors");
         materializer = ActorMaterializer.create(actorSystem);
-        syncPersistence = MongoSearchSyncPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
+        syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
 
 
@@ -98,7 +98,7 @@ public final class MongoSearchSyncPersistenceIT {
      */
     @Test
     public void retrieveFallbackForLastSuccessfulSyncTimestamp() {
-        final Optional<Instant> actualTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
+        final Optional<Instant> actualTs = syncPersistence.getTimestamp();
 
         assertThat(actualTs).isEmpty();
     }
@@ -110,9 +110,9 @@ public final class MongoSearchSyncPersistenceIT {
     public void updateAndRetrieveLastSuccessfulSyncTimestamp() {
         final Instant ts = Instant.now();
 
-        runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(ts));
+        runBlocking(syncPersistence.setTimestamp(ts));
 
-        final Optional<Instant> persistedTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
+        final Optional<Instant> persistedTs = syncPersistence.getTimestamp();
         assertThat(persistedTs).hasValue(ts);
     }
 

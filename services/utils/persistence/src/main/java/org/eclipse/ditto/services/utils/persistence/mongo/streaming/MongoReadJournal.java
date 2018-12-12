@@ -88,7 +88,7 @@ public class MongoReadJournal {
     private MongoReadJournal(final Pattern journalCollectionPrefix, final MongoClientWrapper clientWrapper) {
         this.journalCollectionPrefix = journalCollectionPrefix;
         this.clientWrapper = clientWrapper;
-        log = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
+        log = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     }
 
     /**

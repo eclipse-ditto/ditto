@@ -12,6 +12,8 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -19,21 +21,30 @@ import akka.stream.javadsl.Source;
 /**
  * Defines operations for managing metadata of streams.
  */
-public interface StreamMetadataPersistence {
+public interface TimestampPersistence {
 
     /**
-     * Updates the end timestamp of the last successful stream.
+     * Updates the timestamp in the persistence..
      *
      * @param timestamp The timestamp.
      * @return a {@link Source} holding the publisher to execute the operation.
      */
-    Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(Instant timestamp);
+    Source<NotUsed, NotUsed> setTimestamp(Instant timestamp);
 
     /**
-     * <strong>Blocking:</strong> Retrieves the end timestamp of the last successful stream.
+     * <strong>Blocking:</strong> Retrieves the end timestamp.
      *
-     * @return An {@link java.util.Optional} of the {@link Instant} of the last successful stream.
+     * @return An {@link java.util.Optional} of the {@link Instant} stored in the persistence.
      * Optional will be empty if a timestamp has not yet been persisted.
      */
-    Optional<Instant> retrieveLastSuccessfulStreamEnd();
+    Optional<Instant> getTimestamp();
+
+    /**
+     * Retrieve the timestamp in the persistence.
+     *
+     * @return a {@link Source} of the {@link Instant} stored in the persistence.
+     */
+    default Source<Optional<Instant>, NotUsed> getTimestampAsync() {
+        return Source.single(getTimestamp());
+    }
 }

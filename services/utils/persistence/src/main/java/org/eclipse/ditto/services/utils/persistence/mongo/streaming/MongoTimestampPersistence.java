@@ -21,7 +21,7 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -38,9 +38,9 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
- * MongoDB implementation of {@link StreamMetadataPersistence}.
+ * MongoDB implementation of {@link TimestampPersistence}.
  */
-public final class MongoSearchSyncPersistence implements StreamMetadataPersistence {
+public final class MongoTimestampPersistence implements TimestampPersistence {
 
     /**
      * The minimum size a capped collection claims in MongoDB.
@@ -58,7 +58,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     /**
      * The logger.
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(MongoSearchSyncPersistence.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoTimestampPersistence.class);
     private final Materializer mat;
     private final MongoCollection<Document> lastSuccessfulSearchSyncCollection;
 
@@ -69,7 +69,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * stored.
      * @param mat the {@link Materializer} to be used for stream
      */
-    private MongoSearchSyncPersistence(final MongoCollection<Document> lastSuccessfulSearchSyncCollection,
+    private MongoTimestampPersistence(final MongoCollection<Document> lastSuccessfulSearchSyncCollection,
             final Materializer mat) {
         this.mat = mat;
         this.lastSuccessfulSearchSyncCollection = lastSuccessfulSearchSyncCollection;
@@ -83,7 +83,7 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
      * @param materializer the {@link Materializer} to be used for stream
      * @return a new initialized instance.
      */
-    public static MongoSearchSyncPersistence initializedInstance(final String collectionName,
+    public static MongoTimestampPersistence initializedInstance(final String collectionName,
             final MongoClientWrapper clientWrapper, final Materializer materializer) {
         final MongoCollection<Document> lastSuccessfulSearchSyncCollection = createOrGetCappedCollection(
                 clientWrapper,
@@ -91,12 +91,12 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
                 MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
                 BLOCKING_TIMEOUT_SECS,
                 materializer);
-        return new MongoSearchSyncPersistence(lastSuccessfulSearchSyncCollection, materializer);
+        return new MongoTimestampPersistence(lastSuccessfulSearchSyncCollection, materializer);
     }
 
 
     @Override
-    public Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(final Instant timestamp) {
+    public Source<NotUsed, NotUsed> setTimestamp(final Instant timestamp) {
         final Date mongoStorableDate = Date.from(timestamp);
 
         final Document toStore = new Document()
@@ -110,8 +110,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     }
 
     @Override
-    public Optional<Instant> retrieveLastSuccessfulStreamEnd() {
-        final Source<Optional<Instant>, NotUsed> source = retrieveLastSuccessfulStreamEndAsync();
+    public Optional<Instant> getTimestamp() {
+        final Source<Optional<Instant>, NotUsed> source = getTimestampAsync();
         final CompletionStage<Optional<Instant>> done = source.runWith(Sink.head(), mat);
         try {
             return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
@@ -123,7 +123,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
         }
     }
 
-    private Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEndAsync() {
+    @Override
+    public Source<Optional<Instant>, NotUsed> getTimestampAsync() {
         return Source.fromPublisher(lastSuccessfulSearchSyncCollection.find())
                 .limit(1)
                 .flatMapConcat(doc -> {

@@ -19,7 +19,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpda
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoEventToPersistenceStrategyFactory;
 import org.eclipse.ditto.services.thingsearch.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamConsumerSettings;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
@@ -38,9 +38,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.cluster.sharding.ShardRegion;
-import akka.cluster.singleton.ClusterSingletonManager;
-import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Creator;
@@ -70,8 +67,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private SearchUpdaterRootActor(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         final int numberOfShards = configReader.cluster().numberOfShards();
 
@@ -212,8 +209,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     public static Props props(final ServiceConfigReader configReader,
             final ActorRef pubSubMediator,
             final ActorMaterializer materializer,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         return Props.create(SearchUpdaterRootActor.class, new Creator<SearchUpdaterRootActor>() {
             private static final long serialVersionUID = 1L;

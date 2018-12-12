@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -51,7 +51,7 @@ public class LastSuccessfulStreamCheckingActorTest {
     private ActorRef underTest;
 
     @Mock
-    private StreamMetadataPersistence searchSyncPersistence;
+    private TimestampPersistence searchSyncPersistence;
 
     @BeforeClass
     public static void setupOnce() {
@@ -77,7 +77,7 @@ public class LastSuccessfulStreamCheckingActorTest {
                 buildConfigProperties(true, searchSyncPersistence, syncWarningOffset, syncErrorOffset);
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenReturn(Optional.empty());
+        when(searchSyncPersistence.getTimestamp()).thenReturn(Optional.empty());
 
         sendRetrieveHealth();
 
@@ -101,7 +101,7 @@ public class LastSuccessfulStreamCheckingActorTest {
 
         // WHEN: last successful sync is over syncErrorOffset
         Instant lastSuccessfulStream = now().minusSeconds(syncErrorOffset.getSeconds() + 60);
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenReturn(Optional.of(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestamp()).thenReturn(Optional.of(lastSuccessfulStream));
 
         // THEN: status is ERROR
         sendRetrieveHealth();
@@ -120,7 +120,7 @@ public class LastSuccessfulStreamCheckingActorTest {
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
         Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() + 60);
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenReturn(Optional.of(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestamp()).thenReturn(Optional.of(lastSuccessfulStream));
 
         sendRetrieveHealth();
 
@@ -141,7 +141,7 @@ public class LastSuccessfulStreamCheckingActorTest {
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
         final IllegalStateException mockedEx = new IllegalStateException("Something happened");
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenThrow(mockedEx);
+        when(searchSyncPersistence.getTimestamp()).thenThrow(mockedEx);
 
         sendRetrieveHealth();
 
@@ -158,7 +158,7 @@ public class LastSuccessfulStreamCheckingActorTest {
         underTest =
                 actorSystem.actorOf(LastSuccessfulStreamCheckingActor.props(streamHealthCheckConfigurationProperties));
         Instant lastSuccessfulStream = now().minusSeconds(syncWarningOffset.getSeconds() - 10);
-        when(searchSyncPersistence.retrieveLastSuccessfulStreamEnd()).thenReturn(Optional.of(lastSuccessfulStream));
+        when(searchSyncPersistence.getTimestamp()).thenReturn(Optional.of(lastSuccessfulStream));
 
         sendRetrieveHealth();
 
@@ -180,11 +180,11 @@ public class LastSuccessfulStreamCheckingActorTest {
                 createStatusInfo(StatusInfo.Status.UNKNOWN, StatusDetailMessage.Level.WARN,
                         SYNC_DISABLED_MESSAGE);
         expectStatusInfo(expectedStatusInfo);
-        verify(searchSyncPersistence, never()).retrieveLastSuccessfulStreamEnd();
+        verify(searchSyncPersistence, never()).getTimestamp();
     }
 
     private static LastSuccessfulStreamCheckingActorConfigurationProperties buildConfigProperties(
-            final boolean syncEnabled, final StreamMetadataPersistence streamMetadataPersistence,
+            final boolean syncEnabled, final TimestampPersistence streamMetadataPersistence,
             final Duration syncWarningOffset, final Duration syncErrorOffset) {
 
         return new LastSuccessfulStreamCheckingActorConfigurationProperties(syncEnabled, syncWarningOffset,

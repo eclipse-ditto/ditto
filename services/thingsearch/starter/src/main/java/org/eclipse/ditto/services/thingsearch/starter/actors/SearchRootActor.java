@@ -36,14 +36,14 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoAggreg
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.starter.actors.health.SearchHealthCheckingActorFactory;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.services.utils.akka.streaming.StreamMetadataPersistence;
+import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoSearchSyncPersistence;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -99,12 +99,12 @@ public final class SearchRootActor extends AbstractActor {
         final MongoClientWrapper mongoClientWrapper =
                 MongoClientWrapper.newInstance(rawConfig, kamonCommandListener, kamonConnectionPoolListener);
 
-        final StreamMetadataPersistence thingsSyncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+        final TimestampPersistence thingsSyncPersistence =
+                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
                         materializer);
 
-        final StreamMetadataPersistence policiesSyncPersistence =
-                MongoSearchSyncPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+        final TimestampPersistence policiesSyncPersistence =
+                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
                         materializer);
 
         final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
@@ -149,8 +149,8 @@ public final class SearchRootActor extends AbstractActor {
     }
 
     private ActorRef initializeHealthCheckActor(final ServiceConfigReader configReader,
-            final StreamMetadataPersistence thingsSyncPersistence,
-            final StreamMetadataPersistence policiesSyncPersistence) {
+            final TimestampPersistence thingsSyncPersistence,
+            final TimestampPersistence policiesSyncPersistence) {
 
         return startChildActor(SearchHealthCheckingActorFactory.ACTOR_NAME,
                 SearchHealthCheckingActorFactory.props(configReader, thingsSyncPersistence, policiesSyncPersistence));
