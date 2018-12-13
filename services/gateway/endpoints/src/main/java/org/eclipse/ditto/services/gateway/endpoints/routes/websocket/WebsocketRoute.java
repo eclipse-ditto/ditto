@@ -306,6 +306,7 @@ public final class WebsocketRoute {
         if (jsonifiable instanceof WithDittoHeaders) {
             ((WithDittoHeaders) jsonifiable).getDittoHeaders()
                     .getCorrelationId()
+                    .filter(c -> jsonifiable instanceof CommandResponse) // only create ResponsePublished for CommandResponses, not events with the same correlationId
                     .map(ResponsePublished::new)
                     .ifPresent(eventStream::publish);
         }
