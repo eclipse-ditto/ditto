@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.websocket;
 
 import static akka.http.javadsl.server.Directives.complete;
+import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.extractUpgradeToWebSocket;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
@@ -42,6 +43,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.ResponsePublished;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
@@ -64,6 +66,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.event.EventStream;
 import akka.event.Logging;
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
@@ -111,6 +114,9 @@ public final class WebsocketRoute {
 
     private final EventStream eventStream;
 
+    private final EventSniffer<Message> incomingMessageSniffer;
+    private final EventSniffer<Message> outgoingMessageSniffer;
+
     /**
      * Constructs the {@code /ws} route builder.
      *
@@ -125,10 +131,36 @@ public final class WebsocketRoute {
             final int subscriberBackpressureQueueSize,
             final int publisherBackpressureBufferSize,
             final EventStream eventStream) {
+        this(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize, eventStream,
+                EventSniffer.noOp(), EventSniffer.noOp());
+    }
+
+    private WebsocketRoute(final ActorRef streamingActor,
+            final int subscriberBackpressureQueueSize,
+            final int publisherBackpressureBufferSize,
+            final EventStream eventStream,
+            final EventSniffer<Message> incomingMessageSniffer,
+            final EventSniffer<Message> outgoingMessageSniffer) {
         this.streamingActor = streamingActor;
         this.subscriberBackpressureQueueSize = subscriberBackpressureQueueSize;
         this.publisherBackpressureBufferSize = publisherBackpressureBufferSize;
         this.eventStream = eventStream;
+        this.incomingMessageSniffer = incomingMessageSniffer;
+        this.outgoingMessageSniffer = outgoingMessageSniffer;
+    }
+
+    /**
+     * Create a copy of this object with message sniffers.
+     *
+     * @param incomingMessageSniffer sniffer of incoming messages.
+     * @param outgoingMessageSniffer sniffer of outgoing messages.
+     * @return a copy of this object with the message sniffers.
+     */
+    public WebsocketRoute withMessageSniffers(final EventSniffer<Message> incomingMessageSniffer,
+            final EventSniffer<Message> outgoingMessageSniffer) {
+
+        return new WebsocketRoute(streamingActor, subscriberBackpressureQueueSize, publisherBackpressureBufferSize,
+                eventStream, incomingMessageSniffer, outgoingMessageSniffer);
     }
 
     /**
@@ -140,31 +172,33 @@ public final class WebsocketRoute {
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return extractUpgradeToWebSocket(upgradeToWebSocket ->
+        return extractUpgradeToWebSocket(upgradeToWebSocket -> extractRequest(request ->
                 complete(
                         createWebsocket(upgradeToWebSocket, version, correlationId, connectionAuthContext,
-                                additionalHeaders, chosenProtocolAdapter)
+                                additionalHeaders, chosenProtocolAdapter, request)
                 )
-        );
+        ));
     }
 
     private HttpResponse createWebsocket(final UpgradeToWebSocket upgradeToWebSocket, final Integer version,
-            final String connectionCorrelationId, final AuthorizationContext connectionAuthContext,
-            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter) {
+            final String connectionCorrelationId, final AuthorizationContext authContext,
+            final DittoHeaders additionalHeaders, final ProtocolAdapter adapter, final HttpRequest request) {
 
         LogUtil.logWithCorrelationId(LOGGER, connectionCorrelationId, logger ->
-                logger.info("Creating WebSocket for connection authContext: <{}>", connectionAuthContext));
+                logger.info("Creating WebSocket for connection authContext: <{}>", authContext));
 
         // build Sink and Source in order to support rpc style patterns as well as server push:
         return upgradeToWebSocket.handleMessagesWith(
-                createSink(version, connectionCorrelationId, connectionAuthContext, additionalHeaders, adapter),
-                createSource(connectionCorrelationId, adapter));
+                createSink(version, connectionCorrelationId, authContext, additionalHeaders, adapter, request),
+                createSource(connectionCorrelationId, adapter, request));
     }
 
-    private Sink<Message, NotUsed> createSink(final Integer version, final String connectionCorrelationId,
+    private Sink<Message, NotUsed> createSink(final Integer version,
+            final String connectionCorrelationId,
             final AuthorizationContext connectionAuthContext, final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter) {
-        return Flow.<Message>create()
+            final ProtocolAdapter adapter,
+            final HttpRequest request) {
+        return incomingMessageSniffer.toAsyncFlow(request)
                 .filter(Message::isText)
                 .map(Message::asTextMessage)
                 .map(textMsg -> {
@@ -205,14 +239,14 @@ public final class WebsocketRoute {
             case START_SEND_MESSAGES:
                 messageToTellStreamingActor =
                         new StartStreaming(StreamingType.MESSAGES, connectionCorrelationId, authContext,
-                                Collections.emptyList(),null);
+                                Collections.emptyList(), null);
                 break;
             case STOP_SEND_MESSAGES:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.MESSAGES, connectionCorrelationId);
                 break;
             case START_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId,
-                        authContext, Collections.emptyList(),null);
+                        authContext, Collections.emptyList(), null);
                 break;
             case STOP_SEND_LIVE_COMMANDS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_COMMANDS, connectionCorrelationId);
@@ -220,7 +254,7 @@ public final class WebsocketRoute {
             case START_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor =
                         new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId, authContext,
-                                Collections.emptyList(),null);
+                                Collections.emptyList(), null);
                 break;
             case STOP_SEND_LIVE_EVENTS:
                 messageToTellStreamingActor = new StopStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId);
@@ -238,7 +272,7 @@ public final class WebsocketRoute {
 
         if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_EVENTS + "?")) {
             messageToTellStreamingActor = new StartStreaming(StreamingType.EVENTS, connectionCorrelationId,
-                            authContext, namespaces, filter);
+                    authContext, namespaces, filter);
         } else if (messageToTellStreamingActor == null && protocolMessage.startsWith(START_SEND_LIVE_EVENTS + "?")) {
             messageToTellStreamingActor = new StartStreaming(StreamingType.LIVE_EVENTS, connectionCorrelationId,
                     authContext, namespaces, filter);
@@ -284,7 +318,9 @@ public final class WebsocketRoute {
         }
     }
 
-    private Source<Message, NotUsed> createSource(final String connectionCorrelationId, final ProtocolAdapter adapter) {
+    private Source<Message, NotUsed> createSource(final String connectionCorrelationId,
+            final ProtocolAdapter adapter,
+            final HttpRequest request) {
         return Source.<Jsonifiable.WithPredicate<JsonObject, JsonField>>actorPublisher(
                 EventAndResponsePublisher.props(publisherBackpressureBufferSize))
                 .mapMaterializedValue(actorRef -> {
@@ -298,7 +334,8 @@ public final class WebsocketRoute {
                             logger.debug("Sending outgoing WebSocket message: {}", result));
                     return result;
                 }))
-                .map(TextMessage::create);
+                .<Message>map(TextMessage::create)
+                .via(outgoingMessageSniffer.toAsyncFlow(request));
     }
 
     private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(

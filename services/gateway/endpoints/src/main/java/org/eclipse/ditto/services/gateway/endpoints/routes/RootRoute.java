@@ -70,6 +70,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebsocketRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
+import org.eclipse.ditto.services.gateway.endpoints.utils.RoutesVisitor;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
 import org.eclipse.ditto.services.gateway.starter.service.util.ConfigKeys;
@@ -127,16 +128,17 @@ public final class RootRoute {
     private final ThingsRoute thingsRoute;
     private final ThingSearchRoute thingSearchRoute;
     private final WebsocketRoute websocketRoute;
+    private final StatsRoute statsRoute;
+
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
     private final GatewayAuthenticationDirective wsAuthenticationDirective;
-    private final StatsRoute statsRoute;
     private final ExceptionHandler exceptionHandler;
     private final List<Integer> supportedSchemaVersions;
-    private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
     private final ProtocolAdapterProvider protocolAdapterProvider;
     private final HeaderTranslator headerTranslator;
     private final CustomHeadersHandler customHeadersHandler;
+    private final RejectionHandler rejectionHandler = DittoRejectionHandlerFactory.createInstance();
 
     /**
      * Constructs the {@code /} route builder.
@@ -223,6 +225,43 @@ public final class RootRoute {
         this.customHeadersHandler = customHeadersHandler;
     }
 
+    /**
+     * Constructor for creating a copy of root-route with modified sub-routes.
+     *
+     * @param template the template to create the root-route from.
+     * @param visitor the visitor that modifies sub-routes.
+     */
+    private RootRoute(final RootRoute template, final RoutesVisitor visitor) {
+        customApiRoutesProvider = template.customApiRoutesProvider;
+        apiAuthenticationDirective = template.apiAuthenticationDirective;
+        wsAuthenticationDirective = template.wsAuthenticationDirective;
+        exceptionHandler = template.exceptionHandler;
+        supportedSchemaVersions = template.supportedSchemaVersions;
+        protocolAdapterProvider = template.protocolAdapterProvider;
+        headerTranslator = template.headerTranslator;
+        customHeadersHandler = template.customHeadersHandler;
+
+        ownStatusRoute = visitor.ownStatusRoute(template.ownStatusRoute);
+        overallStatusRoute = visitor.overallStatusRoute(template.overallStatusRoute);
+        cachingHealthRoute = visitor.cachingHealthRoute(template.cachingHealthRoute);
+        devopsRoute = visitor.devopsRoute(template.devopsRoute);
+        policiesRoute = visitor.policiesRoute(template.policiesRoute);
+        sseThingsRoute = visitor.sseThingsRoute(template.sseThingsRoute);
+        thingsRoute = visitor.thingsRoute(template.thingsRoute);
+        thingSearchRoute = visitor.thingSearchRoute(template.thingSearchRoute);
+        websocketRoute = visitor.websocketRoute(template.websocketRoute);
+        statsRoute = visitor.statsRoute(template.statsRoute);
+    }
+
+    /**
+     * Create a copy of this object with sub-routes modified by a visitor.
+     *
+     * @param visitor the visitor that modifies sub-routes.
+     * @return a copy of this object with sub-routes modified.
+     */
+    public RootRoute accept(final RoutesVisitor visitor) {
+        return new RootRoute(this, visitor);
+    }
 
     /**
      * Builds the {@code /} route.
@@ -473,7 +512,7 @@ public final class RootRoute {
     private static ExceptionHandler createExceptionHandler() {
         return ExceptionHandler.newBuilder().match(DittoRuntimeException.class, cre -> {
             final Optional<String> correlationIdOpt = Optional.ofNullable(cre.getDittoHeaders())
-                            .flatMap(DittoHeaders::getCorrelationId);
+                    .flatMap(DittoHeaders::getCorrelationId);
             if (!correlationIdOpt.isPresent()) {
                 LOGGER.warn("DittoHeaders / correlation-id was missing in DittoRuntimeException <{}>: {}",
                         cre.getClass().getSimpleName(), cre.getMessage());
