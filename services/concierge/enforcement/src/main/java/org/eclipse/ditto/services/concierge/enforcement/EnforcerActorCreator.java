@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -46,14 +47,17 @@ public final class EnforcerActorCreator {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
-            final ActorRef conciergeForwarder) {
+            final ActorRef conciergeForwarder,
+            final Executor enforcerExecutor) {
 
-        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, null, null);
+        return props(pubSubMediator, enforcementProviders, askTimeout, conciergeForwarder, enforcerExecutor,
+                null, null);
     }
 
 
@@ -64,6 +68,7 @@ public final class EnforcerActorCreator {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param askTimeout the ask timeout duration: the duration to wait for entity shard regions.
      * @param conciergeForwarder an actorRef to concierge forwarder.
+     * @param enforcerExecutor the Executor to run async tasks on during enforcement.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param activityCheckInterval how often to check for actor activity for termination after an idle period.
      * @return the Akka configuration Props object.
@@ -72,6 +77,7 @@ public final class EnforcerActorCreator {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final Duration askTimeout,
             final ActorRef conciergeForwarder,
+            final Executor enforcerExecutor,
             @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> preEnforcer,
             @Nullable final Duration activityCheckInterval) {
 
@@ -80,8 +86,8 @@ public final class EnforcerActorCreator {
 
         return GraphActor.partial((actorContext, log) -> {
             final AbstractEnforcement.Context enforcementContext =
-                    new AbstractEnforcement.Context(pubSubMediator, askTimeout, conciergeForwarder)
-                            .with(actorContext, log);
+                    new AbstractEnforcement.Context(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor)
+                            .with(actorContext, log, enforcerExecutor);
 
             return Flow.<WithSender>create()
                     .via(ActivityChecker.ofNullable(activityCheckInterval, actorContext.self()))

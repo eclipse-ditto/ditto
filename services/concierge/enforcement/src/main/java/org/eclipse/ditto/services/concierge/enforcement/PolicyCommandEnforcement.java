@@ -249,7 +249,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
                                 commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
     }
 
     private void reportTimeoutForPolicyQuery(
