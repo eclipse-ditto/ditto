@@ -16,14 +16,12 @@ import java.lang.ref.SoftReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -68,11 +66,23 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
      *
      * @param values the values to base the JSON array to be created on.
      * @return a new JSON array.
-     * @throws NullPointerException if {@code minimalJsonArray} is {@code null}.
+     * @throws NullPointerException if {@code values} is {@code null}.
      */
     public static ImmutableJsonArray of(final List<JsonValue> values) {
+        return of(values, null);
+    }
+
+    /**
+     * Returns a new JSON array which is based on the given JSON array of the Minimal Json project library.
+     *
+     * @param values the values to base the JSON array to be created on.
+     * @param stringRepresentation the already known string representation of the returned array or {@code null}.
+     * @return a new JSON array.
+     * @throws NullPointerException if {@code values} is {@code null}.
+     */
+    public static ImmutableJsonArray of(final List<JsonValue> values, @Nullable final String stringRepresentation) {
         requireNonNull(values, "The values of the JSON array must not be null!");
-        return new ImmutableJsonArray(SoftReferencedValueList.of(values));
+        return new ImmutableJsonArray(SoftReferencedValueList.of(values, stringRepresentation));
     }
 
     private static void checkValue(final Object value) {
@@ -229,27 +239,44 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
     static final class SoftReferencedValueList {
 
         private final String jsonArrayStringRepresentation;
-        private final int hashCode;
+        private int hashCode;
         private SoftReference<List<JsonValue>> valuesReference;
 
-        private SoftReferencedValueList(final List<JsonValue> jsonValueList) {
-            jsonArrayStringRepresentation = createStringRepresentation(jsonValueList);
+        private SoftReferencedValueList(final List<JsonValue> jsonValueList, final String stringRepresentation) {
+            jsonArrayStringRepresentation = stringRepresentation;
             valuesReference = new SoftReference<>(Collections.unmodifiableList(new ArrayList<>(jsonValueList)));
-            hashCode = Objects.hash(jsonArrayStringRepresentation, jsonValueList);
-        }
-
-        private static String createStringRepresentation(final Collection<JsonValue> jsonValues) {
-            return jsonValues.stream()
-                    .map(JsonValue::toString)
-                    .collect(Collectors.joining(",", "[", "]"));
+            hashCode = 0;
         }
 
         static SoftReferencedValueList empty() {
-            return new SoftReferencedValueList(Collections.emptyList());
+            return of(Collections.emptyList(), "[]");
         }
 
         static SoftReferencedValueList of(final List<JsonValue> values) {
-            return new SoftReferencedValueList(values);
+            return of(values, null);
+        }
+
+        static SoftReferencedValueList of(final List<JsonValue> jsonValueList,
+                @Nullable final String stringRepresentation) {
+
+            if (null != stringRepresentation) {
+                return new SoftReferencedValueList(jsonValueList, stringRepresentation);
+            }
+            return new SoftReferencedValueList(jsonValueList, createStringRepresentation(jsonValueList));
+        }
+
+        private static String createStringRepresentation(final Iterable<JsonValue> jsonValues) {
+            final StringBuilder stringBuilder = new StringBuilder(512);
+            stringBuilder.append('[');
+            String delimiter = "";
+            for (final JsonValue jsonValue : jsonValues) {
+                stringBuilder.append(delimiter);
+                stringBuilder.append(jsonValue);
+                delimiter = ",";
+            }
+            stringBuilder.append(']');
+
+            return stringBuilder.toString();
         }
 
         JsonValue get(final int index) {
@@ -324,7 +351,12 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
 
         @Override
         public int hashCode() {
-            return hashCode;
+            int result = hashCode;
+            if (0 == result) {
+                result = values().hashCode();
+                hashCode = result;
+            }
+            return result;
         }
 
         String asJsonArrayString() {
@@ -344,11 +376,11 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
      */
     @NotThreadSafe
     static final class ValueListJsonHandler
-            extends DittoJsonHandler<List<JsonValue>, JsonObjectBuilder, List<JsonValue>> {
+            extends DittoJsonHandler<List<JsonValue>, List<JsonField>, List<JsonValue>> {
 
         private final DefaultDittoJsonHandler defaultHandler;
         private List<JsonValue> value;
-        private final Deque<JsonArrayBuilder> jsonArrayBuilders; // for nested JsonArrays
+        private final Deque<List<JsonValue>> jsonArrayBuilders; // for nested JsonArrays
         private int level;
 
         /**
@@ -372,7 +404,7 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         @Override
-        public JsonObjectBuilder startObject() {
+        public List<JsonField> startObject() {
             return defaultHandler.startObject();
         }
 
@@ -397,34 +429,34 @@ final class ImmutableJsonArray extends AbstractJsonValue implements JsonArray {
         }
 
         @Override
-        public void endArrayValue(final List<JsonValue> valueList) {
-            final JsonArrayBuilder jsonArrayBuilder = jsonArrayBuilders.peek();
+        public void endArrayValue(final List<JsonValue> jsonValues) {
+            final List<JsonValue> jsonArrayBuilder = jsonArrayBuilders.peek();
             if (null != jsonArrayBuilder) {
                 defaultHandler.endArrayValue(jsonArrayBuilder);
             } else {
-                valueList.add(defaultHandler.getValue());
+                jsonValues.add(defaultHandler.getValue());
             }
         }
 
         @Override
-        public void endArray(final List<JsonValue> valueList) {
-            final JsonArrayBuilder jsonArrayBuilder = jsonArrayBuilders.poll();
+        public void endArray(final List<JsonValue> jsonValues) {
+            final List<JsonValue> jsonArrayBuilder = jsonArrayBuilders.poll();
             if (null != jsonArrayBuilder) {
                 defaultHandler.endArray(jsonArrayBuilder);
             } else {
-                value = new ArrayList<>(valueList);
+                value = new ArrayList<>(jsonValues);
             }
             level--;
         }
 
         @Override
-        public void endObject(final JsonObjectBuilder jsonObjectBuilder) {
-            defaultHandler.endObject(jsonObjectBuilder);
+        public void endObject(final List<JsonField> jsonFields) {
+            defaultHandler.endObject(jsonFields);
         }
 
         @Override
-        public void endObjectValue(final JsonObjectBuilder jsonObjectBuilder, final String name) {
-            defaultHandler.endObjectValue(jsonObjectBuilder, name);
+        public void endObjectValue(final List<JsonField> jsonFields, final String name) {
+            defaultHandler.endObjectValue(jsonFields, name);
         }
 
         @Override

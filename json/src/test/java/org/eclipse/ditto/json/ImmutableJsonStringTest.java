@@ -42,6 +42,7 @@ public final class ImmutableJsonStringTest {
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .withIgnoredFields("stringRepresentation")
+                .withNonnullFields("value")
                 .verify();
     }
 

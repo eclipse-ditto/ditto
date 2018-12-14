@@ -10,6 +10,14 @@
  */
 package org.eclipse.ditto.json;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
@@ -17,11 +25,18 @@ import javax.annotation.concurrent.NotThreadSafe;
  * for creating a new {@link JsonArray} or {@link JsonObject}.
  */
 @NotThreadSafe
-final class DefaultDittoJsonHandler extends DittoJsonHandler<JsonArrayBuilder, JsonObjectBuilder, JsonValue> {
+final class DefaultDittoJsonHandler extends DittoJsonHandler<List<JsonValue>, List<JsonField>, JsonValue> {
 
+    private static final int DEFAULT_INITIAL_STRING_BUILDER_CAPACITY = 512;
+    private static final char DELIMITER = ',';
+
+    private final Deque<StringBuilder> stringBuilders;
+    private String valueString;
     private JsonValue jsonValue;
 
     private DefaultDittoJsonHandler() {
+        stringBuilders = new ArrayDeque<>();
+        valueString = null;
         jsonValue = null;
     }
 
@@ -38,33 +53,48 @@ final class DefaultDittoJsonHandler extends DittoJsonHandler<JsonArrayBuilder, J
     }
 
     @Override
-    public JsonArrayBuilder startArray() {
-        return ImmutableJsonArrayBuilder.newInstance();
+    public List<JsonValue> startArray() {
+        final StringBuilder stringBuilder = new StringBuilder(DEFAULT_INITIAL_STRING_BUILDER_CAPACITY);
+        stringBuilder.append('[');
+        stringBuilders.push(stringBuilder);
+        return new ArrayList<>();
     }
 
     @Override
-    public JsonObjectBuilder startObject() {
-        return ImmutableJsonObjectBuilder.newInstance();
+    public List<JsonField> startObject() {
+        final StringBuilder stringBuilder = new StringBuilder(DEFAULT_INITIAL_STRING_BUILDER_CAPACITY);
+        stringBuilder.append('{');
+        stringBuilders.push(stringBuilder);
+        return new ArrayList<>();
     }
 
     @Override
     public void endNull() {
         jsonValue = ImmutableJsonNull.getInstance();
+        valueString = "null";
     }
 
     @Override
     public void endBoolean(final boolean value) {
         jsonValue = value ? ImmutableJsonBoolean.TRUE : ImmutableJsonBoolean.FALSE;
+        valueString = String.valueOf(value);
     }
 
     @Override
     public void endString(final String string) {
         jsonValue = ImmutableJsonString.of(string);
+        valueString = getEscapedJsonString(string);
+    }
+
+    private static String getEscapedJsonString(final String javaString) {
+        final UnaryOperator<String> javaStringToEscapeJsonString = JavaStringToEscapedJsonString.getInstance();
+        return javaStringToEscapeJsonString.apply(javaString);
     }
 
     @Override
     public void endNumber(final String string) {
         jsonValue = getNumberFor(string);
+        valueString = string;
     }
 
     private static JsonNumber getNumberFor(final String string) {
@@ -75,7 +105,12 @@ final class DefaultDittoJsonHandler extends DittoJsonHandler<JsonArrayBuilder, J
     }
 
     private static boolean isDecimal(final String string) {
-        return string.contains(".") || string.contains("e") || string.contains("E");
+        for (final char c : string.toCharArray()) {
+            if ('.' == c || 'e' == c || 'E' == c) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ImmutableJsonDouble parseToDouble(final String string) {
@@ -99,27 +134,56 @@ final class DefaultDittoJsonHandler extends DittoJsonHandler<JsonArrayBuilder, J
     }
 
     @Override
-    public void endArray(final JsonArrayBuilder arrayBuilder) {
-        jsonValue = arrayBuilder.build();
-    }
-
-    @Override
-    public void endObject(final JsonObjectBuilder objectBuilder) {
-        jsonValue = objectBuilder.build();
-    }
-
-    @Override
-    public void endArrayValue(final JsonArrayBuilder arrayBuilder) {
-        if (null != jsonValue) {
-            arrayBuilder.add(jsonValue);
+    public void endArrayValue(final List<JsonValue> jsonValues) {
+        jsonValues.add(jsonValue);
+        final StringBuilder stringBuilder = stringBuilders.peek();
+        if (null != stringBuilder) {
+            stringBuilder.append(valueString);
+            stringBuilder.append(DELIMITER);
         }
     }
 
     @Override
-    public void endObjectValue(final JsonObjectBuilder objectBuilder, final String name) {
-        if (null != jsonValue) {
-            objectBuilder.set(name, jsonValue);
+    public void endArray(final List<JsonValue> jsonValues) {
+        final StringBuilder stringBuilder = stringBuilders.poll();
+        if (null != stringBuilder) {
+            if (!jsonValues.isEmpty()) {
+                stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+            }
+            stringBuilder.append(']');
+            valueString = stringBuilder.toString();
         }
+        jsonValue = ImmutableJsonArray.of(jsonValues, valueString);
+    }
+
+    @Override
+    public void endObjectValue(final List<JsonField> jsonFields, final String name) {
+        final JsonField jsonField = JsonField.newInstance(name, jsonValue);
+        jsonFields.add(jsonField);
+        final StringBuilder stringBuilder = stringBuilders.peek();
+        if (null != stringBuilder) {
+            stringBuilder.append(getEscapedJsonString(name));
+            stringBuilder.append(':');
+            stringBuilder.append(valueString);
+            stringBuilder.append(DELIMITER);
+        }
+    }
+
+    @Override
+    public void endObject(final List<JsonField> jsonFields) {
+        final StringBuilder stringBuilder = stringBuilders.poll();
+        if (null != stringBuilder) {
+            if (!jsonFields.isEmpty()) {
+                stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+            }
+            stringBuilder.append('}');
+            valueString = stringBuilder.toString();
+        }
+        final Map<String, JsonField> fieldMap = new LinkedHashMap<>(jsonFields.size());
+        for (final JsonField jsonField : jsonFields) {
+            fieldMap.put(jsonField.getKeyName(), jsonField);
+        }
+        jsonValue = ImmutableJsonObject.of(fieldMap, valueString);
     }
 
     @Override

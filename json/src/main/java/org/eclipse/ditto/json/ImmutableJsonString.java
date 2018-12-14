@@ -68,7 +68,7 @@ final class ImmutableJsonString extends AbstractJsonValue {
 
     @Override
     public int hashCode() {
-        return Objects.hash(value);
+        return value.hashCode();
     }
 
     @Override
@@ -83,22 +83,8 @@ final class ImmutableJsonString extends AbstractJsonValue {
     }
 
     private String createStringRepresentation() {
-        final StringBuilder stringBuilder = new StringBuilder(value.length() + 4);
-        stringBuilder.append("\"");
-        escapeValue(stringBuilder);
-        stringBuilder.append("\"");
-        return stringBuilder.toString();
-    }
-
-    private void escapeValue(final StringBuilder stringBuilder) {
-        for (final char c : value.toCharArray()) {
-            stringBuilder.append(getReplacementOrKeep(c));
-        }
-    }
-
-    private static String getReplacementOrKeep(final char c) {
-        final JsonCharEscaper jsonStringEscaper = JsonCharEscaper.getInstance();
-        return jsonStringEscaper.apply(c);
+        final JavaStringToEscapedJsonString javaStringToEscapedJsonString = JavaStringToEscapedJsonString.getInstance();
+        return javaStringToEscapedJsonString.apply(value);
     }
 
 }
