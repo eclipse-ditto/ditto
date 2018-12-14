@@ -303,10 +303,10 @@ public final class WebsocketRoute {
 
     private Jsonifiable.WithPredicate<JsonObject, JsonField> publishResponsePublishedEvent(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-        if (jsonifiable instanceof WithDittoHeaders) {
+        if (jsonifiable instanceof CommandResponse) {
+            // only create ResponsePublished for CommandResponses, not for Events with the same correlationId
             ((WithDittoHeaders) jsonifiable).getDittoHeaders()
                     .getCorrelationId()
-                    .filter(c -> jsonifiable instanceof CommandResponse) // only create ResponsePublished for CommandResponses, not events with the same correlationId
                     .map(ResponsePublished::new)
                     .ifPresent(eventStream::publish);
         }
