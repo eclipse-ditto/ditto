@@ -14,6 +14,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -27,6 +28,7 @@ final class ImmutableJsonField implements JsonField {
     private final JsonKey key;
     private final JsonValue value;
     @Nullable private final JsonFieldDefinition definition;
+    @Nullable private String stringRepresentation;
 
     private ImmutableJsonField(final JsonKey theKey, final JsonValue theValue,
             @Nullable final JsonFieldDefinition theDefinition) {
@@ -34,6 +36,7 @@ final class ImmutableJsonField implements JsonField {
         key = requireNonNull(theKey, "The JSON key must not be null!");
         value = requireNonNull(theValue, "The JSON value must not be null!");
         definition = theDefinition;
+        stringRepresentation = null;
     }
 
     /**
@@ -44,7 +47,7 @@ final class ImmutableJsonField implements JsonField {
      * @return a new JSON field object.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static JsonField newInstance(final JsonKey key, final JsonValue value) {
+    public static ImmutableJsonField newInstance(final JsonKey key, final JsonValue value) {
         return newInstance(key, value, null);
     }
 
@@ -57,7 +60,7 @@ final class ImmutableJsonField implements JsonField {
      * @return a new JSON field object.
      * @throws NullPointerException if any argument but {@code definition} is {@code null}.
      */
-    public static JsonField newInstance(final JsonKey key, final JsonValue value,
+    public static ImmutableJsonField newInstance(final JsonKey key, final JsonValue value,
             @Nullable final JsonFieldDefinition definition) {
 
         return new ImmutableJsonField(key, value, definition);
@@ -108,22 +111,18 @@ final class ImmutableJsonField implements JsonField {
 
     @Override
     public String toString() {
-        final String valueAsString = value.toString();
-        final StringBuilder stringBuilder = new StringBuilder(key.length() + valueAsString.length() + 4);
-        escapeKeyName(stringBuilder);
-        stringBuilder.append(":");
-        stringBuilder.append(valueAsString);
-        return stringBuilder.toString();
+        // keep escaped string as escaping is expensive
+        String result = stringRepresentation;
+        if (null == result) {
+            result = getEscapedKeyName() + ":" + value;
+            stringRepresentation = result;
+        }
+        return result;
     }
 
-    private void escapeKeyName(final StringBuilder stringBuilder) {
-        stringBuilder.append("\"");
-        final String keyName = key.toString();
-        final JsonCharEscaper jsonStringEscaper = JsonCharEscaper.getInstance();
-        for (final char c : keyName.toCharArray()) {
-            stringBuilder.append(jsonStringEscaper.apply(c));
-        }
-        stringBuilder.append("\"");
+    private String getEscapedKeyName() {
+        final UnaryOperator<String> javaStringToEscapeJsonString = JavaStringToEscapedJsonString.getInstance();
+        return javaStringToEscapeJsonString.apply(key.toString());
     }
 
 }

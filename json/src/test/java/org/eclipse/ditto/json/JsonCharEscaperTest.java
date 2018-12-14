@@ -47,14 +47,14 @@ public final class JsonCharEscaperTest {
     public void doNotEscapeSpace() {
         final String unescapedSpace = underTest.apply((char) 0x0020);
 
-        assertThat(unescapedSpace).isEqualTo(" ");
+        assertThat(unescapedSpace).isNull();
     }
 
     @Test
     public void doNotEscapeExclamationMark() {
         final String unescapedExclamationMark = underTest.apply((char) 0x0021);
 
-        assertThat(unescapedExclamationMark).isEqualTo("!");
+        assertThat(unescapedExclamationMark).isNull();
     }
 
     @Test
@@ -65,9 +65,8 @@ public final class JsonCharEscaperTest {
         IntStream.range(start, end)
                 .mapToObj(i -> (char) i)
                 .forEach(character -> {
-                    final String expected = String.valueOf(character);
                     final String notEscaped = underTest.apply(character);
-                    assertThat(notEscaped).isEqualTo(expected);
+                    assertThat(notEscaped).isNull();
                 });
     }
 
@@ -80,11 +79,10 @@ public final class JsonCharEscaperTest {
                 .filter(i -> '\u2028' != i && '\u2029' != i)
                 .mapToObj(i -> (char) i)
                 .forEach(character -> {
-                    final String expected = String.valueOf(character);
                     final String notEscaped = underTest.apply(character);
                     assertThat(notEscaped)
                             .describedAs("Do not escape character %s", Integer.toHexString(character))
-                            .isEqualTo(expected);
+                            .isNull();
                 });
     }
 
@@ -128,12 +126,6 @@ public final class JsonCharEscaperTest {
         final String escapedTab = underTest.apply('\t');
 
         assertThat(escapedTab).isEqualTo("\\t");
-    }
-
-    @Test
-    public void escapeCancel() {
-        final String escapedCancel = underTest.apply((char) 24);
-        System.out.println(escapedCancel);
     }
 
     @Test
