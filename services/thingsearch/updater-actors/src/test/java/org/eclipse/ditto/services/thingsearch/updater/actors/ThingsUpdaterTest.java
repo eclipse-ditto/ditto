@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -204,10 +205,17 @@ public final class ThingsUpdaterTest {
 
     private static void expectShardedMessage(final TestProbe probe, final Jsonifiable event,
             final Collection<String> ids) {
-        final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
+        final Collection<String> receivedIds = new ArrayList<>(ids.size());
 
-        assertThat(envelope.getMessage()).isEqualTo(event.toJson());
-        assertThat(envelope.getId()).isIn(ids);
+        for (int i = 0; i < ids.size(); ++i) {
+            final ShardedMessageEnvelope envelope = probe.expectMsgClass(ShardedMessageEnvelope.class);
+            assertThat(envelope.getMessage()).isEqualTo(event.toJson());
+            assertThat(envelope.getId()).isIn(ids);
+
+            receivedIds.add(envelope.getId());
+        }
+
+        assertThat(receivedIds).containsAll(ids);
     }
 
     private ActorRef createThingsUpdater() {
