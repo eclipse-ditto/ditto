@@ -14,8 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Duration;
-
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -38,8 +36,6 @@ public final class DittoServiceConfigReaderTest {
     public void allValuesSet() {
         final ServiceConfigReader underTest = loadResource("allValuesSet.conf");
         assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
-        assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
-        assertThat(underTest.cluster().majorityCheckDelay()).isEqualTo(Duration.ofHours(500));
         assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isTrue();
     }
@@ -50,10 +46,6 @@ public final class DittoServiceConfigReaderTest {
 
         assertThat(underTest.cluster().numberOfShards())
                 .isEqualTo(ClusterConfigReader.DEFAULT_NUMBER_OF_SHARDS);
-        assertThat(underTest.cluster().majorityCheckEnabled())
-                .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_ENABLED);
-        assertThat(underTest.cluster().majorityCheckDelay())
-                .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
         assertThat(underTest.metrics().isPrometheusEnabled()).isFalse();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }
@@ -62,9 +54,6 @@ public final class DittoServiceConfigReaderTest {
     public void someValuesSet() {
         final ServiceConfigReader underTest = loadResource("someValuesSet.conf");
         assertThat(underTest.cluster().numberOfShards()).isEqualTo(1234);
-        assertThat(underTest.cluster().majorityCheckEnabled()).isTrue();
-        assertThat(underTest.cluster().majorityCheckDelay())
-                .isEqualTo(ClusterConfigReader.DEFAULT_MAJORITY_CHECK_DELAY);
         assertThat(underTest.metrics().isPrometheusEnabled()).isTrue();
         assertThat(underTest.metrics().isSystemMetricsEnabled()).isFalse();
     }

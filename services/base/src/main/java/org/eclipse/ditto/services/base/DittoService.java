@@ -29,7 +29,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.services.base.config.LimitsConfigReader;
 import org.eclipse.ditto.services.base.config.ServiceConfigReader;
 import org.eclipse.ditto.services.base.config.SuffixBuilderConfigReader;
-import org.eclipse.ditto.services.utils.cluster.ClusterMemberAwareActor;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
@@ -73,7 +72,6 @@ import kamon.system.SystemMetrics;
  * <li>{@link #determineConfig()},</li>
  * <li>{@link #createActorSystem(Config)},</li>
  * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
- * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
  * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.
  * <ol>
  * <li>{@link #addDropwizardMetricRegistries(ActorSystem, ServiceConfigReader)},</li>
@@ -199,7 +197,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
      * <li>{@link #determineConfig()},</li>
      * <li>{@link #createActorSystem(Config)},</li>
      * <li>{@link #startStatusSupplierActor(ActorSystem, Config)},</li>
-     * <li>{@link #startClusterMemberAwareActor(ActorSystem, ServiceConfigReader)} and</li>
      * <li>{@link #startServiceRootActors(ActorSystem, ServiceConfigReader)}.</li>
      * </ul>
      */
@@ -209,7 +206,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
 
         startStatusSupplierActor(actorSystem, config);
         startDevOpsCommandsActor(actorSystem, config);
-        startClusterMemberAwareActor(actorSystem, configReader);
         startServiceRootActors(actorSystem, configReader);
 
         CoordinatedShutdown.get(actorSystem).addTask(
@@ -303,26 +299,6 @@ public abstract class DittoService<C extends ServiceConfigReader> {
     protected void startDevOpsCommandsActor(final ActorSystem actorSystem, final Config config) {
         startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 ConfigUtil.instanceIdentifier()), DevOpsCommandsActor.ACTOR_NAME);
-    }
-
-    /**
-     * Starts the {@link ClusterMemberAwareActor}. May be overridden to change the way how the actor is started.
-     *
-     * @param actorSystem Akka actor system for starting actors.
-     * @param configReader the config reader of this service.
-     */
-    protected void startClusterMemberAwareActor(final ActorSystem actorSystem, final C configReader) {
-        startActor(actorSystem, ClusterMemberAwareActor.props(serviceName, isMajorityCheckEnabled(configReader),
-                getMajorityCheckDelay(configReader)), ClusterMemberAwareActor.ACTOR_NAME);
-    }
-
-    private boolean isMajorityCheckEnabled(final ServiceConfigReader configReader) {
-        return configReader.cluster().majorityCheckEnabled();
-
-    }
-
-    private Duration getMajorityCheckDelay(final ServiceConfigReader configReader) {
-        return configReader.cluster().majorityCheckDelay();
     }
 
     /**
