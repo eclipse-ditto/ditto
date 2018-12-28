@@ -73,6 +73,9 @@ public final class ImmutableJsonBooleanTest {
     @Test
     public void isNotNumber() {
         assertThat(underTest.isNumber()).isFalse();
+        assertThat(underTest.isInt()).isFalse();
+        assertThat(underTest.isLong()).isFalse();
+        assertThat(underTest.isDouble()).isFalse();
     }
 
     @Test

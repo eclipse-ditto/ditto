@@ -207,7 +207,7 @@ public final class ImmutableJsonDoubleTest {
         if (underTest.isInt()) {
             assertThat(underTest.asInt()).isEqualTo(Double.valueOf(doubleValue).intValue());
         } else {
-            assertThatExceptionOfType(UnsupportedOperationException.class)
+            assertThatExceptionOfType(NumberFormatException.class)
                     .isThrownBy(() -> underTest.asInt())
                     .withMessage("This JSON value is not an int: %s", underTest)
                     .withNoCause();
@@ -219,7 +219,7 @@ public final class ImmutableJsonDoubleTest {
         if (underTest.isLong()) {
             assertThat(underTest.asLong()).isEqualTo(Double.valueOf(doubleValue).longValue());
         } else {
-            assertThatExceptionOfType(UnsupportedOperationException.class)
+            assertThatExceptionOfType(NumberFormatException.class)
                     .isThrownBy(() -> underTest.asLong())
                     .withMessage("This JSON value is not a long: %s", underTest)
                     .withNoCause();

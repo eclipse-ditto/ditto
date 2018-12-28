@@ -15,6 +15,7 @@ import static java.util.Objects.requireNonNull;
 import java.lang.ref.SoftReference;
 import java.text.MessageFormat;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -73,16 +74,22 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
      * @throws NullPointerException if {@code fields} is {@code null}.
      */
     public static ImmutableJsonObject of(final Map<String, JsonField> fields) {
+        return of(fields, null);
+    }
+
+    /**
+     * Returns a new {@code ImmutableJsonObject} instance which contains the given fields.
+     *
+     * @param fields the fields of the new JSON object.
+     * @param stringRepresentation the already known string representation of the returned object or {@code null}.
+     * @return a new JSON object containing the {@code fields}.
+     * @throws NullPointerException if {@code fields} is {@code null}.
+     */
+    public static ImmutableJsonObject of(final Map<String, JsonField> fields,
+            @Nullable final String stringRepresentation) {
+
         requireNonNull(fields, "The fields of JSON object must not be null!");
-        return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields));
-    }
-
-    private static void checkPointer(final JsonPointer pointer) {
-        requireNonNull(pointer, "The JSON pointer must not be null!");
-    }
-
-    private static void checkFieldDefinition(final JsonFieldDefinition fieldDefinition) {
-        requireNonNull(fieldDefinition, "The JSON field definition which supplies the pointer must not be null!");
+        return new ImmutableJsonObject(SoftReferencedFieldMap.of(fields, stringRepresentation));
     }
 
     @Override
@@ -253,6 +260,10 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         return getValueForPointer(fieldDefinition.getPointer()).map(fieldDefinition::mapValue);
     }
 
+    private static void checkFieldDefinition(final JsonFieldDefinition fieldDefinition) {
+        requireNonNull(fieldDefinition, "The JSON field definition which supplies the pointer must not be null!");
+    }
+
     @Override
     public <T> T getValueOrThrow(final JsonFieldDefinition<T> fieldDefinition) {
         return getValue(fieldDefinition).orElseThrow(() -> new JsonMissingFieldException(fieldDefinition));
@@ -303,6 +314,10 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         return result;
+    }
+
+    private static void checkPointer(final JsonPointer pointer) {
+        requireNonNull(pointer, "The JSON pointer must not be null!");
     }
 
     @Override
@@ -495,28 +510,44 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
     static final class SoftReferencedFieldMap {
 
         private final String jsonObjectStringRepresentation;
-        private final int hashCode;
+        private int hashCode;
         private SoftReference<Map<String, JsonField>> fieldsReference;
 
-        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap) {
-            jsonObjectStringRepresentation = createStringRepresentation(jsonFieldMap);
+        private SoftReferencedFieldMap(final Map<String, JsonField> jsonFieldMap, final String stringRepresentation) {
+            jsonObjectStringRepresentation = stringRepresentation;
             fieldsReference = new SoftReference<>(Collections.unmodifiableMap(new LinkedHashMap<>(jsonFieldMap)));
-            hashCode = Objects.hash(jsonObjectStringRepresentation, jsonFieldMap);
-        }
-
-        private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
-            return jsonFieldMap.values()
-                    .stream()
-                    .map(JsonField::toString)
-                    .collect(Collectors.joining(",", "{", "}"));
+            hashCode = 0;
         }
 
         static SoftReferencedFieldMap empty() {
-            return new SoftReferencedFieldMap(Collections.emptyMap());
+            return of(Collections.emptyMap(), "{}");
         }
 
         static SoftReferencedFieldMap of(final Map<String, JsonField> fieldMap) {
-            return new SoftReferencedFieldMap(fieldMap);
+            return of(fieldMap, null);
+        }
+
+        static SoftReferencedFieldMap of(final Map<String, JsonField> jsonFieldMap,
+                @Nullable final String stringRepresentation) {
+
+            if (null != stringRepresentation) {
+                return new SoftReferencedFieldMap(jsonFieldMap, stringRepresentation);
+            }
+            return new SoftReferencedFieldMap(jsonFieldMap, createStringRepresentation(jsonFieldMap));
+        }
+
+        private static String createStringRepresentation(final Map<String, JsonField> jsonFieldMap) {
+            final StringBuilder stringBuilder = new StringBuilder(512);
+            stringBuilder.append('{');
+            String delimiter = "";
+            for (final JsonField jsonField : jsonFieldMap.values()) {
+                stringBuilder.append(delimiter);
+                stringBuilder.append(jsonField);
+                delimiter = ",";
+            }
+            stringBuilder.append('}');
+
+            return stringBuilder.toString();
         }
 
         int getSize() {
@@ -539,7 +570,7 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         SoftReferencedFieldMap put(final String key, final JsonField value) {
             final Map<String, JsonField> fieldsCopy = copyFields();
             fieldsCopy.put(key, value);
-            return new SoftReferencedFieldMap(fieldsCopy);
+            return of(fieldsCopy);
         }
 
         private Map<String, JsonField> copyFields() {
@@ -549,13 +580,13 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         SoftReferencedFieldMap putAll(final Iterable<JsonField> jsonFields) {
             final Map<String, JsonField> fieldsCopy = copyFields();
             jsonFields.forEach(jsonField -> fieldsCopy.put(jsonField.getKeyName(), jsonField));
-            return new SoftReferencedFieldMap(fieldsCopy);
+            return of(fieldsCopy);
         }
 
         SoftReferencedFieldMap remove(final String key) {
             final Map<String, JsonField> fieldsCopy = copyFields();
             fieldsCopy.remove(key);
-            return new SoftReferencedFieldMap(fieldsCopy);
+            return of(fieldsCopy);
         }
 
         Stream<JsonField> getStream() {
@@ -600,7 +631,12 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
 
         @Override
         public int hashCode() {
-            return hashCode;
+            int result = hashCode;
+            if (0 == result) {
+                result = fields().hashCode();
+                hashCode = result;
+            }
+            return result;
         }
 
         String asJsonObjectString() {
@@ -620,11 +656,11 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
      */
     @NotThreadSafe
     static final class FieldMapJsonHandler
-            extends DittoJsonHandler<JsonArrayBuilder, Map<String, JsonField>, Map<String, JsonField>> {
+            extends DittoJsonHandler<List<JsonValue>, List<JsonField>, Map<String, JsonField>> {
 
         private final DefaultDittoJsonHandler defaultHandler;
         private Map<String, JsonField> value;
-        private final Deque<JsonObjectBuilder> jsonObjectBuilders; // for nested JsonObjects
+        private final Deque<List<JsonField>> jsonObjectBuilders; // for nested JsonObjects
         private int level;
 
         /**
@@ -638,16 +674,16 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         @Override
-        public JsonArrayBuilder startArray() {
+        public List<JsonValue> startArray() {
             return defaultHandler.startArray();
         }
 
         @Override
-        public Map<String, JsonField> startObject() {
+        public List<JsonField> startObject() {
             if (0 < level) {
                 jsonObjectBuilders.push(defaultHandler.startObject());
             }
-            final Map<String, JsonField> result = new LinkedHashMap<>();
+            final List<JsonField> result = new ArrayList<>();
             level++;
             return result;
         }
@@ -673,39 +709,43 @@ final class ImmutableJsonObject extends AbstractJsonValue implements JsonObject 
         }
 
         @Override
-        public void endArray(final JsonArrayBuilder array) {
-            defaultHandler.endArray(array);
+        public void endArray(final List<JsonValue> jsonValues) {
+            defaultHandler.endArray(jsonValues);
         }
 
         @Override
-        public void endArrayValue(final JsonArrayBuilder arrayBuilder) {
-            defaultHandler.endArrayValue(arrayBuilder);
+        public void endArrayValue(final List<JsonValue> jsonValues) {
+            defaultHandler.endArrayValue(jsonValues);
         }
 
         @Override
-        public void endObjectValue(final Map<String, JsonField> fieldMap, final String name) {
-            final JsonObjectBuilder jsonObjectBuilder = jsonObjectBuilders.peek();
+        public void endObjectValue(final List<JsonField> jsonFields, final String name) {
+            final List<JsonField> jsonObjectBuilder = jsonObjectBuilders.peek();
             if (null != jsonObjectBuilder) {
                 defaultHandler.endObjectValue(jsonObjectBuilder, name);
             } else {
-                fieldMap.put(name, JsonField.newInstance(name, defaultHandler.getValue()));
+                jsonFields.add(JsonField.newInstance(name, defaultHandler.getValue()));
             }
         }
 
         @Override
-        public void endObject(final Map<String, JsonField> fieldMap) {
-            final JsonObjectBuilder jsonObjectBuilder = jsonObjectBuilders.poll();
+        public void endObject(final List<JsonField> jsonFields) {
+            final List<JsonField> jsonObjectBuilder = jsonObjectBuilders.poll();
             if (null != jsonObjectBuilder) {
                 defaultHandler.endObject(jsonObjectBuilder);
             } else {
-                value = new LinkedHashMap<>(fieldMap);
+                final Map<String, JsonField> linkedHashMap = new LinkedHashMap<>(jsonFields.size());
+                for (final JsonField jsonField : jsonFields) {
+                    linkedHashMap.put(jsonField.getKeyName(), jsonField);
+                }
+                value = linkedHashMap;
             }
             level--;
         }
 
         @Override
         protected Map<String, JsonField> getValue() {
-            return Collections.unmodifiableMap(value);
+            return value;
         }
 
     }

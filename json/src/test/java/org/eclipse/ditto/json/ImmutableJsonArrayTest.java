@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.json;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.eclipse.ditto.json.JsonFactory.newValue;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -124,6 +125,9 @@ public final class ImmutableJsonArrayTest {
         assertThat(underTest).isNotNumber();
         assertThat(underTest).isNotString();
         assertThat(underTest).isNotObject();
+        assertThat(underTest.isInt()).isFalse();
+        assertThat(underTest.isLong()).isFalse();
+        assertThat(underTest.isDouble()).isFalse();
     }
 
     @Test

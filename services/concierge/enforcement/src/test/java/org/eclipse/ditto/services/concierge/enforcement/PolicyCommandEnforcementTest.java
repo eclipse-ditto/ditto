@@ -501,7 +501,7 @@ public class PolicyCommandEnforcementTest {
         enforcementProviders.add(enforcementProvider);
 
         return system.actorOf(EnforcerActorCreator.props(pubSubMediator, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder),
+                conciergeForwarder, system.dispatcher()),
                 ENTITY_ID.toString());
     }
 

@@ -42,6 +42,7 @@ public final class ImmutableJsonStringTest {
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .withIgnoredFields("stringRepresentation")
+                .withNonnullFields("value")
                 .verify();
     }
 
@@ -63,6 +64,9 @@ public final class ImmutableJsonStringTest {
         assertThat(underTest).isNotNumber();
         assertThat(underTest).isNotArray();
         assertThat(underTest).isNotObject();
+        assertThat(underTest.isInt()).isFalse();
+        assertThat(underTest.isLong()).isFalse();
+        assertThat(underTest.isDouble()).isFalse();
         assertThat(underTest).doesNotSupport(JsonValue::asBoolean);
         assertThat(underTest).doesNotSupport(JsonValue::asInt);
         assertThat(underTest).doesNotSupport(JsonValue::asLong);

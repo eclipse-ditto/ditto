@@ -65,6 +65,21 @@ final class NullFeatureProperties implements FeatureProperties {
     }
 
     @Override
+    public boolean isInt() {
+        return false;
+    }
+
+    @Override
+    public boolean isLong() {
+        return false;
+    }
+
+    @Override
+    public boolean isDouble() {
+        return false;
+    }
+
+    @Override
     public boolean isString() {
         return false;
     }

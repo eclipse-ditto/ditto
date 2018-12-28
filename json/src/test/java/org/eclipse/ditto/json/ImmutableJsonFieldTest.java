@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -51,6 +52,7 @@ public final class ImmutableJsonFieldTest {
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonField.class,
                 areImmutable(),
+                assumingFields("stringRepresentation").areModifiedAsPartOfAnUnobservableCachingStrategy(),
                 provided(JsonKey.class, JsonValue.class, JsonField.class,
                         JsonFieldDefinition.class).areAlsoImmutable());
     }
@@ -59,7 +61,7 @@ public final class ImmutableJsonFieldTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableJsonField.class)
                 .usingGetClass()
-                .withIgnoredFields("definition")
+                .withIgnoredFields("definition", "stringRepresentation")
                 .verify();
     }
 
