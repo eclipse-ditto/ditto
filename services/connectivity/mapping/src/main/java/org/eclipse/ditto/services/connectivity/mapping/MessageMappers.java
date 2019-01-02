@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMess
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 
 import akka.actor.DynamicAccess;
+import akka.actor.ExtendedActorSystem;
 import scala.collection.immutable.List$;
 import scala.reflect.ClassTag;
 import scala.util.Try;
@@ -41,18 +42,21 @@ public final class MessageMappers implements MessageMapperInstantiation {
      * Create a Rhino mapper if the mapping engine is 'javascript', dynamically instantiate the mapper if the mapping
      * engine is a class name on the class-path, or null otherwise.
      *
+     * @param connectionId ID of the connection.
      * @param mappingContext the mapping context that configures the mapper.
-     * @param dynamicAccess dynamic access to load classes in an actor system.
+     * @param actorSystem actor system the message mapper is created for.
      * @return the created message mapper instance.
      */
     @Nullable
     @Override
-    public MessageMapper apply(final MappingContext mappingContext, final DynamicAccess dynamicAccess) {
+    public MessageMapper apply(final String connectionId,
+            final MappingContext mappingContext,
+            final ExtendedActorSystem actorSystem) {
         final String mapperName = mappingContext.getMappingEngine();
         if ("javascript".equalsIgnoreCase(mapperName)) {
             return createJavaScriptMessageMapper();
         } else {
-            return createAnyMessageMapper(mapperName, dynamicAccess);
+            return createAnyMessageMapper(mapperName, actorSystem.dynamicAccess());
         }
     }
 

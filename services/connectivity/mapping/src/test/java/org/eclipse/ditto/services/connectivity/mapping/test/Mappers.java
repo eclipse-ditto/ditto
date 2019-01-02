@@ -18,7 +18,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperInstantiation;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 
-import akka.actor.DynamicAccess;
+import akka.actor.ExtendedActorSystem;
 
 /**
  * Mock factory to create test mappers.
@@ -31,11 +31,13 @@ public class Mappers implements MessageMapperInstantiation {
 
     @Nullable
     @Override
-    public MessageMapper apply(@Nonnull final MappingContext mappingContext,
-            @Nonnull final DynamicAccess dynamicAccess) {
+    public MessageMapper apply(
+            @Nonnull final String connectionId,
+            @Nonnull final MappingContext mappingContext,
+            @Nonnull final ExtendedActorSystem actorSystem) {
 
         return "test".equalsIgnoreCase(mappingContext.getMappingEngine())
                 ? new MockMapper()
-                : defaultMappers.apply(mappingContext, dynamicAccess);
+                : defaultMappers.apply(connectionId, mappingContext, actorSystem);
     }
 }

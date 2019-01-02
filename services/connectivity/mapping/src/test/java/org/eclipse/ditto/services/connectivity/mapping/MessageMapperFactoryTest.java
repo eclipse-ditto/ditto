@@ -61,7 +61,7 @@ public class MessageMapperFactoryTest {
     @Before
     public void setUp() {
         DiagnosticLoggingAdapter log = mock(DiagnosticLoggingAdapter.class);
-        factory = DefaultMessageMapperFactory.of(system, log);
+        factory = DefaultMessageMapperFactory.of("connectionId", system, log);
     }
 
     @After

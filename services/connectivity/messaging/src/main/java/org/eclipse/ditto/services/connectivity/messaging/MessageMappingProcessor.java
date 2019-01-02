@@ -82,7 +82,8 @@ public final class MessageMappingProcessor {
     public static MessageMappingProcessor of(final String connectionId, @Nullable final MappingContext mappingContext,
             final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
         final MessageMapperRegistry registry =
-                DefaultMessageMapperFactory.of(actorSystem, log).registryOf(DittoMessageMapper.CONTEXT, mappingContext);
+                DefaultMessageMapperFactory.of(connectionId, actorSystem, log)
+                        .registryOf(DittoMessageMapper.CONTEXT, mappingContext);
         final ProtocolConfigReader protocolConfigReader =
                 ProtocolConfigReader.fromRawConfig(actorSystem.settings().config());
         final ProtocolAdapter protocolAdapter =

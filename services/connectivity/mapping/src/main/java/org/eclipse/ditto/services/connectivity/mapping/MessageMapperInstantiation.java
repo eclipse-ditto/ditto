@@ -10,29 +10,27 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import java.util.function.BiFunction;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.MappingContext;
 
-import akka.actor.DynamicAccess;
+import akka.actor.ExtendedActorSystem;
 
 /**
  * Interface for dynamic message mapper instantiation.
  */
 @FunctionalInterface
-public interface MessageMapperInstantiation extends BiFunction<MappingContext, DynamicAccess, MessageMapper> {
+public interface MessageMapperInstantiation {
 
     /**
      * Instantiate a message mapper.
      *
+     * @param connectionId ID of the connection.
      * @param mappingContext the mapping context that configures the mapper.
-     * @param dynamicAccess dynamic access to load classes in an actor system.
+     * @param actorSystem actor system in which the message mapper is created.
      * @return an instantiated message mapper according to the mapping context if instantiation is possible, or null
      * otherwise.
      */
     @Nullable
-    @Override
-    MessageMapper apply(MappingContext mappingContext, DynamicAccess dynamicAccess);
+    MessageMapper apply(String connectionId, MappingContext mappingContext, ExtendedActorSystem actorSystem);
 }
