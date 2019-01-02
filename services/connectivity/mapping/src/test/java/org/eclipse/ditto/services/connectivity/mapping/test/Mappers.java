@@ -10,16 +10,32 @@
  */
 package org.eclipse.ditto.services.connectivity.mapping.test;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMapperInstantiation;
+import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
+
+import akka.actor.DynamicAccess;
 
 /**
  * Mock factory to create test mappers.
  * Used via dynamic access in {@link org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactoryTest}.
  */
 @SuppressWarnings("unused")
-public class Mappers {
+public class Mappers implements MessageMapperInstantiation {
 
-    public static MessageMapper createTestMapper() {
-        return new MockMapper();
+    private final MessageMapperInstantiation defaultMappers = new MessageMappers();
+
+    @Nullable
+    @Override
+    public MessageMapper apply(@Nonnull final MappingContext mappingContext,
+            @Nonnull final DynamicAccess dynamicAccess) {
+
+        return "test".equalsIgnoreCase(mappingContext.getMappingEngine())
+                ? new MockMapper()
+                : defaultMappers.apply(mappingContext, dynamicAccess);
     }
 }

@@ -12,7 +12,6 @@ package org.eclipse.ditto.services.connectivity.mapping;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
@@ -112,34 +111,34 @@ public class MessageMapperFactoryTest {
     public void createWithFactoryMethod() throws Exception {
         // looking for a method containing 'test' and returning a MessageMapper in Mappers.class
         final MappingContext ctx = MappingContexts.mock("test", Collections.emptyMap());
-        assertThat(factory.findFactoryMethodAndCreateInstance(ctx)).isPresent();
+        assertThat(factory.createMessageMapperInstance(ctx)).isPresent();
     }
 
     @Test
-    public void createWithFactoryMethodFindsNoMethod() throws Exception {
+    public void createWithFactoryMethodFindsNoMethod() {
         // looking for a message containing 'strong-smell-wasabi' which does not exist in Mappers.class and therefore
         // expect an empty optional
         final MappingContext ctx = MappingContexts.mock("strong-smell-wasabi",
                 Collections.emptyMap());
 
-        assertThat(factory.findFactoryMethodAndCreateInstance(ctx)).isEmpty();
+        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test
-    public void createWithClassName() throws Exception {
+    public void createWithClassName() {
         // MockMapper extends MessageMapper and can be loaded
         final MappingContext ctx = MappingContexts.mock(MockMapper.class,
                 Collections.emptyMap());
 
-        assertThat(factory.findClassAndCreateInstance(ctx)).isPresent();
+        assertThat(factory.createMessageMapperInstance(ctx)).isPresent();
     }
 
     @Test
-    public void createWithClassNameFindsNoClass() throws Exception {
+    public void createWithClassNameFindsNoClass() {
         final MappingContext ctx = MappingContexts.mock("not-a-class",
                 Collections.emptyMap());
 
-        assertThat(factory.findClassAndCreateInstance(ctx)).isEmpty();
+        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test
@@ -148,8 +147,7 @@ public class MessageMapperFactoryTest {
         final MappingContext ctx = MappingContexts.mock(String.class.getCanonicalName(),
                 Collections.emptyMap());
 
-        assertThatExceptionOfType(ClassCastException.class).isThrownBy(
-                () -> factory.findClassAndCreateInstance(ctx));
+        assertThat(factory.createMessageMapperInstance(ctx)).isEmpty();
     }
 
     @Test

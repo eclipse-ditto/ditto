@@ -19,20 +19,41 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
+
+import akka.actor.DynamicAccess;
+import scala.collection.immutable.List$;
+import scala.reflect.ClassTag;
+import scala.util.Try;
 
 /**
  * Factory for creating known {@link MessageMapper} instances and helpers useful for {@link MessageMapper}
  * implementations.
  */
 @Immutable
-public final class MessageMappers {
+public final class MessageMappers implements MessageMapperInstantiation {
 
     private static final Pattern CHARSET_PATTERN = Pattern.compile(";.?charset=");
 
-    private MessageMappers() {
-        throw new AssertionError();
+    /**
+     * Create a Rhino mapper if the mapping engine is 'javascript', dynamically instantiate the mapper if the mapping
+     * engine is a class name on the class-path, or null otherwise.
+     *
+     * @param mappingContext the mapping context that configures the mapper.
+     * @param dynamicAccess dynamic access to load classes in an actor system.
+     * @return the created message mapper instance.
+     */
+    @Nullable
+    @Override
+    public MessageMapper apply(final MappingContext mappingContext, final DynamicAccess dynamicAccess) {
+        final String mapperName = mappingContext.getMappingEngine();
+        if ("javascript".equalsIgnoreCase(mapperName)) {
+            return createJavaScriptMessageMapper();
+        } else {
+            return createAnyMessageMapper(mapperName, dynamicAccess);
+        }
     }
 
     /**
@@ -92,4 +113,30 @@ public final class MessageMappers {
         return JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
     }
 
+    /**
+     * Try to create an instance of any message mapper class on the class-path.
+     *
+     * @param className name of the message mapper class.
+     * @return a new instance of the message mapper class if the mapper can be found and instantiated, or null
+     * otherwise.
+     */
+    @Nullable
+    private static MessageMapper createAnyMessageMapper(final String className, final DynamicAccess dynamicAccess) {
+
+        final ClassTag<MessageMapper> tag = scala.reflect.ClassTag$.MODULE$.apply(MessageMapper.class);
+        final Try<MessageMapper> mapperTry = dynamicAccess.createInstanceFor(className, List$.MODULE$.empty(), tag);
+
+        if (mapperTry.isFailure()) {
+            final Throwable error = mapperTry.failed().get();
+            if (error instanceof ClassNotFoundException || error instanceof InstantiationException ||
+                    error instanceof ClassCastException) {
+                return null;
+            } else {
+                throw new IllegalStateException("There was an unknown error when trying to creating instance for '"
+                        + className + "'", error);
+            }
+        }
+
+        return mapperTry.get();
+    }
 }
