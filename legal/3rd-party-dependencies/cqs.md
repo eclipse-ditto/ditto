@@ -6,6 +6,7 @@
 |---|---|---|---|
 |ch.qos.logback|logback-classic|1.2.3| [16306](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16306) |
 |ch.qos.logback|logback-core|1.2.3| [16305](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16305) |
+|com.ajjpj.simple-akka-downing|simple-akka-downing_2.12|0.9.2| [18601](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18601) |
 |com.chuusai|shapeless_2.12|2.3.2| [16295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16295) |
 |com.eclipsesource.minimal-json|minimal-json|0.9.5| [16296](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16296) |
 |com.github.ben-manes.caffeine|caffeine|2.6.2| [16300](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16300) |
@@ -34,6 +35,7 @@
 |com.typesafe.akka|akka-http-spray-json_2.12|10.1.5| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-parsing_2.12|10.1.5| [16551](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16551) |
 |com.typesafe.akka|akka-persistence_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
+|com.typesafe.akka|akka-persistence-query_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-protobuf_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-remote_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
 |com.typesafe.akka|akka-slf4j_2.12|2.5.17| [16726](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16726) |
