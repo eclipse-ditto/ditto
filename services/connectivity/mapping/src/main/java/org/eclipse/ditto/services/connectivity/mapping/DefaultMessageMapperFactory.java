@@ -24,9 +24,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.connectivity.MappingContext;
+import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
@@ -87,15 +89,14 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * Creates a new factory and returns the instance
      *
      * @param actorSystem the actor system to use for mapping config + dynamicAccess
-     * @param factoryClass the factory class scanned for factory functions
      * @param log the log adapter used for debug and warning logs
      * @return the new instance
      */
-    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem, final Class<?> factoryClass,
-            final DiagnosticLoggingAdapter log) {
+    public static DefaultMessageMapperFactory of(final ActorSystem actorSystem, final DiagnosticLoggingAdapter log) {
 
         final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
         final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
+        final Class<?> factoryClass = getFactoryClass(mappingConfig, dynamicAccess);
         return new DefaultMessageMapperFactory(mappingConfig, dynamicAccess, factoryClass, log);
     }
 
@@ -129,7 +130,8 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
     }
 
     @Override
-    public MessageMapperRegistry registryOf(final MappingContext defaultContext, @Nullable final MappingContext context) {
+    public MessageMapperRegistry registryOf(final MappingContext defaultContext,
+            @Nullable final MappingContext context) {
         final MessageMapper defaultMapper = mapperOf(defaultContext)
                 .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() ->
@@ -236,6 +238,16 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private static boolean isFactoryMethod(final Method m) {
         return m.getReturnType().equals(MessageMapper.class) && m.getParameterTypes().length == 0;
+    }
+
+    private static Class<?> getFactoryClass(final Config mappingConfig, final DynamicAccess dynamicAccess) {
+        try {
+            final String factoryClassName = mappingConfig.getString("factory");
+            return dynamicAccess.classLoader().loadClass(factoryClassName);
+        } catch (final ClassNotFoundException | ConfigException e) {
+            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
+            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
+        }
     }
 
     @Override

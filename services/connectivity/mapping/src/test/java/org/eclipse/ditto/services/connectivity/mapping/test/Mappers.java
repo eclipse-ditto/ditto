@@ -12,6 +12,11 @@ package org.eclipse.ditto.services.connectivity.mapping.test;
 
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 
+/**
+ * Mock factory to create test mappers.
+ * Used via dynamic access in {@link org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactoryTest}.
+ */
+@SuppressWarnings("unused")
 public class Mappers {
 
     public static MessageMapper createTestMapper() {
