@@ -35,12 +35,13 @@
         <typesafe-config.version>1.3.2</typesafe-config.version>
         <akka.version>2.5.17</akka.version>
         <akka-http.version>10.1.5</akka-http.version>
-        <akka-persistence-mongo.version>2.0.9</akka-persistence-mongo.version>
+        <akka-persistence-mongo.version>2.2.2-SNAPSHOT</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
         <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
-        <casbah.version>3.1.1</casbah.version>
-        <mongo-java-driver.version>3.6.3</mongo-java-driver.version>
-        <mongo-reactivestreams.version>1.7.1</mongo-reactivestreams.version>
+
+        <mongo-scala-driver.version>2.4.2</mongo-scala-driver.version>
+        <mongo-java-driver.version>3.8.2</mongo-java-driver.version>
+        <mongo-reactivestreams.version>1.9.2</mongo-reactivestreams.version>
 
         <parboiled.version>2.1.4</parboiled.version>
         <jjwt.version>0.10.1</jjwt.version>
@@ -197,18 +198,28 @@
             </dependency>
             <dependency>
                 <groupId>com.github.scullxbones</groupId>
-                <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
+                <artifactId>akka-persistence-mongo-scala_${scala.version}</artifactId>
                 <version>${akka-persistence-mongo.version}</version>
             </dependency>
+
             <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>casbah_${scala.version}</artifactId>
-                <version>${casbah.version}</version>
-                <type>pom</type>
+                <groupId>org.mongodb.scala</groupId>
+                <artifactId>mongo-scala-driver_${scala.version}</artifactId>
+                <version>${mongo-scala-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mongodb.scala</groupId>
+                <artifactId>mongo-scala-bson_${scala.version}</artifactId>
+                <version>${mongo-scala-driver.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongo-java-driver</artifactId>
+                <version>${mongo-java-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongo-java-driver-async</artifactId>
                 <version>${mongo-java-driver.version}</version>
             </dependency>
 
@@ -265,6 +276,11 @@
             <dependency>
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
+                <version>${scala.full.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-reflect</artifactId>
                 <version>${scala.full.version}</version>
             </dependency>
             <dependency>

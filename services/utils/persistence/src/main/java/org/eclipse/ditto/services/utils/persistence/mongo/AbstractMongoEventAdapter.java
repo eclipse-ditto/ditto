@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.util.function.Predicate;
 
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -24,8 +25,6 @@ import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.base.EventRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.DBObject;
 
 import akka.actor.ExtendedActorSystem;
 import akka.persistence.journal.EventAdapter;
@@ -74,12 +73,11 @@ public abstract class AbstractMongoEventAdapter<T extends Event> implements Even
 
     @Override
     public EventSeq fromJournal(final Object event, final String manifest) {
-        if (event instanceof DBObject) {
-            final DBObject dbObject = (DBObject) event;
-            return EventSeq.single(tryParseEvent(DittoBsonJson.getInstance().serialize(dbObject)));
+        if (event instanceof BsonValue) {
+            return EventSeq.single(tryParseEvent(DittoBsonJson.getInstance().serialize((BsonValue) event)));
         } else {
             throw new IllegalArgumentException(
-                    "Unable to fromJournal a non-'DBObject' object! Was: " + event.getClass());
+                    "Unable to fromJournal a non-'BsonValue' object! Was: " + event.getClass());
         }
     }
 

@@ -12,10 +12,15 @@ package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonNumber;
+import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -23,15 +28,11 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 
-import com.mongodb.BasicDBList;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-
 /**
- * This abstract function maps a specified {@link DBObject} to a {@link JsonValue}.
+ * This abstract function maps a specified {@link BsonDocument} to a {@link JsonValue}.
  * While mapping, the keys of all JSON objects can be revised by utilising a configurable function.
  */
-abstract class AbstractBasicDBMapper<T extends DBObject, J extends JsonValue> implements Function<T, J> {
+abstract class AbstractBasicDBMapper<T, J extends JsonValue> implements Function<T, J> {
 
     final Function<String, String> jsonKeyNameReviser;
 
@@ -39,19 +40,19 @@ abstract class AbstractBasicDBMapper<T extends DBObject, J extends JsonValue> im
         jsonKeyNameReviser = checkNotNull(theJsonKeyNameReviser, "The JSON key name reviser");
     }
 
-    static JsonObject mapBasicDBObjectToJsonObject(final BasicDBObject basicDBObject,
+    static JsonObject mapBsonDocumentToJsonObject(final BsonDocument bsonDocument,
             final Function<String, String> jsonKeyNameReviser) {
-        return basicDBObject.entrySet()
+        return bsonDocument.entrySet()
                 .stream()
                 .map(e -> JsonFactory.newField(reviseKeyName(e.getKey(), jsonKeyNameReviser),
-                        mapJavaObjectToJsonValue(e.getValue(), jsonKeyNameReviser)))
+                        mapBsonValueToJsonValue(e.getValue(), jsonKeyNameReviser)))
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    static JsonArray mapBasicDBListToJsonArray(final BasicDBList basicDBList,
+    static JsonArray mapBsonArrayToJsonArray(final BsonArray bsonArray,
             final Function<String, String> jsonKeyNameReviser) {
-        return basicDBList.stream()
-                .map(obj -> AbstractBasicDBMapper.mapJavaObjectToJsonValue(obj, jsonKeyNameReviser))
+        return bsonArray.stream()
+                .map(obj -> AbstractBasicDBMapper.mapBsonValueToJsonValue(obj, jsonKeyNameReviser))
                 .collect(JsonCollectors.valuesToArray());
     }
 
@@ -59,39 +60,40 @@ abstract class AbstractBasicDBMapper<T extends DBObject, J extends JsonValue> im
         return JsonFactory.newKey(jsonKeyNameReviser.apply(jsonKeyName));
     }
 
-    private static JsonValue mapJavaObjectToJsonValue(@Nullable final Object object,
+    private static JsonValue mapBsonValueToJsonValue(@Nullable final BsonValue bsonValue,
             final Function<String, String> jsonKeyNameReviser) {
         final JsonValue result;
-        if (null == object) {
+        if (bsonValue == null || bsonValue.isNull()) {
             result = JsonFactory.nullLiteral();
-        } else if (object instanceof String) {
-            result = JsonFactory.newValue((String) object);
-        } else if (object instanceof Number) {
-            result = mapJavaNumberToJsonNumber((Number) object);
-        } else if (object instanceof BasicDBObject) {
-            result = mapBasicDBObjectToJsonObject((BasicDBObject) object, jsonKeyNameReviser);
-        } else if (object instanceof BasicDBList) {
-            result = mapBasicDBListToJsonArray((BasicDBList) object, jsonKeyNameReviser);
-        } else if (object instanceof Boolean) {
-            result = JsonFactory.newValue((Boolean) object);
+        } else if (bsonValue.isString()) {
+            result = JsonFactory.newValue(bsonValue.asString().getValue());
+        } else if (bsonValue.isNumber()) {
+            result = mapBsonNumberToJsonNumber(bsonValue.asNumber());
+        } else if (bsonValue.isDocument()) {
+            result = mapBsonDocumentToJsonObject(bsonValue.asDocument(), jsonKeyNameReviser);
+        } else if (bsonValue.isArray()) {
+            result = mapBsonArrayToJsonArray(bsonValue.asArray(), jsonKeyNameReviser);
+        } else if (bsonValue.isBoolean()) {
+            result = JsonFactory.newValue(bsonValue.asBoolean().getValue());
+        } else if (bsonValue.isTimestamp()) {
+            final Instant instant = Instant.ofEpochSecond(bsonValue.asTimestamp().getTime());
+            result = JsonFactory.newValue(instant.toString());
         } else {
+            // TODO TJ what about timestamp, etc.?
             result = JsonFactory.nullLiteral();
         }
-
         return result;
     }
 
-    private static JsonValue mapJavaNumberToJsonNumber(final Number number) {
+    private static JsonValue mapBsonNumberToJsonNumber(final BsonNumber asNumber) {
         final JsonValue result;
-        final Class<? extends Number> numberClass = number.getClass();
-        if (Integer.class.isAssignableFrom(numberClass)) {
-            result = JsonFactory.newValue(number.intValue());
-        } else if (Double.class.isAssignableFrom(numberClass)) {
-            result = JsonFactory.newValue(number.doubleValue());
+        if (asNumber.isDouble()) {
+            result = JsonFactory.newValue(asNumber.asDouble().doubleValue());
+        } else if (asNumber.isInt64()) {
+            result = JsonFactory.newValue(asNumber.asInt64().longValue());
         } else {
-            result = JsonFactory.newValue(number.longValue());
+            result = JsonFactory.newValue(asNumber.asInt32().intValue());
         }
-
         return result;
     }
 
