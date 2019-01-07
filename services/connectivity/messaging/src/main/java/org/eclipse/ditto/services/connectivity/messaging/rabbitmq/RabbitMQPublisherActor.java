@@ -19,12 +19,12 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
@@ -90,7 +90,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
                 .match(ChannelCreated.class, channelCreated -> {
-                    this.channelActor = channelCreated.channel();
+                    channelActor = channelCreated.channel();
                     addressMetric = ConnectivityModelFactory.newAddressMetric(ConnectionStatus.OPEN,
                             "Started at " + Instant.now(), 0, null);
 
@@ -138,6 +138,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Override
     protected void publishMessage(@Nullable final Target target, final RabbitMQTarget publishTarget,
             final ExternalMessage message) {
+
         if (channelActor == null) {
             log.info("No channel available, dropping response.");
             return;
@@ -151,14 +152,16 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         publishedMessages++;
         lastMessagePublishedAt = Instant.now();
 
-        final String contentType = message.getHeaders().get(ExternalMessage.CONTENT_TYPE_HEADER);
-        final String correlationId = message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+        final Map<String, String> messageHeaders = message.getHeaders();
+        final String contentType = messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER);
+        final String correlationId = messageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
 
-        final Map<String, Object> stringObjectMap =
-                message.getHeaders().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-                        (e -> (Object) e.getValue())));
+        final Map<String, Object> stringObjectMap = messageHeaders.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue()));
 
-        final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder().contentType(contentType)
+        final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
+                .contentType(contentType)
                 .correlationId(correlationId)
                 .headers(stringObjectMap)
                 .build();
@@ -166,7 +169,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final byte[] body;
         if (message.isTextMessage()) {
             body = message.getTextPayload()
-                    .map(text -> text.getBytes(MessageMappers.determineCharset(contentType)))
+                    .map(text -> text.getBytes(CharsetDeterminer.getInstance().apply(contentType)))
                     .orElseThrow(() -> new IllegalArgumentException("Failed to convert text to bytes."));
         } else {
             body = message.getBytePayload()
@@ -188,4 +191,5 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         channelActor.tell(channelMessage, getSelf());
     }
+
 }

@@ -380,8 +380,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             final HeaderMapping headerMapping = source.getHeaderMapping().orElse(null);
                             final ActorRef consumer = startChildActorConflictFree(
                                     CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                    RabbitMQConsumerActor.props(sourceAddress, messageMappingProcessor.get(),
-                                            authorizationContext, enforcement, headerMapping));
+                                    RabbitMQConsumerActor.props(messageMappingProcessor.get(), authorizationContext,
+                                            enforcement, headerMapping));
                             consumerByAddressWithIndex.put(addressWithIndex, consumer);
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,

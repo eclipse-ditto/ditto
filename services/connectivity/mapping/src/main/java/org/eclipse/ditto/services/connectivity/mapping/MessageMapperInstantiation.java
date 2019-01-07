@@ -23,14 +23,15 @@ import akka.actor.ExtendedActorSystem;
 public interface MessageMapperInstantiation {
 
     /**
-     * Instantiate a message mapper.
+     * Instantiates a message mapper.
      *
      * @param connectionId ID of the connection.
      * @param mappingContext the mapping context that configures the mapper.
      * @param actorSystem actor system in which the message mapper is created.
-     * @return an instantiated message mapper according to the mapping context if instantiation is possible, or null
-     * otherwise.
+     * @return an instantiated message mapper according to the mapping context if instantiation is possible, or
+     * {@code null} otherwise.
      */
     @Nullable
     MessageMapper apply(String connectionId, MappingContext mappingContext, ExtendedActorSystem actorSystem);
+
 }

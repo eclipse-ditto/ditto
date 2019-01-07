@@ -26,15 +26,15 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
- * Tests {@link RabbitMQConsumerActor}.
+ * Unit test for {@link RabbitMQConsumerActor}.
  */
-public class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
+public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
 
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor) {
-        return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
+        return RabbitMQConsumerActor.props(mappingActor,
                 TestConstants.Authorization.AUTHORIZATION_CONTEXT, ENFORCEMENT, TestConstants.HEADER_MAPPING);
     }
 

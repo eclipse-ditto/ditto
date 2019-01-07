@@ -46,7 +46,6 @@ import scala.reflect.ClassTag;
 public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private final String connectionId;
-
     private final Config mappingConfig;
 
     /**
@@ -61,15 +60,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
 
     private final DiagnosticLoggingAdapter log;
 
-    /**
-     * Constructor
-     *
-     * @param connectionId ID of the connection.
-     * @param mappingConfig the static service configuration for mapping related stuff
-     * @param actorSystem the actor systems dynamic access used for dynamic class instantiation
-     * @param messageMappers the factory class scanned for factory functions
-     * @param log the log adapter used for debug and warning logs
-     */
     private DefaultMessageMapperFactory(final String connectionId,
             final Config mappingConfig,
             final ExtendedActorSystem actorSystem,
@@ -87,19 +77,34 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
      * Creates a new factory and returns the instance
      *
      * @param connectionId ID of the connection.
-     * @param actorSystem the actor system to use for mapping config + dynamicAccess
-     * @param log the log adapter used for debug and warning logs
-     * @return the new instance
+     * @param actorSystem the actor system to use for mapping config + dynamicAccess.
+     * @param log the log adapter used for debug and warning logs.
+     * @return the new instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DefaultMessageMapperFactory of(final String connectionId,
-            final ActorSystem actorSystem,
+    public static DefaultMessageMapperFactory of(final String connectionId, final ActorSystem actorSystem,
             final DiagnosticLoggingAdapter log) {
 
         final Config mappingConfig = actorSystem.settings().config().getConfig("ditto.connectivity.mapping");
         final ExtendedActorSystem extendedActorSystem = (ExtendedActorSystem) actorSystem;
         final MessageMapperInstantiation messageMappers =
                 loadMessageMappersInstantiation(mappingConfig, extendedActorSystem);
+
         return new DefaultMessageMapperFactory(connectionId, mappingConfig, extendedActorSystem, messageMappers, log);
+    }
+
+    private static MessageMapperInstantiation loadMessageMappersInstantiation(final Config mappingConfig,
+            final ExtendedActorSystem actorSystem) {
+
+        try {
+            final String className = mappingConfig.getString("factory");
+            final ClassTag<MessageMapperInstantiation> tag =
+                    scala.reflect.ClassTag$.MODULE$.apply(MessageMapperInstantiation.class);
+            return actorSystem.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();
+        } catch (final Exception e) {
+            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
+            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
+        }
     }
 
     @Override
@@ -109,32 +114,31 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         return mapper.map(m -> configureInstance(m, options) ? m : null);
     }
 
+    /**
+     * Instantiates a mapper for the specified mapping context.
+     *
+     * @param mappingContext the mapping context.
+     * @return the instantiated mapper if it can be instantiated from the configured factory class.
+     */
+    Optional<MessageMapper> createMessageMapperInstance(final MappingContext mappingContext) {
+        return Optional.ofNullable(messageMappers.apply(connectionId, mappingContext, actorSystem));
+    }
+
     @Override
     public MessageMapperRegistry registryOf(final MappingContext defaultContext,
             @Nullable final MappingContext context) {
+
         final MessageMapper defaultMapper = mapperOf(defaultContext)
                 .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
         final MessageMapper messageMapper;
         if (context != null) {
-            messageMapper = mapperOf(context)
-                    .map(WrappingMessageMapper::wrap).orElse(null);
+            messageMapper = mapperOf(context).map(WrappingMessageMapper::wrap).orElse(null);
         } else {
             messageMapper = null;
         }
         return DefaultMessageMapperRegistry.of(defaultMapper, messageMapper);
-    }
-
-    /**
-     * Try to instantiate a mapper.
-     *
-     * @param mappingContext the mapping context
-     * @return the instantiated mapper, if it can be instantiated from the configured factory class.
-     */
-    Optional<MessageMapper> createMessageMapperInstance(final MappingContext mappingContext) {
-
-        return Optional.ofNullable(messageMappers.apply(connectionId, mappingContext, actorSystem));
     }
 
     private boolean configureInstance(final MessageMapper mapper, final MessageMapperConfiguration options) {
@@ -145,22 +149,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             log.warning("Failed to apply configuration <{}> to mapper instance <{}>: {}", options, mapper,
                     e.getMessage());
             return false;
-        }
-    }
-
-    private static MessageMapperInstantiation loadMessageMappersInstantiation(final Config mappingConfig,
-            final ExtendedActorSystem actorSystem) {
-
-        try {
-
-            final String className = mappingConfig.getString("factory");
-            final ClassTag<MessageMapperInstantiation> tag =
-                    scala.reflect.ClassTag$.MODULE$.apply(MessageMapperInstantiation.class);
-            return actorSystem.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();
-
-        } catch (final Exception e) {
-            final String message = e.getClass().getCanonicalName() + ": " + e.getMessage();
-            throw MessageMapperConfigurationFailedException.newBuilder(message).build();
         }
     }
 

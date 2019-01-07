@@ -25,19 +25,18 @@ import akka.actor.ExtendedActorSystem;
  * Used via dynamic access in {@link org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactoryTest}.
  */
 @SuppressWarnings("unused")
-public class Mappers implements MessageMapperInstantiation {
+public final class Mappers implements MessageMapperInstantiation {
 
     private final MessageMapperInstantiation defaultMappers = new MessageMappers();
 
     @Nullable
     @Override
-    public MessageMapper apply(
-            @Nonnull final String connectionId,
-            @Nonnull final MappingContext mappingContext,
+    public MessageMapper apply(@Nonnull final String connectionId, @Nonnull final MappingContext mappingContext,
             @Nonnull final ExtendedActorSystem actorSystem) {
 
         return "test".equalsIgnoreCase(mappingContext.getMappingEngine())
                 ? new MockMapper()
                 : defaultMappers.apply(connectionId, mappingContext, actorSystem);
     }
+
 }
