@@ -54,7 +54,7 @@ public class DittoGatewayAuthenticationDirectiveFactory implements GatewayAuthen
     }
 
     @Override
-    public GatewayAuthenticationDirective buildRestApiAuthentication() {
+    public GatewayAuthenticationDirective buildHttpAuthentication() {
         return gatewayAuthenticationDirective;
     }
 
