@@ -15,6 +15,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.metrics.Measurem
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_HOUR;
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.MeasurementWindow.ONE_MINUTE;
 
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,7 +36,17 @@ public class ConnectivityCounterRegistry {
 
     private static final MeasurementWindow[] DEFAULT_WINDOWS = {ONE_MINUTE, ONE_HOUR, ONE_DAY};
 
-    public static ConnectionMetricsCollector getCounter(
+    static ConnectionMetricsCollector getCounter(
+            final String connectionId,
+            final Metric metric,
+            final Direction direction,
+            final String address) {
+
+        return getCounter(Clock.systemUTC(), connectionId, metric, direction, address);
+    }
+
+    static ConnectionMetricsCollector getCounter(
+            final Clock clock,
             final String connectionId,
             final Metric metric,
             final Direction direction,
@@ -44,7 +55,7 @@ public class ConnectivityCounterRegistry {
         final String key =
                 MapKeyBuilder.newBuilder(connectionId, metric, direction).address(address).build();
         return counters.computeIfAbsent(key, m -> {
-            final SlidingWindowCounter counter = new SlidingWindowCounter(metric.getLabel(), DEFAULT_WINDOWS);
+            final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
             return new ConnectionMetricsCollector(direction, address, metric, counter);
         });
     }
@@ -80,8 +91,6 @@ public class ConnectivityCounterRegistry {
     private static Stream<ConnectionMetricsCollector> streamFor(final String connectionId,
             final ConnectivityCounterRegistry.Direction direction) {
 
-        System.out.println(counters);
-
         return counters.entrySet()
                 .stream()
                 .filter(e -> e.getKey().startsWith(connectionId))
@@ -103,7 +112,6 @@ public class ConnectivityCounterRegistry {
                                     ? ConnectivityModelFactory.newAddressMetric(metric, measurements)
                                     : ConnectivityModelFactory.newAddressMetric(measurements);
                         }));
-        System.out.println("addressMetrics for " + connectionId + " " + direction + ": " + addressMetrics);
 
         return addressMetrics;
     }

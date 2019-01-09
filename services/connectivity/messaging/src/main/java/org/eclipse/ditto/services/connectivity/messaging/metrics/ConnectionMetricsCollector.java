@@ -49,7 +49,7 @@ public class ConnectionMetricsCollector {
      * Record a successful operation.
      */
     public void recordSuccess() {
-        LOGGER.debug("Increment success counter ({},{},{})", direction, address, metric);
+        LOGGER.trace("Increment success counter ({},{},{})", direction, address, metric);
         counter.increment();
     }
 
@@ -57,7 +57,7 @@ public class ConnectionMetricsCollector {
      * Record a failed operation.
      */
     public void recordFailure() {
-        LOGGER.debug("Increment failure counter ({},{},{})", direction, address, metric);
+        LOGGER.trace("Increment failure counter ({},{},{})", direction, address, metric);
         counter.increment(false);
     }
 
@@ -77,6 +77,13 @@ public class ConnectionMetricsCollector {
 
     public String getAddress() {
         return address;
+    }
+
+    /**
+     * @return the metric of this collector
+     */
+    ConnectivityCounterRegistry.Metric getMetric() {
+        return metric;
     }
 
     /**

@@ -11,6 +11,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.text.MessageFormat;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -27,25 +28,39 @@ import java.util.stream.Stream;
  */
 public class SlidingWindowCounter {
 
+    private final Clock clock;
     private final MeasurementWindow[] windows;
     private final ConcurrentMap<Long, Long> measurements = new ConcurrentHashMap<>();
 
     private AtomicLong lastTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final Duration minResolution;
 
-    public SlidingWindowCounter(final String name, final MeasurementWindow... windows) {
+    /**
+     * Instantiates a new {@link SlidingWindowCounter} that records the measurements for the given time windows.
+     *
+     * @param windows the time windows to record
+     */
+    SlidingWindowCounter(final Clock clock, final MeasurementWindow... windows) {
+        this.clock = clock;
         this.windows = windows;
+
         minResolution = Stream.of(windows)
                 .map(MeasurementWindow::getResolution)
                 .min(Duration::compareTo)
                 .orElse(Duration.ofMinutes(5));
     }
 
-    public long getLastMeasurementAt() {
+    long getLastMeasurementAt() {
         return lastTimestamp.get();
     }
 
-    public void increment(final boolean success, final long ts) {
+    /**
+     * Increment this counter.
+     *
+     * @param success whether to increment success or failure count
+     * @param ts the timestamp when the operation happened (mostly useful for testing)
+     */
+    void increment(final boolean success, final long ts) {
         final long lastTimestamp = this.lastTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
 
         for (final MeasurementWindow window : windows) {
@@ -64,12 +79,19 @@ public class SlidingWindowCounter {
         }
     }
 
-    public void increment(final boolean success) {
-        increment(success, System.currentTimeMillis());
+    /**
+     * Increment counter with current timestamp.
+     * @param success whether to increment success or failure count
+     */
+    void increment(final boolean success) {
+        increment(success, clock.instant().toEpochMilli());
     }
 
-    public void increment() {
-        increment(true, System.currentTimeMillis());
+    /**
+     * Increment success counter with current timestamp.
+     */
+    void increment() {
+        increment(true, clock.instant().toEpochMilli());
     }
 
     private long getSlot(long ts, final long resolutionInMs) {
@@ -81,7 +103,7 @@ public class SlidingWindowCounter {
     }
 
     private boolean isOld(long slot) {
-        final long now = System.currentTimeMillis();
+        final long now = clock.instant().toEpochMilli();
         for (final MeasurementWindow window : windows) {
             final long resolutionInMs = window.getResolution().toMillis();
             final long windowInMs = window.getWindow().toMillis();
@@ -98,9 +120,15 @@ public class SlidingWindowCounter {
         return true;
     }
 
-    public Map<Duration, Long> getCounts(final boolean success) {
+    /**
+     * Gets counts for all measurement windows given.
+     *
+     * @param success whether to increment success or failure count
+     * @return the counts for all windows
+     */
+    Map<Duration, Long> getCounts(final boolean success) {
         final Map<Duration, Long> result = new HashMap<>();
-        final long now = System.currentTimeMillis();
+        final long now = clock.instant().toEpochMilli();
         for (final MeasurementWindow window : windows) {
             // min is where we start to sum up the slots
             final long windowInMs = window.getWindow().toMillis();
@@ -111,7 +139,7 @@ public class SlidingWindowCounter {
             long sum = 0;
             for (final Map.Entry<Long, Long> e : measurements.entrySet()) {
                 long slot = success ? e.getKey() : -e.getKey();
-                if (slot >= min && slot < max) {
+                if (slot >= min && slot <= max) {
                     sum += e.getValue();
                 }
             }
@@ -120,7 +148,11 @@ public class SlidingWindowCounter {
         return result;
     }
 
-    public void reset() {
+
+    /**
+     * Reset all counts.
+     */
+    void reset() {
         measurements.clear();
     }
 

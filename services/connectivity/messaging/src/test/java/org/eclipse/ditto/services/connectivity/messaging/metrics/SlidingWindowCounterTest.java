@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 
@@ -24,17 +25,15 @@ public class SlidingWindowCounterTest {
 
     @Test
     public void testLastMeasurementAt() {
-        final SlidingWindowCounter counter = new SlidingWindowCounter("test", MeasurementWindow.ONE_HOUR);
-
+        final SlidingWindowCounter counter = new SlidingWindowCounter(Clock.systemUTC(), MeasurementWindow.ONE_HOUR);
         final long ts = System.currentTimeMillis();
         counter.increment(true, ts);
-
         assertThat(counter.getLastMeasurementAt()).isEqualTo(ts);
     }
 
     @Test
     public void testOneMeasurementEveryMs() {
-        final SlidingWindowCounter counter = new SlidingWindowCounter("test",
+        final SlidingWindowCounter counter = new SlidingWindowCounter(Clock.systemUTC(),
                 MeasurementWindow.ONE_MINUTE,
                 MeasurementWindow.ONE_HOUR);
 
