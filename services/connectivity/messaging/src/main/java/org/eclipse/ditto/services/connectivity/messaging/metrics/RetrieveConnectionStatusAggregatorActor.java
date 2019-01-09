@@ -43,9 +43,12 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
     private RetrieveConnectionStatusResponse theResponse;
 
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders dittoHeaders, final Duration timeout) {
+            final ActorRef sender, final DittoHeaders dittoHeaders) {
         this.connection = connection;
         this.timeout = extractTimeoutFromCommand(dittoHeaders);
+        this.sender = sender;
+        theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
+                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), dittoHeaders);
 
         // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = new HashMap<>();
@@ -59,12 +62,6 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
                             .map(consumers -> consumers * connection.getClientCount())
                             .sum());
         }
-
-
-        this.sender = sender;
-
-        theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
-                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), dittoHeaders);
     }
 
     private Duration extractTimeoutFromCommand(final DittoHeaders headers) {
