@@ -22,6 +22,9 @@ import org.eclipse.ditto.model.connectivity.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Helper class to collect metrics.
+ */
 public class ConnectionMetricsCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMetricsCollector.class);
@@ -42,36 +45,61 @@ public class ConnectionMetricsCollector {
         this.counter = counter;
     }
 
+    /**
+     * Record a successful operation.
+     */
     public void recordSuccess() {
         LOGGER.debug("Increment success counter ({},{},{})", direction, address, metric);
         counter.increment();
     }
 
+    /**
+     * Record a failed operation.
+     */
     public void recordFailure() {
         LOGGER.debug("Increment failure counter ({},{},{})", direction, address, metric);
         counter.increment(false);
     }
 
+    /**
+     * Reset all counts.
+     */
     public void reset() {
         counter.reset();
     }
 
-    public ConnectivityCounterRegistry.Direction getDirection() {
+    /**
+     * @return the direction this collector measures.
+     */
+    ConnectivityCounterRegistry.Direction getDirection() {
         return direction;
     }
+
     public String getAddress() {
         return address;
     }
 
-    public Measurement toMeasurement(final boolean success) {
+    /**
+     * Produces a {@link Measurement} for reporting.
+     *
+     * @param success whether to count successful or failed operations
+     * @return a measurement containing the counts for different intervals
+     */
+    Measurement toMeasurement(final boolean success) {
         final Map<Duration, Long> measurements = counter.getCounts(success);
         return new ImmutableMeasurement(metric.getLabel(), success, measurements, getLastMessageTimestamp());
     }
 
-    public Instant getLastMessageTimestamp() {
+    private Instant getLastMessageTimestamp() {
         return Instant.ofEpochMilli(counter.getLastMeasurementAt());
     }
 
+    /**
+     * Executes the given {@link Runnable} and increments the success counter if no exception was thrown or the
+     * failed counter if a exception was caught.
+     *
+     * @param runnable the runnable to be executed
+     */
     public void record(final Runnable runnable) {
         try {
             runnable.run();
@@ -93,7 +121,8 @@ public class ConnectionMetricsCollector {
         }
     }
 
-    public static <T> T record(org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter success, org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter failure, final Supplier<T> supplier) {
+    public static <T> T record(org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter success,
+            org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter failure, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
             success.increment();
@@ -104,6 +133,14 @@ public class ConnectionMetricsCollector {
         }
     }
 
+    /**
+     * Retrieves the result of the given {@link Supplier} and updates the given metrics accordingly.
+     *
+     * @param <T> the result type
+     * @param metrics the metrics that will be updated
+     * @param supplier the supplier to be executed
+     * @return the result of the supplier
+     */
     public static <T> T record(final Set<ConnectionMetricsCollector> metrics, final Supplier<T> supplier) {
         try {
             final T result = supplier.get();

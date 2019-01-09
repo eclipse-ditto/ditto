@@ -93,6 +93,7 @@ final class ImmutableAddressMetric implements AddressMetric {
                         .map(key -> JsonFactory.newPointer(JsonFactory.newKey(f.getKeyName()), key))
                         .map(jsonObject::get)
                         .filter(JsonValue::isObject)
+                        .filter(o -> !o.isEmpty())
                         .map(JsonValue::asObject)
                         .map(ImmutableMeasurement::fromJson)
                         .forEach(readMeasurements::add));

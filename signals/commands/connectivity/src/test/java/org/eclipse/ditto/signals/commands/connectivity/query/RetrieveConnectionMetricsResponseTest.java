@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants.Metrics;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse.JsonFields;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -53,9 +54,9 @@ public final class RetrieveConnectionMetricsResponseTest {
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionMetricsResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, ID)
-            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_CONNECTION_METRICS, Metrics.Json.CONNECTION_METRICS_JSON)
-            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_SOURCE_METRICS, Metrics.SOURCE_METRICS1.toJson())
-            .set(RetrieveConnectionMetricsResponse.JsonFields.JSON_TARGET_METRICS, Metrics.TARGET_METRICS1.toJson())
+            .set(JsonFields.JSON_CONNECTION_METRICS, Metrics.Json.CONNECTION_METRICS_JSON)
+            .set(JsonFields.JSON_SOURCE_METRICS, Metrics.SOURCE_METRICS1.toJson())
+            .set(JsonFields.JSON_TARGET_METRICS, Metrics.TARGET_METRICS1.toJson())
             .build();
 
     @Test
