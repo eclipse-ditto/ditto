@@ -203,6 +203,9 @@ final class ImmutableTarget implements Target {
         @Override
         public TargetBuilder address(final String address) {
             this.address = address;
+            if (originalAddress == null) {
+                originalAddress = address;
+            }
             return this;
         }
 

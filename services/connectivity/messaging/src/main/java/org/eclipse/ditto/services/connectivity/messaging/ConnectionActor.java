@@ -755,12 +755,8 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(connection, "Connection");
-        final RetrieveConnectionStatusResponse connectionStatusResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, connection.getConnectionStatus(),
-                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
-                        command.getDittoHeaders());
-        final Props props = RetrieveConnectionStatusAggregatorActor.props(connection, getSender(),
-                connectionStatusResponse);
+        // timeout before sending the (partial) response
+        final Props props = RetrieveConnectionStatusAggregatorActor.props(connection, getSender(), command.getDittoHeaders());
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
     }
 

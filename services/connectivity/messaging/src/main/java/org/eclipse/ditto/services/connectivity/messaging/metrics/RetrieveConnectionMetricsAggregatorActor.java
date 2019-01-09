@@ -11,10 +11,13 @@
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.time.Duration;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 import akka.actor.AbstractActor;
@@ -26,10 +29,12 @@ import akka.event.DiagnosticLoggingAdapter;
 public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private static final long DEFAULT_TIMEOUT = Duration.ofSeconds(10).toMillis();
     private final Connection connection;
     private final DittoHeaders dittoHeaders;
     private int expectedResponses;
     private final ActorRef sender;
+    private final Duration timeout;
 
     private RetrieveConnectionMetricsResponse theResponse;
 
@@ -41,11 +46,18 @@ public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
         // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = connection.getClientCount();
         this.sender = sender;
+        this.timeout = extractTimeoutFromCommand(dittoHeaders);
     }
 
     public static Props props(final Connection connection, final ActorRef sender,
             final DittoHeaders originalHeaders) {
         return Props.create(RetrieveConnectionMetricsAggregatorActor.class, connection, sender, originalHeaders);
+    }
+
+    private Duration extractTimeoutFromCommand(final DittoHeaders headers) {
+        return Duration.ofMillis(Optional.ofNullable(headers.get("timeout"))
+                .map(Long::parseLong)
+                .orElse(DEFAULT_TIMEOUT));
     }
 
     @Override
@@ -60,17 +72,19 @@ public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
         if (theResponse != null) {
             sendResponse();
         } else {
-            // TODO DG send error response
+            sender.tell(
+                    ConnectionTimeoutException.newBuilder(connection.getId(), RetrieveConnectionMetrics.TYPE).build(),
+                    getSender());
         }
     }
 
     @Override
     public void preStart() {
-        // TODO DG read timeout from request
-        getContext().setReceiveTimeout(Duration.ofSeconds(10));
+        getContext().setReceiveTimeout(timeout);
     }
 
-    private void handleRetrieveConnectionMetricsResponse(final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse) {
+    private void handleRetrieveConnectionMetricsResponse(
+            final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse) {
 
         log.debug("Received RetrieveConnectionMetricsResponse from {}: {}", getSender(),
                 retrieveConnectionMetricsResponse.toJsonString());

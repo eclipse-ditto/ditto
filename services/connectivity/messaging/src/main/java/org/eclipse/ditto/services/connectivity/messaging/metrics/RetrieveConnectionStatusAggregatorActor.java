@@ -11,13 +11,18 @@
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
 import akka.actor.AbstractActor;
@@ -29,38 +34,47 @@ import akka.event.DiagnosticLoggingAdapter;
 public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private static final long DEFAULT_TIMEOUT = Duration.ofSeconds(10).toMillis();
     private final Connection connection;
+    private final Duration timeout;
     private Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
 
     private RetrieveConnectionStatusResponse theResponse;
 
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse,
-            final ActorRef sender) {
+            final ActorRef sender, final DittoHeaders dittoHeaders, final Duration timeout) {
         this.connection = connection;
+        this.timeout = extractTimeoutFromCommand(dittoHeaders);
 
         // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = new HashMap<>();
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
-        expectedResponses.put(ResourceStatus.ResourceType.TARGET,connection.getClientCount());
-        expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
-                connection.getSources()
-                        .stream()
-                        .mapToInt(Source::getConsumerCount)
-                        .map(consumers -> consumers * connection.getClientCount())
-                        .sum());
+        if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
+            expectedResponses.put(ResourceStatus.ResourceType.TARGET,connection.getClientCount());
+            expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
+                    connection.getSources()
+                            .stream()
+                            .mapToInt(Source::getConsumerCount)
+                            .map(consumers -> consumers * connection.getClientCount())
+                            .sum());
+        }
 
 
         this.sender = sender;
 
-        theResponse = retrieveConnectionStatusResponse;
+        theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
+                        Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), dittoHeaders);
     }
 
-    public static Props props(final Connection connection, final ActorRef sender,
-            final RetrieveConnectionStatusResponse retrieveConnectionStatusResponse) {
-        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection,
-                retrieveConnectionStatusResponse, sender);
+    private Duration extractTimeoutFromCommand(final DittoHeaders headers) {
+        return Duration.ofMillis(Optional.ofNullable(headers.get("timeout"))
+                .map(Long::parseLong)
+                .orElse(DEFAULT_TIMEOUT));
+    }
+
+    public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders dittoHeaders) {
+        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, dittoHeaders);
     }
 
     @Override
@@ -74,12 +88,14 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         log.debug("RetrieveConnectionStatus timed out, sending (partial) response.");
         sendResponse();
+
+        // stop this actor
+        getContext().stop(getSelf());
     }
 
     @Override
     public void preStart() {
-        // TODO DG read timeout from request
-        getContext().setReceiveTimeout(Duration.ofSeconds(10));
+        getContext().setReceiveTimeout(timeout);
     }
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {

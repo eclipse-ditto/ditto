@@ -34,6 +34,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFail
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
+import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnavailableException;
 
 /**
@@ -98,6 +99,9 @@ public final class ConnectivityErrorRegistry extends AbstractErrorRegistry<Ditto
 
         parseStrategies.put(ConnectionSignalIdEnforcementFailedException.ERROR_CODE,
                 ConnectionSignalIdEnforcementFailedException::fromJson);
+
+        parseStrategies.put(ConnectionTimeoutException.ERROR_CODE,
+                ConnectionTimeoutException::fromJson);
 
         parseStrategies.put(ConnectionUriInvalidException.ERROR_CODE,
                 ConnectionUriInvalidException::fromJson);
