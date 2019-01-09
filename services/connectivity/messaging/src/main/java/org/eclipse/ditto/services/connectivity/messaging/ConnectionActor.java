@@ -166,7 +166,6 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final FiniteDuration flushPendingResponsesTimeout;
     private final java.time.Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
-    private final java.time.Duration clientActorAskTimeout;
 
     private ConnectionActor(final String connectionId,
             final ActorRef pubSubMediator,
@@ -785,7 +784,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final RetrieveConnectionStatusResponse statusResponse =
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
                         connectionClosedAt == null ? Instant.EPOCH : connectionClosedAt,
-                        BaseClientState.DISCONNECTED.name(), command.getDittoHeaders());
+                        ConnectionStatus.CLOSED.getName(), command.getDittoHeaders());
         origin.tell(statusResponse, getSelf());
     }
 
