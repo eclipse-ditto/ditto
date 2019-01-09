@@ -12,6 +12,7 @@ package org.eclipse.ditto.services.utils.cache;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -41,19 +42,18 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     private LoadingCache<K, V> synchronousCacheView;
 
 
-    private CaffeineCache(final Caffeine<?, ?> caffeine,
+    private CaffeineCache(final Caffeine<? super K, ? super V> caffeine,
             final AsyncCacheLoader<K, V> loader,
             @Nullable final String cacheName) {
 
-        @SuppressWarnings("unchecked") final Caffeine<K, V> typedCaffeine = (Caffeine<K, V>) caffeine;
         if (cacheName != null) {
             this.metricStatsCounter = MetricsStatsCounter.of(cacheName);
             caffeine.recordStats(() -> metricStatsCounter);
-            this.asyncLoadingCache = typedCaffeine.buildAsync(loader);
+            this.asyncLoadingCache = caffeine.buildAsync(loader);
             this.synchronousCacheView = asyncLoadingCache.synchronous();
             metricStatsCounter.configureCache(this.synchronousCacheView);
         } else {
-            this.asyncLoadingCache = typedCaffeine.buildAsync(loader);
+            this.asyncLoadingCache = caffeine.buildAsync(loader);
             this.synchronousCacheView = asyncLoadingCache.synchronous();
             this.metricStatsCounter = null;
         }
@@ -68,7 +68,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine,
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
             final AsyncCacheLoader<K, V> asyncLoader) {
         requireNonNull(caffeine);
         requireNonNull(asyncLoader);
@@ -85,7 +85,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final CacheLoader<K, V> loader) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
+            final CacheLoader<K, V> loader) {
         requireNonNull(caffeine);
         requireNonNull(loader);
 
@@ -100,7 +101,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine) {
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine) {
         requireNonNull(caffeine);
 
         final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
@@ -116,7 +117,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine,
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
 
@@ -134,7 +135,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final AsyncCacheLoader<K, V> loader,
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
+            final AsyncCacheLoader<K, V> loader,
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
         requireNonNull(loader);
@@ -152,7 +154,8 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
      * @param <V> the type of the value.
      * @return the created instance
      */
-    public static <K, V> CaffeineCache<K, V> of(final Caffeine<?, ?> caffeine, final CacheLoader<K, V> loader,
+    public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine,
+            final CacheLoader<K, V> loader,
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
         requireNonNull(loader);
@@ -168,6 +171,17 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     }
 
     @Override
+    public CompletableFuture<Optional<V>> getIfPresent(final K key) {
+        requireNonNull(key);
+
+        final CompletableFuture<V> future = asyncLoadingCache.getIfPresent(key);
+
+        return future == null
+                ? CompletableFuture.completedFuture(Optional.empty())
+                : future.thenApply(Optional::ofNullable);
+    }
+
+    @Override
     public Optional<V> getBlocking(final K key) {
         requireNonNull(key);
 
@@ -180,14 +194,22 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
 
         final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
-        final boolean reportInvalidation =
-                (metricStatsCounter != null) && currentlyExisting;
         synchronousCacheView.invalidate(key);
 
-        if (reportInvalidation) {
-            metricStatsCounter.recordInvalidation();
+        if (metricStatsCounter != null) {
+            if (currentlyExisting) {
+                metricStatsCounter.recordInvalidation();
+            } else {
+                metricStatsCounter.recordInvalidationWithoutItem();
+            }
         }
         return currentlyExisting;
+    }
+
+    // optimized batch invalidation method for caffeine
+    @Override
+    public void invalidateAll(final Collection<K> keys) {
+        synchronousCacheView.invalidateAll(keys);
     }
 
     @Override
@@ -195,7 +217,9 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         requireNonNull(key);
         requireNonNull(value);
 
-        synchronousCacheView.put(key, value);
+        // non-blocking.
+        // synchronousCacheView.put has same implementation with extra null check on value.
+        asyncLoadingCache.put(key, CompletableFuture.completedFuture(value));
     }
 
     @Override
@@ -203,6 +227,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
+    // TODO: replace uses of this method by AsyncCache without loader once Caffeine releases it.
     private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
         @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
                 (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;

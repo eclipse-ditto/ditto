@@ -20,14 +20,12 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.concierge.EntityId;
 import org.eclipse.ditto.services.models.concierge.cache.Entry;
-import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -55,8 +53,7 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         requireNonNull(askTimeout);
         requireNonNull(policiesShardRegionProxy);
 
-        final Function<String, Command> commandCreator =
-                policyId -> SudoRetrievePolicy.of(policyId, DittoHeaders.empty());
+        final Function<String, Command> commandCreator = PolicyCommandFactory::sudoRetrievePolicy;
         final Function<Object, Entry<Enforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 

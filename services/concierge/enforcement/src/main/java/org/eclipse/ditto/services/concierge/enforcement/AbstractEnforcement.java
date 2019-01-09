@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
@@ -58,6 +59,13 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
     protected AbstractEnforcement(final Context context) {
         this.context = context;
+    }
+
+    /**
+     * @return the Executor to use in order to perform asynchronous operations in enforcement.
+     */
+    protected Executor getEnforcementExecutor() {
+        return context.enforcerExecutor;
     }
 
     /**
@@ -294,24 +302,28 @@ public abstract class AbstractEnforcement<T extends Signal> {
 
         private final ActorRef conciergeForwarder;
 
+        private final Executor enforcerExecutor;
+
         Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
-                final ActorRef conciergeForwarder) {
+                final ActorRef conciergeForwarder, final Executor enforcerExecutor) {
 
-            this(pubSubMediator, askTimeout, conciergeForwarder, null, null, null);
+            this(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor, null, null, null);
         }
 
         Context(
                 final ActorRef pubSubMediator,
                 final Duration askTimeout,
                 @Nullable final ActorRef conciergeForwarder,
+                final Executor enforcerExecutor,
                 @Nullable final EntityId entityId,
                 @Nullable final DiagnosticLoggingAdapter log,
                 @Nullable final ActorRef self) {
             this.pubSubMediator = pubSubMediator;
             this.askTimeout = askTimeout;
             this.conciergeForwarder = conciergeForwarder;
+            this.enforcerExecutor = enforcerExecutor;
             this.entityId = entityId;
             this.log = log;
             this.self = self;
@@ -322,12 +334,14 @@ public abstract class AbstractEnforcement<T extends Signal> {
          *
          * @param actorContext the actor context.
          * @param log the logger.
+         * @param enforcerExecutor the Executor to use in order to perform asynchronous operations in enforcement.
          * @return the created instance.
          */
-        public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log) {
+        public Context with(final AbstractActor.ActorContext actorContext, final DiagnosticLoggingAdapter log,
+                final Executor enforcerExecutor) {
             final ActorRef contextSelf = actorContext.self();
-            return new Context(pubSubMediator, askTimeout, conciergeForwarder, decodeEntityId(contextSelf), log,
-                    contextSelf);
+            return new Context(pubSubMediator, askTimeout, conciergeForwarder, enforcerExecutor,
+                    decodeEntityId(contextSelf), log, contextSelf);
         }
 
         private static EntityId decodeEntityId(final ActorRef self) {

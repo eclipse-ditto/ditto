@@ -24,11 +24,15 @@ import org.eclipse.ditto.services.models.things.ThingsMappingStrategy;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategy;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.commands.common.CommonCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandRegistry;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponseRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageErrorRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceCommandResponseRegistry;
+import org.eclipse.ditto.signals.commands.namespaces.NamespaceErrorRegistry;
 
 /**
  * {@link MappingStrategy} for the concierge service.
@@ -42,7 +46,7 @@ public final class ConciergeMappingStrategy implements MappingStrategy {
     private final BatchMappingStrategy batchMappingStrategy;
 
     /**
-     * Constructs a new Mapping Strategy.
+     * Constructs a new {@code ConciergeMappingStrategy} object.
      */
     public ConciergeMappingStrategy() {
         policiesMappingStrategy = new PoliciesMappingStrategy();
@@ -64,7 +68,9 @@ public final class ConciergeMappingStrategy implements MappingStrategy {
         final MappingStrategiesBuilder builder = MappingStrategiesBuilder.newInstance();
 
         addMessagesStrategies(builder);
+        addCommonStrategies(builder);
         addDevOpsStrategies(builder);
+        addNamespacesStrategies(builder);
 
         combinedStrategy.putAll(builder.build());
         return combinedStrategy;
@@ -76,8 +82,19 @@ public final class ConciergeMappingStrategy implements MappingStrategy {
         builder.add(MessageErrorRegistry.newInstance());
     }
 
+    private static void addCommonStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(CommonCommandRegistry.getInstance());
+    }
+
     private static void addDevOpsStrategies(final MappingStrategiesBuilder builder) {
         builder.add(DevOpsCommandRegistry.newInstance());
         builder.add(DevOpsCommandResponseRegistry.newInstance());
     }
+
+    private static void addNamespacesStrategies(final MappingStrategiesBuilder builder) {
+        builder.add(NamespaceCommandRegistry.getInstance());
+        builder.add(NamespaceCommandResponseRegistry.getInstance());
+        builder.add(NamespaceErrorRegistry.getInstance());
+    }
+
 }

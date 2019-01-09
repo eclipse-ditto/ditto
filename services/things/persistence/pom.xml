@@ -51,6 +51,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-things</artifactId>
         </dependency>
 
@@ -59,6 +63,10 @@
             <artifactId>ditto-services-models-things</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>

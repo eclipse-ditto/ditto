@@ -104,11 +104,17 @@ public final class ThingDocumentMapper {
     }
 
     private static Object handleNumberAttribute(final JsonValue jsonValue) {
-        try {
-            return jsonValue.asLong();
-        } catch (final NumberFormatException e) {
-            return jsonValue.asDouble();
+        final Number result;
+
+        if (jsonValue.isInt()) {
+            result = jsonValue.asInt();
+        } else if (jsonValue.isLong()) {
+            result = jsonValue.asLong();
+        } else {
+            result = jsonValue.asDouble();
         }
+
+        return result;
     }
 
 }

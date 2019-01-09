@@ -164,6 +164,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private Set<Topic> uniqueTopics = Collections.emptySet();
 
     private final FiniteDuration flushPendingResponsesTimeout;
+    private final java.time.Duration clientActorAskTimeout;
     @Nullable private Cancellable stopSelfIfDeletedTrigger;
     private final java.time.Duration clientActorAskTimeout;
 

@@ -19,11 +19,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -43,6 +47,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -65,6 +70,7 @@ import org.eclipse.ditto.services.models.concierge.cache.Entry;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -96,6 +102,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.event.DiagnosticLoggingAdapter;
@@ -106,6 +114,8 @@ import akka.pattern.PatternsCS;
  * Authorize {@code ThingCommand}.
  */
 public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ThingCommandEnforcement.class);
 
     /**
      * Label of default policy entry in default policy.
@@ -125,6 +135,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     private final EnforcerRetriever policyEnforcerRetriever;
     private final Cache<EntityId, Entry<EntityId>> thingIdCache;
     private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
+    private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces;
     private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
@@ -132,6 +143,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
             final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+            final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces,
             final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
         super(data);
@@ -142,6 +154,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         this.thingIdCache = requireNonNull(thingIdCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
+        this.blockCachedNamespaces = blockCachedNamespaces;
         thingEnforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
@@ -152,6 +165,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     @Override
     public CompletionStage<Void> enforce(final ThingCommand signal, final ActorRef sender,
             final DiagnosticLoggingAdapter log) {
+        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             if (!enforcerEntry.exists()) {
                 enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry, signal, sender);
@@ -176,6 +190,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         private final Cache<EntityId, Entry<EntityId>> thingIdCache;
         private final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache;
         private final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache;
+        private final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces;
         private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
 
         /**
@@ -186,13 +201,15 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param aclEnforcerCache the acl-enforcer cache.
+         * @param blockCachedNamespaces pre-enforcer function to block undesirable messages to policies shard region.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
-                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache) {
+                final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces) {
             this(thingsShardRegion, policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache,
-                    DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
+                    blockCachedNamespaces, DEFAULT_SUBJECT_ISSUERS_FOR_POLICY_MIGRATION);
         }
 
         /**
@@ -206,17 +223,22 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
          * @param subjectIssuersForPolicyMigration a list of {@link SubjectIssuer}s for which a {@link Subject} will
          * be created per ACL SID. E.g. when {@link SubjectIssuer#GOOGLE} is specified, for the ACL SID "123", a
          * {@link Subject} "google:123" will be created.
+         * @param blockCachedNamespaces pre-enforcer function to block undesirable messages to policies shard region.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion, final Cache<EntityId, Entry<EntityId>> thingIdCache,
                 final Cache<EntityId, Entry<Enforcer>> policyEnforcerCache,
                 final Cache<EntityId, Entry<Enforcer>> aclEnforcerCache,
+                @Nullable final Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> blockCachedNamespaces,
                 final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
+
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
+            this.blockCachedNamespaces =
+                    Optional.ofNullable(blockCachedNamespaces).orElse(CompletableFuture::completedFuture);
             this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
         }
 
@@ -235,8 +257,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         @Override
         public AbstractEnforcement<ThingCommand> createEnforcement(final AbstractEnforcement.Context context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, aclEnforcerCache, subjectIssuersForPolicyMigration
-            );
+                    policyEnforcerCache, aclEnforcerCache, blockCachedNamespaces, subjectIssuersForPolicyMigration);
         }
 
     }
@@ -331,7 +352,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
     }
 
     /**
@@ -414,7 +435,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 commandWithReadSubjects.getDittoHeaders());
                     }
                     return null;
-                });
+                }, getEnforcementExecutor());
         return true;
     }
 
@@ -488,7 +509,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 sender, response, error, retrieveThing.getDittoHeaders());
                     }
                     return Optional.empty();
-                });
+                }, getEnforcementExecutor());
     }
 
     private void reportThingUnavailable(final String thingId, final DittoHeaders dittoHeaders, final ActorRef sender) {
@@ -508,8 +529,10 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final RetrieveThing retrieveThing,
             final RetrievePolicy retrievePolicy) {
 
-        return PatternsCS.ask(policiesShardRegion, retrievePolicy, getAskTimeout().toMillis())
+        return blockCachedNamespaces.apply(retrievePolicy)
+                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, getAskTimeout()))
                 .handleAsync((response, error) -> {
+                    LOGGER.debug("Response of policiesShardRegion: <{}>", response);
                     if (response instanceof RetrievePolicyResponse) {
                         return Optional.of((RetrievePolicyResponse) response);
                     } else if (error != null) {
@@ -520,7 +543,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                 retrievePolicy.getId(), retrieveThing.getThingId(), response);
                     }
                     return Optional.empty();
-                });
+                }, getEnforcementExecutor());
     }
 
     /**
@@ -854,7 +877,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         final CompletionStage<Policy> policyCompletionStage =
                 PatternsCS.ask(conciergeForwarder(), RetrievePolicy.of(policyId, dittoHeaders), getAskTimeout())
-                        .thenApply(response -> {
+                        .thenApplyAsync(response -> {
                             if (response instanceof RetrievePolicyResponse) {
                                 return ((RetrievePolicyResponse) response).getPolicy();
                             } else if (response instanceof PolicyErrorResponse) {
@@ -867,7 +890,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                                                 " during Thing creation: {}", response);
                                 throw GatewayInternalErrorException.newBuilder().build();
                             }
-                        });
+                        }, getEnforcementExecutor());
 
         return awaitPolicyCompletionStage(policyCompletionStage, dittoHeaders);
 
@@ -1236,19 +1259,22 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 createThingWithoutPolicyId.getDittoHeaders());
 
         invalidatePolicyCache(createPolicy.getId());
-        PatternsCS.ask(policiesShardRegion, createPolicy, timeout).handleAsync((policyResponse, policyError) -> {
-            final Optional<CreateThing> nextStep =
-                    handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse, policyError, sender);
+        blockCachedNamespaces.apply(createPolicy)
+                .thenCompose(msg -> PatternsCS.ask(policiesShardRegion, msg, timeout))
+                .handleAsync((policyResponse, policyError) -> {
+                    final Optional<CreateThing> nextStep = handlePolicyResponseForCreateThing(createPolicy, createThing,
+                            policyResponse, policyError, sender);
 
-            nextStep.ifPresent(cmd -> {
-                invalidateThingCaches(cmd.getThingId());
-                PatternsCS.ask(thingsShardRegion, cmd, timeout)
-                        .handleAsync((thingResponse, thingError) ->
-                                handleThingResponseForCreateThing(createThing, thingResponse, thingError, sender));
-            });
+                    nextStep.ifPresent(cmd -> {
+                        invalidateThingCaches(cmd.getThingId());
+                        PatternsCS.ask(thingsShardRegion, cmd, timeout)
+                                .handleAsync((thingResponse, thingError) ->
+                                        handleThingResponseForCreateThing(createThing, thingResponse, thingError,
+                                                sender));
+                    });
 
-            return null;
-        });
+                    return null;
+                }, getEnforcementExecutor());
 
         return true;
     }
@@ -1264,8 +1290,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
             return Optional.of(createThing);
 
-        } else if (policyResponse instanceof PolicyConflictException ||
-                policyResponse instanceof PolicyNotAccessibleException) {
+        } else if (shouldReportInitialPolicyCreationFailure(policyResponse, policyError)) {
 
             reportInitialPolicyCreationFailure(createPolicy.getId(), createThing, sender);
 
@@ -1284,6 +1309,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
         }
 
         return Optional.empty();
+    }
+
+    private boolean shouldReportInitialPolicyCreationFailure(final Object policyResponse, final Throwable policyError) {
+        return policyResponse instanceof PolicyConflictException ||
+                policyResponse instanceof PolicyNotAccessibleException ||
+                policyError instanceof NamespaceBlockedException;
     }
 
     private Void handleThingResponseForCreateThing(
@@ -1317,8 +1348,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final CreateThing command,
             final ActorRef sender) {
 
-        log(command).info("The Policy with ID '{}' is already existing, the CreateThing " +
-                "command which would have created an implicit Policy for the Thing with ID '{}' " +
+        log(command).info("Failed to create Policy with ID '{}' is already existing, the CreateThing " +
+                "command which would have created a Policy for the Thing with ID '{}' " +
                 "is therefore not handled", policyId, command.getThingId());
         final ThingNotCreatableException error =
                 ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingId(), policyId)

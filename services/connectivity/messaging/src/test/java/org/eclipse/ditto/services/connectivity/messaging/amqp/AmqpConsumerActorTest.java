@@ -22,6 +22,7 @@ import javax.jms.MessageConsumer;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -173,7 +174,7 @@ public class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage>
         try {
             final AmqpJmsTextMessageFacade messageFacade = new AmqpJmsTextMessageFacade();
             messageFacade.setText(plainPayload);
-            messageFacade.setContentType("text/plain");
+            messageFacade.setContentType(Symbol.getSymbol("text/plain"));
             messageFacade.setCorrelationId(correlationId);
             for (final Map.Entry<String, ?> e : headers) {
                 messageFacade.setApplicationProperty(e.getKey(), e.getValue());

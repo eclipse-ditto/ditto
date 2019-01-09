@@ -166,7 +166,7 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                         : null,
 
                 // save-snapshot timeout
-                Duration.create(500, TimeUnit.MILLISECONDS),
+                Duration.create(50000, TimeUnit.MILLISECONDS),
 
                 // load-snapshot timeout
                 Duration.create(3000, TimeUnit.MILLISECONDS),
@@ -293,6 +293,10 @@ public abstract class ThingSnapshotter<T extends Command<?>, R extends CommandRe
                                         return Optional.ofNullable(
                                                 snapshotAdapter.fromSnapshotStore(result.snapshot().get()));
                                     }
+                                }
+                                else if (response instanceof  SnapshotProtocol.LoadSnapshotFailed) {
+                                    doLog(logger -> logger.error("Load Snapshot failed with message - {}",
+                                            ((SnapshotProtocol.LoadSnapshotFailed) response).cause().getMessage()));
                                 }
                                 return Optional.empty();
                             });

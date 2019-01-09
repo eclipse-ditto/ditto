@@ -24,8 +24,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
- * Builder for creating instances of {@link ImmutableJsonObject}. This builder does not allow duplicate JSON fields; i.
- * e. there is at most one association per JSON key in the resulting JSON object.
+ * Builder for creating instances of {@link ImmutableJsonObject}.
+ * This builder does not allow duplicate JSON fields; i. e. there is at most one association per JSON key in the
+ * resulting JSON object.
  */
 @NotThreadSafe
 final class ImmutableJsonObjectBuilder implements JsonObjectBuilder {

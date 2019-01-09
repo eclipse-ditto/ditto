@@ -37,6 +37,15 @@ import javax.annotation.Nullable;
 public interface JsonValue {
 
     /**
+     * Returns a JSON literal, which represents {@code null}.
+     *
+     * @return the literal.
+     */
+    static JsonValue nullLiteral() {
+        return JsonFactory.nullLiteral();
+    }
+
+    /**
      * Returns a JSON literal that represents the given {@code boolean} value.
      *
      * @param value the value to get a JSON literal for.
@@ -77,8 +86,8 @@ public interface JsonValue {
     }
 
     /**
-     * Returns a JsonValue that represents the given Java string as JSON string. For example the Java string
-     * {@code "foo"} would be {@code "\"foo\""} as JSON string.
+     * Returns a JsonValue that represents the given Java string as JSON string.
+     * For example the Java string {@code "foo"} would be {@code "\"foo\""} as JSON string.
      *
      * @param jsonString the string to get a JSON representation for.
      * @return a JSON value that represents the given string. If {@code jsonString} is {@code null}, a "null" object is
@@ -88,6 +97,18 @@ public interface JsonValue {
      */
     static JsonValue of(@Nullable final String jsonString) {
         return JsonFactory.newValue(jsonString);
+    }
+
+    /**
+     * Tries to guess the appropriate JsonValue for the given Java value.
+     *
+     * @param value the Java value to be converted to its JsonValue counterpart.
+     * @param <T> the Java type to be converted.
+     * @return the appropriate JsonValue.
+     * @throws JsonParseException if {@code value} cannot be converted to a valid JSON value.
+     */
+    static <T> JsonValue of(@Nullable final T value) {
+        return JsonFactory.getAppropriateValue(value);
     }
 
     /**
@@ -103,6 +124,27 @@ public interface JsonValue {
      * @return {@code true} if this value represents a JSON number, {@code false} else.
      */
     boolean isNumber();
+
+    /**
+     * Indicates whether this value is an integer.
+     *
+     * @return {@code true} if an only if this value is an integer.
+     */
+    boolean isInt();
+
+    /**
+     * Indicates whether this value is of type long.
+     *
+     * @return {@code true} if an only if this value is of type long.
+     */
+    boolean isLong();
+
+    /**
+     * Indicates whether this value is of type double.
+     *
+     * @return {@code true} if an only if this value is of type double.
+     */
+    boolean isDouble();
 
     /**
      * Indicates whether this value represents a JSON string.
@@ -229,4 +271,5 @@ public interface JsonValue {
     default String formatAsString() {
         return isString() ? asString() : toString();
     }
+
 }

@@ -27,10 +27,12 @@
     <modules>
         <module>base</module>
         <module>batch</module>
+        <module>common</module>
         <module>connectivity</module>
         <module>devops</module>
         <module>live</module>
         <module>messages</module>
+        <module>namespaces</module>
         <module>policies</module>
         <module>things</module>
         <module>thingsearch</module>

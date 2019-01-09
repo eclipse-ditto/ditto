@@ -134,23 +134,17 @@ final class JsonValueToDbEntityMapper {
     }
 
     private static Number mapJsonNumberToJavaNumber(final JsonValue jsonNumberValue) {
-        Number result;
-        if (isDouble(jsonNumberValue)) {
-            result = jsonNumberValue.asDouble();
+        final Number result;
+
+        if (jsonNumberValue.isInt()) {
+            result = jsonNumberValue.asInt();
+        } else if (jsonNumberValue.isLong()) {
+            result = jsonNumberValue.asLong();
         } else {
-            try {
-                result = jsonNumberValue.asInt();
-            } catch (final NumberFormatException e) {
-                result = jsonNumberValue.asLong();
-            }
+            result = jsonNumberValue.asDouble();
         }
 
         return result;
-    }
-
-    private static boolean isDouble(final JsonValue jsonNumberValue) {
-        final String s = jsonNumberValue.toString();
-        return 0 <= s.indexOf('.');
     }
 
 }

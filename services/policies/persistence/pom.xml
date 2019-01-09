@@ -53,6 +53,10 @@
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-base</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
         <dependency>
@@ -168,7 +172,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <ditto.limits.policies.max-size.bytes>102400</ditto.limits.policies.max-size.bytes> <!--  100 KiB -->
+                        <!--  100 KiB -->
+                        <ditto.limits.policies.max-size.bytes>102400</ditto.limits.policies.max-size.bytes>
                     </systemPropertyVariables>
                     <systemProperties>
                         <kamon.auto-start>true</kamon.auto-start>

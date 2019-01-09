@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.connectivity.UnresolvedPlaceholderException;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
 
 /**
@@ -29,8 +30,21 @@ public class PlaceholderFilterTest {
     private static final String DEVICE_ID = "device-12345";
     private static final String THING_ID = "eclipse:ditto";
 
+    private static final String KNOWN_NAMESPACE = "org.eclipse.ditto.test";
+    private static final String KNOWN_ID = "myThing";
+
+    private static final String KNOWN_SUBJECT = "mySubject";
+    private static final String KNOWN_SUBJECT2 = "$set.configuration/steps";
+    private static final TopicPath KNOWN_TOPIC_PATH = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+            .twin().things().commands().modify().build();
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT1 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+            .live().things().messages().subject(KNOWN_SUBJECT).build();
+    private static final TopicPath KNOWN_TOPIC_PATH_SUBJECT2 = TopicPath.newBuilder(KNOWN_NAMESPACE + ":" + KNOWN_ID)
+            .live().things().messages().subject(KNOWN_SUBJECT2).build();
+
     private final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
     private final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
+    private final TopicPathPlaceholder topicPlaceholder = PlaceholderFactory.newTopicPathPlaceholder();
 
     private final FilterTuple[] filterChain = new FilterTuple[]{
             FilterTuple.of(HEADERS, headersPlaceholder),
@@ -76,6 +90,25 @@ public class PlaceholderFilterTest {
 
         assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:id}}", THING_ID, thingPlaceholder)).isEqualTo(
                 "testTargetAmqpCon4_eclipse:ditto");
+    }
+
+    @Test
+    public void testTopicPlaceholder() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> topicPlaceholder.apply(KNOWN_TOPIC_PATH, null));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
+                () -> topicPlaceholder.apply(KNOWN_TOPIC_PATH, ""));
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.apply("{{ topic:unknown }}", KNOWN_TOPIC_PATH, topicPlaceholder));
+        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
+                () -> PlaceholderFilter.apply("{{ {{  topic:name  }} }}", KNOWN_TOPIC_PATH, topicPlaceholder));
+        assertThat(PlaceholderFilter.apply("eclipse:ditto", KNOWN_TOPIC_PATH, topicPlaceholder)).isEqualTo("eclipse:ditto");
+        assertThat(PlaceholderFilter.apply("prefix:{{ topic:channel }}:{{ topic:group }}:suffix", KNOWN_TOPIC_PATH,
+                topicPlaceholder)).isEqualTo("prefix:twin:things:suffix");
+
+        assertThat(PlaceholderFilter.apply("{{topic:subject}}", KNOWN_TOPIC_PATH_SUBJECT1,
+                topicPlaceholder)).isEqualTo(KNOWN_SUBJECT);
+        assertThat(PlaceholderFilter.apply("{{  topic:action|subject}}", KNOWN_TOPIC_PATH_SUBJECT2,
+                topicPlaceholder)).isEqualTo(KNOWN_SUBJECT2);
     }
 
     @Test

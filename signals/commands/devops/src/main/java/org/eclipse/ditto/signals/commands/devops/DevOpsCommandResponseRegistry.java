@@ -43,8 +43,8 @@ public final class DevOpsCommandResponseRegistry extends AbstractJsonParsableReg
         parseStrategies.put(RetrieveLoggerConfigResponse.TYPE, RetrieveLoggerConfigResponse::fromJson);
         parseStrategies.put(RetrieveStatisticsResponse.TYPE, RetrieveStatisticsResponse::fromJson);
         parseStrategies.put(RetrieveStatisticsDetailsResponse.TYPE, RetrieveStatisticsDetailsResponse::fromJson);
-        parseStrategies.put(AggregatedDevOpsCommandResponse.TYPE,
-                (jsonObject, dittoHeaders) -> AggregatedDevOpsCommandResponse.fromJson(jsonObject, dittoHeaders, parseStrategies));
+        parseStrategies.put(AggregatedDevOpsCommandResponse.TYPE, (jsonObject, dittoHeaders) ->
+                AggregatedDevOpsCommandResponse.fromJson(jsonObject, dittoHeaders, parseStrategies));
 
         return new DevOpsCommandResponseRegistry(parseStrategies);
     }

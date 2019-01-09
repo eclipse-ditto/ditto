@@ -19,7 +19,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 
@@ -27,9 +26,11 @@ import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
  * Represents the ID and revision of a Policy combined with an ID of another entity referencing this policy.
  */
 @Immutable
-public final class PolicyReferenceTag implements IdentifiableStreamingMessage, Jsonifiable {
+public final class PolicyReferenceTag implements IdentifiableStreamingMessage, Jsonifiable<JsonObject> {
 
-    /** Use a separator which cannot overlap with an entityId **/
+    /**
+     * Use a separator which cannot overlap with an entityId
+     **/
     private static final String ENTITY_ID_FROM_POLICY_TAG_SEPARATOR = "/";
 
     private final String entityId;
@@ -91,7 +92,7 @@ public final class PolicyReferenceTag implements IdentifiableStreamingMessage, J
     }
 
     @Override
-    public JsonValue toJson() {
+    public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
                 .set(JsonFields.ENTITY_ID, entityId)
                 .set(JsonFields.POLICY_ID, policyTag.getId())

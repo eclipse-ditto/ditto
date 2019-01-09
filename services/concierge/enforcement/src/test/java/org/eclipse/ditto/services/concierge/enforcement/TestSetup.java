@@ -99,13 +99,13 @@ public class TestSetup {
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache));
+                policiesShardRegion, thingIdCache, policyEnforcerCache, aclEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
         enforcementProviders.add(
                 new LiveSignalEnforcement.Provider(thingIdCache, policyEnforcerCache, aclEnforcerCache));
 
         final Props props = EnforcerActorCreator.props(testActorRef, enforcementProviders, Duration.ofSeconds(10),
-                conciergeForwarder, preEnforcer, null);
+                conciergeForwarder, system.dispatcher(), preEnforcer, null);
         return system.actorOf(props, THING + ":" + THING_ID);
     }
 

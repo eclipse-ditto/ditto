@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.model.connectivity.ConnectivityModelFactory.newMqttTarget;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -173,6 +174,8 @@ public class MqttClientActorTest {
 
     @Test
     public void testConsumeFromTopicWithIdEnforcementExpectErrorResponse() {
+        disableLogging(actorSystem);
+
         final MqttSource mqttSource = newFilteredMqttSource(
                 "eclipse/{{ thing:namespace }}/{{ thing:name }}", // enforcement filter
                 "eclipse/+/+" // subscribed topic

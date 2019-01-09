@@ -22,22 +22,21 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Unit test for {@link ImmutableJsonLiteral}.
+ * Unit test for {@link ImmutableJsonBoolean}.
  */
 public final class ImmutableJsonLiteralTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableJsonLiteral.class, areImmutable());
+        assertInstancesOf(ImmutableJsonBoolean.class, areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        final SoftReference<JsonValue> red = new SoftReference<>(ImmutableJsonLiteral.TRUE);
-        final SoftReference<JsonValue> black = new SoftReference<>(ImmutableJsonLiteral.FALSE);
+        final SoftReference<JsonValue> red = new SoftReference<>(ImmutableJsonBoolean.TRUE);
+        final SoftReference<JsonValue> black = new SoftReference<>(ImmutableJsonBoolean.FALSE);
 
-        EqualsVerifier.forClass(ImmutableJsonLiteral.class)
-                .withIgnoredFields("stringRepresentation")
+        EqualsVerifier.forClass(ImmutableJsonBoolean.class)
                 .withRedefinedSuperclass()
                 .withPrefabValues(SoftReference.class, red, black)
                 .suppress(Warning.REFERENCE_EQUALITY)
@@ -46,7 +45,7 @@ public final class ImmutableJsonLiteralTest {
 
     @Test
     public void trueBehavesAsExpected() {
-        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.TRUE;
+        final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.TRUE;
 
         assertThat(underTest).isNotArray();
         assertThat(underTest).isBoolean();
@@ -59,7 +58,7 @@ public final class ImmutableJsonLiteralTest {
 
     @Test
     public void falseBehavesAsExpected() {
-        final ImmutableJsonLiteral underTest = ImmutableJsonLiteral.FALSE;
+        final ImmutableJsonBoolean underTest = ImmutableJsonBoolean.FALSE;
 
         assertThat(underTest).isNotArray();
         assertThat(underTest).isBoolean();

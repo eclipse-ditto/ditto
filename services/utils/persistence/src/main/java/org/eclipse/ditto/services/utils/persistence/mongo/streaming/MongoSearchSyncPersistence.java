@@ -166,7 +166,6 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
             final Materializer materializer) {
         try {
             final CreateCollectionOptions collectionOptions = new CreateCollectionOptions()
-                    .autoIndex(false)
                     .capped(true)
                     .sizeInBytes(cappedCollectionSizeInBytes)
                     .maxDocuments(1);

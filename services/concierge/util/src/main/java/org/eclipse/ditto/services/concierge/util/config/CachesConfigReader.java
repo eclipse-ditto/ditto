@@ -14,7 +14,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.base.config.AbstractConfigReader;
+import org.eclipse.ditto.services.utils.config.AbstractConfigReader;
 
 import com.typesafe.config.Config;
 
@@ -58,7 +58,7 @@ public final class CachesConfigReader extends AbstractConfigReader {
     }
 
     private CacheConfigReader getCacheConfigReader(final String childPath) {
-        return new CacheConfigReader(getChild(childPath));
+        return CacheConfigReader.newInstance(getChild(childPath));
     }
 
 }
