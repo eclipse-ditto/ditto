@@ -39,7 +39,9 @@ import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootAc
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.config.ConfigUtil;
+import org.eclipse.ditto.services.utils.config.MongoConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
@@ -96,18 +98,20 @@ public final class SearchRootActor extends AbstractActor {
                 rawConfig.getBoolean(ConfigKeys.MONITORING_CONNECTION_POOL_ENABLED) ?
                         new KamonConnectionPoolListener(KAMON_METRICS_PREFIX) : null;
 
-        final MongoClientWrapper mongoClientWrapper =
-                MongoClientWrapper.newInstance(rawConfig, kamonCommandListener, kamonConnectionPoolListener);
+        final DittoMongoClient mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(rawConfig))
+                .addCommandListener(kamonCommandListener)
+                .addConnectionPoolListener(kamonConnectionPoolListener)
+                .build();
 
         final TimestampPersistence thingsSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                MongoTimestampPersistence.initializedInstance(THINGS_SYNC_STATE_COLLECTION_NAME, mongoClient,
                         materializer);
 
         final TimestampPersistence policiesSyncPersistence =
-                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClientWrapper,
+                MongoTimestampPersistence.initializedInstance(POLICIES_SYNC_STATE_COLLECTION_NAME, mongoClient,
                         materializer);
 
-        final ActorRef searchActor = initializeSearchActor(configReader, mongoClientWrapper);
+        final ActorRef searchActor = initializeSearchActor(configReader, mongoClient);
 
         final ActorRef healthCheckingActor =
                 initializeHealthCheckActor(configReader, thingsSyncPersistence, policiesSyncPersistence);
@@ -120,12 +124,10 @@ public final class SearchRootActor extends AbstractActor {
                 materializer, thingsSyncPersistence, policiesSyncPersistence));
     }
 
-    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final MongoClientWrapper
-            mongoClientWrapper) {
-
+    private ActorRef initializeSearchActor(final ServiceConfigReader configReader, final DittoMongoClient mongoClient) {
         final Config rawConfig = configReader.getRawConfig();
         final ThingsSearchPersistence thingsSearchPersistence =
-                new MongoThingsSearchPersistence(mongoClientWrapper, getContext().system());
+                new MongoThingsSearchPersistence(mongoClient, getContext().system());
 
         final boolean indexInitializationEnabled = rawConfig.getBoolean(ConfigKeys.INDEX_INITIALIZATION_ENABLED);
         if (indexInitializationEnabled) {
@@ -231,4 +233,5 @@ public final class SearchRootActor extends AbstractActor {
 
         return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
     }
+
 }

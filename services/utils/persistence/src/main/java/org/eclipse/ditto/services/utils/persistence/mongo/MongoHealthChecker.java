@@ -28,7 +28,6 @@ import com.mongodb.ReadPreference;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -46,7 +45,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
     private static final String ID_FIELD = "_id";
     private static final int HEALTH_CHECK_MAX_POOL_SIZE = 2;
 
-    private final MongoClientWrapper mongoClient;
+    private final DittoMongoClient mongoClient;
     private final MongoCollection<Document> collection;
     private final ActorMaterializer materializer;
 
@@ -54,19 +53,16 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
      * Constructs a {@code MongoClientActor}.
      */
     private MongoHealthChecker() {
-
         final Config config = getContext().system().settings().config();
-        final Config configWithLimitedMaxPoolSize = config
-                .withValue(MongoConfig.POOL_MAX_SIZE, ConfigValueFactory.fromAnyRef(HEALTH_CHECK_MAX_POOL_SIZE));
-
-        mongoClient = MongoClientWrapper.newInstance(configWithLimitedMaxPoolSize);
+        mongoClient = MongoClientWrapper.getBuilder(MongoConfig.of(config))
+                .connectionPoolMaxSize(HEALTH_CHECK_MAX_POOL_SIZE)
+                .build();
 
         /*
          * It's important to have the read preferences to primary preferred because the replication is to slow to retrieve
          * the inserted document from a secondary directly after inserting it on the primary.
          */
-        collection = mongoClient.getDatabase()
-                .getCollection(TEST_COLLECTION_NAME)
+        collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
                 .withReadPreference(ReadPreference.primaryPreferred());
 
         materializer = ActorMaterializer.create(getContext());
@@ -143,4 +139,5 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                 statusResponse.getDescription().orElse(null));
         updateHealth(persistenceStatus);
     }
+
 }

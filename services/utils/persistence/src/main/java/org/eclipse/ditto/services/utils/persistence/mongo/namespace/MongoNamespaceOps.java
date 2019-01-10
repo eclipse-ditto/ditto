@@ -15,8 +15,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.bson.Document;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.DeleteManyModel;
@@ -33,17 +35,17 @@ import akka.stream.javadsl.Source;
  */
 public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelection>, Closeable {
 
-    private final MongoClientWrapper mongoDbClientWrapper;
+    @Nullable private final DittoMongoClient mongoClient;
     private final MongoDatabase db;
 
     private MongoNamespaceOps(final MongoDatabase db) {
-        mongoDbClientWrapper = null;
+        mongoClient = null;
         this.db = db;
     }
 
-    private MongoNamespaceOps(final MongoClientWrapper theMongoDbClientWrapper) {
-        mongoDbClientWrapper = theMongoDbClientWrapper;
-        db = mongoDbClientWrapper.getDatabase();
+    private MongoNamespaceOps(final DittoMongoClient theMongoClient) {
+        mongoClient = theMongoClient;
+        db = mongoClient.getDefaultDatabase();
     }
 
     /**
@@ -59,12 +61,12 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
     /**
      * Returns an instance of {@code MongoNamespaceOps}.
      *
-     * @param mongoDbClientWrapper provides the database to be used for operations. Will be closed with a call to #close.
+     * @param mongoClient provides the database to be used for operations. Will be closed with a call to {@link #close}.
      * @return the instance.
      * @throws NullPointerException if {@code mongoDbClientWrapper} is {@code null}.
      */
-    public static MongoNamespaceOps of(final MongoClientWrapper mongoDbClientWrapper) {
-        return new MongoNamespaceOps(mongoDbClientWrapper);
+    public static MongoNamespaceOps of(final DittoMongoClient mongoClient) {
+        return new MongoNamespaceOps(mongoClient);
     }
 
     @Override
@@ -87,7 +89,9 @@ public final class MongoNamespaceOps implements NamespaceOps<MongoNamespaceSelec
 
     @Override
     public void close() {
-        mongoDbClientWrapper.close();
+        if (null != mongoClient) {
+            mongoClient.close();
+        }
     }
 
 }

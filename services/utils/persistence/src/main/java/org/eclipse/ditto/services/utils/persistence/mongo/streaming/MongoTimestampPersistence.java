@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.mongodb.reactivestreams.client.Success;
 
 import akka.NotUsed;
@@ -79,14 +80,15 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      * Creates a new initialized instance.
      *
      * @param collectionName The name of the collection.
-     * @param clientWrapper the client wrapper holding the connection information.
+     * @param mongoClient the client wrapper holding the connection information.
      * @param materializer the {@link Materializer} to be used for stream
      * @return a new initialized instance.
      */
     public static MongoTimestampPersistence initializedInstance(final String collectionName,
-            final MongoClientWrapper clientWrapper, final Materializer materializer) {
+            final DittoMongoClient mongoClient, final Materializer materializer) {
+
         final MongoCollection<Document> lastSuccessfulSearchSyncCollection = createOrGetCappedCollection(
-                clientWrapper,
+                mongoClient,
                 collectionName,
                 MIN_CAPPED_COLLECTION_SIZE_IN_BYTES,
                 BLOCKING_TIMEOUT_SECS,
@@ -147,20 +149,19 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
      * @return Returns the created or retrieved collection.
      */
     private static MongoCollection<Document> createOrGetCappedCollection(
-            final MongoClientWrapper clientWrapper,
+            final DittoMongoClient clientWrapper,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
             final long createTimeoutSeconds,
             final Materializer materializer) {
-        createCappedCollectionIfItDoesNotExist(clientWrapper, collectionName, cappedCollectionSizeInBytes,
-                createTimeoutSeconds, materializer);
-        return clientWrapper
-                .getDatabase()
-                .getCollection(collectionName);
+
+        createCappedCollectionIfItDoesNotExist(clientWrapper.getDefaultDatabase(), collectionName,
+                cappedCollectionSizeInBytes, createTimeoutSeconds, materializer);
+
+        return clientWrapper.getCollection(collectionName);
     }
 
-    private static void createCappedCollectionIfItDoesNotExist(
-            final MongoClientWrapper clientWrapper,
+    private static void createCappedCollectionIfItDoesNotExist(final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes,
             final long createTimeoutSeconds,
@@ -170,8 +171,7 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
                     .capped(true)
                     .sizeInBytes(cappedCollectionSizeInBytes)
                     .maxDocuments(1);
-            final Publisher<Success> publisher = clientWrapper.getDatabase()
-                    .createCollection(collectionName, collectionOptions);
+            final Publisher<Success> publisher = database.createCollection(collectionName, collectionOptions);
             final Source<Success, NotUsed> source = Source.fromPublisher(publisher);
             final CompletionStage<Success> done = source.runWith(Sink.head(), materializer);
             done.toCompletableFuture().get(createTimeoutSeconds, TimeUnit.SECONDS);
@@ -197,4 +197,5 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
         }
         return false;
     }
+
 }

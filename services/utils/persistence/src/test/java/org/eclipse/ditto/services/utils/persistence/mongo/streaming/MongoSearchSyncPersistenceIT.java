@@ -12,13 +12,15 @@ package org.eclipse.ditto.services.utils.persistence.mongo.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
@@ -27,7 +29,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.mongodb.reactivestreams.client.MongoClient;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -43,7 +44,7 @@ import akka.testkit.javadsl.TestKit;
 public final class MongoSearchSyncPersistenceIT {
 
     private static MongoDbResource mongoResource;
-    private static MongoClientWrapper mongoClient;
+    private static DittoMongoClient mongoClient;
     private static final String KNOWN_COLLECTION = "knownCollection";
 
     private ActorSystem actorSystem;
@@ -54,23 +55,28 @@ public final class MongoSearchSyncPersistenceIT {
     public static void startMongoResource() {
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
-        mongoClient = MongoClientWrapper.newInstance(mongoResource.getBindIp(), mongoResource.getPort(), "testSearchDB",
-                100, 500000, 30);
+        mongoClient = MongoClientWrapper.getBuilder()
+                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .defaultDatabaseName("testSearchDB")
+                .connectionPoolMaxSize(100)
+                .connectionPoolMaxWaitQueueSize(500_000)
+                .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
+                .build();
     }
 
     @AfterClass
     public static void stopMongoResource() {
         try {
-            Optional.ofNullable(mongoClient)
-                    .map(MongoClientWrapper::getMongoClient)
-                    .ifPresent(MongoClient::close);
-            Optional.ofNullable(mongoResource)
-                    .ifPresent(MongoDbResource::stop);
+            if (null != mongoClient) {
+                mongoClient.close();
+            }
+            if (null != mongoResource) {
+                mongoResource.stop();
+            }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());
         }
     }
-
 
     @Before
     public void setUp() {
@@ -81,12 +87,10 @@ public final class MongoSearchSyncPersistenceIT {
         syncPersistence = MongoTimestampPersistence.initializedInstance(KNOWN_COLLECTION, mongoClient, materializer);
     }
 
-
-    /** */
     @After
     public void after() {
         if (null != mongoClient) {
-            runBlocking(Source.fromPublisher(mongoClient.getDatabase().getCollection(KNOWN_COLLECTION).drop()));
+            runBlocking(Source.fromPublisher(mongoClient.getCollection(KNOWN_COLLECTION).drop()));
         }
         if (null != actorSystem) {
             TestKit.shutdownActorSystem(actorSystem);
@@ -120,10 +124,10 @@ public final class MongoSearchSyncPersistenceIT {
         Stream.of(publishers)
                 .map(p -> p.runWith(Sink.ignore(), materializer))
                 .map(CompletionStage::toCompletableFuture)
-                .forEach(this::finishCompletableFuture);
+                .forEach(MongoSearchSyncPersistenceIT::finishCompletableFuture);
     }
 
-    private void finishCompletableFuture(final CompletableFuture future) {
+    private static void finishCompletableFuture(final Future future) {
         try {
             future.get();
         } catch (final InterruptedException | ExecutionException e) {

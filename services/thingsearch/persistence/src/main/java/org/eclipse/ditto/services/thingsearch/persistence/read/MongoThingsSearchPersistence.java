@@ -35,8 +35,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.Indices;
 import org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants;
 import org.eclipse.ditto.services.thingsearch.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQuery;
-import org.eclipse.ditto.services.utils.config.MongoConfig;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceededException;
 
@@ -44,6 +43,7 @@ import com.mongodb.MongoExecutionTimeoutException;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.reactivestreams.client.AggregatePublisher;
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -57,27 +57,25 @@ import scala.PartialFunction;
 /**
  * Persistence Service Implementation for asynchronous MongoDB search.
  */
-public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
+public final class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private final MongoCollection<Document> collection;
-    private final LoggingAdapter log;
-
-    private final ActorMaterializer materializer;
     private final IndexInitializer indexInitializer;
     private final Duration maxQueryTime;
+    private final LoggingAdapter log;
 
     /**
      * Initializes the things search persistence with a passed in {@code persistence}.
      *
-     * @param clientWrapper the mongoDB persistence wrapper.
+     * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
      */
-    public MongoThingsSearchPersistence(final MongoClientWrapper clientWrapper, final ActorSystem actorSystem) {
-        collection = clientWrapper.getDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+    public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
+        final MongoDatabase database = mongoClient.getDefaultDatabase();
+        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+        indexInitializer = IndexInitializer.of(database, ActorMaterializer.create(actorSystem));
+        maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
         log = Logging.getLogger(actorSystem, getClass());
-        materializer = ActorMaterializer.create(actorSystem);
-        indexInitializer = IndexInitializer.of(clientWrapper.getDatabase(), materializer);
-        maxQueryTime = MongoConfig.getMaxQueryTime(actorSystem.settings().config());
     }
 
     /**
@@ -111,7 +109,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
         return Source.fromPublisher(aggregatePublisher)
                 .map(document -> {
-                    final String namespace = (document.get(PersistenceConstants.FIELD_ID) != null)
+                    final String namespace = document.get(PersistenceConstants.FIELD_ID) != null
                             ? document.get(PersistenceConstants.FIELD_ID).toString()
                             : "NOT_MIGRATED";
                     final long count = Long.parseLong(document.get(PersistenceConstants.FIELD_COUNT).toString());
@@ -234,7 +232,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return mongoQuery.getSortOptionsAsBson();
     }
 
-    private PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
+    private static PartialFunction<Throwable, Throwable> handleMongoExecutionTimeExceededException() {
         return new PFBuilder<Throwable, Throwable>()
                 .match(Throwable.class, error ->
                         error instanceof MongoExecutionTimeoutException
@@ -243,4 +241,5 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 )
                 .build();
     }
+
 }
