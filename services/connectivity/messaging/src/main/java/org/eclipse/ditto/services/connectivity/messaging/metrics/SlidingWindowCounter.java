@@ -139,7 +139,7 @@ public class SlidingWindowCounter {
             long sum = 0;
             for (final Map.Entry<Long, Long> e : measurements.entrySet()) {
                 long slot = success ? e.getKey() : -e.getKey();
-                if (slot >= min && slot <= max) {
+                if (slot > min && slot <= max) {
                     sum += e.getValue();
                 }
             }

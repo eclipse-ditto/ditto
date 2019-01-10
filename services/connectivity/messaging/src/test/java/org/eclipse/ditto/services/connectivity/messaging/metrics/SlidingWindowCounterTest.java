@@ -37,7 +37,7 @@ public class SlidingWindowCounterTest {
                 MeasurementWindow.ONE_MINUTE,
                 MeasurementWindow.ONE_HOUR);
 
-        final long ts = System.currentTimeMillis();
+        final long ts = System.currentTimeMillis() + MeasurementWindow.ONE_MINUTE.getWindow().toMillis();
         final long start = ts
                 - MeasurementWindow.ONE_HOUR.getWindow().toMillis()
                 - MeasurementWindow.ONE_HOUR.getResolution().toMillis();

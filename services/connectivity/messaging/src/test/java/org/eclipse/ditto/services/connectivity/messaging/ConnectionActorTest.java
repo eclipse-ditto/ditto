@@ -90,7 +90,6 @@ public final class ConnectionActorTest extends WithMockServers {
     private RetrieveConnectionStatus retrieveConnectionStatus;
     private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
-    private RetrieveConnectionStatusResponse retrieveConnectionStatusClosedResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
 
     @BeforeClass
@@ -138,11 +137,6 @@ public final class ConnectionActorTest extends WithMockServers {
                         ),
                         asList(ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "publisher started")),
                         DittoHeaders.empty());
-        retrieveConnectionStatusClosedResponse =
-                RetrieveConnectionStatusResponse.of(connectionId, ConnectionStatus.CLOSED,
-                        Collections.singletonList(ConnectivityModelFactory.newClientStatus(null,
-                                ConnectionStatus.CLOSED, "connection is closed", Instant.EPOCH)),
-                        Collections.emptyList(), Collections.emptyList(), DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }
 
@@ -389,7 +383,15 @@ public final class ConnectionActorTest extends WithMockServers {
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
-            expectMsg(retrieveConnectionStatusClosedResponse);
+            final RetrieveConnectionStatusResponse response = expectMsgClass(RetrieveConnectionStatusResponse.class);
+
+            assertThat((Object) response.getConnectionStatus()).isEqualTo(ConnectionStatus.CLOSED);
+            assertThat(response.getSourceStatus()).isEmpty();
+            assertThat(response.getTargetStatus()).isEmpty();
+            assertThat(response.getClientStatus()).hasSize(1);
+            assertThat(response.getClientStatus().get(0).getStatus()).isEqualTo(ConnectionStatus.CLOSED.getName());
+            assertThat(response.getClientStatus().get(0).getStatusDetails())
+                    .contains(String.format("[%s] connection is closed", BaseClientState.DISCONNECTED));
         }};
     }
 
