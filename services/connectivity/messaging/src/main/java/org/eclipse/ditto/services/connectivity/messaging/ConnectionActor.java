@@ -119,6 +119,7 @@ import scala.concurrent.duration.FiniteDuration;
 public final class ConnectionActor extends AbstractPersistentActor {
 
     private static final FiniteDuration DELETED_ACTOR_LIFETIME = Duration.create(10L, TimeUnit.SECONDS);
+    private static final long DEFAULT_RETRIEVE_STATUS_TIMEOUT = 500L;
     static final String PERSISTENCE_ID_PREFIX = "connection:";
 
     private static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
@@ -152,7 +153,7 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private final ClientActorPropsFactory propsFactory;
     private final Consumer<ConnectivityCommand<?>> commandValidator;
     private final Receive connectionCreatedBehaviour;
-    private Instant connectionClosedAt = null;
+    private Instant connectionClosedAt = Instant.now();
 
     @Nullable private ActorRef clientActorRouter;
     @Nullable private Connection connection;
@@ -697,8 +698,12 @@ public final class ConnectionActor extends AbstractPersistentActor {
 
     private void forwardRetrieveConnectionCommand(final Command<?> cmd, final Runnable onClientActorNotStarted) {
         if (clientActorRouter != null && connection != null) {
+            // timeout before sending the (partial) response
+            final java.time.Duration timeout =
+                    java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(cmd.getDittoHeaders()) * 0.75));
             final ActorRef metricsAggregator = getContext().actorOf(
-                    RetrieveConnectionMetricsAggregatorActor.props(connection, getSender(), cmd.getDittoHeaders()));
+                    RetrieveConnectionMetricsAggregatorActor.props(connection, getSender(), cmd.getDittoHeaders(),
+                            timeout));
 
             // forward command to all client actors with aggregator as sender
             clientActorRouter.tell(new Broadcast(cmd), metricsAggregator);
@@ -756,8 +761,17 @@ public final class ConnectionActor extends AbstractPersistentActor {
     private void retrieveConnectionStatus(final RetrieveConnectionStatus command) {
         checkNotNull(connection, "Connection");
         // timeout before sending the (partial) response
-        final Props props = RetrieveConnectionStatusAggregatorActor.props(connection, getSender(), command.getDittoHeaders());
+        final java.time.Duration timeout =
+                java.time.Duration.ofMillis((long) (extractTimeoutFromCommand(command.getDittoHeaders()) * 0.75));
+        final Props props = RetrieveConnectionStatusAggregatorActor.props(connection, getSender(),
+                command.getDittoHeaders(), timeout);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, this.getSender()));
+    }
+
+    private long extractTimeoutFromCommand(final DittoHeaders headers) {
+        return Optional.ofNullable(headers.get("timeout"))
+                .map(Long::parseLong)
+                .orElse(DEFAULT_RETRIEVE_STATUS_TIMEOUT);
     }
 
     private void retrieveConnectionMetrics(final RetrieveConnectionMetrics command) {
@@ -780,7 +794,9 @@ public final class ConnectionActor extends AbstractPersistentActor {
         final RetrieveConnectionStatusResponse statusResponse =
                 RetrieveConnectionStatusResponse.closedResponse(connectionId,
                         connectionClosedAt == null ? Instant.EPOCH : connectionClosedAt,
-                        ConnectionStatus.CLOSED.getName(), command.getDittoHeaders());
+                        ConnectionStatus.CLOSED.getName(),
+                        "[" + BaseClientState.DISCONNECTED + "] connection is closed",
+                        command.getDittoHeaders());
         origin.tell(statusResponse, getSelf());
     }
 

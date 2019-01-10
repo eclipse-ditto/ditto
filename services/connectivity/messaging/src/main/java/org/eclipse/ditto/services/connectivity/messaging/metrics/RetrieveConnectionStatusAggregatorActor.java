@@ -34,44 +34,41 @@ import akka.event.DiagnosticLoggingAdapter;
 public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private static final long DEFAULT_TIMEOUT = Duration.ofSeconds(10).toMillis();
-    private final Connection connection;
     private final Duration timeout;
-    private Map<ResourceStatus.ResourceType, Integer> expectedResponses;
+    private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
 
     private RetrieveConnectionStatusResponse theResponse;
 
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders dittoHeaders) {
-        this.connection = connection;
-        this.timeout = extractTimeoutFromCommand(dittoHeaders);
+            final ActorRef sender, final DittoHeaders dittoHeaders, final Duration timeout) {
+        this.timeout = timeout;
         this.sender = sender;
         theResponse = RetrieveConnectionStatusResponse.of(connection.getId(), connection.getConnectionStatus(),
                         Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), dittoHeaders);
 
-        // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = new HashMap<>();
+        // one response per client actor
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
         if (ConnectionStatus.OPEN.equals(connection.getConnectionStatus())) {
-            expectedResponses.put(ResourceStatus.ResourceType.TARGET,connection.getClientCount());
+            // one response per source/target
+            expectedResponses.put(ResourceStatus.ResourceType.TARGET,
+                    // currently there is always only one publisher per client
+                    connection.getClientCount());
             expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
                     connection.getSources()
                             .stream()
-                            .mapToInt(Source::getConsumerCount)
-                            .map(consumers -> consumers * connection.getClientCount())
+                            .mapToInt(source ->
+                                    connection.getClientCount()
+                                            * source.getConsumerCount()
+                                            * source.getAddresses().size())
                             .sum());
         }
     }
 
-    private Duration extractTimeoutFromCommand(final DittoHeaders headers) {
-        return Duration.ofMillis(Optional.ofNullable(headers.get("timeout"))
-                .map(Long::parseLong)
-                .orElse(DEFAULT_TIMEOUT));
-    }
-
-    public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders dittoHeaders) {
-        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, dittoHeaders);
+    public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders dittoHeaders,
+            final Duration timeout) {
+        return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, dittoHeaders, timeout);
     }
 
     @Override
@@ -85,9 +82,7 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
         log.debug("RetrieveConnectionStatus timed out, sending (partial) response.");
         sendResponse();
-
-        // stop this actor
-        getContext().stop(getSelf());
+        stopSelf();
     }
 
     @Override
@@ -97,17 +92,13 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {
         expectedResponses.compute(resourceStatus.getResourceType(), (type, count)->count-1);
-        log.debug("Received resource status: {}", resourceStatus);
+        log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
         theResponse = theResponse.withAddressStatus(resourceStatus);
-
-        log.debug("Current (partial) response: {}", theResponse);
 
         // if response is complete, send back to caller
         if (getRemainingResponses() == 0) {
             sendResponse();
-        } else {
-            log.debug("Still waiting for {} responses: {}", getRemainingResponses(), expectedResponses);
         }
     }
 
@@ -117,5 +108,10 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private void sendResponse() {
         sender.tell(theResponse, getSelf());
+        stopSelf();
+    }
+
+    private void stopSelf() {
+        getContext().stop(getSelf());
     }
 }

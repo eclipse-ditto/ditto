@@ -457,7 +457,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         if (consumerActor != null) {
                             final Object message = ConnectivityModelFactory.newStatusUpdate(
                                     ConnectionStatus.FAILED,
-                                    "Consumer closed" , Instant.now());
+                                    "Consumer closed", Instant.now());
                             consumerActor.tell(message, ActorRef.noSender());
                         }
                     });

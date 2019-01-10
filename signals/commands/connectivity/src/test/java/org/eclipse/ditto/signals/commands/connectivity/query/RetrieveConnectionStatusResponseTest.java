@@ -21,9 +21,13 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -46,8 +50,10 @@ public final class RetrieveConnectionStatusResponseTest {
     private static final Instant IN_CONNECTION_STATUS_SINCE = Instant.now();
     private static List<ResourceStatus> clientStatus =
             Arrays.asList(
-                    newClientStatus("client1", ConnectionStatus.OPEN, "Client is connected", IN_CONNECTION_STATUS_SINCE),
-                    newClientStatus("client2", ConnectionStatus.FAILED, "Client failed to connect.", IN_CONNECTION_STATUS_SINCE)
+                    newClientStatus("client1", ConnectionStatus.OPEN, "Client is connected",
+                            IN_CONNECTION_STATUS_SINCE),
+                    newClientStatus("client2", ConnectionStatus.FAILED, "Client failed to connect.",
+                            IN_CONNECTION_STATUS_SINCE)
             );
     private static List<ResourceStatus> sourceStatus =
             Arrays.asList(
@@ -188,4 +194,42 @@ public final class RetrieveConnectionStatusResponseTest {
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
+    @Test
+    public void mergeMultipleStatuses() {
+        final RetrieveConnectionStatusResponse expected =
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                        clientStatus,
+                        sourceStatus,
+                        targetStatus,
+                        DittoHeaders.empty());
+
+
+        final RetrieveConnectionStatusResponse empty =
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty());
+
+        final List<ResourceStatus> statuses = Stream.of(clientStatus, sourceStatus, targetStatus)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        // merge in random order
+        Collections.shuffle(statuses);
+
+        RetrieveConnectionStatusResponse actual =
+                RetrieveConnectionStatusResponse.of(TestConstants.ID, ConnectionStatus.OPEN,
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        DittoHeaders.empty());
+        for (final ResourceStatus resourceStatus : statuses) {
+            actual = actual.withAddressStatus(resourceStatus);
+        }
+
+        assertThat((Object) actual.getConnectionStatus()).isEqualTo(expected.getConnectionStatus());
+        assertThat(actual.getClientStatus()).containsAll(expected.getClientStatus());
+        assertThat(actual.getSourceStatus()).containsAll(expected.getSourceStatus());
+        assertThat(actual.getTargetStatus()).containsAll(expected.getTargetStatus());
+    }
 }

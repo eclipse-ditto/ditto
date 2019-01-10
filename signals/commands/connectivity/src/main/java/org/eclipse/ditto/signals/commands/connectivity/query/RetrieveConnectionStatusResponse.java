@@ -103,6 +103,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
      *
      * @param connectionId the identifier of the connection.
+     * @param statusDetails
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
@@ -110,12 +111,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static RetrieveConnectionStatusResponse closedResponse(final String connectionId,
             final Instant connectionClosedAt,
             final String clientStatus,
-            final DittoHeaders dittoHeaders) {
+            final String statusDetails, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ImmutableResourceStatus resourceStatus =
                 ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, clientStatus,
-                        "connection is closed", connectionClosedAt);
+                        statusDetails, connectionClosedAt);
         return new RetrieveConnectionStatusResponse(connectionId, ConnectionStatus.CLOSED,
                 Collections.singletonList(resourceStatus),
                 Collections.emptyList(),
@@ -229,7 +230,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             case CLIENT:
                 newClientStatus = addToList(this.getClientStatus(), resourceStatus);
                 newSourceStatus = this.getSourceStatus();
-                newTargetStatus = this.getSourceStatus();
+                newTargetStatus = this.getTargetStatus();
                 break;
             default:
                 newClientStatus = this.getClientStatus();

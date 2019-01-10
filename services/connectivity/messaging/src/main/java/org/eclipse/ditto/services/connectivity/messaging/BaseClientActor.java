@@ -551,7 +551,10 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(data.getConnection(), dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
-            return goTo(UNKNOWN).using(data.resetSession());
+            return goTo(UNKNOWN)
+                    .using(data.setConnectionStatus(ConnectionStatus.FAILED)
+                            .setConnectionStatusDetails(error.getMessage())
+                            .resetSession());
         }
     }
 

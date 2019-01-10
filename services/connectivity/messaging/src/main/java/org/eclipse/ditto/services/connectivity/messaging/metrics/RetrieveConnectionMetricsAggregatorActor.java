@@ -39,25 +39,19 @@ public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
     private RetrieveConnectionMetricsResponse theResponse;
 
     private RetrieveConnectionMetricsAggregatorActor(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders) {
+            final DittoHeaders originalHeaders, final Duration timeout) {
         this.connection = connection;
         this.dittoHeaders = originalHeaders;
 
         // one RetrieveConnectionMetricsResponse per client actor
         this.expectedResponses = connection.getClientCount();
         this.sender = sender;
-        this.timeout = extractTimeoutFromCommand(dittoHeaders);
+        this.timeout = timeout;
     }
 
     public static Props props(final Connection connection, final ActorRef sender,
-            final DittoHeaders originalHeaders) {
-        return Props.create(RetrieveConnectionMetricsAggregatorActor.class, connection, sender, originalHeaders);
-    }
-
-    private Duration extractTimeoutFromCommand(final DittoHeaders headers) {
-        return Duration.ofMillis(Optional.ofNullable(headers.get("timeout"))
-                .map(Long::parseLong)
-                .orElse(DEFAULT_TIMEOUT));
+            final DittoHeaders originalHeaders, final Duration timeout) {
+        return Props.create(RetrieveConnectionMetricsAggregatorActor.class, connection, sender, originalHeaders, timeout);
     }
 
     @Override
@@ -76,6 +70,7 @@ public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
                     ConnectionTimeoutException.newBuilder(connection.getId(), RetrieveConnectionMetrics.TYPE).build(),
                     getSender());
         }
+        stopSelf();
     }
 
     @Override
@@ -92,19 +87,22 @@ public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
         if (theResponse == null) {
             theResponse = retrieveConnectionMetricsResponse;
         } else {
-            log.debug("Current response: {}", theResponse.toJsonString());
             theResponse = theResponse.mergeWith(retrieveConnectionMetricsResponse);
-            log.debug("Merged response: {}", theResponse.toJsonString());
         }
 
         // if response is complete, send back to caller
         if (--expectedResponses == 0) {
             log.debug("Received all expected responses.");
             sendResponse();
+            stopSelf();
         }
     }
 
     private void sendResponse() {
         sender.tell(theResponse.setDittoHeaders(dittoHeaders), getSelf());
+    }
+
+    private void stopSelf() {
+        getContext().stop(getSelf());
     }
 }
