@@ -66,8 +66,8 @@ public final class RetrieveConnectionStatusResponseTest {
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionStatusResponse.TYPE)
             .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID)
-            .set(RetrieveConnectionStatusResponse.JsonFields.JSON_CONNECTION_STATUS, ConnectionStatus.OPEN.getName())
-            .set(RetrieveConnectionStatusResponse.JsonFields.JSON_CLIENT_STATUS,
+            .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectionStatus.OPEN.getName())
+            .set(RetrieveConnectionStatusResponse.JsonFields.CLIENT_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "client1")
@@ -84,7 +84,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                                     IN_CONNECTION_STATUS_SINCE.toString())
                                             .build()
                             ).build())
-            .set(RetrieveConnectionStatusResponse.JsonFields.JSON_SOURCE_STATUS,
+            .set(RetrieveConnectionStatusResponse.JsonFields.SOURCE_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.ADDRESS, "source1")
@@ -102,7 +102,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()
                             ).build())
-            .set(RetrieveConnectionStatusResponse.JsonFields.JSON_TARGET_STATUS,
+            .set(RetrieveConnectionStatusResponse.JsonFields.TARGET_STATUS,
                     JsonFactory.newArrayBuilder()
                             .add(JsonFactory.newObjectBuilder()
                                             .set(ResourceStatus.JsonFields.STATUS, ConnectionStatus.OPEN.toString())

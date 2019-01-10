@@ -153,20 +153,20 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 statusCode -> {
                     final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionStatus readConnectionStatus =
-                            ConnectionStatus.forName(jsonObject.getValueOrThrow(JsonFields.JSON_CONNECTION_STATUS))
+                            ConnectionStatus.forName(jsonObject.getValueOrThrow(JsonFields.CONNECTION_STATUS))
                                     .orElse(ConnectionStatus.UNKNOWN);
 
                     final List<ResourceStatus> readClientStatus =
                             readAddressStatus(ResourceStatus.ResourceType.CLIENT,
-                                    jsonObject.getValueOrThrow(JsonFields.JSON_CLIENT_STATUS));
+                                    jsonObject.getValueOrThrow(JsonFields.CLIENT_STATUS));
 
                     final List<ResourceStatus> readSourceStatus =
                             readAddressStatus(ResourceStatus.ResourceType.SOURCE,
-                                    jsonObject.getValueOrThrow(JsonFields.JSON_SOURCE_STATUS));
+                                    jsonObject.getValueOrThrow(JsonFields.SOURCE_STATUS));
 
                     final List<ResourceStatus> readTargetStatus =
                             readAddressStatus(ResourceStatus.ResourceType.TARGET,
-                                    jsonObject.getValueOrThrow(JsonFields.JSON_TARGET_STATUS));
+                                    jsonObject.getValueOrThrow(JsonFields.TARGET_STATUS));
 
                     return of(readConnectionId, readConnectionStatus,readClientStatus, readSourceStatus,
                             readTargetStatus, dittoHeaders);
@@ -252,15 +252,15 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, connectionId, predicate);
-        jsonObjectBuilder.set(JsonFields.JSON_CONNECTION_STATUS, connectionStatus.getName(), predicate);
+        jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.getName(), predicate);
 
-        jsonObjectBuilder.set(JsonFields.JSON_CLIENT_STATUS, clientStatus.stream()
+        jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatus.stream()
                 .map(source -> source.toJson(schemaVersion, thePredicate))
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.JSON_SOURCE_STATUS, sourceStatus.stream()
+        jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatus.stream()
                         .map(source -> source.toJson(schemaVersion, thePredicate))
                         .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
-        jsonObjectBuilder.set(JsonFields.JSON_TARGET_STATUS, targetStatus.stream()
+        jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatus.stream()
                         .map(source -> source.toJson(schemaVersion, thePredicate))
                         .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
     }
@@ -324,26 +324,19 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * This class contains definitions for all specific fields of a {@code ConnectivityCommandResponse}'s JSON
      * representation.
      */
-    static final class JsonFields extends CommandResponse.JsonFields {
+    public static final class JsonFields extends CommandResponse.JsonFields {
 
-        /**
-         * JSON field containing the ConnectivityCommandResponse's connectionId.
-         */
-        public static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
-        static final JsonFieldDefinition<String> JSON_CONNECTION_STATUS =
+        public static final JsonFieldDefinition<String> CONNECTION_STATUS =
                 JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
 
-        static final JsonFieldDefinition<JsonArray> JSON_CLIENT_STATUS =
+        public static final JsonFieldDefinition<JsonArray> CLIENT_STATUS =
                 JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
-        static final JsonFieldDefinition<JsonArray> JSON_SOURCE_STATUS =
+        public static final JsonFieldDefinition<JsonArray> SOURCE_STATUS =
                 JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
-        static final JsonFieldDefinition<JsonArray> JSON_TARGET_STATUS =
+        public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
                 JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
     }
