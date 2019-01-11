@@ -30,10 +30,10 @@ public interface StreamMetadataPersistence {
     Source<NotUsed, NotUsed> updateLastSuccessfulStreamEnd(Instant timestamp);
 
     /**
-     * <strong>Blocking:</strong> Retrieves the end timestamp of the last successful stream.
+     * Retrieves the end timestamp of the last successful stream.
      *
-     * @return An {@link java.util.Optional} of the {@link Instant} of the last successful stream.
+     * @return Source of an {@link java.util.Optional} of the {@link Instant} of the last successful stream.
      * Optional will be empty if a timestamp has not yet been persisted.
      */
-    Optional<Instant> retrieveLastSuccessfulStreamEnd();
+    Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEnd();
 }

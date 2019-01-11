@@ -174,29 +174,11 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     }
 
     private static StreamConsumerSettings createThingsStreamConsumerSettings(final Config config) {
-        final Duration startOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_START_OFFSET);
-        final Duration streamInterval = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAM_INTERVAL);
-        final Duration initialStartOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_INITIAL_START_OFFSET);
-        final Duration maxIdleTime = config.getDuration(ConfigKeys.THINGS_SYNCER_MAX_IDLE_TIME);
-        final Duration streamingActorTimeout = config.getDuration(ConfigKeys.THINGS_SYNCER_STREAMING_ACTOR_TIMEOUT);
-        final int elementsStreamedPerBatch = config.getInt(ConfigKeys.THINGS_SYNCER_ELEMENTS_STREAMED_PER_BATCH);
-        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.THINGS_SYNCER_OUTDATED_WARNING_OFFSET);
-
-        return StreamConsumerSettings.of(startOffset, streamInterval, initialStartOffset, maxIdleTime,
-                streamingActorTimeout, elementsStreamedPerBatch, outdatedWarningOffset);
+        return StreamConsumerSettings.fromRelativeConfig(config.getConfig(ConfigKeys.SYNC_THINGS));
     }
 
     private static StreamConsumerSettings createPoliciesStreamConsumerSettings(final Config config) {
-        final Duration startOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_START_OFFSET);
-        final Duration streamInterval = config.getDuration(ConfigKeys.POLICIES_SYNCER_STREAM_INTERVAL);
-        final Duration initialStartOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_INITIAL_START_OFFSET);
-        final Duration maxIdleTime = config.getDuration(ConfigKeys.POLICIES_SYNCER_MAX_IDLE_TIME);
-        final Duration streamingActorTimeout = config.getDuration(ConfigKeys.POLICIES_SYNCER_STREAMING_ACTOR_TIMEOUT);
-        final int elementsStreamedPerBatch = config.getInt(ConfigKeys.POLICIES_SYNCER_ELEMENTS_STREAMED_PER_BATCH);
-        final Duration outdatedWarningOffset = config.getDuration(ConfigKeys.POLICIES_SYNCER_OUTDATED_WARNING_OFFSET);
-
-        return StreamConsumerSettings.of(startOffset, streamInterval, initialStartOffset, maxIdleTime,
-                streamingActorTimeout, elementsStreamedPerBatch, outdatedWarningOffset);
+        return StreamConsumerSettings.fromRelativeConfig(config.getConfig(ConfigKeys.SYNC_POLICIES));
     }
 
     /**

@@ -71,7 +71,6 @@ public final class MongoSearchSyncPersistenceIT {
         }
     }
 
-
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("test");
@@ -82,7 +81,9 @@ public final class MongoSearchSyncPersistenceIT {
     }
 
 
-    /** */
+    /**
+     *
+     */
     @After
     public void after() {
         if (null != mongoClient) {
@@ -98,7 +99,7 @@ public final class MongoSearchSyncPersistenceIT {
      */
     @Test
     public void retrieveFallbackForLastSuccessfulSyncTimestamp() {
-        final Optional<Instant> actualTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
+        final Optional<Instant> actualTs = getResult(syncPersistence.retrieveLastSuccessfulStreamEnd());
 
         assertThat(actualTs).isEmpty();
     }
@@ -112,8 +113,14 @@ public final class MongoSearchSyncPersistenceIT {
 
         runBlocking(syncPersistence.updateLastSuccessfulStreamEnd(ts));
 
-        final Optional<Instant> persistedTs = syncPersistence.retrieveLastSuccessfulStreamEnd();
+        final Optional<Instant> persistedTs = getResult(syncPersistence.retrieveLastSuccessfulStreamEnd());
         assertThat(persistedTs).hasValue(ts);
+    }
+
+    private <T> T getResult(final Source<T, ?> source) {
+        final CompletableFuture<T> future = source.runWith(Sink.head(), materializer).toCompletableFuture();
+        finishCompletableFuture(future);
+        return future.join();
     }
 
     private void runBlocking(final Source<?, ?>... publishers) {

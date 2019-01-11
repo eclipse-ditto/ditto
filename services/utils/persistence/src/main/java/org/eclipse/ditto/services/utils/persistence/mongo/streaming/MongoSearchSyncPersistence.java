@@ -110,17 +110,8 @@ public final class MongoSearchSyncPersistence implements StreamMetadataPersisten
     }
 
     @Override
-    public Optional<Instant> retrieveLastSuccessfulStreamEnd() {
-        final Source<Optional<Instant>, NotUsed> source = retrieveLastSuccessfulStreamEndAsync();
-        final CompletionStage<Optional<Instant>> done = source.runWith(Sink.head(), mat);
-        try {
-            return done.toCompletableFuture().get(BLOCKING_TIMEOUT_SECS, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        } catch (final ExecutionException | TimeoutException e) {
-            throw new IllegalStateException(e);
-        }
+    public Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEnd() {
+        return retrieveLastSuccessfulStreamEndAsync();
     }
 
     private Source<Optional<Instant>, NotUsed> retrieveLastSuccessfulStreamEndAsync() {
