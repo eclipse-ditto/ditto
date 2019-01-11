@@ -18,7 +18,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.metrics.Connecti
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.FILTERED;
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.MAPPED;
 import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.PUBLISHED;
-import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.RESPONDED;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -35,14 +34,16 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * Tests {@link ConnectivityCounterRegistry}.
+ */
 public class ConnectivityCounterRegistryTest {
 
-    public static final String CONNECTION_ID = "theConnection";
-    public static final String SOURCE = "source1";
-    public static final String TARGET = "target1";
-    public static final Instant FIXED_INSTANT = Instant.now();
-    public static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.systemDefault());
-    public static final Map<Duration, Long> COUNTERS = getCounters(1);
+    private static final String CONNECTION_ID = "theConnection";
+    private static final String SOURCE = "source1";
+    private static final String TARGET = "target1";
+    private static final Instant FIXED_INSTANT = Instant.now();
+    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneId.systemDefault());
 
     private static Map<Duration, Long> getCounters(final long value) {
         return Stream.of(MeasurementWindow.values())
@@ -55,7 +56,6 @@ public class ConnectivityCounterRegistryTest {
         Stream.of(
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, INBOUND, SOURCE),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, INBOUND, SOURCE),
-                ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, RESPONDED, INBOUND, SOURCE),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, OUTBOUND, TARGET),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, FILTERED, OUTBOUND, TARGET),
                 ConnectivityCounterRegistry.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, OUTBOUND, TARGET),
@@ -77,9 +77,7 @@ public class ConnectivityCounterRegistryTest {
                 getMeasurement(MAPPED, true),
                 getMeasurement(MAPPED, false),
                 getMeasurement(CONSUMED, true),
-                getMeasurement(CONSUMED, false),
-                getMeasurement(RESPONDED, true),
-                getMeasurement(RESPONDED, false)
+                getMeasurement(CONSUMED, false)
         };
 
         assertThat(sourceMetrics.getAddressMetrics().get(SOURCE).getMeasurements()).containsExactlyInAnyOrder(expected);

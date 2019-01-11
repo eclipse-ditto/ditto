@@ -142,11 +142,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
                     @Override
                     public void onException(final Message messageFailedToSend, final Exception exception) {
-                        publishedCounter.recordFailure();
-                        handleSendException(message, exception, origin);
+                        handleSendException(message, exception, origin, publishedCounter);
                     }
                 });
             } else {
+                publishedCounter.recordFailure();
                 log.warning("No producer for destination {} available.", publishTarget);
                 final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                         .message("Failed to send message, no producer available.")
@@ -155,16 +155,18 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 getSender().tell(sendFailedException, getSelf());
             }
         } catch (final JMSException e) {
-            handleSendException(message, e, getSender());
+            handleSendException(message, e, getSender(), publishedCounter);
         }
     }
 
-    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender) {
+    private void handleSendException(final ExternalMessage message, final Exception e, final ActorRef sender,
+            final ConnectionMetricsCollector publishedCounter) {
         log.info("Failed to send JMS message: [{}] {}", e.getClass().getSimpleName(), e.getMessage());
         final MessageSendingFailedException sendFailedException = MessageSendingFailedException.newBuilder()
                 .cause(e)
                 .dittoHeaders(DittoHeaders.of(message.getHeaders()))
                 .build();
+        publishedCounter.recordFailure();
         sender.tell(sendFailedException, getSelf());
     }
 

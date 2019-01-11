@@ -10,6 +10,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.DROPPED;
+import static org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectivityCounterRegistry.Metric.MAPPED;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.text.MessageFormat;
@@ -93,7 +96,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private final BiFunction<ExternalMessage, DittoHeaders, DittoHeaders> adjustHeaders;
     private final Function<InboundExternalMessage, DittoHeaders> mapHeaders;
     private final BiConsumer<ExternalMessage, Signal<?>> applySignalIdEnforcement;
-    private final ConnectionMetricsCollector responsedCounter;
+    private final ConnectionMetricsCollector responseConsumedCounter;
+    private final ConnectionMetricsCollector responseDroppedCounter;
+    private ConnectionMetricsCollector responseMappedCounter;
 
     private MessageMappingProcessorActor(final ActorRef publisherActor,
             final ActorRef conciergeForwarder,
@@ -109,7 +114,9 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         adjustHeaders = new AdjustHeaders(connectionId);
         mapHeaders = new ApplyHeaderMapping(log);
         applySignalIdEnforcement = new ApplySignalIdEnforcement(log);
-        responsedCounter = ConnectivityCounterRegistry.getRespondedCounter(connectionId);
+        responseConsumedCounter = ConnectivityCounterRegistry.getResponseConsumedCounter(connectionId);
+        responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(connectionId);
+        responseMappedCounter = ConnectivityCounterRegistry.getResponseMappedCounter(connectionId);
     }
 
     /**
@@ -170,24 +177,30 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     }
 
     private void mapExternalMessageToSignalAndForwardToConcierge(final ExternalMessage externalMessage) {
-            final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
-            final Optional<InboundExternalMessage> inboundMessageOpt = processor.process(messageWithAuthSubject);
-            inboundMessageOpt.ifPresent(inboundMessage -> {
-                final Signal<?> signal = inboundMessage.getSignal();
-                enhanceLogUtil(signal);
-                applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
-                final Signal<?> adjustedSignal = mapHeaders
-                        .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
-                        .andThen(signal::setDittoHeaders)
-                        .apply(inboundMessage);
+        final ExternalMessage messageWithAuthSubject = placeholderSubstitution.apply(externalMessage);
+        final Optional<InboundExternalMessage> inboundMessageOpt = processor.process(messageWithAuthSubject);
 
-                startTrace(adjustedSignal);
-                // This message is important to check if a command is accepted for a specific connection, as this
-                // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
-                log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder", adjustedSignal
-                        .getType());
-                conciergeForwarder.tell(adjustedSignal, getSelf());
-            });
+        if (inboundMessageOpt.isPresent()) {
+            final InboundExternalMessage inboundMessage = inboundMessageOpt.get();
+            final Signal<?> signal = inboundMessage.getSignal();
+            enhanceLogUtil(signal);
+            applySignalIdEnforcement.accept(messageWithAuthSubject, signal);
+            final Signal<?> adjustedSignal = mapHeaders
+                    .andThen(mappedHeaders -> adjustHeaders.apply(messageWithAuthSubject, mappedHeaders))
+                    .andThen(signal::setDittoHeaders)
+                    .apply(inboundMessage);
+
+            startTrace(adjustedSignal);
+            // This message is important to check if a command is accepted for a specific connection, as this
+            // happens quite a lot this is going to the debug level. Use best with a connection-id filter.
+            log.debug("Message successfully mapped to signal: '{}'. Passing to conciergeForwarder",
+                    adjustedSignal.getType());
+            conciergeForwarder.tell(adjustedSignal, getSelf());
+        } else {
+            log.debug("Message mapping returned null, message is dropped.");
+            ConnectivityCounterRegistry.getInboundDroppedCounter(connectionId,
+                    externalMessage.getSourceAddress().orElse("unknown")).recordSuccess();
+        }
     }
 
     private void enhanceLogUtil(final WithDittoHeaders<?> signal) {
@@ -239,14 +252,15 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         } else {
             log.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage",
                     DittoHeaderDefinition.RESPONSE_REQUIRED);
+            responseDroppedCounter.recordSuccess();
         }
     }
 
     private void recordResponse(final CommandResponse<?> response) {
         if (isSuccessResponse(response)) {
-            responsedCounter.recordSuccess();
+            responseConsumedCounter.recordSuccess();
         } else {
-            responsedCounter.recordFailure();
+            responseConsumedCounter.recordFailure();
         }
     }
 
@@ -257,9 +271,17 @@ public final class MessageMappingProcessorActor extends AbstractActor {
     private void handleOutboundSignal(final OutboundSignal outbound) {
         enhanceLogUtil(outbound.getSource());
         log.debug("Handling outbound signal: {}", outbound.getSource());
-        mapToExternalMessage(outbound)
-                .map(message -> OutboundSignalFactory.newMappedOutboundSignal(outbound, message))
-                .ifPresent(outboundSignal -> publisherActor.forward(outboundSignal, getContext()));
+
+
+        final Optional<OutboundSignal.WithExternalMessage> mappedOutboundSignal = mapToExternalMessage(outbound)
+                .map(message -> OutboundSignalFactory.newMappedOutboundSignal(outbound, message));
+        if (mappedOutboundSignal.isPresent()) {
+            publisherActor.forward(mappedOutboundSignal.get(), getContext());
+        } else {
+            log.debug("Message mapping returned null, message is dropped.");
+            getCountersForOutboundSignal(outbound, connectionId, DROPPED)
+                    .forEach(ConnectionMetricsCollector::recordSuccess);
+        }
     }
 
     /**
@@ -275,11 +297,7 @@ public final class MessageMappingProcessorActor extends AbstractActor {
 
     private Optional<ExternalMessage> mapToExternalMessage(final OutboundSignal outbound) {
         try {
-            final Set<ConnectionMetricsCollector> collectors = outbound.getTargets()
-                    .stream()
-                    .map(Target::getOriginalAddress)
-                    .map(address -> ConnectivityCounterRegistry.getOutboundMappedCounter(connectionId, address))
-                    .collect(Collectors.toSet());
+            final Set<ConnectionMetricsCollector> collectors = getCountersForOutboundSignal(outbound, connectionId, MAPPED);
             return ConnectionMetricsCollector.record(collectors, () -> processor.process(outbound.getSource()));
         } catch (final DittoRuntimeException e) {
             log.info("Got DittoRuntimeException during processing Signal: {} - {}", e.getMessage(),
@@ -326,6 +344,21 @@ public final class MessageMappingProcessorActor extends AbstractActor {
         }
 
         timer.tag(TracingTags.MAPPING_SUCCESS, null == cause).stop();
+    }
+
+    public Set<ConnectionMetricsCollector> getCountersForOutboundSignal(final OutboundSignal outbound,
+            final String connectionId, final ConnectivityCounterRegistry.Metric metric) {
+
+        if (outbound.getSource() instanceof CommandResponse) {
+            return Collections.singleton(responseMappedCounter);
+        } else {
+            return outbound.getTargets()
+                    .stream()
+                    .map(Target::getOriginalAddress)
+                    .map(address -> ConnectivityCounterRegistry.getCounter(connectionId, metric,
+                            ConnectivityCounterRegistry.Direction.OUTBOUND, address))
+                    .collect(Collectors.toSet());
+        }
     }
 
     static final class PlaceholderSubstitution implements Function<ExternalMessage, ExternalMessage> {

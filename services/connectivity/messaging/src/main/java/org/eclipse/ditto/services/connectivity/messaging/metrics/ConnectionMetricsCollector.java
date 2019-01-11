@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -90,11 +91,16 @@ public class ConnectionMetricsCollector {
      * Produces a {@link Measurement} for reporting.
      *
      * @param success whether to count successful or failed operations
-     * @return a measurement containing the counts for different intervals
+     * @return a measurement containing the counts for different intervals, optional is empty if all counts are zero
      */
-    Measurement toMeasurement(final boolean success) {
+    Optional<Measurement> toMeasurement(final boolean success) {
         final Map<Duration, Long> measurements = counter.getCounts(success);
-        return new ImmutableMeasurement(metric.getLabel(), success, measurements, getLastMessageTimestamp());
+        if (measurements.values().stream().mapToLong(l->l).sum() != 0) {
+            return Optional.of(new ImmutableMeasurement(metric.getLabel(), success, measurements,
+                    getLastMessageTimestamp()));
+        } else {
+            return Optional.empty();
+        }
     }
 
     private Instant getLastMessageTimestamp() {

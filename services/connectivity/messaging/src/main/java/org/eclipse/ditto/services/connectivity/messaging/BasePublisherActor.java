@@ -60,10 +60,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     protected ResourceStatus resourceStatus;
     protected String connectionId;
+    private ConnectionMetricsCollector responseDroppedCounter;
+    private ConnectionMetricsCollector responsePublishedCounter;
+
 
     protected BasePublisherActor(final String connectionId) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "Started at " + Instant.now());
+        responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
+        responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
     }
 
     @Override
@@ -84,11 +89,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                                 outbound.getSource().getType(), replyTarget);
                         log().debug("Publishing mapped response/error message of type <{}> to reply target <{}>: {}",
                                 outbound.getSource().getType(), replyTarget, response);
-                        final ConnectionMetricsCollector publishedCounter =
-                                ConnectivityCounterRegistry.getRespondedCounter(connectionId);
-                        publishMessage(null, replyTarget, response, publishedCounter);
+                        publishMessage(null, replyTarget, response, responsePublishedCounter);
                     } else {
                         log().info("Response dropped, missing replyTo address: {}", response);
+                        responseDroppedCounter.recordSuccess();
                     }
                 })
                 .match(OutboundSignal.WithExternalMessage.class, outbound -> {
@@ -102,15 +106,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     outbound.getTargets().forEach(target -> {
                         log().info("Publishing mapped message of type <{}> to target address <{}>",
                                 outboundSource.getType(), target.getAddress());
+                        final ConnectionMetricsCollector publishedCounter =
+                                ConnectivityCounterRegistry.getOutboundPublishedCounter(connectionId,
+                                        target.getOriginalAddress());
                         try {
                             final T publishTarget = toPublishTarget(target.getAddress());
                             final ExternalMessage messageWithMappedHeaders =
                                     applyHeaderMapping(outbound, target, log());
-                            final ConnectionMetricsCollector publishedCounter =
-                                    ConnectivityCounterRegistry.getOutboundPublishedCounter(connectionId,
-                                            target.getOriginalAddress());
                             publishMessage(target, publishTarget, messageWithMappedHeaders, publishedCounter);
                         } catch (final DittoRuntimeException e) {
+                            publishedCounter.recordFailure();
                             log().warning("Got unexpected DittoRuntimeException when applying header mapping - " +
                                             "thus NOT publishing the message: {} {}",
                                     e.getClass().getSimpleName(), e.getMessage());
