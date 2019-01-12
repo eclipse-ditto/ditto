@@ -19,8 +19,19 @@ import java.util.Optional;
  */
 public enum MeasurementWindow {
 
+    /**
+     * Window of 1 minute with a resolution of 10 seconds.
+     */
     ONE_MINUTE(Duration.ofMinutes(1), Duration.ofSeconds(10)),
+
+    /**
+     * Window of 1 hour with a resolution of 1 minute.
+     */
     ONE_HOUR(Duration.ofHours(1), Duration.ofMinutes(1)),
+
+    /**
+     * Window of 24 hours / 1 day with a resolution of 1 hour.
+     */
     ONE_DAY(Duration.ofHours(24), Duration.ofHours(1));
 
     private final Duration window;

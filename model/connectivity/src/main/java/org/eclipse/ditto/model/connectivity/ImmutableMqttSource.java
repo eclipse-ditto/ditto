@@ -11,7 +11,6 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -29,7 +28,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Extends the default {@link Source} by fields required for consuming for MQTT sources.
  */
 @Immutable
-public final class ImmutableMqttSource extends DelegateSource implements MqttSource {
+final class ImmutableMqttSource extends DelegateSource implements MqttSource {
 
     // user should set qos for sources. the default is qos=2 for convenience
     private static final Integer DEFAULT_QOS = 2;

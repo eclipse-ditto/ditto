@@ -58,12 +58,12 @@ import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
@@ -593,7 +593,7 @@ public class AmqpClientActorTest extends WithMockServers {
                 }
                 final ResourceStatus resourceStatus = (ResourceStatus) o;
                 return resourceStatus.getResourceType() == ResourceStatus.ResourceType.SOURCE
-                        && Arrays.asList(expectedSources).contains(resourceStatus.getAddress().orElse(null))
+                        && Arrays.asList(expectedSources).contains(resourceStatus.getAddress())
                         && ConnectionStatus.OPEN.getName().equals(resourceStatus.getStatus());
             }
         };

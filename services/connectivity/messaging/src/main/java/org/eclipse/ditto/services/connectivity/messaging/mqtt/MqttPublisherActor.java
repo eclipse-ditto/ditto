@@ -12,13 +12,11 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ConnectionStatus;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMappers;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
@@ -58,10 +56,11 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
 
     private final boolean dryRun;
 
-    private MqttPublisherActor(final String connectionId, final MqttConnectionFactory factory,
+    private MqttPublisherActor(final String connectionId, final Set<Target> targets,
+            final MqttConnectionFactory factory,
             final ActorRef mqttClientActor,
             final boolean dryRun) {
-        super(connectionId);
+        super(connectionId, targets);
         this.mqttClientActor = mqttClientActor;
         this.dryRun = dryRun;
 
@@ -75,18 +74,26 @@ public final class MqttPublisherActor extends BasePublisherActor<MqttPublishTarg
         materializedValues.second().handle(this::reportReadiness);
 
         sourceActor = materializedValues.first();
-
-        resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "Started at " + Instant.now());
     }
 
-    static Props props(final String connectionId, final MqttConnectionFactory factory, final ActorRef mqttClientActor,
+    /**
+     * TODO TJ doc
+     * @param connectionId
+     * @param targets
+     * @param factory
+     * @param mqttClientActor
+     * @param dryRun
+     * @return
+     */
+    static Props props(final String connectionId, final Set<Target> targets,
+            final MqttConnectionFactory factory, final ActorRef mqttClientActor,
             final boolean dryRun) {
         return Props.create(MqttPublisherActor.class, new Creator<MqttPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public MqttPublisherActor create() {
-                return new MqttPublisherActor(connectionId, factory, mqttClientActor, dryRun);
+                return new MqttPublisherActor(connectionId, targets, factory, mqttClientActor, dryRun);
             }
         });
     }

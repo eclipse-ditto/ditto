@@ -101,7 +101,8 @@ public class MockClientActor extends AbstractActor {
                     sender().tell(ConnectivityModelFactory.newSourceStatus("source2",
                             ConnectionStatus.OPEN, "consumer started"),
                             getSelf());
-                    sender().tell(ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "publisher started"),
+                    sender().tell(ConnectivityModelFactory.newTargetStatus("target1",
+                            ConnectionStatus.OPEN, "publisher started"),
                             getSelf());
                 })
                 .matchAny(unhandled -> {

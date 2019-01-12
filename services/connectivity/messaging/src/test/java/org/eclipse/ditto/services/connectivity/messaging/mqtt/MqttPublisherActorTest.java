@@ -11,10 +11,10 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,7 +50,7 @@ public class MqttPublisherActorTest extends AbstractPublisherActorTest<JmsMessag
 
     @Override
     protected Props getPublisherActorProps() {
-        return MqttPublisherActor.props("theConnection", mqttConnectionFactory, probe.ref(), false);
+        return MqttPublisherActor.props("theConnection", Collections.emptySet(), mqttConnectionFactory, probe.ref(), false);
     }
 
     @Override

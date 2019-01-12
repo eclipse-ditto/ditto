@@ -203,7 +203,7 @@ public final class MqttClientActor extends BaseClientActor {
         // ensure no previous publisher stays in memory
         stopMqttPublisher();
         mqttPublisherActor = startChildActorConflictFree(MqttPublisherActor.ACTOR_NAME,
-                MqttPublisherActor.props(connectionId(), factory, getSelf(), dryRun));
+                MqttPublisherActor.props(connectionId(), getTargetsOrEmptySet(), factory, getSelf(), dryRun));
         pendingStatusReportsFromStreams.add(mqttPublisherActor);
     }
 

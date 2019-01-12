@@ -37,7 +37,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
-import org.eclipse.ditto.model.connectivity.ImmutableMeasurement;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -138,24 +137,24 @@ public final class TestConstants {
                         entry(ONE_MINUTE, ONE_MINUTE.getSeconds()),
                         entry(ONE_HOUR, ONE_HOUR.getSeconds()),
                         entry(ONE_DAY, ONE_DAY.getSeconds()));
-        public static final ImmutableMeasurement INBOUND =
-                new ImmutableMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
-        public static final ImmutableMeasurement FAILED_INBOUND =
-                new ImmutableMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement INBOUND =
+                ConnectivityModelFactory.newMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement FAILED_INBOUND =
+                ConnectivityModelFactory.newMeasurement("inbound", true, SOURCE_COUNTERS, LAST_MESSAGE_AT);
         public static final Map<Duration, Long> TARGET_COUNTERS = asMap(
                         entry(ONE_MINUTE, ONE_MINUTE.toMillis()),
                         entry(ONE_HOUR, ONE_HOUR.toMillis()),
                         entry(ONE_DAY, ONE_DAY.toMillis()));
-        public static final ImmutableMeasurement OUTBOUND =
-                new ImmutableMeasurement("outbound", true, TARGET_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement OUTBOUND =
+                ConnectivityModelFactory.newMeasurement("outbound", true, TARGET_COUNTERS, LAST_MESSAGE_AT);
         public static final Map<Duration, Long> MAPPING_COUNTERS = asMap(
                         entry(ONE_MINUTE, ONE_MINUTE.toMinutes()),
                         entry(ONE_HOUR, ONE_HOUR.toMinutes()),
                         entry(ONE_DAY, ONE_DAY.toMinutes()));
-        public static final ImmutableMeasurement MAPPING =
-                new ImmutableMeasurement("mapping", true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
-        public static final ImmutableMeasurement FAILED_MAPPING =
-                new ImmutableMeasurement("mapping", false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement MAPPING =
+                ConnectivityModelFactory.newMeasurement("mapping", true, MAPPING_COUNTERS, LAST_MESSAGE_AT);
+        public static final Measurement FAILED_MAPPING =
+                ConnectivityModelFactory.newMeasurement("mapping", false, MAPPING_COUNTERS, LAST_MESSAGE_AT);
 
         public static final AddressMetric INBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(INBOUND, MAPPING));
         public static final AddressMetric OUTBOUND_METRIC = ConnectivityModelFactory.newAddressMetric(asSet(MAPPING, OUTBOUND));
@@ -208,7 +207,7 @@ public final class TestConstants {
                                 .orElse(0L) * times
                 );
             }
-            return new ImmutableMeasurement(type, success, result, Metrics.LAST_MESSAGE_AT);
+            return ConnectivityModelFactory.newMeasurement(type, success, result, Metrics.LAST_MESSAGE_AT);
         }
     }
 

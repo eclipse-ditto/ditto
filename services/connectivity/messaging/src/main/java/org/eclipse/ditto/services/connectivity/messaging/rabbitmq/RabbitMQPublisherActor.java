@@ -43,13 +43,14 @@ import akka.japi.pf.ReceiveBuilder;
 /**
  * Responsible for publishing {@link ExternalMessage}s into RabbitMQ / AMQP 0.9.1.
  * <p>
- * To receive responses the {@code replyTo} header must be set. Responses are sent to the default exchange with
- * the {@code replyTo} header as routing key.
+ * To receive responses the {@code replyTo} header must be set. Responses are sent to the default exchange with the
+ * {@code replyTo} header as routing key.
  * </p>
  * The {@code address} of the {@code targets} from the {@link Connection} are interpreted as follows:
  * <ul>
  * <li>no {@code targets} defined: signals are not published at all</li>
- * <li>{@code address="target/routingKey"}: signals are published to exchange {@code target} with routing key {@code routingKey}</li>
+ * <li>{@code address="target/routingKey"}: signals are published to exchange {@code target} with routing key {@code
+ * routingKey}</li>
  * </ul>
  */
 public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTarget> {
@@ -62,23 +63,21 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private static final String DEFAULT_EXCHANGE = "";
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final Set<Target> targets;
 
     @Nullable private ActorRef channelActor;
 
     private RabbitMQPublisherActor(final Set<Target> targets, final String connectionId) {
-        super(connectionId);
-        this.targets = targets;
+        super(connectionId, targets);
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
-     * @param targets the targets to publish to
      * @param connectionId the connectionId this publisher belongs to
+     * @param targets the targets to publish to
      * @return the Akka configuration Props object.
      */
-    static Props props(final Set<Target> targets, final String connectionId) {
+    static Props props(final String connectionId, final Set<Target> targets) {
         return Props.create(RabbitMQPublisherActor.class, new Creator<RabbitMQPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
@@ -94,8 +93,6 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         receiveBuilder
                 .match(ChannelCreated.class, channelCreated -> {
                     this.channelActor = channelCreated.channel();
-                    resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN,
-                            "Started at " + Instant.now());
 
                     final Set<String> exchanges = targets.stream()
                             .map(t -> toPublishTarget(t.getAddress()))
@@ -108,8 +105,19 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                                 channel.exchangeDeclarePassive(exchange);
                             } catch (final IOException e) {
                                 log.warning("Failed to declare exchange <{}> passively", exchange);
-                                resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.FAILED,
-                                        "Exchange '" + exchange + "' was missing at " + Instant.now());
+                                targets.stream()
+                                        .filter(t ->
+                                                exchange.equals(toPublishTarget(t.getAddress()).getExchange())
+                                        )
+                                        .findFirst()
+                                        .ifPresent(target ->
+                                                resourceStatusMap.put(
+                                                        target,
+                                                        ConnectivityModelFactory.newTargetStatus(
+                                                                target.getAddress(),
+                                                                ConnectionStatus.FAILED,
+                                                                "Exchange '" + exchange + "' was missing at " +
+                                                                        Instant.now())));
                             }
                         });
                         return null;

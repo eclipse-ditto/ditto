@@ -10,6 +10,7 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,6 +80,19 @@ public final class ConnectivityModelFactory {
      */
     public static Connection connectionFromJson(final JsonObject jsonObject) {
         return ImmutableConnection.fromJson(jsonObject);
+    }
+
+    /**
+     * TODO TJ doc
+     * @param counterType
+     * @param success
+     * @param values
+     * @param lastMessageAt
+     * @return
+     */
+    public static Measurement newMeasurement(final String counterType, final boolean success,
+            final Map<Duration, Long> values, @Nullable final Instant lastMessageAt) {
+        return new ImmutableMeasurement(counterType, success, values, lastMessageAt);
     }
 
     /**
@@ -186,6 +200,7 @@ public final class ConnectivityModelFactory {
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, address, status.getName(),
                 statusDetails);
     }
+
     /**
      * Returns a new source {@code ResourceStatus}.
      *
@@ -212,7 +227,8 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newSourceStatus(final String address, final ConnectionStatus status, @Nullable final String statusDetails) {
+    public static ResourceStatus newSourceStatus(final String address, final ConnectionStatus status,
+            @Nullable final String statusDetails) {
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status.getName(),
                 statusDetails);
     }
@@ -231,46 +247,66 @@ public final class ConnectivityModelFactory {
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, address, status,
                 statusDetails);
     }
+
     /**
      * Returns a new target {@code ResourceStatus}.
      *
+     * @param address the address identifier
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newTargetStatus(final ConnectionStatus status,
+    public static ResourceStatus newTargetStatus(final String address, final ConnectionStatus status,
             @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, null, status.getName(),
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, address, status.getName(),
                 statusDetails);
     }
 
     /**
      * Returns a new generic {@code ResourceStatus} update.
      *
+     * @param address the address identifier
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newStatusUpdate(final ConnectionStatus status, @Nullable final String statusDetails) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, null, status.getName(),
+    public static ResourceStatus newStatusUpdate(final String address, final ConnectionStatus status,
+            @Nullable final String statusDetails) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status.getName(),
                 statusDetails);
     }
 
     /**
      * Returns a new target {@code ResourceStatus}.
      *
+     * @param address the address identifier
      * @param status the ConnectionStatus of the source metrics to create
      * @param statusDetails the optional details about the connection status
      * @param inStatusSince the instant since the resource is in the described status
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newStatusUpdate(final ConnectionStatus status, @Nullable final String statusDetails,
-     final Instant inStatusSince) {
-        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, null, status.getName(),
+    public static ResourceStatus newStatusUpdate(final String address, final ConnectionStatus status,
+            @Nullable final String statusDetails,
+            final Instant inStatusSince) {
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, address, status.getName(),
                 statusDetails, inStatusSince);
+    }
+
+    /**
+     * Creates a new {@code ResourceStatus} object from the specified JSON object.
+     *
+     * @param jsonObject a JSON object which provides the data for the ResourceStatus to be created.
+     * @param type a resource type
+     * @return a new ResourceStatus which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
+     */
+    public static ResourceStatus resourceStatusFromJson(final JsonObject jsonObject,
+            final ResourceStatus.ResourceType type) {
+        return ImmutableResourceStatus.fromJson(jsonObject, type);
     }
 
     /**
@@ -598,7 +634,8 @@ public final class ConnectivityModelFactory {
      * Creates a new {@code FilteredTopic} with the passed {@code namespaces}.
      *
      * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
+     * considered
      * @return the created FilteredTopic
      */
     public static FilteredTopic newFilteredTopic(final Topic topic, final List<String> namespaces) {
@@ -609,7 +646,8 @@ public final class ConnectivityModelFactory {
      * Creates a new {@code FilteredTopic} with the passed {@code namespaces} and the optional {@code filter} String.
      *
      * @param topic the {@code Topic} of the FilteredTopic
-     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are considered
+     * @param namespaces the namespaces for which the filter should be applied - if empty, all namespaces are
+     * considered
      * @param filter the filter String to apply for the FilteredTopic
      * @return the created FilteredTopic
      */
@@ -619,8 +657,8 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic}
-     * and an optional filter string supplied with {@code ?filter=...}.
+     * Creates a new {@code FilteredTopic} from the passed {@code topicString} which consists of a {@code Topic} and an
+     * optional filter string supplied with {@code ?filter=...}.
      *
      * @param topicString the {@code FilteredTopic} String representation
      * @return the created FilteredTopic
@@ -656,8 +694,8 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
-     * {@link Source} {@code address}.
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their {@link
+     * Source} {@code address}.
      *
      * @param filters the filters
      * @return the enforcement instance
@@ -667,8 +705,8 @@ public final class ConnectivityModelFactory {
     }
 
     /**
-     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their
-     * {@link Source} {@code address}.
+     * New instance of {@link Enforcement} options to be used with connections supporting filtering on their {@link
+     * Source} {@code address}.
      *
      * @param requiredFilter the required filter
      * @param additionalFilters additional filters
@@ -691,6 +729,7 @@ public final class ConnectivityModelFactory {
 
     /**
      * Creates a new instance of a {@link HeaderMapping}.
+     *
      * @param mapping the mapping definition
      * @return the new instance of {@link HeaderMapping}
      */

@@ -29,15 +29,15 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Immutable implementation of {@link ResourceStatus}.
  */
 @Immutable
-public final class ImmutableResourceStatus implements ResourceStatus {
+final class ImmutableResourceStatus implements ResourceStatus {
 
     private final ResourceType type;
     private final String status;
-    @Nullable private final String address;
+    private final String address;
     @Nullable private final String statusDetails;
     @Nullable private final Instant inStateSince;
 
-    private ImmutableResourceStatus(final ResourceType type, @Nullable final String address, final String status,
+    private ImmutableResourceStatus(final ResourceType type, final String address, final String status,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
         this.type = type;
@@ -48,63 +48,33 @@ public final class ImmutableResourceStatus implements ResourceStatus {
     }
 
     /**
-     * Creates a new {@code ImmutableAddressMetric} instance.
+     * Creates a new {@code ImmutableResourceStatus} instance.
      *
      * @param type a resource type
      * @param address an address describing the resource
      * @param status the current status of the resource
      * @param statusDetails the optional status details
      * @param inStateSince the instant since the resource is in the given state
-     * @return a new instance of ImmutableAddressMetric
+     * @return a new instance of ImmutableResourceStatus
      */
-    public static ImmutableResourceStatus of(final ResourceType type, @Nullable final String address,
-            final String status,
+    public static ImmutableResourceStatus of(final ResourceType type, final String address, final String status,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
         return new ImmutableResourceStatus(type, address, status, statusDetails, inStateSince);
     }
 
     /**
-     * Creates a new {@code ImmutableAddressMetric} instance.
+     * Creates a new {@code ImmutableResourceStatus} instance.
      *
      * @param type a resource type
      * @param address an address describing the resource
      * @param status the current status of the connection
      * @param statusDetails the optional status details
-     * @return a new instance of ImmutableAddressMetric
+     * @return a new instance of ImmutableResourceStatus
      */
-    public static ImmutableResourceStatus of(final ResourceType type, @Nullable final String address,
-            final String status,
+    public static ImmutableResourceStatus of(final ResourceType type, final String address, final String status,
             @Nullable final String statusDetails) {
         return new ImmutableResourceStatus(type, address, status, statusDetails, null);
-    }
-
-    /**
-     * Creates a new {@code ImmutableAddressMetric} instance.
-     *
-     * @param type a resource type
-     * @param status the current status of the connection
-     * @param statusDetails the optional status details
-     * @param inStateSince the instant since the resource is in the given state
-     * @return a new instance of ImmutableAddressMetric
-     */
-    public static ImmutableResourceStatus of(final ResourceType type,
-            final String status,
-            @Nullable final String statusDetails,
-            @Nullable final Instant inStateSince) {
-        return new ImmutableResourceStatus(type, null, status, statusDetails, inStateSince);
-    }
-
-    /**
-     * Creates a new {@code ImmutableAddressMetric} instance.
-     *
-     * @param type a resource type
-     * @param status the current status of the connection
-     * @return a new instance of ImmutableAddressMetric
-     */
-    public static ImmutableResourceStatus of(final ResourceType type,
-            final String status) {
-        return new ImmutableResourceStatus(type, null, status, null, null);
     }
 
 
@@ -114,8 +84,8 @@ public final class ImmutableResourceStatus implements ResourceStatus {
     }
 
     @Override
-    public Optional<String> getAddress() {
-        return Optional.ofNullable(address);
+    public String getAddress() {
+        return address;
     }
 
     @Override
@@ -137,9 +107,7 @@ public final class ImmutableResourceStatus implements ResourceStatus {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-        if (address != null) {
-            jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
-        }
+        jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.STATUS, status, predicate);
         if (statusDetails != null) {
@@ -152,17 +120,17 @@ public final class ImmutableResourceStatus implements ResourceStatus {
     }
 
     /**
-     * Creates a new {@code AddressMetric} object from the specified JSON object.
+     * Creates a new {@code ResourceStatus} object from the specified JSON object.
      *
-     * @param jsonObject a JSON object which provides the data for the AddressMetric to be created.
+     * @param jsonObject a JSON object which provides the data for the ResourceStatus to be created.
      * @param type a resource type
-     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @return a new ResourceStatus which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static ResourceStatus fromJson(final JsonObject jsonObject, final ResourceType type) {
         final String readConnectionStatus = jsonObject.getValueOrThrow(JsonFields.STATUS);
-        final String readAddress = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
+        final String readAddress = jsonObject.getValueOrThrow(JsonFields.ADDRESS);
         final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null);
         final Instant readInStateSince =
                 jsonObject.getValue(JsonFields.IN_STATE_SINCE).map(Instant::parse).orElse(null);
@@ -172,8 +140,12 @@ public final class ImmutableResourceStatus implements ResourceStatus {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableResourceStatus)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableResourceStatus)) {
+            return false;
+        }
         final ImmutableResourceStatus that = (ImmutableResourceStatus) o;
         return type == that.type &&
                 Objects.equals(status, that.status) &&

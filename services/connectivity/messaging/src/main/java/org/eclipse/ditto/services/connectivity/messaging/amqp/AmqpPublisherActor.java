@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import javax.annotation.Nullable;
@@ -80,8 +81,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Session session;
     private final Map<Destination, MessageProducer> producerMap;
 
-    private AmqpPublisherActor(final String connectionId, final Session session) {
-        super(connectionId);
+    private AmqpPublisherActor(final String connectionId, final Set<Target> targets, final Session session) {
+        super(connectionId, targets);
         this.session = checkNotNull(session, "session");
         this.producerMap = new HashMap<>();
     }
@@ -90,16 +91,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * Creates Akka configuration object {@link Props} for this {@code AmqpPublisherActor}.
      *
      * @param connectionId the id of the connection this publisher belongs to
+     * @param targets
      * @param session the jms session
      * @return the Akka configuration Props object.
      */
-    static Props props(final String connectionId, final Session session) {
+    static Props props(final String connectionId, final Set<Target> targets, final Session session) {
         return Props.create(AmqpPublisherActor.class, new Creator<AmqpPublisherActor>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public AmqpPublisherActor create() {
-                return new AmqpPublisherActor(connectionId, session);
+                return new AmqpPublisherActor(connectionId, targets, session);
             }
         });
     }

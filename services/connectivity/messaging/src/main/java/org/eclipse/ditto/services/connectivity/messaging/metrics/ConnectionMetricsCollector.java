@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.connectivity.ImmutableMeasurement;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Helper class to collect metrics.
  */
-public class ConnectionMetricsCollector {
+public final class ConnectionMetricsCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionMetricsCollector.class);
 
@@ -95,12 +95,17 @@ public class ConnectionMetricsCollector {
      */
     Optional<Measurement> toMeasurement(final boolean success) {
         final Map<Duration, Long> measurements = counter.getCounts(success);
-        if (measurements.values().stream().mapToLong(l->l).sum() != 0) {
-            return Optional.of(new ImmutableMeasurement(metric.getLabel(), success, measurements,
-                    getLastMessageTimestamp()));
+        final Instant lastMessageTimestamp = getLastMessageTimestamp();
+        final Instant timestamp;
+        if (lastMessageTimestamp.equals(Instant.EPOCH)) {
+            timestamp = null;
         } else {
-            return Optional.empty();
+            timestamp = lastMessageTimestamp;
         }
+        return Optional.of(
+                ConnectivityModelFactory.newMeasurement(metric.getLabel(), success, measurements, timestamp));
+
+        // TODO TJ check with DG if this change I made here (always returning content, even if empty) is ok
     }
 
     private Instant getLastMessageTimestamp() {
@@ -108,8 +113,8 @@ public class ConnectionMetricsCollector {
     }
 
     /**
-     * Executes the given {@link Runnable} and increments the success counter if no exception was thrown or the
-     * failed counter if a exception was caught.
+     * Executes the given {@link Runnable} and increments the success counter if no exception was thrown or the failed
+     * counter if a exception was caught.
      *
      * @param runnable the runnable to be executed
      */
@@ -123,6 +128,9 @@ public class ConnectionMetricsCollector {
         }
     }
 
+    /**
+     * TODO TJ doc
+     */
     public <T> T record(final Supplier<T> supplier) {
         try {
             final T result = supplier.get();
@@ -134,6 +142,9 @@ public class ConnectionMetricsCollector {
         }
     }
 
+    /**
+     * TODO TJ doc
+     */
     public static <T> T record(org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter success,
             org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter failure, final Supplier<T> supplier) {
         try {
@@ -167,8 +178,12 @@ public class ConnectionMetricsCollector {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ConnectionMetricsCollector that = (ConnectionMetricsCollector) o;
         return direction == that.direction &&
                 Objects.equals(address, that.address) &&

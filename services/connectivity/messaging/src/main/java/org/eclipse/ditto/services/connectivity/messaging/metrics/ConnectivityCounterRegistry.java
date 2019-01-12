@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
 
+import javax.annotation.Nonnull;
+
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
@@ -39,9 +41,11 @@ public class ConnectivityCounterRegistry {
     private static final ConcurrentMap<String, ConnectionMetricsCollector> counters = new ConcurrentHashMap<>();
 
     private static final MeasurementWindow[] DEFAULT_WINDOWS = {ONE_MINUTE, ONE_HOUR, ONE_DAY};
-    
+
     // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
+
+    private static final Clock CLOCK_UTC = Clock.systemUTC();
 
     /**
      * Gets the counter for the given parameter from the registry or creates it if it does not yet exist.
@@ -58,7 +62,8 @@ public class ConnectivityCounterRegistry {
             final Direction direction,
             final String address) {
 
-        return getCounter(Clock.systemUTC(), connectionId, metric, direction, address);
+
+        return getCounter(CLOCK_UTC, connectionId, metric, direction, address);
     }
 
     /**
@@ -78,8 +83,7 @@ public class ConnectivityCounterRegistry {
             final Direction direction,
             final String address) {
 
-        final String key =
-                MapKeyBuilder.newBuilder(connectionId, metric, direction).address(address).build();
+        final String key = new MapKey(connectionId, metric, direction, address).toString();
         return counters.computeIfAbsent(key, m -> {
             final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
             return new ConnectionMetricsCollector(direction, address, metric, counter);
@@ -321,55 +325,53 @@ public class ConnectivityCounterRegistry {
     /**
      * Helper class to build the map key of the registry.
      */
-    private static class MapKeyBuilder {
+    private static class MapKey implements CharSequence {
 
         private final String connectionId;
         private final String metric;
         private final String direction;
-        private String address;
-
-        private MapKeyBuilder(final String connectionId,
-                final String metric,
-                final String direction) {
-            this.connectionId = checkNotNull(connectionId, "connectionId");
-            this.metric = metric;
-            this.direction = direction;
-        }
+        private final String address;
 
         /**
-         * New builder map key builder.
+         * New map key.
          *
          * @param connectionId connection id
          * @param metric the metric
          * @param direction the direction
-         * @return the map key builder
-         */
-        private static MapKeyBuilder newBuilder(final String connectionId, final Metric metric,
-                final Direction direction) {
-            return new MapKeyBuilder(connectionId, metric.getLabel(), direction.getLabel());
-        }
-
-        /**
-         * Address map key builder.
-         *
          * @param address the address
-         * @return the map key builder
          */
-        private MapKeyBuilder address(final String address) {
-            this.address = address;
-            return this;
+        MapKey(final String connectionId,
+                final Metric metric,
+                final Direction direction,
+                final String address) {
+            this.connectionId = checkNotNull(connectionId, "connectionId");
+            this.metric = metric.getLabel();
+            this.direction = direction.getLabel();
+            this.address = checkNotNull(address, "address");
         }
 
-        /**
-         * Build string.
-         *
-         * @return the string
-         */
-        private String build() {
+        @Override
+        public int length() {
+            return toString().length();
+        }
+
+        @Override
+        public char charAt(final int index) {
+            return toString().charAt(index);
+        }
+
+        @Override
+        public CharSequence subSequence(final int start, final int end) {
+            return toString().subSequence(start, end);
+        }
+
+        @Override
+        @Nonnull
+        public String toString() {
             return connectionId
                     + ":" + metric
                     + ":" + direction
-                    + (address != null ? ":" + address : "");
+                    + ":" + address;
         }
     }
 }

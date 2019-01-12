@@ -35,10 +35,10 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.connectivity.ImmutableResourceStatus;
-import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -103,20 +103,22 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
      *
      * @param connectionId the identifier of the connection.
+     * @param connectionClosedAt TODO TJ doc
+     * @param clientStatus
      * @param statusDetails
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveConnectionStatusResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionStatusResponse closedResponse(final String connectionId,
+            final String address,
             final Instant connectionClosedAt,
-            final String clientStatus,
+            final ConnectionStatus clientStatus,
             final String statusDetails, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
-        final ImmutableResourceStatus resourceStatus =
-                ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, clientStatus,
-                        statusDetails, connectionClosedAt);
+        final ResourceStatus resourceStatus =
+                ConnectivityModelFactory.newClientStatus(address, clientStatus, statusDetails, connectionClosedAt);
         return new RetrieveConnectionStatusResponse(connectionId, ConnectionStatus.CLOSED,
                 Collections.singletonList(resourceStatus),
                 Collections.emptyList(),
@@ -175,12 +177,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     private static List<ResourceStatus> readAddressStatus(
-            final ImmutableResourceStatus.ResourceType type,
+            final ResourceStatus.ResourceType type,
             final JsonArray jsonArray) {
         return jsonArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
-                .map(status -> ImmutableResourceStatus.fromJson(status, type))
+                .map(status -> ConnectivityModelFactory.resourceStatusFromJson(status, type))
                 .collect(Collectors.toList());
     }
 

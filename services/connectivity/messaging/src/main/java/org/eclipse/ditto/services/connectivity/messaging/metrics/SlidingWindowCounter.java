@@ -10,7 +10,6 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
-import java.text.MessageFormat;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,13 +25,13 @@ import java.util.stream.Stream;
  * {@code window} and {@code duration} this implementation holds counter for time slots of size {@code duration} to
  * fill the {@code window}.
  */
-public class SlidingWindowCounter {
+public final class SlidingWindowCounter {
 
     private final Clock clock;
     private final MeasurementWindow[] windows;
     private final ConcurrentMap<Long, Long> measurements = new ConcurrentHashMap<>();
 
-    private AtomicLong lastTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
+    private final AtomicLong lastTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final Duration minResolution;
 
     /**
@@ -50,6 +49,10 @@ public class SlidingWindowCounter {
                 .orElse(Duration.ofMinutes(5));
     }
 
+    /**
+     * TODO TJ doc
+     * @return
+     */
     long getLastMeasurementAt() {
         return lastTimestamp.get();
     }
@@ -61,7 +64,7 @@ public class SlidingWindowCounter {
      * @param ts the timestamp when the operation happened (mostly useful for testing)
      */
     void increment(final boolean success, final long ts) {
-        final long lastTimestamp = this.lastTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
+        final long theTimestamp = this.lastTimestamp.getAndUpdate(previous -> Math.max(previous, ts));
 
         for (final MeasurementWindow window : windows) {
             final long slot = getSlot(ts, window.getResolution().toMillis());
@@ -74,7 +77,7 @@ public class SlidingWindowCounter {
         }
 
         // if diff between current and last timestamp is too large, cleanup old measurements
-        if (lastTimestamp > ts - minResolution.toMillis()) {
+        if (theTimestamp > ts - minResolution.toMillis()) {
             cleanUp();
         }
     }

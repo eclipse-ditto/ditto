@@ -11,7 +11,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.metrics;
 
 import java.time.Duration;
-import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -26,7 +25,10 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 
-public class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
+/**
+ * TODO TJ doc
+ */
+public final class RetrieveConnectionMetricsAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private static final long DEFAULT_TIMEOUT = Duration.ofSeconds(10).toMillis();

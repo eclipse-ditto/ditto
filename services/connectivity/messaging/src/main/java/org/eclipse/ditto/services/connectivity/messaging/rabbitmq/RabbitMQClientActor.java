@@ -314,7 +314,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private Optional<ActorRef> startRmqPublisherActor() {
         if (isPublishing()) {
             return Optional.of(getContext().findChild(RabbitMQPublisherActor.ACTOR_NAME).orElseGet(() -> {
-                final Props publisherProps = RabbitMQPublisherActor.props(getTargetsOrEmptySet(), connectionId());
+                final Props publisherProps = RabbitMQPublisherActor.props(connectionId(), getTargetsOrEmptySet());
                 return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
             }));
         } else {
@@ -356,7 +356,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                             consumerByAddressWithIndex.put(addressWithIndex, consumer);
                             try {
                                 final String consumerTag = channel.basicConsume(sourceAddress, false,
-                                        new RabbitMQMessageConsumer(consumer, channel));
+                                        new RabbitMQMessageConsumer(consumer, channel, sourceAddress));
                                 log.debug("Consuming queue <{}>, consumer tag is <{}>.", addressWithIndex, consumerTag);
                                 consumedTagsToAddresses.put(consumerTag, addressWithIndex);
                             } catch (final IOException e) {
@@ -463,16 +463,20 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private final class RabbitMQMessageConsumer extends DefaultConsumer {
 
         private final ActorRef consumerActor;
+        private final String address;
 
         /**
          * Constructs a new instance and records its association to the passed-in channel.
          *
+         * @param consumerActor
          * @param channel the channel to which this consumer is attached
+         * @param address TODO TJ doc
          */
         private RabbitMQMessageConsumer(final ActorRef consumerActor,
-                final Channel channel) {
+                final Channel channel, final String address) {
             super(channel);
             this.consumerActor = consumerActor;
+            this.address = address;
             updateSourceStatus(ConnectionStatus.OPEN, "Consumer initialized at " + Instant.now());
         }
 
@@ -547,8 +551,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
         }
 
         private void updateSourceStatus(final ConnectionStatus connectionStatus, final String statusDetails) {
-            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(connectionStatus, statusDetails, Instant.now()),
-                    ActorRef.noSender());
+            consumerActor.tell(ConnectivityModelFactory.newStatusUpdate(address, connectionStatus, statusDetails,
+                    Instant.now()), ActorRef.noSender());
         }
 
     }

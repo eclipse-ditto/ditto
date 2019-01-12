@@ -21,7 +21,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,8 +32,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.TestConstants;
@@ -63,9 +62,9 @@ public final class RetrieveConnectionStatusResponseTest {
             );
     private static List<ResourceStatus> targetStatus =
             Arrays.asList(
-                    newTargetStatus(ConnectionStatus.OPEN, "open since ..."),
-                    newTargetStatus(ConnectionStatus.FAILED, "this publisher fails ..."),
-                    newTargetStatus(ConnectionStatus.CLOSED, "closed since 123")
+                    newTargetStatus("target1", ConnectionStatus.OPEN, "open since ..."),
+                    newTargetStatus("target2", ConnectionStatus.FAILED, "this publisher fails ..."),
+                    newTargetStatus("target3", ConnectionStatus.CLOSED, "closed since 123")
             );
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()

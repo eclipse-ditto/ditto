@@ -53,10 +53,6 @@ final class ImmutableSourceMetrics implements SourceMetrics {
         return addressMetrics;
     }
 
-//    @Override
-//    public long getConsumedMessages() {
-//        return consumedMessages;
-//    }
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
@@ -67,7 +63,6 @@ final class ImmutableSourceMetrics implements SourceMetrics {
         jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.entrySet().stream()
                 .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
                 .collect(JsonCollectors.fieldsToObject()), predicate);
-//        jsonObjectBuilder.set(JsonFields.CONSUMED_MESSAGES, consumedMessages, predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -86,7 +81,6 @@ final class ImmutableSourceMetrics implements SourceMetrics {
                                 f -> f.getKey().toString(),
                                 f -> ConnectivityModelFactory.addressMetricFromJson(f.getValue().asObject()))))
                 .orElse(Collections.emptyMap());
-//        final long readConsumedMessages = jsonObject.getValueOrThrow(JsonFields.CONSUMED_MESSAGES);
         return ImmutableSourceMetrics.of(readAddressMetrics);
     }
 

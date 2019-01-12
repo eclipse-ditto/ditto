@@ -15,18 +15,21 @@ import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELA
 
 import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.metrics.ConnectionMetricsCollector;
@@ -58,15 +61,22 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
     private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
-    protected ResourceStatus resourceStatus;
-    protected String connectionId;
+    protected final String connectionId;
+    protected final Set<Target> targets;
+    protected final Map<Target, ResourceStatus> resourceStatusMap;
+
     private ConnectionMetricsCollector responseDroppedCounter;
     private ConnectionMetricsCollector responsePublishedCounter;
 
 
-    protected BasePublisherActor(final String connectionId) {
+    protected BasePublisherActor(final String connectionId, final Set<Target> targets) {
         this.connectionId = checkNotNull(connectionId, "connectionId");
-        resourceStatus = ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "Started at " + Instant.now());
+        this.targets = checkNotNull(targets, "targets");
+        resourceStatusMap = new HashMap<>();
+        final Instant now = Instant.now();
+        targets.forEach(target ->
+                resourceStatusMap.put(target, ConnectivityModelFactory.newTargetStatus(target.getAddress(),
+                ConnectionStatus.OPEN, "Started at " + now)));
         responseDroppedCounter = ConnectivityCounterRegistry.getResponseDroppedCounter(this.connectionId);
         responsePublishedCounter = ConnectivityCounterRegistry.getResponsePublishedCounter(connectionId);
     }
@@ -122,8 +132,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                         }
                     });
                 })
-                .match(ResourceStatus.class, this::handleAddressStatus)
-                .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentTargetStatus(), getSelf()))
+                .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
+                        getSender().tell(rs, getSelf())))
                 .matchAny(m -> {
                     log().warning("Unknown message: {}", m);
                     unhandled(m);
@@ -133,11 +143,12 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return receiveBuilder.build();
     }
 
-    private ResourceStatus getCurrentTargetStatus() {
-        if (resourceStatus != null) {
-            return resourceStatus;
+    private Collection<ResourceStatus> getCurrentTargetStatus() {
+        if (resourceStatusMap.isEmpty()) {
+            return Collections.singletonList(
+                    ConnectivityModelFactory.newTargetStatus("no-targets", ConnectionStatus.UNKNOWN, null));
         } else {
-            return ConnectivityModelFactory.newTargetStatus(ConnectionStatus.UNKNOWN, null);
+            return resourceStatusMap.values();
         }
     }
 
@@ -256,14 +267,4 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         }).orElseGet(messageBuilder::build);
     }
 
-    private void handleAddressStatus(final ResourceStatus resourceStatus) {
-        if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
-            this.resourceStatus =
-                    ConnectivityModelFactory.newTargetStatus(
-                            ConnectionStatus.forName(resourceStatus.getStatus()).orElse(ConnectionStatus.UNKNOWN),
-                            resourceStatus.getStatusDetails().orElse(null));
-        } else {
-            this.resourceStatus = resourceStatus;
-        }
-    }
 }

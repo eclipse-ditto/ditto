@@ -30,14 +30,14 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicate<JsonField> {
 
     /**
-     * @return type of the address
+     * @return type of the resource
      */
-    ImmutableResourceStatus.ResourceType getResourceType();
+    ResourceStatus.ResourceType getResourceType();
 
     /**
-     * @return the resource identifier
+     * @return the resource address
      */
-    Optional<String> getAddress();
+    String getAddress();
 
     /**
      * @return the current status of the resource
@@ -69,10 +69,28 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
         return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
     }
 
+    /**
+     * Identifies the type of resource included in a ResourceStatus.
+     */
     enum ResourceType {
+        /**
+         * A {@link Source}.
+         */
         SOURCE,
+
+        /**
+         * A {@link Target}.
+         */
         TARGET,
+
+        /**
+         * A {@code Client}.
+         */
         CLIENT,
+
+        /**
+         * Unknown resource type.
+         */
         UNKNOWN
     }
 

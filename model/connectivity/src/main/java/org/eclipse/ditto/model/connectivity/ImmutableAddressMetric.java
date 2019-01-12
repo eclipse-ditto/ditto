@@ -13,10 +13,8 @@ package org.eclipse.ditto.model.connectivity;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,8 +28,6 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-
-import com.eclipsesource.json.Json;
 
 /**
  * Immutable implementation of {@link AddressMetric}.

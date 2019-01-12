@@ -47,9 +47,9 @@ public interface Measurement extends Jsonifiable.WithFieldSelectorAndPredicate<J
     Map<Duration, Long> getCounts();
 
     /**
-     * @return last instant when the counter was updated
+     * @return last instant when the counter was updated - if ever
      */
-    Instant getLastMessageAt();
+    Optional<Instant> getLastMessageAt();
 
     /**
      * Returns all non hidden marked fields of this {@code AddressMetric}.

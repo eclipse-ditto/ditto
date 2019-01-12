@@ -43,7 +43,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -191,22 +190,6 @@ public abstract class BaseClientActor extends AbstractFSM<BaseClientState, BaseC
      * @param origin the ActorRef which caused the DisconnectClient command.
      */
     protected abstract void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin);
-
-    /**
-     * Retrieves the connection status of the passed {@link Source}.
-     *
-     * @param source the Source to retrieve the connection status for.
-     * @return the result as Map containing an entry for each source.
-     */
-//    protected abstract CompletionStage<Map<String, ResourceStatus>> getSourceConnectionStatus(final Source source);
-
-    /**
-     * Retrieves the connection status of the passed {@link Target}.
-     *
-     * @param target the Target to retrieve the connection status for.
-     * @return the result as Map containing an entry for each target.
-     */
-//    protected abstract CompletionStage<Map<String, ResourceStatus>> getTargetConnectionStatus(final Target target);
 
     /**
      * Release any temporary resources allocated during a connection operation when the operation times out.

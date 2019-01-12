@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.model.connectivity.ImmutableMeasurement;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
@@ -104,8 +104,9 @@ public class ConnectivityCounterRegistryTest {
 
     }
 
-    private ImmutableMeasurement getMeasurement(final ConnectivityCounterRegistry.Metric metric, final boolean b) {
-        return new ImmutableMeasurement(metric.getLabel(), b, getCounters(metric.ordinal() + 1), FIXED_INSTANT);
+    private Measurement getMeasurement(final ConnectivityCounterRegistry.Metric metric, final boolean b) {
+        return ConnectivityModelFactory.newMeasurement(metric.getLabel(), b, getCounters(metric.ordinal() + 1),
+                FIXED_INSTANT);
     }
 
 }

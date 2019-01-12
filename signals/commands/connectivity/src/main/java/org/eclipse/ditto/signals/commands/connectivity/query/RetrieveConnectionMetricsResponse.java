@@ -38,7 +38,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.ImmutableMeasurement;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
@@ -197,14 +196,26 @@ public final class RetrieveConnectionMetricsResponse
                 (measurementA, measurementB) -> {
                     final Map<Duration, Long> merged =
                             mergeMeasurements(measurementA.getCounts(), measurementB.getCounts());
-                    return new ImmutableMeasurement(measurementA.getType(), measurementA.isSuccess(), merged,
-                            latest(measurementA.getLastMessageAt(), measurementB.getLastMessageAt()));
+                    return ConnectivityModelFactory.newMeasurement(measurementA.getType(), measurementA.isSuccess(),
+                            merged, latest(
+                                    measurementA.getLastMessageAt().orElse(null),
+                                    measurementB.getLastMessageAt().orElse(null)
+                            ));
                 }));
         return ConnectivityModelFactory.newAddressMetric(new HashSet<>(result.values()));
     }
 
-    private static Instant latest(final Instant instantA, final Instant instantB) {
-        return Instant.ofEpochMilli(Math.max(instantA.toEpochMilli(), instantB.toEpochMilli()));
+    @Nullable
+    private static Instant latest(@Nullable final Instant instantA, @Nullable final Instant instantB) {
+        if (instantA == null && instantB == null) {
+            return null;
+        } else if (instantA == null) {
+            return instantB;
+        } else if (instantB == null) {
+            return instantA;
+        } else {
+            return Instant.ofEpochMilli(Math.max(instantA.toEpochMilli(), instantB.toEpochMilli()));
+        }
     }
 
     private static Map<String, Measurement> asMap(final AddressMetric a) {

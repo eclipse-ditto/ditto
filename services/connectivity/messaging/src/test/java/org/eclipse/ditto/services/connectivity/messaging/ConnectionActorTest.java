@@ -15,7 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -135,7 +134,7 @@ public final class ConnectionActorTest extends WithMockServers {
                             ConnectivityModelFactory.newSourceStatus("source1", ConnectionStatus.OPEN, "consumer started"),
                             ConnectivityModelFactory.newSourceStatus("source2", ConnectionStatus.OPEN, "consumer started")
                         ),
-                        asList(ConnectivityModelFactory.newTargetStatus(ConnectionStatus.OPEN, "publisher started")),
+                        asList(ConnectivityModelFactory.newTargetStatus("target1", ConnectionStatus.OPEN, "publisher started")),
                         DittoHeaders.empty());
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
     }

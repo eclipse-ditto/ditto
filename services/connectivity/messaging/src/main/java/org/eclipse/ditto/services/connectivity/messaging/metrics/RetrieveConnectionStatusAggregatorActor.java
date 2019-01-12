@@ -14,15 +14,12 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
 import akka.actor.AbstractActor;
@@ -31,7 +28,10 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
 
-public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
+/**
+ * TODO TJ doc
+ */
+public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
     private final Duration timeout;
@@ -66,6 +66,14 @@ public class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
         }
     }
 
+    /**
+     * TODO TJ doc
+     * @param connection
+     * @param sender
+     * @param dittoHeaders
+     * @param timeout
+     * @return
+     */
     public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders dittoHeaders,
             final Duration timeout) {
         return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, dittoHeaders, timeout);
