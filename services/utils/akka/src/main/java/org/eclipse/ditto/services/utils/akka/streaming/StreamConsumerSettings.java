@@ -41,7 +41,7 @@ public final class StreamConsumerSettings {
         maxIdleTime = config.getDuration("max-idle-time");
         streamingActorTimeout = config.getDuration("streaming-actor-timeout");
         elementsStreamedPerBatch = config.getInt("elements-streamed-per-batch");
-        outdatedWarningOffset = config.getDuration("warn-offset");
+        outdatedWarningOffset = config.getDuration("outdated-warning-offset");
 
         final String minimalDelay = "minimal-delay-between-streams";
         minimalDelayBetweenStreams = config.hasPath(minimalDelay) ? config.getDuration(minimalDelay) : Duration.ZERO;
