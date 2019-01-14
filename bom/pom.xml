@@ -450,17 +450,6 @@
                 </exclusions>
             </dependency>
 
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient</artifactId>
-                <version>${prometheus.java-client.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.prometheus</groupId>
-                <artifactId>simpleclient_common</artifactId>
-                <version>${prometheus.java-client.version}</version>
-            </dependency>
-
             <!-- ### Compile - own artifacts ### -->
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>

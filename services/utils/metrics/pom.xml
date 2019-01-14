@@ -27,31 +27,22 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
-
-        <!-- Required to report kamon metrics to prometheus -->
         <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-core_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-http_${scala.version}</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>io.kamon</groupId>
             <artifactId>kamon-prometheus_${scala.version}</artifactId>
         </dependency>
-
-        <!-- Required to report mongodb metrics from Dropwizard to Prometheus -->
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient_common</artifactId>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-http_${scala.version}</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <!-- This dependency is required to build the MongoMetricsBuilder. It should be provided, because
