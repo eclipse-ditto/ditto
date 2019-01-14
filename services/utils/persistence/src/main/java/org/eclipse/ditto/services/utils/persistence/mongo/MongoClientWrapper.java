@@ -181,9 +181,10 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         private final MongoClientSettings.Builder mongoClientSettingsBuilder;
         private final ConnectionPoolSettings.Builder connectionPoolSettingsBuilder;
+        private final DittoMongoClientSettings.Builder dittoMongoClientSettingsBuilder;
+
         @Nullable private ConnectionString connectionString;
         private String defaultDatabaseName;
-        private DittoMongoClientSettings.Builder dittoMongoClientSettingsBuilder;
         private boolean sslEnabled;
         @Nullable private EventLoopGroup eventLoopGroup;
 
@@ -191,9 +192,9 @@ public final class MongoClientWrapper implements DittoMongoClient {
             mongoClientSettingsBuilder = MongoClientSettings.builder();
             mongoClientSettingsBuilder.readPreference(ReadPreference.secondaryPreferred());
             connectionPoolSettingsBuilder = ConnectionPoolSettings.builder();
+            dittoMongoClientSettingsBuilder = DittoMongoClientSettings.getBuilder();
             connectionString = null;
             defaultDatabaseName = null;
-            dittoMongoClientSettingsBuilder = DittoMongoClientSettings.getBuilder();
             sslEnabled = false;
             eventLoopGroup = null;
         }
