@@ -35,7 +35,7 @@
         <typesafe-config.version>1.3.2</typesafe-config.version>
         <akka.version>2.5.17</akka.version>
         <akka-http.version>10.1.5</akka-http.version>
-        <akka-persistence-mongo.version>2.2.1</akka-persistence-mongo.version>
+        <akka-persistence-mongo.version>2.2.2</akka-persistence-mongo.version>
         <akka-management.version>0.14.0</akka-management.version>
         <simple-akka-downing.version>0.9.2</simple-akka-downing.version>
         <alpakka-mqtt.version>0.20</alpakka-mqtt.version>
@@ -195,11 +195,23 @@
                 <groupId>com.github.scullxbones</groupId>
                 <artifactId>akka-persistence-mongo-common_${scala.version}</artifactId>
                 <version>${akka-persistence-mongo.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard.metrics</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.github.scullxbones</groupId>
                 <artifactId>akka-persistence-mongo-casbah_${scala.version}</artifactId>
                 <version>${akka-persistence-mongo.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard.metrics</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.mongodb</groupId>
